@@ -10,6 +10,9 @@
     <Project Path="../shared/Pos.Domain/Pos.Domain.csproj" />
     <Project Path="../shared/Pos.Shared/Pos.Shared.csproj" />
   </Folder>
+  <Folder Name="/Tools/">
+    <Project Path="tools/Pos.Server.SampleData/Pos.Server.SampleData.csproj" />
+  </Folder>
   <Folder Name="/Test/">
     <Project Path="../shared/Pos.Domain.Tests/Pos.Domain.Tests.csproj" />
     <Project Path="tests/Pos.Server.UnitTests/Pos.Server.UnitTests.csproj" />

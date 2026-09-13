@@ -48,15 +48,17 @@ template-maui-pos/
 │  ├─ Pos.Domain.Tests/              計算ロジックの単体テスト。依存関係の検証テスト (Pos.Domain が UI / DB / HTTP に依存しない) を含む
 │  └─ Pos.Shared/                    通信データ: XxxRequest / XxxResponse (net10.0)
 ├─ server/                           Service-CloudManager と同じ形
-│  ├─ Pos.Server.slnx                サーバ + shared/ (Domain / Shared / Domain.Tests) + tests
+│  ├─ Pos.Server.slnx                サーバ + shared/ (Domain / Shared / Domain.Tests) + tests + tools
 │  ├─ Pos.Server.sln.DotSettings
 │  ├─ src/
 │  │  ├─ Pos.Server.AppHost/         Aspire AppHost (template-blazor-server から)
 │  │  ├─ Pos.Server.Core/            Accessors (SQL) / Models.Entity / Infrastructure
 │  │  └─ Pos.Server.Host/            Minimal API + Blazor (MudBlazor) ホスト
-│  └─ tests/
-│     ├─ Pos.Server.UnitTests/       bUnit (NavMenu)、SqlHelper などの単体テスト
-│     └─ Pos.Server.IntegrationTests/ WebApplicationFactory による API テスト (SQLite 一時ファイル)
+│  ├─ tests/
+│  │  ├─ Pos.Server.UnitTests/       bUnit (NavMenu)、SqlHelper などの単体テスト
+│  │  └─ Pos.Server.IntegrationTests/ WebApplicationFactory による API テスト (SQLite 一時ファイル)
+│  └─ tools/
+│     └─ Pos.Server.SampleData/      サンプル取引の生成ツール (API 経由、§8)
 └─ terminal/                         template-maui-keyboard と同じ形
    ├─ Pos.Terminal.slnx              端末 + shared/ (Domain / Shared)
    ├─ Pos.Terminal.sln.DotSettings / Settings.XamlStyler
@@ -293,6 +295,7 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | DB | 起動時に `pos.db` (SQLite、実行ディレクトリ) を自動作成。テーブルと初期データ (店舗 / 端末 / 税率 / 支払方法 / 部門・商品サンプル) は Phase 3 で `InitializeApplicationAsync` に追加 |
 | OpenAPI | 開発時 `/swagger`、`/redoc`、`/openapi/v1.json` |
 | テスト | テストプロジェクトごとに `dotnet run --project` (例: `dotnet run --project server/tests/Pos.Server.UnitTests`)。`dotnet test` は使わない。[D-35](decisions.md#d-35-テストの実行方法) |
+| サンプル取引 | `dotnet run --project server/tools/Pos.Server.SampleData -- --days 7` (起動中のサーバに対して直近 7 日分のシフト・販売・返品・取消・入出金・精算を API で登録する。§8、[D-41](decisions.md#d-41-サンプル取引の生成-api-経由のコンソールツール)) |
 | 端末 | `terminal/Pos.Terminal.slnx` を VS で開いて Android エミュレータで実行、または `dotnet build -t:Run -f net10.0-android -p:AdbTarget="-s emulator-5554"`。エミュレータからサーバへは `10.0.2.2:8080`。設定 QR を管理画面 S-71 で表示して読み取る (エミュレータでは T-00 に手入力でもよい) |
 | UI の言語 | 日本語固定。多言語化はしない ([D-28](decisions.md#d-28-ui-の言語-日本語固定)) |
 | コーディング規約 | ルートの `AGENTS.md`: `.editorconfig` に従う、フィールドに `_` を付けない、警告ゼロ、新規テキストファイルは CRLF、「DTO」は使わない ([D-27](decisions.md#d-27-用語-dto-は使わない)) |
@@ -336,7 +339,15 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | 会員 | 5 | ポイント残高あり (0 / 少額 / 多額)、住所あり (配送先の複写用) |
 | 在庫 | 全商品 × 2 店舗 | 固定値 (0 / 少量 / 多量を混ぜる。他店在庫の表示確認用) |
 
-取引・シフトのサンプルは投入しない (端末から作る)。レポート確認用に直近数日分を生成するオプションは任意。管理者アカウントは認証を入れる Phase 2 で追加する。
+取引・シフトのサンプルは起動時には投入しない (端末から作る)。レポート確認用には `server/tools/Pos.Server.SampleData` で直近数日分を生成できる ([D-41](decisions.md#d-41-サンプル取引の生成-api-経由のコンソールツール))。管理者アカウントは認証を入れる Phase 2 で追加する。
+
+| `Pos.Server.SampleData` | 内容 |
+| --- | --- |
+| 対象 | 有効な店舗 × 端末ごとに、`--days` 日分 (既定 7)。開設中のシフトがある端末は省略 |
+| 1 日の流れ | 08:30 に在庫調整 (初日のみ、物品を 10〜30 個「サンプル入荷」) → 09:00 開設 (釣銭準備金 3 万円) → 販売 `--per-day` ± 2 件 (既定 6) → 返品 (販売の 25%) → 取消 (30% の日に 1 件) → 出金 (60% の日) → 20:00 精算 (ときどき過不足) |
+| 販売の内容 | 端末と同じ手順 (`SalesCalculator` → `TransactionRequest` → `POST /transactions`)。1〜3 明細、明細値引 (承認者付き) / 取引値引 15%、シリアル番号、会員 (ポイント利用は残高まで)、カード 35% (伝票番号付き) / 現金 (千円単位の預り)、サービス明細には配送先 |
+| レシート番号 | `terminals/{id}` の `lastReceiptSeq` から連番を続ける |
+| 乱数 | `--seed` (既定 1) で再現できる。サーバが 409 / 422 で拒否した取引は省略して続行する |
 
 ---
 

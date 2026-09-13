@@ -6,6 +6,9 @@ public static class DisplayText
     public static string Yen(decimal value) =>
         value < 0 ? "-¥" + (-value).ToString("#,##0", CultureInfo.InvariantCulture) : "¥" + value.ToString("#,##0", CultureInfo.InvariantCulture);
 
+    // 差し引く項目 (返品・出金・値引) の表示。0 のときは符号を付けない
+    public static string MinusYen(decimal value) => value == 0 ? Yen(0) : "-" + Yen(value);
+
     public static string Quantity(decimal value) => value.ToString("#,##0.##", CultureInfo.InvariantCulture);
 
     public static string Points(int value) => value.ToString("#,##0", CultureInfo.InvariantCulture) + " pt";

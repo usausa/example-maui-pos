@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Pos.Server.SampleData</RootNamespace>
+    <CodeAnalysisRuleSet>..\..\..\Analyzers.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\Pos.Domain\Pos.Domain.csproj" />
+    <ProjectReference Include="..\..\..\shared\Pos.Shared\Pos.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

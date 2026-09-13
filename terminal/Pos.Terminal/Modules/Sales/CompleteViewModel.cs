@@ -44,7 +44,7 @@ public sealed partial class CompleteViewModel : AppViewModelBase
 
         isReturn = transaction.Type == TransactionType.Return;
         Title = isReturn ? "返品完了" : "会計完了";
-        Message = isReturn ? "✅ 返品を登録しました" : "✅ お買い上げありがとうございました";
+        Message = isReturn ? "✅ 返品を登録しました" : "✅ ありがとうございました";
         ChangeCaption = isReturn ? "返金額" : "お釣り";
         ChangeText = DisplayText.Yen(isReturn ? transaction.Total : transaction.ChangeAmount);
         TotalText = $"合計 {DisplayText.Yen(transaction.Total)}  お預り {DisplayText.Yen(transaction.TenderedTotal)}";

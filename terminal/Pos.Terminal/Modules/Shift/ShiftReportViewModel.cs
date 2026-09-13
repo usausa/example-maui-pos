@@ -69,9 +69,9 @@ public sealed partial class ShiftReportViewModel : AppViewModelBase
             [
                 new SummaryRow("釣銭準備金", DisplayText.Yen(cash.OpeningCash)),
                 new SummaryRow("現金売上", DisplayText.Yen(cash.CashSales)),
-                new SummaryRow("現金返品", "-" + DisplayText.Yen(cash.CashReturns)),
+                new SummaryRow("現金返品", DisplayText.MinusYen(cash.CashReturns)),
                 new SummaryRow("入金", DisplayText.Yen(cash.PaidIn)),
-                new SummaryRow("出金", "-" + DisplayText.Yen(cash.PaidOut)),
+                new SummaryRow("出金", DisplayText.MinusYen(cash.PaidOut)),
                 new SummaryRow("予想現金", DisplayText.Yen(cash.ExpectedCash ?? 0m)),
                 new SummaryRow("実査金額", cash.ActualCash is null ? "-" : DisplayText.Yen(cash.ActualCash.Value)),
                 new SummaryRow("過不足", cash.Difference is null ? "-" : cash.Difference.Value > 0 ? "+" + DisplayText.Yen(cash.Difference.Value) : DisplayText.Yen(cash.Difference.Value))

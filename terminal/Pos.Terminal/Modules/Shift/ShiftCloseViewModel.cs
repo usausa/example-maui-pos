@@ -101,9 +101,9 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
             new SummaryRow("🚫 取消", $"{totals.VoidCount} 件"),
             new SummaryRow("釣銭準備金", DisplayText.Yen(summary.Cash.OpeningCash)),
             new SummaryRow("現金売上", DisplayText.Yen(summary.Cash.CashSales)),
-            new SummaryRow("現金返品", "-" + DisplayText.Yen(summary.Cash.CashReturns)),
+            new SummaryRow("現金返品", DisplayText.MinusYen(summary.Cash.CashReturns)),
             new SummaryRow("入金", DisplayText.Yen(summary.Cash.PaidIn)),
-            new SummaryRow("出金", "-" + DisplayText.Yen(summary.Cash.PaidOut)),
+            new SummaryRow("出金", DisplayText.MinusYen(summary.Cash.PaidOut)),
             new SummaryRow("予想現金", DisplayText.Yen(expectedCash))
         ];
         UpdateDifference();

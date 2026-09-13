@@ -128,7 +128,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             new("💰 金額",
             [
                 new SummaryRow("小計", DisplayText.Yen(transaction.Subtotal)),
-                new SummaryRow("値引", "-" + DisplayText.Yen(transaction.DiscountTotal)),
+                new SummaryRow("値引", DisplayText.MinusYen(transaction.DiscountTotal)),
                 new SummaryRow("消費税", DisplayText.Yen(transaction.TaxTotal)),
                 new SummaryRow("合計", DisplayText.Yen(transaction.Total))
             ]),

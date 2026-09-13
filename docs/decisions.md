@@ -570,3 +570,20 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 - `ApiResult<T>` は `Status` (Success / HttpError / Unavailable / Canceled)、`StatusCode`、`Content`、`Problem`、`ErrorCode` を持つ。`IsRejected` (4xx) を Outbox の Failed 判定に使う
 - 接続確認・インジケータ・エラー通知は `NetworkOperator.ExecuteAsync` に集約する (オンライン限定の操作で使う)
 - 端末の JSON 設定はサーバ (`ConfigureHttpJsonOptions`) と同じ (architecture §4.2)
+
+### D-41. サンプル取引の生成: API 経由のコンソールツール
+
+レポートやダッシュボードの確認には数日分の取引・シフトが要るが、端末から手で作るのは時間がかかる。初期データ (architecture §8) には入れない方針 ([D-30](#d-30-初期データの規模)) なので、別の手段が要る。
+
+| 案 | 内容 |
+| --- | --- |
+| A. 起動時の初期データに取引も入れる | 営業日が固定になり、集計の検証やレシート番号の連番と噛み合わない。取引の登録処理 (在庫・ポイント・連番) を二重に持つことになる |
+| B. SQL で直接 INSERT する | 副作用 (在庫変動・ポイント履歴・`lastReceiptSeq`) を自前で再現する必要があり、サーバの検証も通らない |
+| ✅ **C. API を呼ぶコンソールツール** | `server/tools/Pos.Server.SampleData`。`Pos.Domain` で計算した `TransactionRequest` を `POST /transactions` に送る (端末と同じ経路)。サーバの検証・副作用をそのまま使える |
+
+**決定**: ✅ **C**。
+
+- 対象は起動中のサーバ (`--base`、既定 `http://localhost:8080/`)。有効な店舗 × 端末ごとに直近 `--days` 日分 (既定 7) を、開設 → 販売 → 返品 → 取消 → 出金 → 精算の順に登録する。開設中のシフトがある端末は省略する
+- 初日の開店前に物品の在庫を調整 (`POST /inventory/changes`、`Adjustment`「サンプル入荷」) で積み、販売で在庫がマイナスになりすぎないようにする (少数のマイナス在庫は残り、要確認の表示確認に使える)
+- 乱数は `--seed` で固定し、同じ引数なら同じ内容になる (ID と時刻は除く)。サーバに拒否された取引 (409 / 422) は省略して続行する
+- `Pos.Server.slnx` の `/Tools/` に含める。`Pos.Domain` / `Pos.Shared` だけを参照し、`Pos.Server.Core` / `Host` には依存しない
