@@ -89,23 +89,25 @@
 
 ---
 
-## Phase 2: `Pos.Shared`
+## Phase 2: `Pos.Shared` (完了)
 
 api-design §3 の通信データ。
 
-- [ ] `Common/ErrorCodes` (api-design §5 の定数)
-- [ ] マスタ: Settings / Store / Terminal / Staff / Category / TaxRate / Product / Discount / PaymentMethod / AdjustmentReason の `XxxResponse` / `XxxCreateRequest` / `XxxUpdateRequest` / `XxxListResponse`、`SyncMastersResponse`
-- [ ] 顧客: `CustomerXxx`、`PointHistoryResponse` / `PointHistoryListResponse`、`PointAdjustRequest`
-- [ ] 取引: `TransactionRequest` / `TransactionResponse` (+ `TransactionRequestLine` / `TransactionResponseLine`、値引・税集計・支払・配送・取消情報)、`TransactionListResponse`、`TransactionVoidRequest`、`TransactionCalculateRequest`
-- [ ] シフト: `ShiftOpenRequest`、`ShiftResponse` / `ShiftListResponse`、`CashEventRequest` / `CashEventResponse`、`ShiftCloseRequest`、`ShiftSummaryResponse`
-- [ ] 在庫: `InventoryLevelResponse` / `InventoryLevelListResponse`、`ProductInventoryResponse`、`InventoryChangeRequest` / `InventoryChangeResultResponse`、`InventoryChangeResponse` / `InventoryChangeListResponse`
-- [ ] レポート: `SalesSummaryResponse`、`ProductSalesResponse`
-- [ ] 検証属性 (`Required` / `MaxLength` / `Range`) をテンプレートと同じ書き方で付与
+- [x] `Common/`: `ListResponse<T>`、`ProblemResponse`、`JsonDateTimeConverter` (エラーコード定数は `Pos.Domain` の `ErrorCode.ToCode()` で代替)
+- [x] マスタ: Settings / Store / Terminal / Staff / Category / TaxRate / Product / Discount / PaymentMethod / AdjustmentReason の `XxxResponse` / `XxxCreateRequest` / `XxxUpdateRequest` / `XxxListResponse`、`SyncMastersResponse`
+- [x] 顧客: `CustomerXxx`、`PointHistoryResponse` / `PointHistoryListResponse`、`PointAdjustRequest`
+- [x] 取引: `TransactionRequest` / `TransactionResponse` (+ `TransactionRequestLine` / `TransactionResponseLine`、値引・税集計・支払・配送・取消情報・警告)、`TransactionListResponse`、`TransactionVoidRequest`、`TransactionCalculateRequest`、`TransactionCalculationResponse`
+- [x] シフト: `ShiftOpenRequest`、`ShiftResponse` / `ShiftListResponse`、`CashEventRequest` / `CashEventResponse` / `CashEventListResponse`、`ShiftCloseRequest`、`ShiftSummaryResponse`
+- [x] 在庫: `InventoryLevelResponse` / `InventoryLevelListResponse`、`ProductInventoryResponse`、`InventoryChangeRequest` / `InventoryChangeResultResponse`、`InventoryChangeResponse` / `InventoryChangeListResponse`
+- [x] レポート: `SalesSummaryResponse`、`ProductSalesResponse`
+- [x] 検証属性 (`Required` / `MaxLength` / `Range`) をテンプレートと同じ書き方で付与
+- [x] サーバの JSON 設定に `JsonDateTimeConverter` / `JsonStringEnumConverter` を登録し、`JsonContractTests` (統合テスト) で形式を固定
+- [x] CA1716 / CA1056 は `Pos.Shared` の `GlobalSuppressions.cs` で抑止 ([D-38](decisions.md#d-38-posshared-の警告抑止))
 
 ### 完了条件
 
-- [ ] 両ソリューションでビルドが通る
-- [ ] api-design §3 の全フィールドと名称・型が一致している (突き合わせ)
+- [x] 両ソリューションでビルドが通る (警告ゼロ)
+- [x] api-design §3 の全フィールドと名称・型が一致している (突き合わせ済み。差分は api-design に反映: `payments[].note`、`warnings[]`、`calculate` の応答型、端末 / 商品の Request に含めない項目)
 
 ---
 

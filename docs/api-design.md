@@ -49,7 +49,7 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 
 ### 2.2 一覧取得 (ページング・フィルタ)
 
-- 一覧は `page` (0 始まり) / `size` (既定 20、最大 1000) のページ方式 ([D-21](decisions.md#d-21-ページング-page--size--総件数))。応答は `XxxListResponse`
+- 一覧は `page` (0 始まり) / `size` (既定 20、最大 1000) のページ方式 ([D-21](decisions.md#d-21-ページング-page--size--総件数))。応答は `XxxListResponse`。ページングしない一覧 (税率など) も同じ形で返す (`page` = 0、`size` = 件数)
 
 ```jsonc
 { "total": 1234, "page": 0, "size": 20, "items": [ /* XxxResponse */ ] }
@@ -82,7 +82,7 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
   "traceId": "00-...",
   "errorCode": "CALCULATION_MISMATCH",
   "errors": { "total": ["expected 80200"] },   // 任意: フィールド別
-  "expected": { /* サーバ計算結果 (取引検証時のみ) */ }
+  "expected": { /* サーバ計算結果 (取引検証時のみ、TransactionCalculationResponse) */ }
 }
 ```
 
@@ -162,6 +162,8 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | ★ | POST | `/terminals` | 管理 | 登録 |
 | ★ | PUT | `/terminals/{id}` | 管理 | 更新 |
 | ★ | DELETE | `/terminals/{id}` | 管理 | 論理削除 (開設中シフトがあれば 422) |
+
+`TerminalCreateRequest` / `TerminalUpdateRequest` は `storeId` / `terminalNo` / `name` / `isActive` (+ `version`)。`lastReceiptSeq` は取引登録で、`lastSeenAt` / `appVersion` は端末の通信でサーバが更新する。
 
 > 端末登録 (ペアリング) と稼働報告 (heartbeat) は認証と合わせて Phase 2 ([§7](#7-phase-2-以降-後回し))。MVP の端末セットアップは管理画面が表示する **設定 QR** (`ApiEndPoint` / `StoreId` / `TerminalId`、[D-24](decisions.md#d-24-端末セットアップ-qr-テンプレート互換フォーマット)) を端末で読み取る。
 
@@ -248,7 +250,7 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `trackInventory` | bool | 在庫管理対象 (`Service` は false) |
 | `allowsPriceOverride` | bool | 売価変更可 (オープン価格・配送料など) |
 | `unit` | string(10)? | 単位 (個 / 本 / m) |
-| `imageUrl` | string? | 画像 URL (Phase 2) |
+| `imageUrl` | string? | 画像 URL (Phase 2。`ProductCreateRequest` / `ProductUpdateRequest` には含めず、画像 API で更新する) |
 | `isActive` | bool | 販売可否 (false = 販売停止だがマスタは残す) |
 | `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
@@ -405,6 +407,7 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `delivery` | object? | 入力 | 配送情報 (下記、[D-08](decisions.md#d-08-配送情報)) |
 | `note` | string(500)? | 入力 | |
 | `void` | object? | 入力 / サーバ | `{ voidedAt, voidedByStaffId, reason }` |
+| `warnings[]` | `{ code, message, lineId? }[]` | サーバ | 受理したが確認が必要な事項 ([§5](#5-エラーコード) の警告コード) |
 | `createdAt`, `updatedAt` | datetime | サーバ | |
 
 `lines[]` (`TransactionRequestLine` / `TransactionResponseLine`):
@@ -463,6 +466,7 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `amount` | money | 入力 | 充当額。Σ = `total` |
 | `tenderedAmount` | money | 入力 | 預り額。`allowsChange` の方法以外は `amount` と同じ |
 | `reference` | string(50)? | 入力 | カード伝票番号など |
+| `note` | string(200)? | 入力 | |
 
 `delivery`:
 
@@ -532,7 +536,7 @@ POST /api/v1/transactions      (TransactionRequest)
 | ★ | GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionResponse`) |
 | ★ | GET | `/transactions/lookup?receiptNo=` | 端末 | 返品時のレシート番号検索 |
 | ★ | POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, reason, voidedAt }` → `200` 取引 |
-| ★ | POST | `/transactions/calculate` | 端末 / 管理 | 入力項目だけを送り (`TransactionCalculateRequest`)、計算項目を埋めた取引を返す (登録しない)。共有ライブラリの検証用 |
+| ★ | POST | `/transactions/calculate` | 端末 / 管理 | 入力項目 (`type`, `originalTransactionId`, `lines[]`, `discounts[]`, `payments[]`) を送り (`TransactionCalculateRequest`)、計算項目 (`TransactionCalculationResponse`) を返す (登録しない)。共有ライブラリの検証用 |
 | ◎ | GET | `/transactions/{id}/receipt/pdf` | 管理 | レシート (再発行) の PDF ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
 | ◎ | POST | `/transactions/batch` | 端末 | 複数取引の一括送信。要素ごとに結果を返す |
 

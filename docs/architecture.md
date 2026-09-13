@@ -178,23 +178,30 @@ Rules/
 ### 4.2 `Pos.Shared`
 
 ```
-Masters/      SettingsResponse / SettingsUpdateRequest, StoreResponse / StoreCreateRequest / StoreUpdateRequest / StoreListResponse,
-              TerminalXxx, StaffXxx, CategoryXxx, TaxRateXxx, ProductXxx, DiscountXxx, PaymentMethodXxx, AdjustmentReasonXxx,
-              SyncMastersResponse
-Customers/    CustomerXxx, PointHistoryResponse / PointHistoryListResponse, PointAdjustRequest
-Transactions/ TransactionRequest / TransactionResponse (+ TransactionRequestLine / TransactionResponseLine,
-              TransactionDiscount, TaxSummary, TransactionPayment, Delivery, VoidInfo),
-              TransactionListResponse, TransactionVoidRequest, TransactionCalculateRequest
-Shifts/       ShiftOpenRequest / ShiftResponse / ShiftListResponse, CashEventRequest / CashEventResponse,
-              ShiftCloseRequest, ShiftSummaryResponse
-Inventory/    InventoryLevelResponse / InventoryLevelListResponse, InventoryChangeRequest / InventoryChangeResultResponse,
-              InventoryChangeResponse / InventoryChangeListResponse, ProductInventoryResponse
-Reports/      SalesSummaryResponse, ProductSalesResponse
-Common/       ErrorCodes (定数)
+Common/        ListResponse<T> (Total / Page / Size / Items。XxxListResponse の基底)、ProblemResponse (Problem Details + errorCode / errors / expected)、
+               JsonDateTimeConverter (yyyy-MM-ddTHH:mm:ss.fffZ。サーバと端末で共用)
+Settings/      SettingsResponse / SettingsUpdateRequest
+Stores/ Terminals/ Staff/ Categories/ TaxRates/ Products/ Discounts/ PaymentMethods/
+               XxxResponse / XxxListResponse / XxxCreateRequest / XxxUpdateRequest
+Sync/          SyncMastersResponse
+Customers/     CustomerResponse / CustomerListResponse / CustomerCreateRequest / CustomerUpdateRequest,
+               PointHistoryResponse / PointHistoryListResponse, PointAdjustRequest
+Transactions/  TransactionRequest (+ TransactionRequestLine / Discount / TaxSummary / Payment / Delivery / Void),
+               TransactionResponse (+ TransactionResponseLine / ... / Warning) / TransactionListResponse,
+               TransactionVoidRequest, TransactionCalculateRequest, TransactionCalculationResponse (計算項目のみ。calculate の応答と expected)
+Shifts/        ShiftOpenRequest, ShiftResponse (+ Denomination / Totals) / ShiftListResponse, ShiftCloseRequest (+ Denomination),
+               CashEventRequest / CashEventResponse / CashEventListResponse, ShiftSummaryResponse (+ PaymentMethod / TaxRate / Category / Points / Cash)
+Inventory/     InventoryLevelResponse / InventoryLevelListResponse, ProductInventoryResponse (+ Level),
+               InventoryChangeRequest (+ Change) / InventoryChangeResultResponse (+ Result、InventoryChangeResultStatus),
+               InventoryChangeResponse / InventoryChangeListResponse, AdjustmentReasonResponse / ListResponse / CreateRequest / UpdateRequest
+Reports/       SalesSummaryResponse (+ Row), ProductSalesResponse (+ Row)
 ```
 
-- テンプレートの `Models/Api` と同じ書き方 (プロパティ初期化子付きのクラス、または record)。camelCase への変換はシリアライザ設定で行い、属性は付けない
+- 名前空間はフォルダごと (`Pos.Shared.Transactions` など)。テンプレートの `Models/Api` と同じ書き方 (`{ get; set; } = default!` のクラス、Request には `Required` / `MaxLength` / `Range`)。camelCase への変換はシリアライザ設定で行い、属性は付けない
 - 入れ子の要素はテンプレートの `DataListResponseEntry` に倣い、親の名前に要素名を続ける (`TransactionResponseLine`)
+- 列挙型は `Pos.Domain` のものをそのまま使う。エラーコード定数は持たず、`Pos.Domain` の `ErrorCode.ToCode()` / `WarningCode.ToCode()` と `ProblemResponse.ErrorCode` (文字列) で突き合わせる
+- 日付は `DateOnly`、日時は `DateTime` (UTC)。サーバは `ConfigureHttpJsonOptions` で `JsonDateTimeConverter` と `JsonStringEnumConverter` を登録し、端末は Rester の設定で同じものを登録する (Phase 6)。形式は `Pos.Server.IntegrationTests` の `JsonContractTests` で固定
+- 名前空間 `Pos.Shared` は VB の予約語と重なるため CA1716 を、`ImageUrl` は CA1056 を `Pos.Shared` の `GlobalSuppressions.cs` で抑止している ([D-38](decisions.md#d-38-posshared-の警告抑止))
 
 ---
 
@@ -270,7 +277,7 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | --- | --- | --- |
 | Phase 0 土台 | ルート共通ファイル、`shared/` `server/` `terminal/` の骨組み、2 ソリューション | 完了 |
 | Phase 1 `Pos.Domain` | 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール、単体テスト | 完了 |
-| Phase 2 `Pos.Shared` | `XxxRequest` / `XxxResponse` 一式 | |
+| Phase 2 `Pos.Shared` | `XxxRequest` / `XxxResponse` 一式 | 完了 |
 | Phase 3 サーバ DB | DDL、Entity、Accessor、起動時スキーマ作成、初期データ | |
 | Phase 4 サーバ API | マスタ・同期 → 顧客 → シフト → 取引 → 在庫 → レポート → 帳票 (PDF)、統合テスト | |
 | Phase 5 管理画面 | レイアウト・ダッシュボード → マスタ CRUD → 取引 / シフト / 在庫 / 顧客 / レポート → 設定・QR | |

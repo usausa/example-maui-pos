@@ -24,6 +24,7 @@ using MudBlazor.Services;
 using Pos.Server.Host.Components;
 using Pos.Server.Host.Infrastructure.ExceptionHandling;
 using Pos.Server.Host.Infrastructure.HealthChecks;
+using Pos.Shared.Common;
 
 using Serilog;
 
@@ -134,6 +135,8 @@ public static class ApplicationExtensions
             options.SerializerOptions.DictionaryKeyPolicy = NamingPolicy.JsonDictionaryKeyNaming;
             options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
             options.SerializerOptions.Encoder = JavaScriptEncoder.Create(UnicodeRanges.All);
+            options.SerializerOptions.Converters.Add(new JsonDateTimeConverter());
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
 
         // Validation

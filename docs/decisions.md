@@ -525,3 +525,15 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 - 管理画面のボタンは `MudButton Href="api/v1/.../pdf"` (認証は後回しなので直接リンク)
 - テンプレートは Excel で作る。1 シート = 1 ページを基本にし、明細行はプレースホルダの行から順に埋める。複数ページ (複数シフトなど) はシートのコピーで作る (`GadgetFood` の給与明細と同じ)
 - 端末のレシート (T-22) は画面表示 + 電子レシート QR + 画像共有のままで、サーバの PDF は使わない (オフラインでも出せるように)
+
+### D-38. `Pos.Shared` の警告抑止
+
+`Pos.Shared` に型を置くと、名前空間の `Shared` が VB の予約語のため CA1716 が全ファイルで出る。`ProductResponse.ImageUrl` (string) には CA1056 が出る。
+
+| 案 | 内容 |
+| --- | --- |
+| A. `Analyzers.ruleset` で Hidden | 他の `.Shared` プロジェクトと同じだが、全プロジェクトに効く |
+| ✅ **B. `Pos.Shared` の `GlobalSuppressions.cs` でアセンブリ単位に抑止** | 影響を `Pos.Shared` に限定する |
+| C. 名前空間を `Pos.Contracts.*` に変える | プロジェクト名と名前空間が食い違う |
+
+**決定**: ✅ **B** (利用者確認済み)。
