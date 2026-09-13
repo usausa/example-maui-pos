@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             x:Class="Pos.Terminal.Modules.Sales.HoldView"
+             x:DataType="{x:Type module:HoldViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:HoldViewModel}"
+             shell:ShellProperty.Title="保留・呼出"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="—"
+             shell:ShellProperty.Function3Text="破棄"
+             shell:ShellProperty.Function4Text="呼出"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="False"
+             shell:ShellProperty.Function3Enabled="{Binding HasSelection}"
+             shell:ShellProperty.Function4Enabled="{Binding HasSelection}">
+
+    <Grid Style="{StaticResource PosPageGrid}">
+        <CollectionView Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.EmptyView>
+                <Label Style="{StaticResource PosMessageLabel}"
+                       Text="保留中の会計はありません。" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:HoldItem}">
+                    <Grid Style="{StaticResource PosListRowGrid}"
+                          RowDefinitions="Auto,Auto"
+                          ColumnDefinitions="*,Auto">
+                        <Grid.Triggers>
+                            <DataTrigger TargetType="Grid"
+                                         Binding="{Binding IsSelected}"
+                                         Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource BlueLighten5}" />
+                            </DataTrigger>
+                        </Grid.Triggers>
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:HoldViewModel}}, Path=SelectCommand, x:DataType={x:Type module:HoldViewModel}}"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        <Label Grid.Row="0" Grid.Column="0"
+                               Style="{StaticResource PosListNameLabel}"
+                               Text="{Binding Summary}" />
+                        <Label Grid.Row="0" Grid.Column="1"
+                               Style="{StaticResource PosListValueLabel}"
+                               Text="{Binding TotalText}" />
+                        <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                               Style="{StaticResource PosCaptionLabel}"
+                               Text="{Binding TimeText}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentView>

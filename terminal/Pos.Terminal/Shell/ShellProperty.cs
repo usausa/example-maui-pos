@@ -131,8 +131,24 @@ public static class ShellProperty
 
     public static void SetFunction4Enabled(BindableObject bindable, bool value) => bindable.SetValue(Function4EnabledProperty, value);
 
+    // 表示中の View だけがシェルを更新する (遷移で外れた View のバインディング解除で上書きされないように)
+    public static readonly BindableProperty ActiveProperty = BindableProperty.CreateAttached(
+        "Active",
+        typeof(bool),
+        typeof(ShellProperty),
+        false);
+
+    public static bool GetActive(BindableObject bindable) => (bool)bindable.GetValue(ActiveProperty);
+
+    public static void SetActive(BindableObject bindable, bool value) => bindable.SetValue(ActiveProperty, value);
+
     private static void PropertyChanged(BindableObject bindable, object oldValue, object newValue)
     {
+        if (!GetActive(bindable))
+        {
+            return;
+        }
+
         var parent = ((ContentView)bindable).Parent;
         if (parent?.BindingContext is IShellControl shell)
         {

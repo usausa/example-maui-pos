@@ -2,5 +2,9 @@ namespace Pos.Terminal.Modules;
 
 public enum DialogId
 {
-    InputNumber
+    InputNumber,
+    LineEdit,
+    Discount,
+    ReasonSelect,
+    Denominations
 }

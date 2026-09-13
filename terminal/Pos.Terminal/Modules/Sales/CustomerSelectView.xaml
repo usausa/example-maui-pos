@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             x:Class="Pos.Terminal.Modules.Sales.CustomerSelectView"
+             x:DataType="{x:Type module:CustomerSelectViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:CustomerSelectViewModel}"
+             shell:ShellProperty.Title="会員選択"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="スキャン"
+             shell:ShellProperty.Function3Text="新規"
+             shell:ShellProperty.Function4Text="解除"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="{Binding HasCustomer}">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,Auto,*">
+        <Grid Grid.Row="0"
+              Padding="8"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="8">
+            <Entry Grid.Column="0"
+                   Style="{StaticResource PosFieldEntry}"
+                   Margin="0"
+                   behaviors:EntryBind.Controller="{Binding Keyword}"
+                   ReturnType="Search"
+                   Placeholder="会員番号 / 電話 / 名前" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosMethodButton}"
+                    Margin="0"
+                    Command="{Binding SearchCommand}"
+                    Text="🔍 検索" />
+        </Grid>
+
+        <Label Grid.Row="1"
+               Style="{StaticResource PosSectionLabel}"
+               IsVisible="{Binding CurrentText, Converter={StaticResource NotEmptyConverter}}"
+               Text="{Binding CurrentText}" />
+
+        <CollectionView Grid.Row="2"
+                        Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.EmptyView>
+                <Label Style="{StaticResource PosMessageLabel}"
+                       Text="{Binding EmptyText}" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:CustomerItem}">
+                    <Grid Style="{StaticResource PosListRowGrid}"
+                          RowDefinitions="Auto,Auto"
+                          ColumnDefinitions="*,Auto">
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:CustomerSelectViewModel}}, Path=SelectCommand, x:DataType={x:Type module:CustomerSelectViewModel}}"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        <Label Grid.Row="0" Grid.Column="0"
+                               Style="{StaticResource PosListNameLabel}"
+                               Text="{Binding Name}" />
+                        <Label Grid.Row="0" Grid.Column="1"
+                               Style="{StaticResource PosListValueLabel}"
+                               Text="{Binding PointsText}" />
+                        <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                               Style="{StaticResource PosCaptionLabel}"
+                               Text="{Binding Detail}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentView>

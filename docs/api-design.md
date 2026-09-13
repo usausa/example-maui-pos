@@ -42,7 +42,7 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 | 数量 (`qty`) | `decimal(9,2)` 相当。ホームセンターの切り売り (m 単位) を想定 |
 | ポイント | 整数 (`int`)。1 pt = 1 円 |
 | ID | GUID。端末発の書き込みは端末が GUID v7 を採番 ([D-10](decisions.md#d-10-冪等性-クライアント採番-id)) |
-| 通信データ | `XxxRequest` / `XxxResponse` (一覧は `XxxListResponse`) を `Pos.Shared` に置き、サーバと端末の両方で使う ([D-22](decisions.md#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト), [D-27](decisions.md#d-27-用語-dto-は使わない))。端末は Rester の `HttpService` (テンプレートどおり手書き) |
+| 通信データ | `XxxRequest` / `XxxResponse` (一覧は `XxxListResponse`) を `Pos.Shared` に置き、サーバと端末の両方で使う ([D-22](decisions.md#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト), [D-27](decisions.md#d-27-用語-dto-は使わない))。端末は HttpClient + System.Text.Json の `HttpService` (手書き、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) |
 | OpenAPI | `Microsoft.AspNetCore.OpenApi` + 開発時 NSwag UI (`/swagger`, `/redoc`) — テンプレートのまま |
 
 本書のフィールド名は JSON (camelCase) で書く。C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
@@ -843,7 +843,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 
 ## 6. 端末側の同期フロー
 
-API 設計が前提にしている MAUI 側の動き。通信は `template-maui` 系テンプレートの `HttpService` (Rester) + `NetworkOperator` (接続確認・リトライ・エラー通知) を使う。
+API 設計が前提にしている MAUI 側の動き。通信は `HttpService` (HttpClient + System.Text.Json。失敗時は Problem Details を `ApiResult<T>` で返す) + `NetworkOperator` (接続確認・インジケータ・エラー通知) を使う ([D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))。
 
 1. **初回**: 設定 QR (`ApiEndPoint` / `StoreId` / `TerminalId`) を読み取り → `GET /sync/masters` (全件) と `GET /inventory?storeId=` をローカル DB (SQLite) に保存。顧客は都度 `lookup` (オンライン) を基本とし、必要なら `GET /customers?updatedSince` でキャッシュ
 2. **定期**: `GET /sync/masters?since={前回の serverTime}` で差分適用

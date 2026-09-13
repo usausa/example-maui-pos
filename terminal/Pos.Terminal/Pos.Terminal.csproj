@@ -11,6 +11,9 @@
     <MauiXamlInflator>SourceGen</MauiXamlInflator>
     <CodeAnalysisRuleSet>..\..\Analyzers.ruleset</CodeAnalysisRuleSet>
 
+    <!-- XA4301: BarcodeScanning.Native.Maui が MLKit と同じ libbarhopper_v3.so を同梱するための重複警告。アプリ側では解消できない -->
+    <NoWarn>$(NoWarn);XA4301</NoWarn>
+
     <!-- Display name -->
     <ApplicationTitle>POS</ApplicationTitle>
 
@@ -81,6 +84,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BarcodeScanning.Native.Maui" Version="3.1.0" />
     <PackageReference Include="BunnyTail.DependencyInjection" Version="0.6.0" />
     <PackageReference Include="BunnyTail.EmbeddedBuildProperty" Version="1.19.0">
       <PrivateAssets>all</PrivateAssets>
@@ -90,6 +94,8 @@
     <PackageReference Include="BunnyTail.XamlProperty.Maui" Version="1.2.0" />
     <PackageReference Include="CommunityToolkit.Maui" Version="15.0.1" />
     <PackageReference Include="Components.Maui" Version="1.43.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.11">
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">none</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">all</PrivateAssets>
@@ -98,6 +104,7 @@
     <PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.100" />
     <PackageReference Include="SkiaSharp" Version="4.151.2" />
     <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="4.151.2" />
+    <PackageReference Include="QRCoder" Version="1.8.0" />
     <PackageReference Include="Plugin.Maui.DebugRainbows" Version="1.2.2">
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">none</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">all</PrivateAssets>
@@ -106,6 +113,8 @@
     <PackageReference Include="System.Reactive" Version="7.0.0" />
     <PackageReference Include="Usa.Smart.Converter" Version="2.16.0" />
     <PackageReference Include="Usa.Smart.Core" Version="2.19.0" />
+    <PackageReference Include="Usa.Smart.Data" Version="2.11.0" />
+    <PackageReference Include="Usa.Smart.Data.Accessor" Version="3.0.0-beta11" />
     <PackageReference Include="Usa.Smart.Mapper" Version="1.0.0-beta8" />
     <PackageReference Include="Usa.Smart.Maui" Version="2.25.0" />
     <PackageReference Include="Usa.Smart.Maui.Extensions" Version="2.25.0" />
@@ -115,6 +124,8 @@
     <PackageReference Include="Usa.Smart.Navigation.Maui" Version="3.11.0" />
     <PackageReference Include="Usa.Smart.Reactive" Version="2.15.0" />
     <PackageReference Include="Usa.Smart.Results" Version="2.2.0" />
+    <!-- Xamarin.AndroidX.Fragment.Ktx: BarcodeScanning.Native.Maui が古い ktx を参照するため Xamarin.AndroidX.Fragment 1.9.0 に合わせる -->
+    <PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.9.0" />
   </ItemGroup>
 
   <ItemGroup>

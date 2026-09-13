@@ -332,13 +332,13 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 - ORM ではなく `[DataAccessor]` + 2-way SQL ファイル。テーブルは起動時に `CREATE TABLE IF NOT EXISTS` (テンプレートの `InitializeApplicationAsync` → `CreateTable()`) で作る。マイグレーションは持たない
 - **Service / Usecase の層は置かない** (利用者指示)。サーバは Endpoints (API) / Blazor ページ → **Accessor (SQL) + Domain (ロジック)** の 2 段。複数テーブルの更新は呼び出し側が `IDbProvider.UsingTxAsync` で Accessor の `DbTransaction` 付きメソッドを束ねる。プロジェクトは `Core` (Accessors / Sql / Models.Entity / Infrastructure) と `Web` (Endpoints / Models / Mappers / Components / Settings)
 - Serilog / OpenTelemetry / FeatureManagement / ヘルスチェック / OpenAPI (NSwag UI) はテンプレートのまま
-- MAUI 側は `template-maui` 系テンプレートの構成 (Smart.Navigation + 独自シェル、Smart.Mvvm、Rester、BarcodeScanning.Native.Maui、Smart.Data.Accessor + SQLite、BunnyTail DI) をそのまま使う (Phase 0 でベースを `template-maui-keyboard` に変更、[D-34](#d-34-参考プロジェクトの差し替え-phase-0))。**Android 専用** (テンプレートが `net10.0-android` のみ)
+- MAUI 側は `template-maui` 系テンプレートの構成 (Smart.Navigation + 独自シェル、Smart.Mvvm、BarcodeScanning.Native.Maui、Smart.Data.Accessor + SQLite、BunnyTail DI) をそのまま使う (通信は Rester ではなく HttpClient、[D-40](#d-40-端末の通信-rester-ではなく-httpclient)) (Phase 0 でベースを `template-maui-keyboard` に変更、[D-34](#d-34-参考プロジェクトの差し替え-phase-0))。**Android 専用** (テンプレートが `net10.0-android` のみ)
 
 ### D-20. JSON 契約: camelCase
 
 | 案 | 内容 |
 | --- | --- |
-| ✅ **A. camelCase** (Minimal API の既定 `JsonNamingPolicy.CamelCase`) | 利用者指示。MAUI 側は Rester の `UseJsonSerializer` で `PropertyNamingPolicy = CamelCase` を設定する |
+| ✅ **A. camelCase** (Minimal API の既定 `JsonNamingPolicy.CamelCase`) | 利用者指示。MAUI 側は `HttpService.JsonOptions` (System.Text.Json の Web 既定) で camelCase にする (Rester から HttpClient に変更、[D-40](#d-40-端末の通信-rester-ではなく-httpclient)) |
 | B. PascalCase (`PropertyNamingPolicy = null`) | `template-maui-server` の現状 (Rester 既定との契約)。テンプレート側を camelCase に変更予定とのことなので、実装時にテンプレートを再確認する |
 
 **決定**: ✅ **A**。日時は `yyyy-MM-ddTHH:mm:ss.fffZ` (UTC) のテンプレート `DateTimeConverter`、`null` プロパティは省略、クエリパラメータも camelCase (`?storeId=`)。
@@ -554,3 +554,19 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 
 - 文言と色は `Application/ChipText.cs` に集約し、`Controls/StatusChip` で表示する。列挙型の日本語名・金額・日時の書式は `Application/DisplayText.cs`
 - 端末側 (MAUI) は対象外。レシートや帳票 (PDF) にも絵文字は使わない (フォントに依存するため)
+
+### D-40. 端末の通信: Rester ではなく HttpClient
+
+テンプレート (`template-maui`) の `HttpService` は Rester を使うが、Rester は 4xx / 5xx の応答本文 (Problem Details) を呼び出し側に返さない。端末は `409` / `422` の `errorCode` で Outbox の「要確認」を判定し、利用者に理由 (`PRICE_OVERRIDE_NOT_ALLOWED` など) を見せる必要がある。
+
+| 案 | 内容 |
+| --- | --- |
+| A. Rester のまま | テンプレートどおり。エラー本文が読めず、要確認の理由を出せない |
+| ✅ **B. HttpClient + System.Text.Json** | `IHttpClientFactory` の名前付きクライアント、`HttpService.JsonOptions` (Web 既定 = camelCase、null 省略、列挙型は文字列、`JsonDateTimeConverter`)。失敗時は Problem Details を `ApiResult<T>.Problem` に読み込む |
+| C. Rester + 独自ハンドラでエラー本文を横取り | 二重管理になる |
+
+**決定**: ✅ **B**。
+
+- `ApiResult<T>` は `Status` (Success / HttpError / Unavailable / Canceled)、`StatusCode`、`Content`、`Problem`、`ErrorCode` を持つ。`IsRejected` (4xx) を Outbox の Failed 判定に使う
+- 接続確認・インジケータ・エラー通知は `NetworkOperator.ExecuteAsync` に集約する (オンライン限定の操作で使う)
+- 端末の JSON 設定はサーバ (`ConfigureHttpJsonOptions`) と同じ (architecture §4.2)

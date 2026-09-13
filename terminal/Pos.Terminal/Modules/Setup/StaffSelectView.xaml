@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Setup"
+             x:Class="Pos.Terminal.Modules.Setup.StaffSelectView"
+             x:DataType="{x:Type module:StaffSelectViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:StaffSelectViewModel}"
+             shell:ShellProperty.Title="スタッフ選択"
+             shell:ShellProperty.Function1Text="設定"
+             shell:ShellProperty.Function2Text="—"
+             shell:ShellProperty.Function3Text="—"
+             shell:ShellProperty.Function4Text="—"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="False"
+             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function4Enabled="False">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*">
+        <Label Grid.Row="0"
+               Style="{StaticResource PosSectionLabel}"
+               Text="{Binding StoreText}" />
+
+        <CollectionView Grid.Row="1"
+                        Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.EmptyView>
+                <Label Style="{StaticResource PosMessageLabel}"
+                       Text="スタッフが登録されていません。設定・同期から同期してください。" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:StaffItem}">
+                    <Grid Style="{StaticResource PosListRowGrid}"
+                          ColumnDefinitions="*,Auto">
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:StaffSelectViewModel}}, Path=SelectCommand, x:DataType={x:Type module:StaffSelectViewModel}}"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        <Label Grid.Column="0"
+                               Style="{StaticResource PosListNameLabel}"
+                               Text="{Binding Name}" />
+                        <Border Grid.Column="1"
+                                Style="{StaticResource PosChipBorder}"
+                                BackgroundColor="{Binding RoleColor}">
+                            <Label Style="{StaticResource PosChipLabel}"
+                                   Text="{Binding RoleText}" />
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentView>

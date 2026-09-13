@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             x:Class="Pos.Terminal.Modules.Sales.SalesView"
+             x:DataType="{x:Type module:SalesViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:SalesViewModel}"
+             shell:ShellProperty.Title="販売"
+             shell:ShellProperty.Function1Text="メニュー"
+             shell:ShellProperty.Function2Text="スキャン"
+             shell:ShellProperty.Function3Text="検索"
+             shell:ShellProperty.Function4Text="会計"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="{Binding HasLines}">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*,Auto">
+        <!-- 会員チップ (未設定なら「会員を選択」) -->
+        <Grid Grid.Row="0"
+              Style="{StaticResource PosListRowGrid}"
+              BackgroundColor="{StaticResource BlueLighten5}"
+              ColumnDefinitions="*,Auto">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding CustomerCommand}" />
+            </Grid.GestureRecognizers>
+            <Label Grid.Column="0"
+                   Style="{StaticResource PosListNameLabel}"
+                   TextColor="{StaticResource BlueDarken3}"
+                   Text="{Binding CustomerText}" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosQuantityButton}"
+                    FontFamily=""
+                    BackgroundColor="{StaticResource GrayLighten1}"
+                    IsVisible="{Binding HasCustomer}"
+                    Command="{Binding ClearCustomerCommand}"
+                    Text="✕" />
+        </Grid>
+
+        <!-- 明細 -->
+        <CollectionView Grid.Row="1"
+                        Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Lines}">
+            <CollectionView.EmptyView>
+                <Label Style="{StaticResource PosMessageLabel}"
+                       Text="スキャンまたは検索で商品を追加してください。" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:CartLineItem}">
+                    <SwipeView>
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <SwipeView.RightItems>
+                            <SwipeItems Mode="Execute">
+                                <SwipeItem Text="削除"
+                                           BackgroundColor="{StaticResource RedDefault}"
+                                           Command="{Binding Source={RelativeSource AncestorType={x:Type module:SalesViewModel}}, Path=DeleteLineCommand, x:DataType={x:Type module:SalesViewModel}}"
+                                           CommandParameter="{Binding .}" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+                        <Grid Style="{StaticResource PosListRowGrid}"
+                              RowDefinitions="Auto,Auto,Auto"
+                              ColumnDefinitions="*,Auto">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:SalesViewModel}}, Path=EditLineCommand, x:DataType={x:Type module:SalesViewModel}}"
+                                                      CommandParameter="{Binding .}" />
+                            </Grid.GestureRecognizers>
+                            <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                            <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                   Style="{StaticResource PosListNameLabel}"
+                                   Text="{Binding Name}" />
+                            <Label Grid.Row="1" Grid.Column="0"
+                                   Style="{StaticResource PosCaptionLabel}"
+                                   Text="{Binding Detail}" />
+                            <Label Grid.Row="1" Grid.Column="1"
+                                   Style="{StaticResource PosListValueLabel}"
+                                   Text="{Binding AmountText}" />
+                            <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                   Style="{StaticResource PosCaptionLabel}"
+                                   TextColor="{StaticResource RedDefault}"
+                                   IsVisible="{Binding HasNote}"
+                                   Text="{Binding Note}" />
+                        </Grid>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- 小計・値引・合計 -->
+        <Grid Grid.Row="2"
+              Style="{StaticResource PosSectionRowGrid}"
+              Padding="16,8"
+              RowDefinitions="Auto,Auto"
+              ColumnDefinitions="Auto,*,Auto,Auto">
+            <Label Grid.Row="0" Grid.Column="0"
+                   Style="{StaticResource PosCaptionLabel}"
+                   Text="{Binding SubtotalText}" />
+            <Label Grid.Row="0" Grid.Column="1"
+                   Style="{StaticResource PosCaptionLabel}"
+                   Margin="12,0,0,0"
+                   TextColor="{StaticResource RedDefault}"
+                   Text="{Binding DiscountText}" />
+            <Button Grid.Row="0" Grid.Column="3" Grid.RowSpan="2"
+                    Style="{StaticResource PosSelectButton}"
+                    WidthRequest="48"
+                    HeightRequest="48"
+                    FontSize="22"
+                    Command="{Binding MoreCommand}"
+                    Text="⋯" />
+            <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                   Style="{StaticResource PosNameLabel}"
+                   Margin="0,4,8,0"
+                   FontSize="22"
+                   Text="{Binding TotalText}" />
+        </Grid>
+    </Grid>
+
+</ContentView>

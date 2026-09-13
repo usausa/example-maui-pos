@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:input="clr-namespace:Pos.Terminal.Input"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             x:Class="Pos.Terminal.Modules.Sales.PaymentView"
+             x:DataType="{x:Type module:PaymentViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:PaymentViewModel}"
+             shell:ShellProperty.Title="{Binding Title}"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="ポイント"
+             shell:ShellProperty.Function3Text="会員"
+             shell:ShellProperty.Function4Text="確定"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="{Binding PointsEnabled}"
+             shell:ShellProperty.Function3Enabled="{Binding CustomerEnabled}"
+             shell:ShellProperty.Function4Enabled="{Binding CanConfirm}">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*,Auto,Auto,Auto">
+        <!-- 合計・ポイント・支払済・残り -->
+        <Grid Grid.Row="0"
+              Style="{StaticResource PosValueRowGrid}"
+              Padding="16,6,16,6"
+              RowDefinitions="Auto,Auto,Auto,Auto"
+              ColumnDefinitions="*,Auto">
+            <Label Grid.Row="0" Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   Text="合計" />
+            <Label Grid.Row="0" Grid.Column="1"
+                   Style="{StaticResource PosLargeValueLabel}"
+                   Text="{Binding TotalText}" />
+            <Label Grid.Row="1" Grid.Column="0"
+                   Style="{StaticResource PosCaptionLabel}"
+                   Text="ポイント利用" />
+            <Label Grid.Row="1" Grid.Column="1"
+                   Style="{StaticResource PosSubValueLabel}"
+                   FontSize="14"
+                   Text="{Binding PointsText}" />
+            <Label Grid.Row="2" Grid.Column="0"
+                   Style="{StaticResource PosCaptionLabel}"
+                   Text="支払済" />
+            <Label Grid.Row="2" Grid.Column="1"
+                   Style="{StaticResource PosValueLabel}"
+                   FontSize="16"
+                   Text="{Binding PaidText}" />
+            <Label Grid.Row="3" Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   Text="{Binding RemainingCaption}" />
+            <Label Grid.Row="3" Grid.Column="1"
+                   Style="{StaticResource PosLargeValueLabel}"
+                   TextColor="{StaticResource RedDefault}"
+                   Text="{Binding RemainingText}" />
+        </Grid>
+
+        <!-- 支払リスト -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                 BindableLayout.ItemsSource="{Binding Payments}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="{x:Type module:PaymentItem}">
+                        <Grid Style="{StaticResource PosListRowGrid}"
+                              Padding="16,4"
+                              ColumnDefinitions="Auto,*,Auto,32">
+                            <Label Grid.Column="0"
+                                   Style="{StaticResource PosCaptionLabel}"
+                                   TextColor="{StaticResource GreenDefault}"
+                                   Text="✓" />
+                            <Label Grid.Column="1"
+                                   Style="{StaticResource PosCaptionLabel}"
+                                   Margin="8,0,0,0"
+                                   TextColor="{StaticResource PrimaryTextColor}"
+                                   Text="{Binding Text}" />
+                            <Label Grid.Column="2"
+                                   Style="{StaticResource PosListValueLabel}"
+                                   Text="{Binding AmountText}" />
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <Button Grid.Column="3"
+                                    Style="{StaticResource PosQuantityButton}"
+                                    FontFamily=""
+                                    WidthRequest="28"
+                                    HeightRequest="28"
+                                    BackgroundColor="{StaticResource GrayLighten1}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type module:PaymentViewModel}}, Path=RemovePaymentCommand, x:DataType={x:Type module:PaymentViewModel}}"
+                                    CommandParameter="{Binding .}"
+                                    Text="✕" />
+                            <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- 支払方法 (横スクロール) -->
+        <ScrollView Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalScrollBarVisibility="Never"
+                    BackgroundColor="White">
+            <HorizontalStackLayout Padding="4,6"
+                                   BindableLayout.ItemsSource="{Binding Methods}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="{x:Type module:MethodItem}">
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Button Style="{StaticResource PosMethodButton}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type module:PaymentViewModel}}, Path=AddPaymentCommand, x:DataType={x:Type module:PaymentViewModel}}"
+                                CommandParameter="{Binding .}"
+                                Text="{Binding Name}" />
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </HorizontalStackLayout>
+        </ScrollView>
+
+        <!-- 預り金 -->
+        <Grid Grid.Row="3"
+              Style="{StaticResource PosSectionRowGrid}"
+              Padding="16,4"
+              ColumnDefinitions="*,Auto">
+            <Label Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   Text="預り金" />
+            <Label Grid.Column="1"
+                   Style="{StaticResource PosLargeValueLabel}"
+                   Text="{Binding InputText}" />
+        </Grid>
+
+        <!-- 埋め込みテンキー -->
+        <Grid Grid.Row="4"
+              Style="{StaticResource PosKeypadGrid}"
+              RowDefinitions="*,*,*,*"
+              ColumnDefinitions="*,*,*,1.4*">
+            <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="7" input:Shortcut.Key="Num7" Text="7" />
+            <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="8" input:Shortcut.Key="Num8" Text="8" />
+            <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="9" input:Shortcut.Key="Num9" Text="9" />
+            <Button Grid.Row="0" Grid.Column="3" Style="{StaticResource PosShortcutButton}" Command="{Binding AddAmountCommand}" CommandParameter="10000" Text="¥10,000" />
+            <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="4" input:Shortcut.Key="Num4" Text="4" />
+            <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="5" input:Shortcut.Key="Num5" Text="5" />
+            <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="6" input:Shortcut.Key="Num6" Text="6" />
+            <Button Grid.Row="1" Grid.Column="3" Style="{StaticResource PosShortcutButton}" Command="{Binding AddAmountCommand}" CommandParameter="5000" Text="¥5,000" />
+            <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="1" input:Shortcut.Key="Num1" Text="1" />
+            <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="2" input:Shortcut.Key="Num2" Text="2" />
+            <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="3" input:Shortcut.Key="Num3" Text="3" />
+            <Button Grid.Row="2" Grid.Column="3" Style="{StaticResource PosShortcutButton}" Command="{Binding AddAmountCommand}" CommandParameter="1000" Text="¥1,000" />
+            <Button Grid.Row="3" Grid.Column="0" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="0" input:Shortcut.Key="Num0" Text="0" />
+            <Button Grid.Row="3" Grid.Column="1" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="00" Text="00" />
+            <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource PosKeyButton}" Command="{Binding PopCommand}" input:Shortcut.Key="Del" Text="⌫" />
+            <Button Grid.Row="3" Grid.Column="3" Style="{StaticResource PosShortcutButton}" Command="{Binding ExactCommand}" Text="ちょうど" />
+        </Grid>
+    </Grid>
+
+</ContentView>

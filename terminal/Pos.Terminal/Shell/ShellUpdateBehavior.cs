@@ -54,6 +54,16 @@ public sealed class ShellUpdateBehavior : BehaviorBase<ContentPage>
 
     private void NavigatorOnNavigating(object? sender, Smart.Navigation.NavigationEventArgs e)
     {
+        if (e.FromView is BindableObject from)
+        {
+            ShellProperty.SetActive(from, false);
+        }
+
+        if (e.ToView is BindableObject to)
+        {
+            ShellProperty.SetActive(to, true);
+        }
+
         UpdateShell(e.ToView as Element);
     }
 

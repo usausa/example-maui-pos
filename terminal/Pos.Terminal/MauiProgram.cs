@@ -1,11 +1,16 @@
 namespace Pos.Terminal;
 
+using System.Net.Http.Headers;
+
+using BarcodeScanning;
+
 using BunnyTail.DependencyInjection;
 
 using CommunityToolkit.Maui;
 
 using Fonts;
 
+using Microsoft.Data.Sqlite;
 using Microsoft.Maui.LifecycleEvents;
 
 #if false
@@ -19,6 +24,9 @@ using Pos.Terminal.Helpers;
 using Pos.Terminal.Modules;
 
 using SkiaSharp.Views.Maui.Controls.Hosting;
+
+using Smart.Data;
+using Smart.Data.Accessor.Attributes;
 
 using Smart.Mvvm.Resolver;
 
@@ -40,6 +48,7 @@ public static partial class MauiProgram
             .ConfigureGlobalSettings()
             .ConfigureSyncfusionToolkit()
             .UseSkiaSharp()
+            .UseBarcodeScanning()
             .UseMauiCommunityToolkit(ConfigureMauiCommunityToolkit)
             .UseMauiServices()
             .UseMauiComponents()
@@ -238,7 +247,55 @@ public static partial class MauiProgram
         services.AddSingleton(BusyState.Default);
         services.AddSingleton<StartupState>();
         services.AddSingleton<DeviceState>();
+        services.AddSingleton<Settings>();
+        services.AddSingleton<Session>();
+        services.AddSingleton<SalesState>();
+        services.AddSingleton<StockState>();
+
+        // HttpClient
+        services
+            .AddHttpClient(ApiNames.Default, SetupHttpClient)
+            .ConfigurePrimaryHttpMessageHandler(CreateHttpMessageHandler);
+        services.AddSingleton<ApiContext>();
+
+        // Service
+        services.AddSingleton<IDbProvider>(static p =>
+        {
+            var storage = p.GetRequiredService<IStorageManager>();
+            var path = Path.Combine(storage.PrivateFolder, "pos.db");
+            return new DelegateDbProvider(() => new SqliteConnection($"Data Source={path};Default Timeout=10"));
+        });
+        services.AddDataAccessors();
+        services.AddSingleton<HttpService>();
+        services.AddSingleton<NetworkOperator>();
+        services.AddSingleton<SyncWorker>();
     }
+
+    // ------------------------------------------------------------
+    // Network
+    // ------------------------------------------------------------
+
+    private static void SetupHttpClient(IServiceProvider provider, HttpClient client)
+    {
+        client.BaseAddress = provider.GetRequiredService<ApiContext>().BaseAddress;
+        client.Timeout = TimeSpan.FromSeconds(30);
+        client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+    }
+
+    private static HttpMessageHandler CreateHttpMessageHandler() =>
+        new SocketsHttpHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+        };
+
+    // ------------------------------------------------------------
+    // Data
+    // ------------------------------------------------------------
+
+    // ReSharper disable once UnusedMethodReturnValue.Local
+    [DataAccessorRegistration]
+    private static partial IServiceCollection AddDataAccessors(this IServiceCollection services);
 
     // ------------------------------------------------------------
     // Build
@@ -273,6 +330,13 @@ public static partial class MauiProgram
             System.Diagnostics.Debug.WriteLine($"Navigated: [{args.Context.FromId}]->[{args.Context.ToId}] : stacked=[{navigator.StackedCount}] effect=[{args.Context.Parameter.Effect}]");
         };
 #endif
+
+        // 接続先 (設定 QR で投入済みなら)
+        var settings = services.GetRequiredService<Settings>();
+        if (!String.IsNullOrEmpty(settings.ApiEndPoint))
+        {
+            services.GetRequiredService<ApiContext>().BaseAddress = new Uri(settings.ApiEndPoint);
+        }
 
         return app;
     }

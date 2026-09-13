@@ -6,9 +6,19 @@ using Pos.Terminal.Shell;
 [ObservableGeneratorOption(Reactive = true, ViewModel = true)]
 public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellControl, IAppLifecycle
 {
+    private static readonly Color UnsentColor = Color.FromArgb("#FB8C00");
+
+    private static readonly Color FailedColor = Color.FromArgb("#E53935");
+
     private readonly IScreen screen;
 
     private readonly StartupState startup;
+
+    private readonly Settings settings;
+
+    private readonly Session session;
+
+    private readonly SyncWorker syncWorker;
 
     private bool destroying;
 
@@ -41,6 +51,19 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
     [ObservableProperty]
     public partial bool Function4Enabled { get; set; }
 
+    // タイトルバー右側: 店舗-端末 担当 と未送信バッジ (screen-design §1.5)
+    [ObservableProperty]
+    public partial string HeaderText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial int UnsentCount { get; set; }
+
+    [ObservableProperty]
+    public partial bool BadgeVisible { get; set; }
+
+    [ObservableProperty]
+    public partial Color BadgeColor { get; set; } = UnsentColor;
+
     public IObserveCommand Function1Command { get; }
     public IObserveCommand Function2Command { get; }
     public IObserveCommand Function3Command { get; }
@@ -54,29 +77,43 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
         ILogger<MainPageViewModel> log,
         INavigator navigator,
         IScreen screen,
-        IDialog dialog,
-        StartupState startup)
+        StartupState startup,
+        Settings settings,
+        Session session,
+        SyncWorker syncWorker)
     {
         Navigator = navigator;
         this.screen = screen;
         this.startup = startup;
+        this.settings = settings;
+        this.session = session;
+        this.syncWorker = syncWorker;
 
         Function1Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function1), () => Function1Enabled);
         Function2Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function2), () => Function2Enabled);
         Function3Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function3), () => Function3Enabled);
         Function4Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function4), () => Function4Enabled);
 
+        Disposables.Add(session.PropertyChangedAsObservable().ObserveOnCurrentContext().Subscribe(_ => UpdateHeader()));
+        UpdateHeader();
+
         // Screen lock detection
-        // ReSharper disable AsyncVoidLambda
-        Disposables.Add(screen.StateChangedAsObservable().ObserveOnCurrentContext().Subscribe(async x =>
+        Disposables.Add(screen.StateChangedAsObservable().ObserveOnCurrentContext().Subscribe(x =>
         {
             log.DebugScreenStateChanged(x.ScreenOn);
             if (x.ScreenOn)
             {
-                await dialog.Toast("Screen on", true);
+                syncWorker.Trigger();
             }
         }));
-        // ReSharper restore AsyncVoidLambda
+    }
+
+    private void UpdateHeader()
+    {
+        HeaderText = session.HeaderText;
+        UnsentCount = session.UnsentCount;
+        BadgeVisible = session.UnsentCount > 0;
+        BadgeColor = session.FailedCount > 0 ? FailedColor : UnsentColor;
     }
 
     //--------------------------------------------------------------------------------
@@ -97,7 +134,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
         }
 
         Navigator.Exit();
-        await Navigator.ForwardAsync(ViewId.Menu);
+        await Navigator.ForwardAsync(settings.IsConfigured ? ViewId.StaffSelect : ViewId.Setup);
     }
 
     public void OnActivated()
@@ -114,6 +151,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
 
     public void OnResumed()
     {
+        syncWorker.Trigger();
     }
 
     public void OnDestroying()

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Returns"
+             x:Class="Pos.Terminal.Modules.Returns.ReturnLinesView"
+             x:DataType="{x:Type module:ReturnLinesViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:ReturnLinesViewModel}"
+             shell:ShellProperty.Title="返品明細選択"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="全数"
+             shell:ShellProperty.Function3Text="—"
+             shell:ShellProperty.Function4Text="次へ"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function4Enabled="{Binding CanProceed}">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*,Auto,Auto">
+        <Label Grid.Row="0"
+               Style="{StaticResource PosSectionLabel}"
+               Text="{Binding HeaderText}" />
+
+        <CollectionView Grid.Row="1"
+                        Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:ReturnLineItem}">
+                    <Grid Style="{StaticResource PosListRowGrid}"
+                          RowDefinitions="Auto,Auto"
+                          ColumnDefinitions="*,36,72,36">
+                        <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="4"
+                               Style="{StaticResource PosListNameLabel}"
+                               Text="{Binding Name}" />
+                        <Label Grid.Row="1" Grid.Column="0"
+                               Style="{StaticResource PosCaptionLabel}"
+                               Text="{Binding Detail}" />
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Button Grid.Row="1" Grid.Column="1"
+                                Style="{StaticResource PosQuantityButton}"
+                                FontFamily=""
+                                IsEnabled="{Binding IsReturnable}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type module:ReturnLinesViewModel}}, Path=DecrementCommand, x:DataType={x:Type module:ReturnLinesViewModel}}"
+                                CommandParameter="{Binding .}"
+                                Text="-" />
+                        <Button Grid.Row="1" Grid.Column="2"
+                                Style="{StaticResource PosFieldValueButton}"
+                                Margin="4,0"
+                                HeightRequest="36"
+                                FontSize="18"
+                                IsEnabled="{Binding IsReturnable}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type module:ReturnLinesViewModel}}, Path=InputCommand, x:DataType={x:Type module:ReturnLinesViewModel}}"
+                                CommandParameter="{Binding .}"
+                                Text="{Binding QuantityText}" />
+                        <Button Grid.Row="1" Grid.Column="3"
+                                Style="{StaticResource PosQuantityButton}"
+                                FontFamily=""
+                                IsEnabled="{Binding IsReturnable}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type module:ReturnLinesViewModel}}, Path=IncrementCommand, x:DataType={x:Type module:ReturnLinesViewModel}}"
+                                CommandParameter="{Binding .}"
+                                Text="+" />
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Grid Grid.Row="2"
+              Style="{StaticResource PosValueRowGrid}"
+              Padding="16,8"
+              ColumnDefinitions="Auto,*">
+            <Label Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   VerticalOptions="Center"
+                   Text="理由" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosSelectButton}"
+                    Margin="12,0,0,0"
+                    Command="{Binding ReasonCommand}"
+                    Text="{Binding ReasonText}" />
+        </Grid>
+
+        <Grid Grid.Row="3"
+              Style="{StaticResource PosSectionRowGrid}"
+              Padding="16,8"
+              RowDefinitions="Auto,Auto"
+              ColumnDefinitions="*,Auto">
+            <Label Grid.Row="0" Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   Text="返金額" />
+            <Label Grid.Row="0" Grid.Column="1"
+                   Style="{StaticResource PosLargeValueLabel}"
+                   Text="{Binding RefundText}" />
+            <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                   Style="{StaticResource PosCaptionLabel}"
+                   Text="{Binding PointsText}" />
+        </Grid>
+    </Grid>
+
+</ContentView>

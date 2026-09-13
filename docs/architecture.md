@@ -22,7 +22,7 @@
 | | `D:\GitHubTemplate\template-blazor-server` (`Template.BlazorServer.*`) | Aspire AppHost、OpenAPI (`Microsoft.AspNetCore.OpenApi` + NSwag の Swagger UI / ReDoc)。CSV 出力 (CsvHelper) と PDF 帳票 (OysterReport) は Phase 2 以降で参考にする |
 | | `D:\GitHubTemplate\template-maui-server` | Phase 2 の認証 (管理画面 Cookie ログイン、API JWT)、設定 QR (`QrPage`) の参考 |
 | 端末 (`Pos.Terminal`) | `D:\GitHubTemplate\template-maui-keyboard` (`Template.MobileApp`) | `MauiProgram` の構成 (BunnyTail DI、`[ComponentRegistration]`)、シェル (`MainPage` + `ShellProperty` + F1〜F4)、`AppViewModelBase`、`InputNumber` ポップアップ、Input (物理キー・ショートカット)、Behaviors、`Colors.xaml` / `Styles.xaml` |
-| | `D:\GitHubTemplate\template-maui` (`Template.MobileApp`) | 販売・会計画面のデザイン (`UIPosView`)。QR スキャン / 表示、`Settings` / `SettingParser`、`HttpService` / `NetworkOperator`、SQLite `DataAccessor` は Phase 6 で取り込む |
+| | `D:\GitHubTemplate\template-maui` (`Template.MobileApp`) | 販売・会計画面のデザイン (`UIPosView`)。QR スキャン / 表示、`Settings` / `SettingParser`、`NetworkOperator`、SQLite `DataAccessor` を Phase 6 で取り込んだ (`HttpService` は HttpClient で書き直し、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) |
 
 テンプレートと違う点 (利用者指示):
 
@@ -218,7 +218,7 @@ Reports/       SalesSummaryResponse (+ Row), ProductSalesResponse (+ Row)
 - 名前空間はフォルダごと (`Pos.Shared.Transactions` など)。テンプレートの `Models/Api` と同じ書き方 (`{ get; set; } = default!` のクラス、Request には `Required` / `MaxLength` / `Range`)。camelCase への変換はシリアライザ設定で行い、属性は付けない
 - 入れ子の要素はテンプレートの `DataListResponseEntry` に倣い、親の名前に要素名を続ける (`TransactionResponseLine`)
 - 列挙型は `Pos.Domain` のものをそのまま使う。エラーコード定数は持たず、`Pos.Domain` の `ErrorCode.ToCode()` / `WarningCode.ToCode()` と `ProblemResponse.ErrorCode` (文字列) で突き合わせる
-- 日付は `DateOnly`、日時は `DateTime` (UTC)。サーバは `ConfigureHttpJsonOptions` で `JsonDateTimeConverter` と `JsonStringEnumConverter` を登録し、端末は Rester の設定で同じものを登録する (Phase 6)。形式は `Pos.Server.IntegrationTests` の `JsonContractTests` で固定
+- 日付は `DateOnly`、日時は `DateTime` (UTC)。サーバは `ConfigureHttpJsonOptions` で `JsonDateTimeConverter` と `JsonStringEnumConverter` を登録し、端末は `HttpService.JsonOptions` で同じものを登録する。形式は `Pos.Server.IntegrationTests` の `JsonContractTests` で固定
 - 名前空間 `Pos.Shared` は VB の予約語と重なるため CA1716 を、`ImageUrl` は CA1056 を `Pos.Shared` の `GlobalSuppressions.cs` で抑止している ([D-38](decisions.md#d-38-警告の抑止))
 
 ---
@@ -229,47 +229,59 @@ Reports/       SalesSummaryResponse (+ Row), ProductSalesResponse (+ Row)
 
 ```
 MauiProgram.cs                       (テンプレート由来) BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド、D-36)、Dialog / Popup、フォントは MaterialIcons のみ
-MainPage.xaml / MainPageViewModel    (テンプレート由来) シェル (タイトル + F1〜F4)。起動時に ViewId.Menu へ
-Shell/                               (テンプレート由来) ShellProperty / ShellEvent / ShellUpdateBehavior / IShellControl
-Input/ Behaviors/ Extender/ Helpers/ (テンプレート由来) 物理キー・ショートカット、Entry / Label / Scroll などの動作、フォーカス制御
+                                     + BarcodeScanning、HttpClient (IHttpClientFactory)、IDbProvider (SQLite)、DataAccessor、HttpService / NetworkOperator / SyncWorker、State
+MainPage.xaml / MainPageViewModel    (テンプレート由来) シェル (タイトル + 店舗-端末 担当 + 未送信バッジ + F1〜F4)。起動時に Setup (未設定) または StaffSelect へ
+App.xaml.cs                          起動時にローカル DB の作成、Session の復元、SyncWorker の開始
+Shell/                               (テンプレート由来) ShellProperty (+ Active: 表示中の View だけがシェルを更新) / ShellEvent / ShellUpdateBehavior / IShellControl
+Input/ Behaviors/ Helpers/           (テンプレート由来) 物理キー・ショートカット、Entry / Label / Scroll などの動作、フォーカス制御
+Behaviors/BarcodeBind.cs, Messaging/BarcodeController.cs   template-maui から (CameraView のバインド)
+Converters/                          QrImageSourceConverter (QRCoder)、YenConverter
+Helpers/                             DisplayText (金額・日時・列挙型の日本語)、AppDialogExtensions (IDialog の日本語ボタン)、SettingParser (設定 QR)、Data/ (DataProfile と型変換)
+Permissions.cs                       カメラ権限
 Modules/
-  ViewId.cs, DialogId.cs, Parameters.cs, AppViewModelBase.cs, AppDialogViewModelBase.cs   (テンプレート由来)
-  Main/       MenuView (T-02。Phase 0 では全ボタン無効)、SettingView (T-90)
-  Startup/    SetupView (T-00), StaffSelectView (T-01)
-  Register/   ShiftOpenView (T-03), CashEventView (T-50), ShiftCloseView (T-51), ShiftReportView (T-52)
+  ViewId.cs, DialogId.cs, Parameters.cs (遷移パラメータ: スキャンモード / 戻り先 / 取引 ID / 会員 / 呼び出し元の状態), AppViewModelBase.cs, AppDialogViewModelBase.cs
+  Setup/      SetupView (T-00), StaffSelectView (T-01)
+  Main/       MenuView (T-02)
+  Shift/      ShiftOpenView (T-03), CashEventView (T-50), ShiftCloseView (T-51), ShiftReportView (T-52), DenominationsView (金種別入力ポップアップ)
   Sales/      SalesView (T-10), ScanView (T-11), ProductSearchView (T-12), CustomerSelectView (T-14),
-              DeliveryView (T-16), HoldView (T-17), PaymentView (T-20), CompleteView (T-21), ReceiptView (T-22)
-  Return/     ReturnView (T-40), ReturnLinesView (T-41), RefundView (T-42)
+              DeliveryView (T-16), HoldView (T-17), PaymentView (T-20), CompleteView (T-21), ReceiptView (T-22),
+              LineEditView (P-13), DiscountView (P-15), DiscountChooser (定義済み / 任意の値引を IDialog で選ぶ)
+  Returns/    ReturnView (T-40), ReturnLinesView (T-41), RefundView (T-42)
   History/    TransactionListView (T-30), TransactionDetailView (T-31)
   Inquiry/    ProductInquiryView (T-60), CustomerInquiryView (T-61), CustomerEditView (T-62)
-  Stock/      StockCountView (T-70)
+  Inventory/  StockCountView (T-70)
   Report/     SalesReportView (T-80)
-  Navigation/Modal/InputNumberView   (テンプレート由来) テンキーポップアップ
-  Dialogs/    LineEditView (P-13), DiscountView (P-15), ReasonSelectView, DenominationsView
+  Setting/    SettingView (T-90)
+  Navigation/Modal/  InputNumberView (テンプレート由来)、ReasonSelectView (理由の選択)
 Models/
   Input/      NumberInputParameter, NumberInputModel   (テンプレート由来)
-  Entity/     ローカル DB のエンティティ (マスタキャッシュ、取引、Outbox)
-  Cart/       会計中の状態 (Cart, CartLine ...)。Pos.Domain の SalesCalculator への入力を組み立てる
+  Entity/     ローカル DB のエンティティ (LocalTransaction / LocalShift / LocalCashEvent / Outbox / SyncState / HoldCart。マスタは Pos.Shared の Response をそのまま使う)
+  Sales/      会計中の状態 (Cart, CartLine, CartDiscount, CartPayment, CartDelivery)
+  SummaryRow.cs                      集計・詳細画面の行と節
 Services/
-  DataAccessor.cs + Sql/            ローカル SQLite (Smart.Data.Accessor)
-  HttpService.cs                     Rester による API 呼び出し (Pos.Shared の Request / Response)
-  ApiContext.cs / ApiDelegatingHandler.cs  template-maui から (トークンは Phase 2)
-  ReceiptFormatter.cs                レシート文字列生成
-  SyncWorker.cs                      マスタ差分同期と Outbox 送信のバックグラウンド実行 (api-design §6)
-  NetworkOperator.cs / NetworkInteraction.cs  template-maui から
+  DataAccessor.cs + Sql/            ローカル SQLite (Smart.Data.Accessor、2-way SQL)
+  HttpService.cs / ApiResult.cs / ApiContext.cs / ApiNames.cs   HttpClient による API 呼び出し (Pos.Shared の Request / Response、失敗時は Problem Details、D-40)
+  NetworkOperator.cs                 オンライン限定操作の接続確認・インジケータ・エラー通知
+  SyncWorker.cs                      マスタ差分同期と Outbox 送信のバックグラウンド実行 (api-design §6)、レシート番号の採番
+  TransactionBuilder.cs              Cart / 返品明細 → Pos.Domain の入力 → TransactionRequest (端末側の履歴用 TransactionResponse も作る)
+  TransactionWriter.cs               ローカル取引 + Outbox + 自店在庫の書き込み (販売・返品・取消)
+  ShiftSummaryBuilder.cs             ローカルの取引・入出金からシフト集計 (精算の予想現金、オフライン時の精算レポート)
+  ReceiptFormatter.cs / ReceiptRenderer.cs   レシート文字列 (等幅 32 桁) と画像化 (SkiaSharp、桁位置で描画)
 State/
   DeviceState.cs / StartupState.cs   (テンプレート由来)
-  Settings.cs                        ApiEndPoint / StoreId / TerminalId / OpenSalesAfterLogin など (IPreferences)
-  Session.cs                         選択中スタッフ、開設中シフト、未送信件数
+  Settings.cs                        ApiEndPoint / StoreId / TerminalId / OpenSalesAfterLogin (IPreferences)
+  Session.cs                         会社設定、店舗、端末、選択中スタッフ、開設中シフト、未送信 / 要確認件数、営業日
+  SalesState.cs / StockState.cs      画面をまたぐ会計中の状態 (カート・支払・完了取引・返品元) と棚卸の入力リスト
 Resources/
   Fonts/      MaterialIcons のみ
-  Styles/     Colors.xaml (テンプレート由来)、Styles.xaml (テンプレート由来 + POS 節: Pos 接頭辞のスタイル)
-Platforms/Android/                   (テンプレート由来) MainActivity (pos.terminal.MainActivity)、KeyInputDriver、AndroidHelper
+  Styles/     Colors.xaml (テンプレート由来)、Styles.xaml (テンプレート由来 + POS 節: Pos 接頭辞のスタイル、ヘッダの状態表示 / 一覧行 / チップ / テンキー / 入力欄)
+Platforms/Android/                   (テンプレート由来) MainActivity (pos.terminal.MainActivity)、KeyInputDriver、AndroidHelper。CAMERA 権限
 ```
 
-- ViewModel が `DataAccessor` / `HttpService` / `Pos.Domain` を直接使う (Service / Usecase の層は置かない)。販売フロー (スキャン → 明細 → 会計 → Outbox 保存) は `SalesViewModel` / `PaymentViewModel` と `Cart` に置く
-- Phase 6 で `template-maui` から QR スキャン / 表示 (`BarcodeScanning.Native.Maui`, `QRCoder`)、`Settings` / `SettingParser`、`HttpService` / `NetworkOperator` (Rester)、`DataAccessor` (Microsoft.Data.Sqlite) を取り込む。パッケージもその時点で追加する
-- 販売・会計画面のデザインは `template-maui` の `UIPosView` (白い行 + 区切り線、名称は太字、金額は青、MaterialIcons のアイコン) に倣い、`Styles.xaml` の POS 節を使う
+- ViewModel が `DataAccessor` / `HttpService` / `Pos.Domain` を直接使う (Service / Usecase の層は置かない)。画面をまたぐ処理は `Services/` の静的ヘルパー (`TransactionBuilder` / `TransactionWriter` / `ShiftSummaryBuilder`) に置く
+- 通信は HttpClient + `System.Text.Json` (`HttpService.JsonOptions`: camelCase / null 省略 / 列挙型は文字列 / `JsonDateTimeConverter`)。Rester は 4xx の Problem Details 本文を扱えないため使わない ([D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))
+- 画面遷移は `Navigator.ForwardAsync` のみ (スタックは使わない)。複数の画面から使う画面 (スキャン、会員選択、レシートなど) は `Parameters.WithReturnTo` で戻り先を受け取り、スキャンは呼び出し元の戻り先と状態 (`WithCallerReturnTo` / `WithState`) をそのまま返す
+- 販売・会計画面のデザインは `template-maui` の `UIPosView` (白い行 + 区切り線、名称は太字、金額は青) に倣い、`Styles.xaml` の POS 節を使う。ポップアップの中では別のポップアップを重ねず、数量などの入力は `IDialog.PromptAsync` を使う
 
 ---
 
@@ -281,7 +293,7 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | DB | 起動時に `pos.db` (SQLite、実行ディレクトリ) を自動作成。テーブルと初期データ (店舗 / 端末 / 税率 / 支払方法 / 部門・商品サンプル) は Phase 3 で `InitializeApplicationAsync` に追加 |
 | OpenAPI | 開発時 `/swagger`、`/redoc`、`/openapi/v1.json` |
 | テスト | テストプロジェクトごとに `dotnet run --project` (例: `dotnet run --project server/tests/Pos.Server.UnitTests`)。`dotnet test` は使わない。[D-35](decisions.md#d-35-テストの実行方法) |
-| 端末 | `terminal/Pos.Terminal.slnx` を VS で開いて Android エミュレータで実行、または `dotnet build -t:Run -f net10.0-android -p:AdbTarget="-s emulator-5554"`。エミュレータからサーバへは `10.0.2.2:8080`。設定 QR を管理画面 S-71 で表示して読み取る (Phase 5 / 6) |
+| 端末 | `terminal/Pos.Terminal.slnx` を VS で開いて Android エミュレータで実行、または `dotnet build -t:Run -f net10.0-android -p:AdbTarget="-s emulator-5554"`。エミュレータからサーバへは `10.0.2.2:8080`。設定 QR を管理画面 S-71 で表示して読み取る (エミュレータでは T-00 に手入力でもよい) |
 | UI の言語 | 日本語固定。多言語化はしない ([D-28](decisions.md#d-28-ui-の言語-日本語固定)) |
 | コーディング規約 | ルートの `AGENTS.md`: `.editorconfig` に従う、フィールドに `_` を付けない、警告ゼロ、新規テキストファイルは CRLF、「DTO」は使わない ([D-27](decisions.md#d-27-用語-dto-は使わない)) |
 
@@ -299,7 +311,7 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | Phase 3 サーバ DB | DDL、Entity、Accessor、起動時スキーマ作成、初期データ | 完了 |
 | Phase 4 サーバ API | マスタ・同期 → 顧客 → シフト → 取引 → 在庫 → レポート → 帳票 (PDF)、統合テスト | 完了 |
 | Phase 5 管理画面 | レイアウト・ダッシュボード → マスタ CRUD → 取引 / シフト / 在庫 / 顧客 / レポート → 設定・QR | 完了 |
-| Phase 6 端末 | 土台・同期・Outbox → メニュー・開設 → 販売 → 会計・レシート → 精算・入出金 → 返品・履歴 → 照会・棚卸 → 設定 | |
+| Phase 6 端末 | 土台・同期・Outbox → メニュー・開設 → 販売 → 会計・レシート → 精算・入出金 → 返品・履歴 → 照会・棚卸 → 設定 | 完了 |
 
 後回しの項目は [api-design.md §7](api-design.md#7-phase-2-以降-後回し)。
 
@@ -334,11 +346,11 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 
 | # | 項目 | 確認方法 | 状態 / だめなときの代替 |
 | --- | --- | --- | --- |
-| 1 | JSON の camelCase | `Service-CloudManager` の `NamingPolicy` (camelCase) をそのまま使う。端末側は Rester の設定で camelCase にする (Phase 6) | サーバ側は Phase 0 で確認済み |
+| 1 | JSON の camelCase | `Service-CloudManager` の `NamingPolicy` (camelCase) をそのまま使う。端末側は `HttpService.JsonOptions` (System.Text.Json の Web 既定) で camelCase にする | 確認済み (端末は Phase 6 で HttpClient に変更、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) |
 | 2 | `[TypeHandler(typeof(EnumTextConverter<T>))]` のジェネリック指定 | Phase 3 で 1 エンティティ試す | 確認済み (`DataProfile` で一括宣言。CA1000 は `#pragma` で抑止) |
 | 3 | `Guid` ↔ TEXT、`decimal` ↔ NUMERIC の読み書き | Phase 3 で INSERT → SELECT → `SUM` を試す | 確認済み (`DatabaseTests`。Guid は大文字 TEXT、decimal は INTEGER / REAL に変換され `SUM` 可) |
 | 4 | `groupBy=hour` のタイムゾーン | UTC の `TransactedAt` を店舗時刻へ。SQL (`datetime(TransactedAt, '+9 hours')`) か C# 側集計かを Phase 4 で決める | 確認済み (SQL 側。店舗の `TimeZone` を `TimeZoneInfo` で解決し、営業日の UTC オフセットを `+540 minutes` の形で渡す。`storeId` なしはサーバのローカル) |
 | 5 | MAUI ワークロード | Phase 0 で `Pos.Terminal` のビルドとエミュレータ実行を確認 | 確認済み |
 | 6 | Aspire | Phase 0 で AppHost の起動 (ダッシュボード表示) を確認 | 確認済み (CLI 13.5.2 + AppHost SDK 13.5.3) |
 | 7 | テストの実行 | Microsoft.Testing.Platform の実行ファイルとして `dotnet run --project` で実行する (`dotnet test` と `global.json` は使わない) | 確認済み ([D-35](decisions.md#d-35-テストの実行方法)) |
-| 8 | レシート QR・電子レシート | QR の中身はレシート番号のみ、共有は画像 / テキスト、で Phase 6 に入る | — |
+| 8 | レシート QR・電子レシート | QR の中身はレシート番号のみ、共有は画像 / テキスト、で Phase 6 に入る | 確認済み (QR はレシート番号、レシートは SkiaSharp で画像化して PNG を共有) |

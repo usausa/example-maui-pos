@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Inquiry"
+             x:Class="Pos.Terminal.Modules.Inquiry.CustomerEditView"
+             x:DataType="{x:Type module:CustomerEditViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:CustomerEditViewModel}"
+             shell:ShellProperty.Title="{Binding Title}"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="スキャン"
+             shell:ShellProperty.Function3Text="クリア"
+             shell:ShellProperty.Function4Text="保存"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                             BackgroundColor="{StaticResource GrayLighten3}">
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="会員番号 (必須・スキャン可)" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding Code}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="氏名 (必須)" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding Name}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="かな" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding Kana}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="電話" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Keyboard="Telephone"
+                   behaviors:EntryBind.Controller="{Binding Phone}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="メール" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Keyboard="Email"
+                   behaviors:EntryBind.Controller="{Binding Email}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="郵便番号" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Keyboard="Numeric"
+                   behaviors:EntryBind.Controller="{Binding PostalCode}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="住所" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding Address}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="生年月日 (yyyy/MM/dd)" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Keyboard="Numeric"
+                   behaviors:EntryBind.Controller="{Binding BirthDate}"
+                   Placeholder="1990/01/01" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="備考" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Margin="16,0,16,16"
+                   behaviors:EntryBind.Controller="{Binding Note}" />
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentView>

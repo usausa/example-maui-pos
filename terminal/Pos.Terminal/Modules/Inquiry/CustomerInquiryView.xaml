@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:models="clr-namespace:Pos.Terminal.Models"
+             xmlns:sales="clr-namespace:Pos.Terminal.Modules.Sales"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Inquiry"
+             x:Class="Pos.Terminal.Modules.Inquiry.CustomerInquiryView"
+             x:DataType="{x:Type module:CustomerInquiryViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:CustomerInquiryViewModel}"
+             shell:ShellProperty.Title="会員照会"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="スキャン"
+             shell:ShellProperty.Function3Text="検索"
+             shell:ShellProperty.Function4Text="編集"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="{Binding HasCustomer}">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*">
+        <Grid Grid.Row="0"
+              Padding="8"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="8">
+            <Entry Grid.Column="0"
+                   Style="{StaticResource PosFieldEntry}"
+                   Margin="0"
+                   behaviors:EntryBind.Controller="{Binding Keyword}"
+                   ReturnType="Search"
+                   Placeholder="会員番号 / 電話 / 名前" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosMethodButton}"
+                    Margin="0"
+                    Command="{Binding SearchCommand}"
+                    Text="🔍 検索" />
+        </Grid>
+
+        <!-- 検索結果 -->
+        <CollectionView Grid.Row="1"
+                        Style="{StaticResource PosListCollectionView}"
+                        IsVisible="{Binding HasCustomer, Converter={StaticResource ReverseConverter}}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.EmptyView>
+                <Label Style="{StaticResource PosMessageLabel}"
+                       Text="{Binding EmptyText}" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type sales:CustomerItem}">
+                    <Grid Style="{StaticResource PosListRowGrid}"
+                          RowDefinitions="Auto,Auto"
+                          ColumnDefinitions="*,Auto">
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:CustomerInquiryViewModel}}, Path=SelectCommand, x:DataType={x:Type module:CustomerInquiryViewModel}}"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        <Label Grid.Row="0" Grid.Column="0"
+                               Style="{StaticResource PosListNameLabel}"
+                               Text="{Binding Name}" />
+                        <Label Grid.Row="0" Grid.Column="1"
+                               Style="{StaticResource PosListValueLabel}"
+                               Text="{Binding PointsText}" />
+                        <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                               Style="{StaticResource PosCaptionLabel}"
+                               Text="{Binding Detail}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- 詳細 -->
+        <ScrollView Grid.Row="1"
+                    IsVisible="{Binding HasCustomer}">
+            <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
+                <Grid Style="{StaticResource PosListRowGrid}"
+                      RowDefinitions="Auto,Auto"
+                      ColumnDefinitions="*,Auto">
+                    <Label Grid.Row="0" Grid.Column="0"
+                           Style="{StaticResource PosListNameLabel}"
+                           FontSize="20"
+                           Text="{Binding Name}" />
+                    <Label Grid.Row="0" Grid.Column="1"
+                           Style="{StaticResource PosLargeValueLabel}"
+                           Text="{Binding PointsText}" />
+                    <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                           Style="{StaticResource PosCaptionLabel}"
+                           Text="{Binding Code}" />
+                </Grid>
+                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                     BindableLayout.ItemsSource="{Binding Sections}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="{x:Type models:SummarySection}">
+                            <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
+                                <Label Style="{StaticResource PosSectionLabel}"
+                                       Text="{Binding Title}" />
+                                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                                     BackgroundColor="White"
+                                                     BindableLayout.ItemsSource="{Binding Rows}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                                            <Grid Style="{StaticResource PosListRowGrid}"
+                                                  Padding="16,6"
+                                                  ColumnDefinitions="*,Auto">
+                                                <Label Grid.Column="0"
+                                                       Style="{StaticResource PosCaptionLabel}"
+                                                       FontSize="15"
+                                                       TextColor="{StaticResource PrimaryTextColor}"
+                                                       LineBreakMode="WordWrap"
+                                                       Text="{Binding Label}" />
+                                                <Label Grid.Column="1"
+                                                       Style="{StaticResource PosListValueLabel}"
+                                                       Text="{Binding Value}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+
+</ContentView>

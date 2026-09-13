@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:converters="clr-namespace:Pos.Terminal.Converters"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             x:Class="Pos.Terminal.Modules.Sales.ReceiptView"
+             x:DataType="{x:Type module:ReceiptViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:ReceiptViewModel}"
+             shell:ShellProperty.Title="レシート"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="共有"
+             shell:ShellProperty.Function3Text="印刷"
+             shell:ShellProperty.Function4Text="QR"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <!-- ReSharper disable Xaml.RedundantResource -->
+    <ContentView.Resources>
+        <ResourceDictionary>
+            <converters:QrImageSourceConverter x:Key="QrImageSourceConverter" />
+        </ResourceDictionary>
+    </ContentView.Resources>
+    <!-- ReSharper restore Xaml.RedundantResource -->
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*">
+        <!-- 電子レシート QR (レシート番号) -->
+        <VerticalStackLayout Grid.Row="0"
+                             Style="{StaticResource FillVerticalStack}"
+                             BackgroundColor="White"
+                             IsVisible="{Binding QrVisible}">
+            <Image HorizontalOptions="Center"
+                   WidthRequest="200"
+                   HeightRequest="200"
+                   Margin="8"
+                   Source="{Binding ReceiptNo, Converter={StaticResource QrImageSourceConverter}}" />
+            <Label Style="{StaticResource PosCaptionLabel}"
+                   HorizontalTextAlignment="Center"
+                   Padding="0,0,0,8"
+                   Text="{Binding ReceiptNo}" />
+            <BoxView Style="{StaticResource PosSeparatorBoxView}" />
+        </VerticalStackLayout>
+
+        <!-- プレビュー (画像) -->
+        <ScrollView Grid.Row="1">
+            <Image Margin="8"
+                   Aspect="AspectFit"
+                   HorizontalOptions="Fill"
+                   Source="{Binding ReceiptImage}" />
+        </ScrollView>
+    </Grid>
+
+</ContentView>

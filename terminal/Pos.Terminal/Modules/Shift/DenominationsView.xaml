@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<mct:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+           xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+           xmlns:s="http://smart/maui"
+           xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+           xmlns:module="clr-namespace:Pos.Terminal.Modules.Shift"
+           xmlns:modules="clr-namespace:Pos.Terminal.Modules"
+           x:Class="Pos.Terminal.Modules.Shift.DenominationsView"
+           x:DataType="{x:Type module:DenominationsViewModel}"
+           s:BindingContextResolver.Type="{x:Type module:DenominationsViewModel}"
+           WidthRequest="{x:Static modules:ScreenSize.LargeDialogWidth}">
+
+    <Grid Style="{StaticResource FillGrid}"
+          RowDefinitions="Auto,*,Auto,Auto"
+          MaximumHeightRequest="560">
+        <Label Grid.Row="0"
+               Style="{StaticResource DialogTitleLabel}"
+               FontSize="24"
+               Text="金種別入力" />
+
+        <CollectionView Grid.Row="1"
+                        Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:DenominationItem}">
+                    <Grid Style="{StaticResource PosListRowGrid}"
+                          Padding="12,4"
+                          ColumnDefinitions="72,32,56,32,*">
+                        <Label Grid.Column="0"
+                               Style="{StaticResource PosListNameLabel}"
+                               Text="{Binding Label}" />
+                        <Button Grid.Column="1"
+                                Style="{StaticResource PosQuantityButton}"
+                                FontFamily=""
+                                Command="{Binding DecrementCommand}"
+                                Text="-" />
+                        <Entry Grid.Column="2"
+                               Style="{StaticResource PosFieldEntry}"
+                               Margin="4,0"
+                               Keyboard="Numeric"
+                               HorizontalTextAlignment="Center"
+                               Text="{Binding CountText}" />
+                        <Button Grid.Column="3"
+                                Style="{StaticResource PosQuantityButton}"
+                                FontFamily=""
+                                Command="{Binding IncrementCommand}"
+                                Text="+" />
+                        <Label Grid.Column="4"
+                               Style="{StaticResource PosListValueLabel}"
+                               Text="{Binding SubtotalText}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Grid Grid.Row="2"
+              Style="{StaticResource PosSectionRowGrid}"
+              ColumnDefinitions="*,Auto">
+            <Label Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   Text="合計" />
+            <Label Grid.Column="1"
+                   Style="{StaticResource PosLargeValueLabel}"
+                   Margin="0,0,16,0"
+                   Text="{Binding TotalText}" />
+        </Grid>
+
+        <Grid Grid.Row="3"
+              Style="{StaticResource FunctionGrid}"
+              ColumnDefinitions="*,*">
+            <Button Grid.Column="0"
+                    Style="{StaticResource InputFunctionButton}"
+                    Command="{Binding CloseCommand}"
+                    Text="❌" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource InputFunctionButton}"
+                    Command="{Binding CommitCommand}"
+                    Text="✔" />
+        </Grid>
+    </Grid>
+
+</mct:Popup>

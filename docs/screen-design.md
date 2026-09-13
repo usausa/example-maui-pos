@@ -25,7 +25,7 @@
 | スキャン | `BarcodeScanning.Native.Maui` (`BarcodeController` + `CameraView`)。1D (JAN/EAN) と 2D (QR) を連続読み取り。用途: 商品 JAN、会員証 (QR / バーコード)、レシート QR (返品時の取引呼び出し)、設定 QR |
 | QR 表示 | `QRCoder` (テンプレートの QR Display と同じ) で電子レシートの QR を表示 |
 | 設定 | `IPreferences` (`Settings`) にサーバ URL・店舗 ID・端末 ID を保存。管理画面の設定 QR (`Key=Value` 行、`SettingParser` 互換) で投入 ([D-24](decisions.md#d-24-端末セットアップ-qr-テンプレート互換フォーマット)) |
-| 通信 | Rester の `HttpService` + `NetworkOperator` (接続確認・リトライ・エラー通知)。`XxxRequest` / `XxxResponse` は `Pos.Shared` を参照 |
+| 通信 | `HttpService` (HttpClient + System.Text.Json、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) + `NetworkOperator` (接続確認・インジケータ・エラー通知)。`XxxRequest` / `XxxResponse` は `Pos.Shared` を参照 |
 | ローカル DB | Smart.Data.Accessor + SQLite (マスタキャッシュ・取引・Outbox、[db-design.md §6](db-design.md#6-端末ローカル-db-sqlite-の概要)) |
 | レシート | **画面表示 + 電子レシート** (レシート番号を QR 化、画像 / PDF 共有) を基本にする。Bluetooth レシートプリンタ (ESC/POS) は Phase 2 |
 | オフライン | 未送信件数をタイトルバーにバッジ表示。オンライン限定機能 (会員照会・他店在庫・レシート番号検索) は通信不可時にその旨を表示 |
@@ -130,6 +130,26 @@ F1〜F4 はシェル下部のファンクションキー。「—」は無効 (�
 | T-92 | 受注 | 取り寄せ・取り置き | 受注登録・一覧・入荷確認・会計への変換 | 戻る | | | | `/orders` | ◎ |
 
 `DialogId` (ポップアップ) 一覧: `InputNumber` (テンプレート既存) / `LineEdit` (P-13) / `Discount` (P-15) / `ReasonSelect` (在庫調整理由・返品理由) / `Denominations` (金種別入力)。確認・選択・トーストは `IDialog` を使う。
+
+実装 (Phase 6) で決めたこと・表と異なる点:
+
+| 画面 | 内容 |
+| --- | --- |
+| 共通 | 画面遷移は `ForwardAsync` のみ。複数の画面から使う画面 (T-11 / T-12 / T-14 / T-22 / T-40 / T-62) は `Parameters.WithReturnTo` で戻り先を受け取る。タイトル・F キーの文言や有効状態は `shell:ShellProperty.*="{Binding ...}"` で動的に変えられる。ポップアップの中から別のポップアップは開かず、数量・単価などは `IDialog.PromptAsync`、選択は `IDialog.SelectAsync` を使う |
+| T-02 | シフト未開設で販売 / 返品 / 入出金を選ぶと開設へ誘導し、開設後は元の画面へ。「レジ開設・精算」はシフト状態で文言が変わる |
+| T-03 | サーバに開設中のシフトが残っていれば (再インストール時など) 引き継ぐ |
+| T-10 | [⋯] は `IDialog.SelectAsync` (取引値引 / 解除 / 配送先 / 保留する / 保留を呼び出す / クリア) |
+| T-11 | 同一コードは 2 秒間抑制。検出フラッシュは省き、バイブレーションで知らせる。手入力は `IDialog.PromptAsync` |
+| P-13 | 数量・単価は `IDialog.PromptAsync`、明細値引は定義済み / 任意額 / 任意率を `IDialog.SelectAsync` で選ぶ (`DiscountChooser`)。承認が必要な値引は店長 / 管理者を承認者に選ぶ |
+| T-20 | 金額ショートカットは預り金に加算、[ちょうど] は残り全額。支払が済むと「残り」の行がお釣りになる |
+| T-22 | プレビューは `ReceiptFormatter` の 32 桁テキストを SkiaSharp で桁位置描画した画像 (端末フォントが等幅でなくても崩れない)。共有は PNG。印刷は Phase 2 |
+| T-30 | 絞り込みは画面上部のボタン (期間: 本シフト / 本日 / 昨日 / すべて、種別)。送信状態は Outbox から (送信済 / 未送信 / 要確認) |
+| T-42 | ポイント返還は自動 (利用ポイント分)、残りは返金方法を 1 つ選ぶ (元の支払方法を先頭に) |
+| T-51 / T-52 | 予想現金はローカルの取引・入出金から (`ShiftSummaryBuilder`)。精算レポートは未送信がなければサーバの集計、あれば端末の集計 |
+| T-62 | スキャン (T-11) へ行く間の入力内容は `Parameters.WithState` で引き継ぐ |
+| T-70 | 棚卸 / 調整のモードと入力リストは `StockState` に置き、スキャン画面との往復で失わない |
+| T-80 | 範囲は 自端末 / 自店 / 全店。自端末は端末別集計から自分の行を出す (集計軸は選べない)。合計は日別集計の Total を使う |
+| T-90 | スタッフ切替は T-01 へ、接続設定のやり直しは T-00 へ。F2 QR 読取は設定 QR を読んで T-00 へ渡す |
 
 ### 1.5 主要画面のレイアウト案
 

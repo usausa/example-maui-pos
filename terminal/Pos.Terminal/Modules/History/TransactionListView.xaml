@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.History"
+             x:Class="Pos.Terminal.Modules.History.TransactionListView"
+             x:DataType="{x:Type module:TransactionListViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:TransactionListViewModel}"
+             shell:ShellProperty.Title="取引履歴"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="絞込"
+             shell:ShellProperty.Function3Text="—"
+             shell:ShellProperty.Function4Text="再送"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*">
+        <Grid Grid.Row="0"
+              Padding="8"
+              ColumnDefinitions="*,*,Auto"
+              ColumnSpacing="8">
+            <Button Grid.Column="0"
+                    Style="{StaticResource PosSelectButton}"
+                    Command="{Binding PeriodCommand}"
+                    Text="{Binding PeriodText}" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosSelectButton}"
+                    Command="{Binding TypeCommand}"
+                    Text="{Binding TypeText}" />
+            <Label Grid.Column="2"
+                   Style="{StaticResource PosCaptionLabel}"
+                   Text="{Binding CountText}" />
+        </Grid>
+
+        <CollectionView Grid.Row="1"
+                        Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.EmptyView>
+                <Label Style="{StaticResource PosMessageLabel}"
+                       Text="取引がありません。" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:TransactionItem}">
+                    <Grid Style="{StaticResource PosListRowGrid}"
+                          RowDefinitions="Auto,Auto"
+                          ColumnDefinitions="Auto,*,Auto">
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:TransactionListViewModel}}, Path=SelectCommand, x:DataType={x:Type module:TransactionListViewModel}}"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        <Border Grid.Row="0" Grid.Column="0"
+                                Style="{StaticResource PosChipBorder}"
+                                Margin="0,0,8,0"
+                                BackgroundColor="{Binding TypeColor}">
+                            <Label Style="{StaticResource PosChipLabel}"
+                                   Text="{Binding TypeText}" />
+                        </Border>
+                        <Label Grid.Row="0" Grid.Column="1"
+                               Style="{StaticResource PosListNameLabel}"
+                               Text="{Binding ReceiptNo}" />
+                        <Label Grid.Row="0" Grid.Column="2"
+                               Style="{StaticResource PosListValueLabel}"
+                               Text="{Binding TotalText}" />
+                        <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                               Style="{StaticResource PosCaptionLabel}"
+                               Text="{Binding Detail}" />
+                        <Label Grid.Row="1" Grid.Column="2"
+                               Style="{StaticResource PosCaptionLabel}"
+                               HorizontalTextAlignment="End"
+                               TextColor="{Binding SyncColor}"
+                               Text="{Binding SyncText}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentView>

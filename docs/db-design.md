@@ -813,11 +813,13 @@ MAUI 側のローカル DB。`template-maui` 系テンプレートと同じく `
 
 | テーブル | 内容 |
 | --- | --- |
-| マスタ各種 | `Settings` / `Stores` / `Terminals` / `Staff` / `Categories` / `TaxRates` / `Products` / `Discounts` / `PaymentMethods` / `AdjustmentReasons` をサーバと同じ列で保持。`GET /sync/masters` の結果を `INSERT OR REPLACE` で upsert (全件同期時はテンプレートの「洗い替え」と同じく DeleteAll → Insert を 1 トランザクションで) |
-| `InventoryLevels` | 自店分のみ |
-| `Shifts` / `CashEvents` / `Transactions` 一式 | 端末で発生したものを保持 (取引履歴・再印字・返品の元取引参照に使う)。一定期間で古いものを削除 |
-| `Outbox` | `Id` (guid)、`Kind` (ShiftOpen / Transaction / CashEvent / ShiftClose / InventoryChanges / TransactionVoid)、`Payload` (JSON、`XxxRequest` をそのまま直列化)、`CreatedAt`、`Status` (Pending / Sent / Failed)、`Attempts`、`LastError` |
-| `SyncState` | `Key` / `Value` (最終 `ServerTime`、端末 ID、店舗 ID など)。端末設定 (サーバ URL 等) はテンプレートどおり `IPreferences` (`Settings`) に置く |
+| マスタ各種 | `Settings` / `Stores` / `Terminals` / `Staff` / `Categories` / `TaxRates` / `Products` / `Discounts` / `PaymentMethods` / `AdjustmentReasons` を `Pos.Shared` の Response と同じ列で保持 (エンティティクラスは Response をそのまま使う)。`GET /sync/masters` の結果を Id で削除 → 挿入 (1 トランザクション)。削除済み (`IsDeleted`) も保持し、検索時に除く |
+| `InventoryLevels` | 自店分のみ (`updatedSince` で差分取り込み。販売・返品・取消・棚卸ではローカルでも増減させる) |
+| `Shifts` / `CashEvents` | 端末で開設したシフトと入出金 (精算の予想現金の計算に使う) |
+| `Transactions` | 検索用の列 (種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引) + `Payload` (`TransactionResponse` の JSON。送信後はサーバの応答で置き換える)。取引履歴・再印字・返品の元取引参照に使う |
+| `Outbox` | `Id` (guid)、`Kind` (ShiftOpen / Transaction / TransactionVoid / CashEvent / ShiftClose / InventoryChanges)、`TargetId` (取引 ID やシフト ID)、`Payload` (JSON、`XxxRequest` をそのまま直列化)、`CreatedAt`、`Status` (Pending / Sent / Failed)、`Attempts`、`LastError`、`SentAt`。Sent は 7 日で削除 |
+| `SyncState` | `Key` / `Value` (最終 `ServerTime`、在庫の同期時刻、レシート番号の連番)。端末設定 (サーバ URL・店舗 ID・端末 ID) はテンプレートどおり `IPreferences` (`Settings`) に置く |
+| `HoldCarts` | 会計途中の保留 (端末ローカルのみ、T-17)。`Summary` / `Total` と `Cart` の JSON |
 
 ---
 

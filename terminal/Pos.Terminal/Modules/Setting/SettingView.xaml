@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:models="clr-namespace:Pos.Terminal.Models"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Setting"
+             x:Class="Pos.Terminal.Modules.Setting.SettingView"
+             x:DataType="{x:Type module:SettingViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:SettingViewModel}"
+             shell:ShellProperty.Title="設定・同期"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="QR 読取"
+             shell:ShellProperty.Function3Text="未送信"
+             shell:ShellProperty.Function4Text="同期"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                             BackgroundColor="{StaticResource GrayLighten3}">
+            <!-- 端末情報 -->
+            <Label Style="{StaticResource PosSectionLabel}"
+                   Text="📱 端末" />
+            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                 BackgroundColor="White"
+                                 BindableLayout.ItemsSource="{Binding Info}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                        <Grid Style="{StaticResource PosListRowGrid}"
+                              Padding="16,6"
+                              ColumnDefinitions="Auto,*">
+                            <Label Grid.Column="0"
+                                   Style="{StaticResource PosCaptionLabel}"
+                                   FontSize="15"
+                                   Text="{Binding Label}" />
+                            <Label Grid.Column="1"
+                                   Style="{StaticResource PosListValueLabel}"
+                                   FontSize="15"
+                                   LineBreakMode="TailTruncation"
+                                   Text="{Binding Value}" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <!-- 同期 -->
+            <Label Style="{StaticResource PosSectionLabel}"
+                   Text="🔄 同期" />
+            <Grid Style="{StaticResource PosListRowGrid}"
+                  RowDefinitions="Auto,Auto"
+                  ColumnDefinitions="*,Auto">
+                <Label Grid.Row="0" Grid.Column="0"
+                       Style="{StaticResource PosCaptionLabel}"
+                       FontSize="15"
+                       Text="{Binding LastSyncText}" />
+                <Border Grid.Row="0" Grid.Column="1"
+                        Style="{StaticResource PosChipBorder}"
+                        BackgroundColor="{Binding UnsentColor}">
+                    <Label Style="{StaticResource PosChipLabel}"
+                           Text="{Binding UnsentText}" />
+                </Border>
+                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                       Style="{StaticResource PosCaptionLabel}"
+                       FontSize="13"
+                       LineBreakMode="WordWrap"
+                       Text="F4 同期でマスタと在庫を取り込みます。F3 で未送信の一覧を表示します。" />
+            </Grid>
+
+            <!-- 未送信一覧 -->
+            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                 IsVisible="{Binding OutboxVisible}">
+                <Label Style="{StaticResource PosSectionLabel}"
+                       Text="📤 未送信 (タップで再送・破棄)" />
+                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                     BackgroundColor="White"
+                                     BindableLayout.ItemsSource="{Binding Outbox}">
+                    <BindableLayout.EmptyView>
+                        <Label Style="{StaticResource PosMessageLabel}"
+                               Text="未送信はありません。" />
+                    </BindableLayout.EmptyView>
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="{x:Type module:OutboxItem}">
+                            <Grid Style="{StaticResource PosListRowGrid}"
+                                  RowDefinitions="Auto,Auto"
+                                  ColumnDefinitions="Auto,*,Auto">
+                                <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:SettingViewModel}}, Path=OutboxCommand, x:DataType={x:Type module:SettingViewModel}}"
+                                                          CommandParameter="{Binding .}" />
+                                </Grid.GestureRecognizers>
+                                <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                                <Border Grid.Row="0" Grid.Column="0"
+                                        Style="{StaticResource PosChipBorder}"
+                                        Margin="0,0,8,0"
+                                        BackgroundColor="{Binding StatusColor}">
+                                    <Label Style="{StaticResource PosChipLabel}"
+                                           Text="{Binding StatusText}" />
+                                </Border>
+                                <Label Grid.Row="0" Grid.Column="1"
+                                       Style="{StaticResource PosListNameLabel}"
+                                       Text="{Binding KindText}" />
+                                <Label Grid.Row="0" Grid.Column="2"
+                                       Style="{StaticResource PosCaptionLabel}"
+                                       Text="{Binding TimeText}" />
+                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                       Style="{StaticResource PosCaptionLabel}"
+                                       TextColor="{StaticResource RedDefault}"
+                                       LineBreakMode="WordWrap"
+                                       IsVisible="{Binding Error, Converter={StaticResource NotEmptyConverter}}"
+                                       Text="{Binding Error}" />
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- 設定 -->
+            <Label Style="{StaticResource PosSectionLabel}"
+                   Text="⚙ 設定" />
+            <Grid Style="{StaticResource PosListRowGrid}"
+                  ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0"
+                       Style="{StaticResource PosCaptionLabel}"
+                       FontSize="15"
+                       TextColor="{StaticResource PrimaryTextColor}"
+                       LineBreakMode="WordWrap"
+                       Text="ログイン後にシフト開設済みなら販売画面を開く" />
+                <Switch Grid.Column="1"
+                        IsToggled="{Binding OpenSalesAfterLogin}" />
+            </Grid>
+            <BoxView Style="{StaticResource PosSubSeparatorBoxView}" />
+            <Grid Style="{StaticResource MenuGrid}"
+                  BackgroundColor="White"
+                  Padding="16,8"
+                  ColumnDefinitions="*,*">
+                <Button Grid.Column="0"
+                        Style="{StaticResource PosSelectButton}"
+                        Command="{Binding SwitchStaffCommand}"
+                        Text="👤 スタッフ切替" />
+                <Button Grid.Column="1"
+                        Style="{StaticResource PosSelectButton}"
+                        Command="{Binding SetupCommand}"
+                        Text="🔗 接続設定" />
+            </Grid>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentView>

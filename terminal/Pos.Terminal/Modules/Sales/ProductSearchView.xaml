@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             x:Class="Pos.Terminal.Modules.Sales.ProductSearchView"
+             x:DataType="{x:Type module:ProductSearchViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:ProductSearchViewModel}"
+             shell:ShellProperty.Title="商品検索"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="部門"
+             shell:ShellProperty.Function3Text="クリア"
+             shell:ShellProperty.Function4Text="—"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="False">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,Auto,*">
+        <!-- キーワード -->
+        <Grid Grid.Row="0"
+              Padding="8"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="8">
+            <Entry Grid.Column="0"
+                   Style="{StaticResource PosFieldEntry}"
+                   Margin="0"
+                   behaviors:EntryBind.Controller="{Binding Keyword}"
+                   ReturnType="Search"
+                   Placeholder="名称 / 型番 / コード" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosMethodButton}"
+                    Margin="0"
+                    Command="{Binding SearchCommand}"
+                    Text="🔍 検索" />
+        </Grid>
+
+        <!-- 部門 (2 階層) -->
+        <VerticalStackLayout Grid.Row="1"
+                             Style="{StaticResource FillVerticalStack}"
+                             IsVisible="{Binding CategoryVisible}">
+            <ScrollView Orientation="Horizontal"
+                        HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout Padding="8,0,8,4"
+                                       Spacing="6"
+                                       BindableLayout.ItemsSource="{Binding Parents}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="{x:Type module:CategoryItem}">
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <Button Style="{StaticResource PosSelectButton}"
+                                    HeightRequest="36"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type module:ProductSearchViewModel}}, Path=SelectParentCommand, x:DataType={x:Type module:ProductSearchViewModel}}"
+                                    CommandParameter="{Binding .}"
+                                    Text="{Binding Name}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding IsSelected}"
+                                                 Value="True">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </HorizontalStackLayout>
+            </ScrollView>
+            <ScrollView Orientation="Horizontal"
+                        HorizontalScrollBarVisibility="Never"
+                        IsVisible="{Binding ChildrenVisible}">
+                <HorizontalStackLayout Padding="8,0,8,4"
+                                       Spacing="6"
+                                       BindableLayout.ItemsSource="{Binding Children}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="{x:Type module:CategoryItem}">
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <Button Style="{StaticResource PosSelectButton}"
+                                    HeightRequest="36"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type module:ProductSearchViewModel}}, Path=SelectChildCommand, x:DataType={x:Type module:ProductSearchViewModel}}"
+                                    CommandParameter="{Binding .}"
+                                    Text="{Binding Name}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding IsSelected}"
+                                                 Value="True">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </HorizontalStackLayout>
+            </ScrollView>
+        </VerticalStackLayout>
+
+        <!-- 結果 -->
+        <CollectionView Grid.Row="2"
+                        Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.EmptyView>
+                <Label Style="{StaticResource PosMessageLabel}"
+                       Text="{Binding EmptyText}" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:ProductItem}">
+                    <Grid Style="{StaticResource PosListRowGrid}"
+                          RowDefinitions="Auto,Auto"
+                          ColumnDefinitions="*,Auto">
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:ProductSearchViewModel}}, Path=SelectCommand, x:DataType={x:Type module:ProductSearchViewModel}}"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        <Label Grid.Row="0" Grid.Column="0"
+                               Style="{StaticResource PosListNameLabel}"
+                               Text="{Binding Name}" />
+                        <Label Grid.Row="0" Grid.Column="1"
+                               Style="{StaticResource PosListValueLabel}"
+                               Text="{Binding PriceText}" />
+                        <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                               Style="{StaticResource PosCaptionLabel}"
+                               Text="{Binding Detail}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentView>

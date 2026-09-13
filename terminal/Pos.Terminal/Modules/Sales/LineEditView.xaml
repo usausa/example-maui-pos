@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<mct:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+           xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+           xmlns:s="http://smart/maui"
+           xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+           xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+           xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+           xmlns:modules="clr-namespace:Pos.Terminal.Modules"
+           x:Class="Pos.Terminal.Modules.Sales.LineEditView"
+           x:DataType="{x:Type module:LineEditViewModel}"
+           s:BindingContextResolver.Type="{x:Type module:LineEditViewModel}"
+           WidthRequest="{x:Static modules:ScreenSize.LargeDialogWidth}">
+
+    <Grid Style="{StaticResource FillGrid}"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+          BackgroundColor="White">
+        <Label Grid.Row="0"
+               Style="{StaticResource DialogTitleLabel}"
+               FontSize="20"
+               LineBreakMode="TailTruncation"
+               Text="{Binding Name}" />
+
+        <!-- 数量 -->
+        <Grid Grid.Row="1"
+              Style="{StaticResource PosListRowGrid}"
+              ColumnDefinitions="*,40,96,40">
+            <Label Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   VerticalOptions="Center"
+                   Text="数量" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosQuantityButton}"
+                    FontFamily=""
+                    Command="{Binding DecrementCommand}"
+                    Text="-" />
+            <Button Grid.Column="2"
+                    Style="{StaticResource PosFieldValueButton}"
+                    Margin="4,0"
+                    Command="{Binding InputQuantityCommand}"
+                    Text="{Binding QuantityText}" />
+            <Button Grid.Column="3"
+                    Style="{StaticResource PosQuantityButton}"
+                    FontFamily=""
+                    Command="{Binding IncrementCommand}"
+                    Text="+" />
+        </Grid>
+        <BoxView Grid.Row="1"
+                 Style="{StaticResource PosSubSeparatorBoxView}"
+                 VerticalOptions="End" />
+
+        <!-- 単価 -->
+        <Grid Grid.Row="2"
+              Style="{StaticResource PosListRowGrid}"
+              ColumnDefinitions="*,176">
+            <Label Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   VerticalOptions="Center"
+                   Text="{Binding PriceCaption}" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosFieldValueButton}"
+                    Margin="4,0"
+                    IsEnabled="{Binding CanOverridePrice}"
+                    Command="{Binding InputPriceCommand}"
+                    Text="{Binding UnitPriceText}" />
+        </Grid>
+        <BoxView Grid.Row="2"
+                 Style="{StaticResource PosSubSeparatorBoxView}"
+                 VerticalOptions="End" />
+
+        <!-- 値引 -->
+        <Grid Grid.Row="3"
+              Style="{StaticResource PosListRowGrid}"
+              ColumnDefinitions="Auto,*,40">
+            <Label Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   VerticalOptions="Center"
+                   Text="値引" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosSelectButton}"
+                    Margin="8,0,4,0"
+                    Command="{Binding DiscountCommand}"
+                    Text="{Binding DiscountText}" />
+            <Button Grid.Column="2"
+                    Style="{StaticResource PosQuantityButton}"
+                    FontFamily=""
+                    BackgroundColor="{StaticResource GrayLighten1}"
+                    IsVisible="{Binding HasDiscount}"
+                    Command="{Binding ClearDiscountCommand}"
+                    Text="✕" />
+        </Grid>
+        <BoxView Grid.Row="3"
+                 Style="{StaticResource PosSubSeparatorBoxView}"
+                 VerticalOptions="End" />
+
+        <!-- シリアル番号・備考 -->
+        <VerticalStackLayout Grid.Row="4"
+                             Style="{StaticResource FillVerticalStack}">
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="{Binding SerialCaption}" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding Serial}"
+                   Placeholder="複数はカンマ区切り" />
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="備考" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Margin="16,0,16,12"
+                   behaviors:EntryBind.Controller="{Binding Note}" />
+        </VerticalStackLayout>
+
+        <Grid Grid.Row="5"
+              Style="{StaticResource FunctionGrid}"
+              ColumnDefinitions="*,*,*">
+            <Button Grid.Column="0"
+                    Style="{StaticResource InputFunctionButton}"
+                    BackgroundColor="{StaticResource RedDefault}"
+                    Command="{Binding DeleteCommand}"
+                    Text="🗑" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource InputFunctionButton}"
+                    Command="{Binding CloseCommand}"
+                    Text="❌" />
+            <Button Grid.Column="2"
+                    Style="{StaticResource InputFunctionButton}"
+                    Command="{Binding CommitCommand}"
+                    Text="✔" />
+        </Grid>
+    </Grid>
+
+</mct:Popup>

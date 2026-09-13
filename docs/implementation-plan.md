@@ -47,7 +47,7 @@
 - [x] `Styles.xaml` に `FooterLabel` と POS 節 (`Pos` 接頭辞: 背景・行・区切り線・名称 / 金額ラベル・オプション / 数量 / 実行ボタン) を追加。配色は `Colors.xaml` の Material パレット
 - [x] `terminal/Pos.Terminal.slnx`: `Pos.Terminal` + `../shared/Pos.Domain` + `../shared/Pos.Shared`。`Settings.XamlStyler` / `Pos.Terminal.sln.DotSettings` をコピー
 - [x] 画面遷移の Forward / Back アニメーション: `AddHierarchyEffectPlugin` + 各画面の `[Hierarchy(n)]` ([D-36](decisions.md#d-36-端末の画面遷移アニメーション))
-- [ ] Rester の JSON を camelCase に設定 → Phase 6 (通信を取り込むとき)
+- [x] 通信の JSON を camelCase に設定 → Phase 6 で `HttpService` (HttpClient + System.Text.Json、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) に実装
 
 ### 完了条件
 
@@ -237,55 +237,55 @@ screen-design §2 の ★ 画面。ページは Accessor / Domain を直接使�
 
 ---
 
-## Phase 6: 端末
+## Phase 6: 端末 (完了)
 
-screen-design §1 の ★ 画面。サーバが動いている前提。
+screen-design §1 の ★ 画面。サーバが動いている前提。ViewModel は `DataAccessor` / `HttpService` / `Pos.Domain` を直接使い、画面をまたぐ処理は静的ヘルパー (`TransactionBuilder` / `TransactionWriter` / `ShiftSummaryBuilder` / `ReceiptFormatter` / `ReceiptRenderer`) に置く。
 
 ### 6a 土台
 
-- [ ] ローカル DB (マスタキャッシュ・取引一式・Outbox・SyncState、db-design §6)
-- [ ] `HttpService` (Pos.Shared の Request / Response で api-design の ★ を呼ぶ)。Rester の JSON を camelCase に設定
-- [ ] `SyncWorker`: 差分同期、Outbox 送信 (順序・バックオフ・要確認で停止)
-- [ ] `Settings` (ApiEndPoint / StoreId / TerminalId / OpenSalesAfterLogin)、`Session`
-- [ ] セットアップ T-00 (設定 QR / 手入力 / 初回同期)、スタッフ選択 T-01
-- [ ] 各画面の `ContentView` に `[Hierarchy(n)]` を付ける (screen-design §1.3 の深さ。[D-36](decisions.md#d-36-端末の画面遷移アニメーション))
+- [x] ローカル DB (`Services/DataAccessor.cs` + `Sql/*.sql`、db-design §6): マスタは `Pos.Shared` の Response をそのままエンティティにし Id で削除 → 挿入、取引は `LocalTransactionEntity` (検索列 + `TransactionResponse` の JSON)、`Outbox` / `SyncState` / `HoldCarts`。日時は ticks、列挙型は文字列 (`Helpers/Data/DataProfile`)
+- [x] `HttpService` (HttpClient + `System.Text.Json`。camelCase / null 省略 / 列挙型は文字列 / `JsonDateTimeConverter`。失敗時は Problem Details を `ApiResult<T>` で返す、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))、`NetworkOperator` (接続確認・インジケータ・通知)
+- [x] `SyncWorker`: 15 秒周期 + `Trigger()`、マスタ差分同期 (5 分ごと、商品が省かれたらページ取得、自店在庫は `updatedSince`)、Outbox を発生順に送信 (4xx は要確認 `Failed` で停止、5xx / 通信不可は指数バックオフ)、レシート番号の採番 (`SyncState` の連番、サーバの `LastReceiptSeq` と合わせる)
+- [x] `Settings` (IPreferences: ApiEndPoint / StoreId / TerminalId / OpenSalesAfterLogin)、`Session` (会社設定・店舗・端末・担当・シフト・未送信件数。タイトルバーの `店舗-端末 担当` と未送信バッジは `MainPageViewModel` が `Session` を写す)、`SalesState` (カート・支払・完了取引・返品元)、`StockState`
+- [x] セットアップ T-00 (設定 QR は `SettingParser` 互換、手入力、店舗・端末をサーバで確認してから全件同期)、スタッフ選択 T-01 (役割チップ)
+- [x] 各画面の `[Hierarchy(n)]` (screen-design §1.3 の深さ)。シェルの更新は表示中の View だけが行う (`ShellProperty.Active`。遷移で外れた View のバインディング解除で上書きされないように)
 
 ### 6b メニュー・開設・設定
 
-- [ ] メニュー T-02 (未送信バッジ・シフト状態・販売への誘導)
-- [ ] レジ開設 T-03
-- [ ] 設定・同期 T-90 (未送信一覧・再送・破棄・手動同期)
+- [x] メニュー T-02 (シフト状態チップ、未開設なら販売 / 返品 / 入出金は開設へ誘導し開設後に元の画面へ、開設中は「レジ開設」が「精算」に変わる)
+- [x] レジ開設 T-03 (サーバに開設中のシフトが残っていれば引き継ぐ)
+- [x] 設定・同期 T-90 (端末情報、最終同期、未送信一覧: 要確認は再送 / 破棄 / 詳細、手動同期、「ログイン後に販売画面を開く」、スタッフ切替、接続設定のやり直し)
 
 ### 6c 販売
 
-- [ ] `Cart` モデル (Pos.Domain の `SalesCalculator` への入力を組み立て、結果を保持)
-- [ ] 販売 T-10、スキャン T-11 (連続読み取り・モード)、商品検索 T-12
-- [ ] 明細編集 P-13、会員選択 T-14、取引値引 P-15、配送先 T-16、保留 T-17
+- [x] `Cart` (`Models/Sales`): 同じ商品は数量 +1、`TransactionBuilder.ToSalesInput` で `SalesCalculator` の入力へ。保留は JSON で `HoldCarts` に保存
+- [x] 販売 T-10 (会員チップ、明細タップで P-13、左スワイプで削除、[⋯] = 取引値引 / 配送先 / 保留 / 呼出 / クリア)、スキャン T-11 (商品モードは連続読み取り、同一コードは 2 秒抑制、他モードは 1 件で呼び出し元へ。手入力あり)、商品検索 T-12 (キーワード + 部門 2 階層)
+- [x] 明細編集 P-13 (数量・単価は `IDialog` の Prompt、明細値引は `DiscountChooser`、シリアル番号・備考・削除)、会員選択 T-14 (検索 / スキャン / 新規 / 解除)、取引値引 P-15 (定義済み + 任意額 / 任意率 + 理由、承認が必要な値引は承認者を選ぶ)、配送先 T-16 (会員住所の転記)、保留 T-17
 
 ### 6d 会計・レシート
 
-- [ ] 会計 T-20 (埋め込みテンキー・複数支払・ポイント利用・釣銭)
-- [ ] 会計完了 T-21、レシート T-22 (プレビュー・電子レシート QR・共有)
+- [x] 会計 T-20 (埋め込みテンキー + 金額ショートカット + ちょうど、支払方法ボタン、複数支払、`RequiresReference` は伝票番号、ポイント利用は残高と残りまで、お釣り表示、確定で `TransactionWriter` がローカル取引 + Outbox + 自店在庫を 1 トランザクションで書く)
+- [x] 会計完了 T-21 (お釣り / 返金額、ポイント、次へ)、レシート T-22 (`ReceiptFormatter` の 32 桁テキストを `ReceiptRenderer` (SkiaSharp) で桁位置描画した画像、電子レシート QR (レシート番号)、共有は PNG)
 
 ### 6e 精算・入出金
 
-- [ ] 入出金 T-50、精算 T-51 (未送信警告・金種入力)、精算レポート T-52
+- [x] 入出金 T-50 (入金 / 出金 / ドロワ開)、精算 T-51 (`ShiftSummaryBuilder` でローカルの取引・入出金から予想現金、未送信警告、実査は `InputNumber` または金種別入力ポップアップ、過不足)、精算レポート T-52 (未送信がなければ `GET /shifts/{id}/summary`、あれば端末の集計。共有はテキスト)
 
 ### 6f 返品・履歴
 
-- [ ] 返品 T-40 / 返品明細選択 T-41 / 返金 T-42 (`ReturnCalculator`)
-- [ ] 取引履歴 T-30 / 取引詳細 T-31 (取消)
+- [x] 返品 T-40 (レシート QR / 番号入力 / 履歴、オンラインならサーバの最新を使う) / 返品明細選択 T-41 (残数量まで、全数、理由は `ReasonSelect`) / 返金 T-42 (ポイント返還は自動、残りは元の支払方法を先頭に選択。`ReturnCalculator` → `TransactionBuilder.ToReturnRequest`)
+- [x] 取引履歴 T-30 (期間: 本シフト / 本日 / 昨日 / すべて、種別、送信状態チップ) / 取引詳細 T-31 (明細・金額・支払・ポイント・配送先・取消情報。取消は同一シフト内、返品は完了した販売のみ)
 
 ### 6g 照会・棚卸・売上
 
-- [ ] 商品・在庫照会 T-60 (他店在庫)、会員照会 T-61 / 登録・編集 T-62
-- [ ] 棚卸・在庫調整 T-70、売上照会 T-80
+- [x] 商品・在庫照会 T-60 (スキャン / 検索、自店在庫、他店在庫はオンライン)、会員照会 T-61 (基本情報・ポイント履歴・購入履歴) / 登録・編集 T-62 (スキャン中の入力内容は `NavigationParameter` の state で引き継ぐ)
+- [x] 棚卸・在庫調整 T-70 (モード切替、調整は増減 + 理由 (調整理由マスタ + 任意)、送信で `InventoryChangeRequest` を Outbox へ、ローカル在庫も更新)、売上照会 T-80 (期間 / 範囲 (自端末 / 自店 / 全店) / 集計軸。合計は日別集計の Total)
 
 ### 完了条件
 
-- [ ] エミュレータで「セットアップ → 開設 → 販売 (スキャン・会員・値引) → 会計 → レシート → 返品 → 入出金 → 精算」が通り、サーバ側の取引・在庫・ポイント・シフトに反映される
-- [ ] 機内モードで販売 → 復帰で Outbox が順に送信される。`422` は要確認として止まり、T-90 で確認できる
-- [ ] 警告ゼロ
+- [x] エミュレータで「セットアップ → 開設 → 販売 (検索・手入力スキャン・会員・明細値引 (承認者) ・取引値引) → 会計 (ポイント + 現金) → レシート → 返品 → 入出金 → 棚卸 → 精算 (金種入力) → 精算レポート」が通り、サーバ側の取引・在庫・ポイント・シフトに反映されることを確認。取消・保留 / 呼出・配送先・会員編集も確認
+- [x] 機内モードで販売 → 復帰で Outbox が送信される。サーバ側で `AllowsPriceOverride` を外して `422 PRICE_OVERRIDE_NOT_ALLOWED` を起こすと要確認 (赤バッジ) で止まり、T-90 で理由を確認して再送 / 破棄できる
+- [x] 警告ゼロ、InspectCode の指摘ゼロ
 
 ---
 

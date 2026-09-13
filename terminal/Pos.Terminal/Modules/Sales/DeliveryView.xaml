@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             x:Class="Pos.Terminal.Modules.Sales.DeliveryView"
+             x:DataType="{x:Type module:DeliveryViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:DeliveryViewModel}"
+             shell:ShellProperty.Title="配送先"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="会員住所"
+             shell:ShellProperty.Function3Text="クリア"
+             shell:ShellProperty.Function4Text="確定"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="{Binding HasCustomer}"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                             BackgroundColor="{StaticResource GrayLighten3}">
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="宛名 (必須)" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding RecipientName}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="電話" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Keyboard="Telephone"
+                   behaviors:EntryBind.Controller="{Binding Phone}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="郵便番号" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Keyboard="Numeric"
+                   behaviors:EntryBind.Controller="{Binding PostalCode}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="住所 (必須)" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding Address}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="希望日" />
+            <Grid Margin="16,0"
+                  ColumnDefinitions="*,Auto"
+                  ColumnSpacing="8">
+                <DatePicker Grid.Column="0"
+                            Format="yyyy/MM/dd"
+                            FontSize="16"
+                            BackgroundColor="White"
+                            IsVisible="{Binding HasRequestedDate}"
+                            Date="{Binding RequestedDate}" />
+                <Button Grid.Column="0"
+                        Style="{StaticResource PosSelectButton}"
+                        IsVisible="{Binding HasRequestedDate, Converter={StaticResource ReverseConverter}}"
+                        Command="{Binding SetDateCommand}"
+                        Text="指定なし (タップで指定)" />
+                <Button Grid.Column="1"
+                        Style="{StaticResource PosSelectButton}"
+                        IsVisible="{Binding HasRequestedDate}"
+                        Command="{Binding ClearDateCommand}"
+                        Text="✕" />
+            </Grid>
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="時間帯" />
+            <Button Style="{StaticResource PosSelectButton}"
+                    Margin="16,0"
+                    HorizontalOptions="Fill"
+                    Command="{Binding SelectTimeSlotCommand}"
+                    Text="{Binding TimeSlotText}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="備考" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Margin="16,0,16,16"
+                   behaviors:EntryBind.Controller="{Binding Note}" />
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentView>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:models="clr-namespace:Pos.Terminal.Models"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Shift"
+             x:Class="Pos.Terminal.Modules.Shift.ShiftCloseView"
+             x:DataType="{x:Type module:ShiftCloseViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:ShiftCloseViewModel}"
+             shell:ShellProperty.Title="精算"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="金種入力"
+             shell:ShellProperty.Function3Text="未送信"
+             shell:ShellProperty.Function4Text="精算"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="{Binding HasUnsent}"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                             BackgroundColor="{StaticResource GrayLighten3}">
+            <!-- 未送信警告 -->
+            <Border Style="{StaticResource PosChipBorder}"
+                    Margin="16,8,16,0"
+                    HorizontalOptions="Fill"
+                    Padding="12,8"
+                    BackgroundColor="#FB8C00"
+                    IsVisible="{Binding HasUnsent}">
+                <Label Style="{StaticResource PosChipLabel}"
+                       FontSize="14"
+                       Text="{Binding UnsentText}" />
+            </Border>
+
+            <Label Style="{StaticResource PosSectionLabel}"
+                   Text="{Binding ShiftText}" />
+
+            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                 BackgroundColor="White"
+                                 BindableLayout.ItemsSource="{Binding Rows}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                        <Grid Style="{StaticResource PosListRowGrid}"
+                              Padding="16,6"
+                              ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Style="{StaticResource PosCaptionLabel}"
+                                   FontSize="16"
+                                   Text="{Binding Label}" />
+                            <Label Grid.Column="1"
+                                   Style="{StaticResource PosListValueLabel}"
+                                   Text="{Binding Value}" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Label Style="{StaticResource PosSectionLabel}"
+                   Text="実査" />
+            <Grid Style="{StaticResource PosValueRowGrid}"
+                  ColumnDefinitions="*,Auto"
+                  Padding="16,12">
+                <Label Grid.Column="0"
+                       Style="{StaticResource PosNameLabel}"
+                       Text="💴 実査金額" />
+                <Button Grid.Column="1"
+                        Style="{StaticResource PosFieldValueButton}"
+                        Margin="0"
+                        WidthRequest="160"
+                        Command="{Binding InputActualCommand}"
+                        Text="{Binding ActualCashText}" />
+            </Grid>
+            <BoxView Style="{StaticResource PosSubSeparatorBoxView}" />
+            <Grid Style="{StaticResource PosValueRowGrid}"
+                  ColumnDefinitions="*,Auto"
+                  Padding="16,12">
+                <Label Grid.Column="0"
+                       Style="{StaticResource PosNameLabel}"
+                       Text="過不足" />
+                <Label Grid.Column="1"
+                       Style="{StaticResource PosLargeValueLabel}"
+                       TextColor="{Binding DifferenceColor}"
+                       Text="{Binding DifferenceText}" />
+            </Grid>
+            <BoxView Style="{StaticResource PosSeparatorBoxView}" />
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentView>

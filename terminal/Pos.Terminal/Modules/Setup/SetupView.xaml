@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Setup"
+             x:Class="Pos.Terminal.Modules.Setup.SetupView"
+             x:DataType="{x:Type module:SetupViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:SetupViewModel}"
+             shell:ShellProperty.Title="初期設定"
+             shell:ShellProperty.Function1Text="—"
+             shell:ShellProperty.Function2Text="QR 読取"
+             shell:ShellProperty.Function3Text="手入力"
+             shell:ShellProperty.Function4Text="開始"
+             shell:ShellProperty.Function1Enabled="False"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*">
+        <VerticalStackLayout Grid.Row="0"
+                             Style="{StaticResource FillVerticalStack}">
+            <Label Style="{StaticResource PosMessageLabel}"
+                   Text="管理画面の設定 QR を読み取るか、接続先を入力してください。" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="サーバ URL" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding ApiEndPoint}"
+                   Keyboard="Url"
+                   Placeholder="http://server:8080/" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="店舗 ID" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding StoreId}"
+                   Placeholder="00000000-0000-0000-0000-000000000000" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="端末 ID" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding TerminalId}"
+                   Placeholder="00000000-0000-0000-0000-000000000000" />
+
+            <Label Style="{StaticResource PosMessageLabel}"
+                   IsVisible="{Binding Message, Converter={StaticResource NotEmptyConverter}}"
+                   Text="{Binding Message}" />
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentView>

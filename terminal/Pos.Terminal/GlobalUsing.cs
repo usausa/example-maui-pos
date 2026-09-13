@@ -53,9 +53,25 @@ global using Smart.Text;
 
 global using SkiaSharp;
 
+global using Pos.Domain;
+global using Pos.Shared.Categories;
+global using Pos.Shared.Discounts;
+global using Pos.Shared.Inventory;
+global using Pos.Shared.PaymentMethods;
+global using Pos.Shared.Products;
+global using Pos.Shared.Settings;
+global using Pos.Shared.Staff;
+global using Pos.Shared.Stores;
+global using Pos.Shared.TaxRates;
+global using Pos.Shared.Terminals;
+
 global using Pos.Terminal;
 global using Pos.Terminal.Domain;
+global using Pos.Terminal.Helpers;
 global using Pos.Terminal.Messaging;
 global using Pos.Terminal.Models;
 global using Pos.Terminal.Models.Input;
+global using Pos.Terminal.Services;
 global using Pos.Terminal.State;
+
+global using KeyAttribute = Smart.Data.Accessor.Attributes.KeyAttribute;

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             x:Class="Pos.Terminal.Modules.Sales.CompleteView"
+             x:DataType="{x:Type module:CompleteViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:CompleteViewModel}"
+             shell:ShellProperty.Title="{Binding Title}"
+             shell:ShellProperty.Function1Text="—"
+             shell:ShellProperty.Function2Text="レシート"
+             shell:ShellProperty.Function3Text="—"
+             shell:ShellProperty.Function4Text="次へ"
+             shell:ShellProperty.Function1Enabled="False"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="*,Auto,*">
+        <VerticalStackLayout Grid.Row="1"
+                             Style="{StaticResource FillVerticalStack}"
+                             Spacing="8"
+                             Padding="24">
+            <Label Style="{StaticResource PosMessageLabel}"
+                   FontSize="20"
+                   Text="{Binding Message}" />
+            <Label Style="{StaticResource PosCaptionLabel}"
+                   HorizontalTextAlignment="Center"
+                   FontSize="18"
+                   Text="{Binding ChangeCaption}" />
+            <Label Style="{StaticResource PosHugeValueLabel}"
+                   HorizontalOptions="Center"
+                   FontSize="56"
+                   FontAttributes="Bold"
+                   Text="{Binding ChangeText}" />
+            <Label Style="{StaticResource PosCaptionLabel}"
+                   HorizontalTextAlignment="Center"
+                   FontSize="16"
+                   Text="{Binding TotalText}" />
+            <Label Style="{StaticResource PosCaptionLabel}"
+                   HorizontalTextAlignment="Center"
+                   FontSize="16"
+                   TextColor="{StaticResource BlueDarken2}"
+                   IsVisible="{Binding PointsText, Converter={StaticResource NotEmptyConverter}}"
+                   Text="{Binding PointsText}" />
+            <Label Style="{StaticResource PosCaptionLabel}"
+                   HorizontalTextAlignment="Center"
+                   Text="{Binding ReceiptNoText}" />
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentView>

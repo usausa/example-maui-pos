@@ -31,11 +31,23 @@
         <!-- header -->
         <Grid Grid.Row="0"
               Style="{StaticResource HeaderGrid}"
-              ColumnDefinitions="*"
+              ColumnDefinitions="*,Auto,Auto"
               IsVisible="{Binding HeaderVisible}">
             <Label Grid.Column="0"
                    Style="{StaticResource HeaderTitleLabel}"
                    Text="{Binding Title}" />
+            <!-- 店舗-端末 担当 (screen-design §1.5) -->
+            <Label Grid.Column="1"
+                   Style="{StaticResource HeaderStatusLabel}"
+                   Text="{Binding HeaderText}" />
+            <!-- 未送信バッジ (要確認があれば赤) -->
+            <Border Grid.Column="2"
+                    Style="{StaticResource HeaderBadgeBorder}"
+                    BackgroundColor="{Binding BadgeColor}"
+                    IsVisible="{Binding BadgeVisible}">
+                <Label Style="{StaticResource HeaderBadgeLabel}"
+                       Text="{Binding UnsentCount}" />
+            </Border>
         </Grid>
 
         <!-- view container -->

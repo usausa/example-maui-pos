@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Returns"
+             x:Class="Pos.Terminal.Modules.Returns.RefundView"
+             x:DataType="{x:Type module:RefundViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:RefundViewModel}"
+             shell:ShellProperty.Title="返金"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="—"
+             shell:ShellProperty.Function3Text="—"
+             shell:ShellProperty.Function4Text="確定"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="False"
+             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function4Enabled="{Binding CanConfirm}">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,Auto,*">
+        <Grid Grid.Row="0"
+              Style="{StaticResource PosValueRowGrid}"
+              Padding="16,8"
+              RowDefinitions="Auto,Auto,Auto"
+              ColumnDefinitions="*,Auto">
+            <Label Grid.Row="0" Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   Text="返金合計" />
+            <Label Grid.Row="0" Grid.Column="1"
+                   Style="{StaticResource PosLargeValueLabel}"
+                   Text="{Binding TotalText}" />
+            <Label Grid.Row="1" Grid.Column="0"
+                   Style="{StaticResource PosCaptionLabel}"
+                   Text="ポイント返還" />
+            <Label Grid.Row="1" Grid.Column="1"
+                   Style="{StaticResource PosValueLabel}"
+                   FontSize="16"
+                   Text="{Binding PointsText}" />
+            <Label Grid.Row="2" Grid.Column="0"
+                   Style="{StaticResource PosNameLabel}"
+                   Text="返金額" />
+            <Label Grid.Row="2" Grid.Column="1"
+                   Style="{StaticResource PosLargeValueLabel}"
+                   TextColor="{StaticResource RedDefault}"
+                   Text="{Binding RefundText}" />
+        </Grid>
+
+        <Label Grid.Row="1"
+               Style="{StaticResource PosSectionLabel}"
+               Text="返金方法 (元の支払方法に合わせてください)" />
+
+        <VerticalStackLayout Grid.Row="2"
+                             Style="{StaticResource FillVerticalStack}"
+                             BackgroundColor="White"
+                             BindableLayout.ItemsSource="{Binding Methods}">
+            <BindableLayout.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:RefundMethodItem}">
+                    <Grid Style="{StaticResource PosListRowGrid}"
+                          ColumnDefinitions="Auto,*,Auto">
+                        <Grid.Triggers>
+                            <DataTrigger TargetType="Grid"
+                                         Binding="{Binding IsSelected}"
+                                         Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource BlueLighten5}" />
+                            </DataTrigger>
+                        </Grid.Triggers>
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:RefundViewModel}}, Path=SelectCommand, x:DataType={x:Type module:RefundViewModel}}"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        <Label Grid.Column="0"
+                               Style="{StaticResource PosCaptionLabel}"
+                               TextColor="{StaticResource BlueDarken2}"
+                               Text="{Binding Mark}" />
+                        <Label Grid.Column="1"
+                               Style="{StaticResource PosListNameLabel}"
+                               Margin="8,0,0,0"
+                               Text="{Binding Name}" />
+                        <Label Grid.Column="2"
+                               Style="{StaticResource PosCaptionLabel}"
+                               Text="{Binding Hint}" />
+                    </Grid>
+                </DataTemplate>
+            </BindableLayout.ItemTemplate>
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentView>

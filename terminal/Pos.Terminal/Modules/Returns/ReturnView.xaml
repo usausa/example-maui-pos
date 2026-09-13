@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:models="clr-namespace:Pos.Terminal.Models"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Returns"
+             x:Class="Pos.Terminal.Modules.Returns.ReturnView"
+             x:DataType="{x:Type module:ReturnViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:ReturnViewModel}"
+             shell:ShellProperty.Title="返品"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="スキャン"
+             shell:ShellProperty.Function3Text="番号入力"
+             shell:ShellProperty.Function4Text="履歴"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*,Auto">
+        <Label Grid.Row="0"
+               Style="{StaticResource PosMessageLabel}"
+               Text="{Binding Message}" />
+
+        <ScrollView Grid.Row="1"
+                    IsVisible="{Binding HasOriginal}">
+            <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
+                <Grid Style="{StaticResource PosListRowGrid}"
+                      RowDefinitions="Auto,Auto"
+                      ColumnDefinitions="*,Auto">
+                    <Label Grid.Row="0" Grid.Column="0"
+                           Style="{StaticResource PosListNameLabel}"
+                           Text="{Binding ReceiptNo}" />
+                    <Label Grid.Row="0" Grid.Column="1"
+                           Style="{StaticResource PosListValueLabel}"
+                           FontSize="20"
+                           Text="{Binding TotalText}" />
+                    <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                           Style="{StaticResource PosCaptionLabel}"
+                           Text="{Binding Detail}" />
+                </Grid>
+                <Label Style="{StaticResource PosSectionLabel}"
+                       Text="🛒 明細" />
+                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                     BackgroundColor="White"
+                                     BindableLayout.ItemsSource="{Binding Rows}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                            <Grid Style="{StaticResource PosListRowGrid}"
+                                  Padding="16,6"
+                                  ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0"
+                                       Style="{StaticResource PosCaptionLabel}"
+                                       FontSize="15"
+                                       TextColor="{StaticResource PrimaryTextColor}"
+                                       LineBreakMode="WordWrap"
+                                       Text="{Binding Label}" />
+                                <Label Grid.Column="1"
+                                       Style="{StaticResource PosListValueLabel}"
+                                       Text="{Binding Value}" />
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Button Grid.Row="2"
+                Style="{StaticResource PosExecuteButton}"
+                IsVisible="{Binding CanProceed}"
+                Command="{Binding NextCommand}"
+                Text="  返品する明細を選ぶ ›" />
+    </Grid>
+
+</ContentView>

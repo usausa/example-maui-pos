@@ -1,0 +1,189 @@
+namespace Pos.Terminal.Modules.Sales;
+
+using BarcodeScanning;
+
+// T-11 スキャン: 商品モードは読むたびに明細追加して継続、他のモードは 1 件読んだら呼び出し元へ戻る
+public sealed partial class ScanViewModel : AppViewModelBase
+{
+    private static readonly TimeSpan SameCodeInterval = TimeSpan.FromSeconds(2);
+
+    private readonly IDialog dialog;
+
+    private readonly DataAccessor accessor;
+
+    private readonly SalesState sales;
+
+    private readonly Session session;
+
+    private ScanMode mode;
+
+    private ViewId returnTo;
+
+    private ViewId? callerReturnTo;
+
+    private object? state;
+
+    private Dictionary<Guid, TaxRateResponse> taxRates = [];
+
+    private string lastValue = string.Empty;
+
+    private DateTime lastDetected;
+
+    private bool returning;
+
+    public BarcodeController Controller { get; } = new();
+
+    [ObservableProperty]
+    public partial string Title { get; set; } = "スキャン";
+
+    [ObservableProperty]
+    public partial string Message { get; set; } = "コードを枠に合わせてください";
+
+    [ObservableProperty]
+    public partial string Hint { get; set; } = string.Empty;
+
+    public IObserveCommand DetectCommand { get; }
+
+    public ScanViewModel(
+        IDialog dialog,
+        DataAccessor accessor,
+        SalesState sales,
+        Session session)
+    {
+        this.dialog = dialog;
+        this.accessor = accessor;
+        this.sales = sales;
+        this.session = session;
+
+        Controller.TapToFocus = true;
+        Controller.VibrationOnDetect = true;
+
+        DetectCommand = MakeAsyncCommand<IReadOnlySet<BarcodeResult>>(DetectAsync);
+    }
+
+    public override async Task OnNavigatedToAsync(INavigationContext context)
+    {
+        mode = context.Parameter.GetScanMode();
+        returnTo = context.Parameter.GetReturnTo(ViewId.Sales);
+        callerReturnTo = context.Parameter.GetCallerReturnTo();
+        state = context.Parameter.GetState<object>();
+
+        Title = mode switch
+        {
+            ScanMode.Product or ScanMode.ProductOnce => "スキャン (商品)",
+            ScanMode.Customer => "スキャン (会員)",
+            ScanMode.Receipt => "スキャン (レシート)",
+            ScanMode.Setup => "スキャン (設定 QR)",
+            _ => "スキャン"
+        };
+        Hint = mode == ScanMode.Product ? "読み取るたびに明細へ追加します。同じ商品は数量 +1" : "1 件読み取ると戻ります";
+
+        if (mode == ScanMode.Product)
+        {
+            taxRates = (await accessor.QueryTaxRateListAsync()).ToDictionary(static x => x.Id);
+        }
+
+        if (await Permissions.RequestCameraAsync())
+        {
+            Controller.Enable = true;
+        }
+        else
+        {
+            Message = "カメラの権限がありません。手入力を使ってください。";
+        }
+    }
+
+    public override Task OnNavigatingFromAsync(INavigationContext context)
+    {
+        Controller.Enable = false;
+        Controller.TorchOn = false;
+        return Task.CompletedTask;
+    }
+
+    private Task DetectAsync(IReadOnlySet<BarcodeResult> results)
+    {
+        if ((results.Count == 0) || returning)
+        {
+            return Task.CompletedTask;
+        }
+
+        var value = results.First().DisplayValue;
+        if (String.IsNullOrEmpty(value))
+        {
+            return Task.CompletedTask;
+        }
+
+        // 同じコードが連続して検出されるのを抑える
+        var now = DateTime.UtcNow;
+        var same = (value == lastValue) && (now - lastDetected < SameCodeInterval);
+        lastValue = value;
+        lastDetected = now;
+        if (same)
+        {
+            return Task.CompletedTask;
+        }
+
+        return HandleAsync(value);
+    }
+
+    private async Task HandleAsync(string value)
+    {
+        if (mode == ScanMode.Product)
+        {
+            await AddProductAsync(value);
+            return;
+        }
+
+        // 1 件読んだら呼び出し元へ
+        returning = true;
+        Controller.Enable = false;
+        await Navigator.ForwardAsync(returnTo, Parameters.Make().WithScanResult(value).WithCallerReturnTo(callerReturnTo).WithState(state));
+    }
+
+    private async Task AddProductAsync(string value)
+    {
+        var product = await accessor.QueryProductByBarcodeAsync(value) ?? await accessor.QueryProductByCodeAsync(value);
+        if (product is null)
+        {
+            Message = $"❌ 商品が見つかりません: {value}";
+            return;
+        }
+
+        if (!product.IsActive || product.IsDeleted)
+        {
+            Message = $"❌ 取扱終了: {product.Name}";
+            return;
+        }
+
+        if (!taxRates.TryGetValue(product.TaxRateId, out var taxRate))
+        {
+            Message = "❌ 税率マスタがありません。同期してください。";
+            return;
+        }
+
+        var line = sales.Cart.Add(product, taxRate);
+        Message = $"✓ {product.Name} を追加 (×{DisplayText.Quantity(line.Quantity)})  {DisplayText.Yen(SalesViewModel.Calculate(sales.Cart, session).Total)}";
+    }
+
+    protected override Task OnNotifyBackAsync() =>
+        Navigator.ForwardAsync(returnTo, Parameters.Make().WithCallerReturnTo(callerReturnTo).WithState(state));
+
+    protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
+
+    protected override Task OnNotifyFunction2()
+    {
+        Controller.ToggleTorch();
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnNotifyFunction3()
+    {
+        var result = await dialog.InputAsync(mode == ScanMode.Setup ? "設定 (Key=Value)" : "コード");
+        if (result.Accepted && !String.IsNullOrWhiteSpace(result.Text))
+        {
+            await HandleAsync(result.Text.Trim());
+        }
+    }
+
+    protected override Task OnNotifyFunction4() => OnNotifyBackAsync();
+}

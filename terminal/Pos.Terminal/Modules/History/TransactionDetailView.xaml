@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:models="clr-namespace:Pos.Terminal.Models"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.History"
+             x:Class="Pos.Terminal.Modules.History.TransactionDetailView"
+             x:DataType="{x:Type module:TransactionDetailViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:TransactionDetailViewModel}"
+             shell:ShellProperty.Title="取引詳細"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="レシート"
+             shell:ShellProperty.Function3Text="取消"
+             shell:ShellProperty.Function4Text="返品"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="{Binding CanVoid}"
+             shell:ShellProperty.Function4Enabled="{Binding CanReturn}">
+
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                             BackgroundColor="{StaticResource GrayLighten3}">
+            <!-- 見出し -->
+            <Grid Style="{StaticResource PosListRowGrid}"
+                  RowDefinitions="Auto,Auto"
+                  ColumnDefinitions="Auto,Auto,*,Auto">
+                <Border Grid.Row="0" Grid.Column="0"
+                        Style="{StaticResource PosChipBorder}"
+                        Margin="0,0,6,0"
+                        BackgroundColor="{Binding TypeColor}">
+                    <Label Style="{StaticResource PosChipLabel}"
+                           Text="{Binding TypeText}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="1"
+                        Style="{StaticResource PosChipBorder}"
+                        Margin="0,0,6,0"
+                        BackgroundColor="{Binding SyncColor}">
+                    <Label Style="{StaticResource PosChipLabel}"
+                           Text="{Binding SyncText}" />
+                </Border>
+                <Label Grid.Row="0" Grid.Column="2"
+                       Style="{StaticResource PosListNameLabel}"
+                       Text="{Binding ReceiptNo}" />
+                <Label Grid.Row="0" Grid.Column="3"
+                       Style="{StaticResource PosListValueLabel}"
+                       FontSize="20"
+                       Text="{Binding TotalText}" />
+                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
+                       Style="{StaticResource PosCaptionLabel}"
+                       Text="{Binding HeaderDetail}" />
+            </Grid>
+
+            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                 BindableLayout.ItemsSource="{Binding Sections}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="{x:Type models:SummarySection}">
+                        <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
+                            <Label Style="{StaticResource PosSectionLabel}"
+                                   Text="{Binding Title}" />
+                            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                                 BackgroundColor="White"
+                                                 BindableLayout.ItemsSource="{Binding Rows}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                                        <Grid Style="{StaticResource PosListRowGrid}"
+                                              Padding="16,6"
+                                              ColumnDefinitions="*,Auto">
+                                            <Label Grid.Column="0"
+                                                   Style="{StaticResource PosCaptionLabel}"
+                                                   FontSize="15"
+                                                   TextColor="{StaticResource PrimaryTextColor}"
+                                                   LineBreakMode="WordWrap"
+                                                   Text="{Binding Label}" />
+                                            <Label Grid.Column="1"
+                                                   Style="{StaticResource PosListValueLabel}"
+                                                   Text="{Binding Value}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentView>

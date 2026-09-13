@@ -2,7 +2,7 @@ namespace Pos.Terminal;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using Pos.Terminal.Helpers;
+using Smart.Data;
 
 #pragma warning disable CA1724
 public sealed partial class App
@@ -32,6 +32,19 @@ public sealed partial class App
     {
         // Report previous exception
         await CrashReport.ShowReport();
+
+        // ローカル DB とセッション
+        var provider = serviceProvider.GetRequiredService<IDbProvider>();
+        var accessor = serviceProvider.GetRequiredService<DataAccessor>();
+        await provider.UsingAsync(async con =>
+        {
+            await accessor.ExecutePragmaAsync(con);
+            await accessor.CreateTablesAsync(con);
+        });
+
+        var syncWorker = serviceProvider.GetRequiredService<SyncWorker>();
+        await syncWorker.RefreshSessionAsync();
+        syncWorker.Start();
 
         // Completed
         serviceProvider.GetRequiredService<StartupState>().NotifyCompleted();

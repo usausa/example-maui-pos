@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Inventory"
+             x:Class="Pos.Terminal.Modules.Inventory.StockCountView"
+             x:DataType="{x:Type module:StockCountViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:StockCountViewModel}"
+             shell:ShellProperty.Title="{Binding Title}"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="スキャン"
+             shell:ShellProperty.Function3Text="モード"
+             shell:ShellProperty.Function4Text="{Binding SendText}"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="True"
+             shell:ShellProperty.Function4Enabled="{Binding HasChanges}">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,Auto,*">
+        <Grid Grid.Row="0"
+              Padding="8"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="8">
+            <Entry Grid.Column="0"
+                   Style="{StaticResource PosFieldEntry}"
+                   Margin="0"
+                   behaviors:EntryBind.Controller="{Binding Code}"
+                   ReturnType="Go"
+                   Placeholder="JAN / 商品コード" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosMethodButton}"
+                    Margin="0"
+                    Command="{Binding LookupCommand}"
+                    Text="読込" />
+        </Grid>
+
+        <Label Grid.Row="1"
+               Style="{StaticResource PosMessageLabel}"
+               Padding="16,0,16,8"
+               FontSize="14"
+               Text="{Binding ModeText}" />
+
+        <CollectionView Grid.Row="2"
+                        Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.EmptyView>
+                <Label Style="{StaticResource PosMessageLabel}"
+                       Text="商品をスキャンして数量を入力してください。" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:StockChangeItem}">
+                    <SwipeView>
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <SwipeView.RightItems>
+                            <SwipeItems Mode="Execute">
+                                <SwipeItem Text="削除"
+                                           BackgroundColor="{StaticResource RedDefault}"
+                                           Command="{Binding Source={RelativeSource AncestorType={x:Type module:StockCountViewModel}}, Path=RemoveCommand, x:DataType={x:Type module:StockCountViewModel}}"
+                                           CommandParameter="{Binding .}" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                        <Grid Style="{StaticResource PosListRowGrid}"
+                              RowDefinitions="Auto,Auto"
+                              ColumnDefinitions="*,Auto">
+                            <Label Grid.Row="0" Grid.Column="0"
+                                   Style="{StaticResource PosListNameLabel}"
+                                   Text="{Binding Name}" />
+                            <Label Grid.Row="0" Grid.Column="1"
+                                   Style="{StaticResource PosListValueLabel}"
+                                   Text="{Binding QuantityText}" />
+                            <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                   Style="{StaticResource PosCaptionLabel}"
+                                   Text="{Binding Detail}" />
+                        </Grid>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentView>
