@@ -15,9 +15,7 @@ public sealed class InventoryLevelResponse
     public DateTime UpdatedAt { get; set; }
 }
 
-public sealed class InventoryLevelListResponse : ListResponse<InventoryLevelResponse>
-{
-}
+public sealed class InventoryLevelListResponse : ListResponse<InventoryLevelResponse>;
 
 // 商品の全店舗在庫 (GET /inventory/{productId})
 public sealed class ProductInventoryResponse

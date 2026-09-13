@@ -22,7 +22,7 @@ public enum PaymentKind
 {
     Cash,
     Card,
-    QR,
+    Qr,
     EMoney,
     Voucher,
     Points,

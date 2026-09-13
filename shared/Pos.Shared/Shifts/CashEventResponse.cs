@@ -21,6 +21,4 @@ public sealed class CashEventResponse
     public DateTime CreatedAt { get; set; }
 }
 
-public sealed class CashEventListResponse : ListResponse<CashEventResponse>
-{
-}
+public sealed class CashEventListResponse : ListResponse<CashEventResponse>;

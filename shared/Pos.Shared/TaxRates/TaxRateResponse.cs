@@ -29,6 +29,4 @@ public sealed class TaxRateResponse
     public int Version { get; set; }
 }
 
-public sealed class TaxRateListResponse : ListResponse<TaxRateResponse>
-{
-}
+public sealed class TaxRateListResponse : ListResponse<TaxRateResponse>;

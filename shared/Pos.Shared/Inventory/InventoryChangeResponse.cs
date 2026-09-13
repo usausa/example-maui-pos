@@ -36,6 +36,4 @@ public sealed class InventoryChangeResponse
     public DateTime CreatedAt { get; set; }
 }
 
-public sealed class InventoryChangeListResponse : ListResponse<InventoryChangeResponse>
-{
-}
+public sealed class InventoryChangeListResponse : ListResponse<InventoryChangeResponse>;

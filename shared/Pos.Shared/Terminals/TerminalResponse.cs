@@ -31,6 +31,4 @@ public sealed class TerminalResponse
     public int Version { get; set; }
 }
 
-public sealed class TerminalListResponse : ListResponse<TerminalResponse>
-{
-}
+public sealed class TerminalListResponse : ListResponse<TerminalResponse>;

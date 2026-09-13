@@ -18,6 +18,4 @@ namespace Pos.Server.Infrastructure.Data;
 [TypeHandler(typeof(EnumTextConverter<PointBasis>))]
 [TypeHandler(typeof(DateOnlyTextConverter))]
 [TypeHandler(typeof(DateTimeTextConverter))]
-public static class DataProfile
-{
-}
+public static class DataProfile;

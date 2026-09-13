@@ -163,7 +163,7 @@ public static class TransactionRules
         return valid;
     }
 
-    private static void ValidateSalePayments(IReadOnlyList<SalesInputPayment> payments, SalesResult expected, List<RuleError> errors)
+    private static void ValidateSalePayments(IEnumerable<SalesInputPayment> payments, SalesResult expected, List<RuleError> errors)
     {
         var amountTotal = 0m;
         foreach (var payment in payments)
@@ -294,7 +294,7 @@ public static class TransactionRules
         return valid;
     }
 
-    private static void ValidateReturnPayments(IReadOnlyList<SalesInputPayment> payments, SalesResult expected, List<RuleError> errors)
+    private static void ValidateReturnPayments(IEnumerable<SalesInputPayment> payments, SalesResult expected, List<RuleError> errors)
     {
         var amountTotal = 0m;
         var pointsTotal = 0m;

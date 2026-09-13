@@ -26,6 +26,4 @@ public sealed class StaffResponse
     public int Version { get; set; }
 }
 
-public sealed class StaffListResponse : ListResponse<StaffResponse>
-{
-}
+public sealed class StaffListResponse : ListResponse<StaffResponse>;

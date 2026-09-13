@@ -24,6 +24,4 @@ public sealed class AdjustmentReasonResponse
     public int Version { get; set; }
 }
 
-public sealed class AdjustmentReasonListResponse : ListResponse<AdjustmentReasonResponse>
-{
-}
+public sealed class AdjustmentReasonListResponse : ListResponse<AdjustmentReasonResponse>;

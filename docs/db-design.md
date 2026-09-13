@@ -359,7 +359,7 @@ erDiagram
 | Id | guid | | PK |
 | Code | string(20) | | UQ |
 | Name | string(50) | | |
-| Kind | enum | | `Cash` / `Card` / `QR` / `EMoney` / `Voucher` / `Points` / `Credit` / `Other` |
+| Kind | enum | | `Cash` / `Card` / `Qr` / `EMoney` / `Voucher` / `Points` / `Credit` / `Other` |
 | AllowsChange | bool | | |
 | RequiresReference | bool | | |
 | IsActive | bool | | |

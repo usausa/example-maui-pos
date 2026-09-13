@@ -37,6 +37,4 @@ public sealed class CustomerResponse
     public int Version { get; set; }
 }
 
-public sealed class CustomerListResponse : ListResponse<CustomerResponse>
-{
-}
+public sealed class CustomerListResponse : ListResponse<CustomerResponse>;

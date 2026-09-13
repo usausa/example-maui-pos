@@ -213,6 +213,4 @@ public sealed class TransactionResponseWarning
     public Guid? LineId { get; set; }
 }
 
-public sealed class TransactionListResponse : ListResponse<TransactionResponse>
-{
-}
+public sealed class TransactionListResponse : ListResponse<TransactionResponse>;

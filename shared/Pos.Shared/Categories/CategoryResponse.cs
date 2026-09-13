@@ -24,6 +24,4 @@ public sealed class CategoryResponse
     public int Version { get; set; }
 }
 
-public sealed class CategoryListResponse : ListResponse<CategoryResponse>
-{
-}
+public sealed class CategoryListResponse : ListResponse<CategoryResponse>;

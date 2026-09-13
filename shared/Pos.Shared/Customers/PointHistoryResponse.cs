@@ -24,6 +24,4 @@ public sealed class PointHistoryResponse
     public DateTime OccurredAt { get; set; }
 }
 
-public sealed class PointHistoryListResponse : ListResponse<PointHistoryResponse>
-{
-}
+public sealed class PointHistoryListResponse : ListResponse<PointHistoryResponse>;

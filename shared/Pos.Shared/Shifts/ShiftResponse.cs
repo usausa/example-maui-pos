@@ -75,6 +75,4 @@ public sealed class ShiftResponseTotals
     public decimal ReturnsTotal { get; set; }
 }
 
-public sealed class ShiftListResponse : ListResponse<ShiftResponse>
-{
-}
+public sealed class ShiftListResponse : ListResponse<ShiftResponse>;

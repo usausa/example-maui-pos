@@ -105,7 +105,7 @@ public static class InitialData
         var accessor = services.GetRequiredService<PaymentMethodAccessor>();
         await accessor.InsertAsync(new PaymentMethodEntity { Id = CashPaymentMethodId, Code = "CASH", Name = "現金", Kind = PaymentKind.Cash, AllowsChange = true, RequiresReference = false, IsActive = true, SortOrder = 1, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
         await accessor.InsertAsync(new PaymentMethodEntity { Id = CardPaymentMethodId, Code = "CARD", Name = "クレジットカード", Kind = PaymentKind.Card, AllowsChange = false, RequiresReference = true, IsActive = true, SortOrder = 2, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
-        await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 3), Code = "QR", Name = "QR 決済", Kind = PaymentKind.QR, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 3, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
+        await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 3), Code = "QR", Name = "QR 決済", Kind = PaymentKind.Qr, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 3, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
         await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 4), Code = "EMONEY", Name = "電子マネー", Kind = PaymentKind.EMoney, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 4, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
         await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 5), Code = "VOUCHER", Name = "商品券", Kind = PaymentKind.Voucher, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 5, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
         await accessor.InsertAsync(new PaymentMethodEntity { Id = PointsPaymentMethodId, Code = "POINT", Name = "ポイント", Kind = PaymentKind.Points, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 6, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
@@ -284,11 +284,11 @@ public static class InitialData
         }, cancellationToken);
     }
 
-    private static async ValueTask SeedInventoryAsync(IServiceProvider services, DateTime now, CancellationToken cancellationToken)
+    private static ValueTask SeedInventoryAsync(IServiceProvider services, DateTime now, CancellationToken cancellationToken)
     {
         var accessor = services.GetRequiredService<InventoryAccessor>();
         var provider = services.GetRequiredService<IDbProvider>();
-        await provider.UsingTxAsync(async (_, tx) =>
+        return provider.UsingTxAsync(async (_, tx) =>
         {
             // 0 / 少量 / 多量を混ぜる (他店在庫の表示確認用)
             for (var number = 1; number <= 30; number++)

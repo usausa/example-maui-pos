@@ -36,6 +36,4 @@ public sealed class StoreResponse
     public int Version { get; set; }
 }
 
-public sealed class StoreListResponse : ListResponse<StoreResponse>
-{
-}
+public sealed class StoreListResponse : ListResponse<StoreResponse>;

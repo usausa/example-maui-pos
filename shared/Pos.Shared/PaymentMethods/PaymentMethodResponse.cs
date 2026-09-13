@@ -31,6 +31,4 @@ public sealed class PaymentMethodResponse
     public int Version { get; set; }
 }
 
-public sealed class PaymentMethodListResponse : ListResponse<PaymentMethodResponse>
-{
-}
+public sealed class PaymentMethodListResponse : ListResponse<PaymentMethodResponse>;

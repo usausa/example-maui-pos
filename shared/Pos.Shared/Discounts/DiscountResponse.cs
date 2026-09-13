@@ -32,6 +32,4 @@ public sealed class DiscountResponse
     public int Version { get; set; }
 }
 
-public sealed class DiscountListResponse : ListResponse<DiscountResponse>
-{
-}
+public sealed class DiscountListResponse : ListResponse<DiscountResponse>;
