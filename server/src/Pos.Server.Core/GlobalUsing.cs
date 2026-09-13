@@ -33,3 +33,4 @@ global using Smart.Linq;
 global using Smart.Text;
 
 // ReSharper disable MissingBlankLines
+global using Pos.Domain;

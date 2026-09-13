@@ -60,31 +60,32 @@
 
 ---
 
-## Phase 1: `Pos.Domain`
+## Phase 1: `Pos.Domain` (完了)
 
 計算ロジックと業務ルール。api-design §4 を実装し、テストで固定する。
 
-- [ ] 列挙型 (architecture §4.1 の一覧)
-- [ ] `global using Pos.Domain;` を `Pos.Shared` / `Pos.Server.Core` / `Pos.Server.Host` (`GlobalUsing.cs`、`_Imports.razor`) に追加 (Phase 0 では空の名前空間のため外してある)
-- [ ] `SalesInput` / `SalesResult` (明細・値引・支払・会社設定 → 計算項目)。Request / Response には依存しない
-- [ ] `Allocation`: 最大剰余法の按分 (同値は順序で決定)
-- [ ] `Rounding`: `Floor` / `Round` (四捨五入) / `Ceiling`
-- [ ] `SalesCalculator`: 明細金額 → 明細値引 → 取引値引の按分 → 税 (税率 × 内税/外税グループ) → ポイント (利用按分・付与) → 合計・預り・釣銭
-- [ ] `ReturnCalculator`: 元明細からの返品明細導出 (api-design §4.5)
-- [ ] `TransactionRules`: api-design §3.12 の業務ルール (Sale / Return / Void) を検証し `ErrorCode` を返す
-- [ ] `Pos.Domain.Tests`:
-  - [ ] api-design §4.6 の例 (全数値が一致)
-  - [ ] 内税 / 外税の混在、税率複数
-  - [ ] ポイント基準 `TaxIncluded` / `TaxExcluded` (外税明細を含む)
-  - [ ] 返品 (一部 / 全数。全数で元取引と同額)
-  - [ ] 按分の端数 (最大剰余法の割り当て順)
-  - [ ] 丸め 3 種
-  - [ ] エラー: 明細値引超過、支払合計不一致、釣銭不正、売価変更不可、返品数量超過
+- [x] 列挙型 (architecture §4.1 の一覧)
+- [x] `global using Pos.Domain;` を `Pos.Shared` / `Pos.Server.Core` / `Pos.Server.Host` (`GlobalUsing.cs`、`_Imports.razor`) に追加 (Phase 0 では空の名前空間のため外してある)
+- [x] `SalesInput` / `SalesResult` (明細・値引・支払・会社設定 → 計算項目)。Request / Response には依存しない (record)
+- [x] `Allocation`: 最大剰余法の按分 (同値は順序で決定)
+- [x] `Rounding`: `Floor` / `Round` (四捨五入) / `Ceiling`
+- [x] `SalesCalculator`: 明細金額 → 明細値引 → 取引値引の按分 → 税 (税率 × 内税/外税グループ、`TaxCalculator`) → ポイント (利用按分・付与) → 合計・預り・釣銭
+- [x] `ReturnCalculator`: 元明細 (`ReturnInput.OriginalLines`) からの返品明細導出 (api-design §4.5)
+- [x] `TransactionRules`: api-design §3.12 の業務ルール (Sale / Return / Void) を検証し `ErrorCode` / `WarningCode` を返す。事実は `SaleContext` / `ReturnContext` / `VoidContext` で受け取り、再計算結果を `Expected` に返す。`SalesResultComparer` で一致判定
+- [x] `Pos.Domain.Tests` (73 件):
+  - [x] api-design §4.6 の例 (全数値が一致)
+  - [x] 内税 / 外税の混在、税率複数
+  - [x] ポイント基準 `TaxIncluded` / `TaxExcluded` (外税明細を含む)
+  - [x] 返品 (一部 / 全数。全数で元取引と同額)
+  - [x] 按分の端数 (最大剰余法の割り当て順)
+  - [x] 丸め 3 種
+  - [x] エラー: 明細値引超過、支払合計不一致、釣銭不正、売価変更不可、返品数量超過 (+ シフト・レシート番号・商品・会員・元取引・取消の各ルール、警告、エラーコード文字列)
+- [x] 仕様の補足を api-design に反映: 取引値引は Σ base を超えない、付与ポイントは 0 が下限、返品の明細金額は Floor
 
 ### 完了条件
 
-- [ ] テスト緑、警告ゼロ
-- [ ] `Pos.Domain` が UI / DB / HTTP / `Pos.Shared` に依存していない
+- [x] テスト緑 (Pos.Domain.Tests 73 / UnitTests 14 / IntegrationTests 4)、両ソリューション警告ゼロ
+- [x] `Pos.Domain` が UI / DB / HTTP / `Pos.Shared` に依存していない (`DependencyTests`)
 
 ---
 
@@ -173,6 +174,13 @@ api-design §3 のエンドポイント。順番はマスタ → 顧客 → シ�
 - [ ] `summary` (groupBy 7 種)、`products`
 - [ ] `hour` のタイムゾーン処理を決めて実装 (§9-4)
 
+### 4g 帳票 (PDF、[D-37](decisions.md#d-37-帳票出力-pdf-oysterreport))
+
+- [ ] `OysterReport` の導入: パッケージ、`Assets/Fonts/ipaexg.ttf`、`EmbeddedFontResolver` (`template-blazor-server` から)
+- [ ] テンプレート `Assets/Reports/ShiftReport.xlsx` (精算レポート) / `DailySalesReport.xlsx` (売上日報) を Excel で作成
+- [ ] `ShiftReportBuilder` + `GET /shifts/{id}/summary/pdf`、`DailySalesReportBuilder` + `GET /reports/sales/daily/pdf`
+- [ ] 統合テスト: `application/pdf` で先頭が `%PDF` のレスポンス、対象なしは 404
+
 ### テスト
 
 - [ ] 統合テストのシナリオ: 開設 → 販売 (ポイント利用・複数支払) → 同一 id 再送で 200 → 返品 → 取消 → 入出金 → 精算 → summary / レポートの整合
@@ -205,7 +213,7 @@ screen-design §2 の ★ 画面。
 ### 5c 取引・精算
 
 - [ ] 取引一覧 S-20 / 詳細 S-21
-- [ ] シフト一覧 S-30 / 詳細 S-31
+- [ ] シフト一覧 S-30 / 詳細 S-31 ([精算レポート PDF] ボタン)
 
 ### 5d 在庫
 
@@ -217,7 +225,7 @@ screen-design §2 の ★ 画面。
 
 ### 5f レポート
 
-- [ ] 売上集計 S-10 (グラフ・CSV)、商品別売上 S-11
+- [ ] 売上集計 S-10 (グラフ・CSV・[売上日報 PDF])、商品別売上 S-11
 
 ### 完了条件
 

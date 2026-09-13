@@ -278,12 +278,12 @@ F1〜F4 はシェル下部のファンクションキー。「—」は無効 (�
 | --- | --- | --- | --- | --- | --- |
 | S-00 | レイアウト | シェル | `MainLayout` (テンプレート): `MudAppBar` (アプリ名)、`MudDrawer` + `NavMenu`、`ErrorBoundary`、`ReconnectModal`。ログイン画面は Phase 2 | — | ★ |
 | S-01 | ダッシュボード | ダッシュボード | KPI カード (`MudPaper`: 本日売上・客数・客単価・返品額)、店舗別売上表、開設中シフト一覧 (端末・担当・開設時刻)、端末の最終通信 (`LastSeenAt`)、警告 (在庫マイナス商品、ポイント残高マイナス顧客) | `GET /reports/sales/summary`, `GET /shifts?status=Open`, `GET /terminals`, `GET /inventory?negativeOnly` | ★ |
-| S-10 | 売上集計 | 一覧 + グラフ | フィルタ (期間 `MudDateRangePicker`・店舗・`groupBy`)、`MudChart` (棒 / 折れ線)、集計表、CSV 出力 | `GET /reports/sales/summary` | ★ |
+| S-10 | 売上集計 | 一覧 + グラフ | フィルタ (期間 `MudDateRangePicker`・店舗・`groupBy`)、`MudChart` (棒 / 折れ線)、集計表、CSV 出力、[売上日報 PDF] (店舗・営業日を指定、[D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) | `GET /reports/sales/summary`, `GET /reports/sales/daily/pdf` | ★ |
 | S-11 | 商品別売上 | 一覧 | フィルタ (期間・店舗・部門)、ランキング表 (数量・売上・粗利)、CSV | `GET /reports/sales/products` | ★ |
 | S-20 | 取引一覧 | 一覧 | フィルタ (期間・店舗・端末・担当・種別・状態・レシート番号・会員)、`MudDataGrid` (レシート番号・日時・合計・支払・状態)、行クリックで S-21 | `GET /transactions`, `GET /transactions/lookup` | ★ |
-| S-21 | 取引詳細 | ダイアログ | ヘッダ情報、明細 (シリアル含む)、値引、税率別集計、支払、ポイント、配送先、関連取引 (元取引 / 返品取引 / 取消情報) へのリンク。参照のみ (取消・返品は端末で行う) | `GET /transactions/{id}` | ★ |
+| S-21 | 取引詳細 | ダイアログ | ヘッダ情報、明細 (シリアル含む)、値引、税率別集計、支払、ポイント、配送先、関連取引 (元取引 / 返品取引 / 取消情報) へのリンク。参照のみ (取消・返品は端末で行う)。[レシート PDF] (◎) | `GET /transactions/{id}`, `GET /transactions/{id}/receipt/pdf` | ★ |
 | S-30 | シフト一覧 | 一覧 | フィルタ (期間・店舗・端末・状態)、`MudDataGrid` (営業日・端末・担当・開設 / 精算時刻・予想 / 実査 / 過不足 — 過不足を `MudChip` で強調)、行クリックで S-31 | `GET /shifts` | ★ |
-| S-31 | シフト詳細 | ダイアログ | 精算レポート (支払方法別・税率別・部門別)、入出金一覧、金種別枚数、取引一覧へのリンク | `GET /shifts/{id}`, `.../summary`, `.../cash-events` | ★ |
+| S-31 | シフト詳細 | ダイアログ | 精算レポート (支払方法別・税率別・部門別)、入出金一覧、金種別枚数、取引一覧へのリンク、[精算レポート PDF] | `GET /shifts/{id}`, `.../summary`, `.../summary/pdf`, `.../cash-events` | ★ |
 | S-40 | 現在庫 | 一覧 | フィルタ (店舗・部門・キーワード・「マイナスのみ」)、`MudDataGrid` (商品・店舗・数量・更新日時)、行クリックで S-41、[棚卸・調整] で S-43 | `GET /inventory` | ★ |
 | S-41 | 商品別全店在庫 | ダイアログ | 店舗ごとの数量、変動履歴へのリンク | `GET /inventory/{productId}` | ★ |
 | S-42 | 在庫変動履歴 | 一覧 | フィルタ (店舗・商品・種別・期間)、表 (日時・種別・増減・処理後・理由・参照取引) | `GET /inventory/changes` | ★ |
@@ -316,4 +316,4 @@ F1〜F4 はシェル下部のファンクションキー。「—」は無効 (�
 | 削除 | `DialogService.ShowConfirm` → 論理削除。一覧に「削除済みを表示」トグル。使用中 (`IN_USE`) は Snackbar でメッセージ表示 |
 | 店舗フィルタ | 売上・取引・精算・在庫の各一覧は店舗セレクタを持つ (「全店舗」可)。選択はページ間で共有するスコープドサービスに保持 |
 | エラー表示 | Problem Details の `title` / `detail` を Snackbar に、フィールドエラーは `MudForm` の検証表示に |
-| 出力 | 集計系・マスタは CSV ダウンロード (`/api/v1/.../csv`) |
+| 出力 | 集計系・マスタは CSV ダウンロード (`/api/v1/.../csv`)。帳票は PDF (`/api/v1/.../pdf`、OysterReport、[D-37](decisions.md#d-37-帳票出力-pdf-oysterreport))。どちらも `MudButton Href` で開く |

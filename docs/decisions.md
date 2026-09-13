@@ -500,3 +500,28 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 - 階層は screen-design §1.3 の遷移図の深さ: T-00 = 0、T-01 = 1、ホーム T-02 = 2、ホーム直下 = 3、その下 = 4 …。親が複数ある画面は最も深い親 + 1
 - 同じ階層への遷移と起動時の最初の遷移は効果なし。別の効果にしたい遷移は `NavigationParameter` の `WithFadeEffect()` などで明示する (明示した効果が優先)
 - Debug ビルドの `Navigated` ログに `effect=[...]` を出して確認できるようにした
+
+### D-37. 帳票出力 (PDF): OysterReport
+
+**背景**: 精算レポートや売上日報は紙で残す・本部へ送る運用があり、管理画面から帳票を出力できる必要がある。
+
+| 案 | 内容 | 評価 |
+| --- | --- | --- |
+| ✅ **A. OysterReport (Excel テンプレート → PDF)** | `Assets/Reports/*.xlsx` に `{{Placeholder}}` を置き、`TemplateWorkbook` + `OysterReportEngine` で PDF 化。`template-blazor-server` / `GadgetFood.BlazorServer` と同じ構成 (`Infrastructure/Reports/XxxReportBuilder`、同梱の IPAex ゴシックを `EmbeddedFontResolver` で解決) | レイアウトは Excel で調整でき、コードは値の差し込みだけ。参考プロジェクトに実績がある |
+| B. ブラウザ印刷 (印刷用 CSS) | 管理画面をそのまま印刷 | サーバで PDF を作れないので、保存・配布・端末からの取得に使えない |
+| C. コードでレイアウト (QuestPDF など) | C# でレイアウトを記述 | レイアウト変更のたびにコードを直す |
+
+**決定**: ✅ **A**。
+
+**反映**:
+
+| 帳票 | 内容 | API | 画面 | 優先 |
+| --- | --- | --- | --- | --- |
+| 精算レポート | シフト 1 件: 店舗・端末・営業日・担当・開設 / 精算時刻、現金 (準備金・現金売上・返金・入出金・予想・実査・過不足)、支払方法別・税率別・部門別、件数、ポイント (`ShiftSummaryResponse` と同じ内容) | `GET /shifts/{id}/summary/pdf` | S-31 | ★ |
+| 売上日報 | 店舗 × 営業日: 売上・返品・値引・税・客数・客単価、支払方法別・税率別・部門別・時間帯別、シフト一覧 (端末・担当・過不足) | `GET /reports/sales/daily/pdf?storeId&date` | S-10 | ★ |
+| レシート (再発行) | 取引 1 件の控え: 明細・値引・税率別・支払・ポイント・配送先 | `GET /transactions/{id}/receipt/pdf` | S-21 | ◎ |
+
+- `Pos.Server.Host`: パッケージ `OysterReport`、`Assets/Fonts/ipaexg.ttf`、`Assets/Reports/*.xlsx` (`CopyToOutputDirectory`)、`Infrastructure/Reports/` にフォントリゾルバと帳票ごとの `XxxReportBuilder` (シングルトン、`byte[] Build(...)`)。エンドポイントは各リソースのグループに置き、`TypedResults.File(bytes, "application/pdf", ファイル名)` を返す。データがなければ 404 / 400
+- 管理画面のボタンは `MudButton Href="api/v1/.../pdf"` (認証は後回しなので直接リンク)
+- テンプレートは Excel で作る。1 シート = 1 ページを基本にし、明細行はプレースホルダの行から順に埋める。複数ページ (複数シフトなど) はシートのコピーで作る (`GadgetFood` の給与明細と同じ)
+- 端末のレシート (T-22) は画面表示 + 電子レシート QR + 画像共有のままで、サーバの PDF は使わない (オフラインでも出せるように)

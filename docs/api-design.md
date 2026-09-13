@@ -533,7 +533,7 @@ POST /api/v1/transactions      (TransactionRequest)
 | ★ | GET | `/transactions/lookup?receiptNo=` | 端末 | 返品時のレシート番号検索 |
 | ★ | POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, reason, voidedAt }` → `200` 取引 |
 | ★ | POST | `/transactions/calculate` | 端末 / 管理 | 入力項目だけを送り (`TransactionCalculateRequest`)、計算項目を埋めた取引を返す (登録しない)。共有ライブラリの検証用 |
-| ◎ | GET | `/transactions/{id}/receipt` | 端末 / 管理 | レシート印字用データ (再発行) |
+| ◎ | GET | `/transactions/{id}/receipt/pdf` | 管理 | レシート (再発行) の PDF ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
 | ◎ | POST | `/transactions/batch` | 端末 | 複数取引の一括送信。要素ごとに結果を返す |
 
 #### 業務ルール
@@ -611,6 +611,7 @@ POST /api/v1/transactions      (TransactionRequest)
 | ★ | GET | `/shifts/{id}/cash-events` | 端末 / 管理 | 入出金一覧 |
 | ★ | POST | `/shifts/{id}/close` | 端末 | 精算 `ShiftCloseRequest { closedAt, closedByStaffId, actualCash, denominations, note }` → `200` シフト (`expectedCash` / `difference` 確定) |
 | ★ | GET | `/shifts/{id}/summary` | 端末 / 管理 | 精算レポート (`ShiftSummaryResponse`、下記) |
+| ★ | GET | `/shifts/{id}/summary/pdf` | 管理 | 精算レポートの PDF ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
 
 `ShiftSummaryResponse` (精算レポート):
 
@@ -691,6 +692,7 @@ POST /api/v1/transactions      (TransactionRequest)
 | ★ | GET | `/reports/sales/summary?storeId&from&to&groupBy=` | 管理 / 端末 | 売上集計 (`SalesSummaryResponse`)。`groupBy` = `day` / `hour` / `terminal` / `staff` / `paymentMethod` / `taxRate` / `category` |
 | ★ | GET | `/reports/sales/products?storeId&from&to&categoryId&sort=netSales\|quantity&size` | 管理 | 商品別売上 (`ProductSalesResponse`) |
 | ◎ | GET | `/reports/sales/summary/csv`, `/reports/sales/products/csv` | 管理 | CSV 出力 (テンプレートの CsvHelper) |
+| ★ | GET | `/reports/sales/daily/pdf?storeId&date` | 管理 | 売上日報の PDF (店舗 × 営業日、[D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
 
 ```jsonc
 // GET /reports/sales/summary?storeId=...&from=2026-09-01&to=2026-09-11&groupBy=day
@@ -738,6 +740,8 @@ allocatedDiscountAmount_i = alloc_i
 netAmount_i       = base_i − alloc_i
 ```
 
+取引値引の合計 `D` は Σ base_i を超えない (超えれば検証エラー)。
+
 ### 4.3 税
 
 税率 × 内税/外税 のグループごとに合計してから税額を計算する ([D-11](decisions.md#d-11-税計算-税率ごと一括計算))。丸めは会社設定 `taxRounding` (既定 `Floor`)。
@@ -764,7 +768,7 @@ total             = netSubtotal + Σ taxAmount_g (外税グループのみ)
 pointsRedeemed_i  = R を netAmount_i 比で最大剰余法により按分
 pointBase_i       = pointBasis = TaxIncluded: 内税明細 netAmount_i / 外税明細 netAmount_i + allocatedTax_i
                     pointBasis = TaxExcluded: 内税明細 netAmount_i − allocatedTax_i / 外税明細 netAmount_i
-pointsEarned_i    = Floor((pointBase_i − pointsRedeemed_i) × pointRate_i)
+pointsEarned_i    = Floor((pointBase_i − pointsRedeemed_i) × pointRate_i)   (負になるときは 0)
 pointsEarned      = Σ pointsEarned_i
 pointsRedeemed    = R
 pointsBalanceAfter = 残高 − R + pointsEarned   (サーバ確定)
@@ -776,7 +780,7 @@ pointsBalanceAfter = 残高 − R + pointsEarned   (サーバ確定)
 
 ```
 unitPrice                 = o.unitPrice
-amount                    = o.unitPrice × q
+amount                    = Floor(o.unitPrice × q)
 discountAmount            = Floor(o.discountAmount × q / o.quantity)
 allocatedDiscountAmount   = Floor(o.allocatedDiscountAmount × q / o.quantity)
 netAmount                 = amount − discountAmount − allocatedDiscountAmount

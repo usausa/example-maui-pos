@@ -131,6 +131,9 @@ Components/
   Dialogs/ (AppMessageBox + 編集ダイアログ、詳細ダイアログ)
 Infrastructure/                      Components (AppComponentBase, DialogServiceExtensions, ErrorBoundaryLogger, SnackbarExtensions),
                                      ExceptionHandling (GlobalExceptionHandler), HealthChecks (DatabaseHealthCheck)   (テンプレート由来)
+Infrastructure/Reports/              OysterReport の帳票: EmbeddedFontResolver (同梱 IPAex ゴシック)、ShiftReportBuilder (精算レポート)、
+                                     DailySalesReportBuilder (売上日報)、ReceiptReportBuilder (レシート再発行、◎)   (D-37)
+Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート。出力ディレクトリへコピー)
 Settings/                            LogSetting / ProfilerSetting   (テンプレート由来)
 wwwroot/                             css/app.css, js/reconnect.js   (テンプレート由来)
 ```
@@ -153,17 +156,23 @@ Enums.cs              TransactionType, TransactionStatus, ProductKind, PaymentKi
                       TaxKind, StaffRole, ShiftStatus, CashEventType, InventoryChangeType, PointHistoryType,
                       TaxRounding, PointBasis
 Sales/
-  SalesCalculator.cs  入力 (明細・値引・支払・設定) → 計算項目 (api-design §4)
-  SalesInput.cs / SalesResult.cs  計算の入出力 (Request / Response とは別の純粋な型)
-  ReturnCalculator.cs 返品明細の導出 (§4.5)
+  SalesCalculator.cs  SalesInput (明細・値引・支払・会社設定) → SalesResult (計算項目、api-design §4)
+  SalesInput.cs / SalesResult.cs  計算の入出力 (record。Request / Response とは別の純粋な型)
+  ReturnCalculator.cs ReturnInput (元取引の明細 + 返品明細) → SalesResult (§4.5)
+  ReturnInput.cs      返品の入力 (ReturnOriginalLine = 元明細の事実)
+  TaxCalculator.cs    税グループ集計と明細への按分税額 (internal、販売・返品で共用)
   Allocation.cs       最大剰余法の按分
   Rounding.cs         TaxRounding の丸め
+  SalesResultComparer.cs  端末が送った計算項目と再計算の一致判定
 Rules/
-  TransactionRules.cs 取引の業務ルール検証 (api-design §3.12) → エラーコード
+  TransactionRules.cs ValidateSale / ValidateReturn / ValidateVoid (api-design §3.12) → TransactionValidation (Errors / Warnings / Expected)
+  TransactionValidation.cs  検証結果と、検証に必要な事実 (SaleContext / ReturnContext / VoidContext、ShiftFact / ProductFact ...)
+  ErrorCode.cs        ErrorCode / WarningCode (api-design §5) と UPPER_SNAKE_CASE への変換 (ToCode)
 ```
 
-- 純粋関数 (入力を変更しない) にし、`Pos.Domain.Tests` で [api-design.md §4.6](api-design.md#46-計算例) を含むケースを固定する
+- 純粋関数 (入力を変更しない) にし、`Pos.Domain.Tests` で [api-design.md §4.6](api-design.md#46-計算例) を含むケースを固定する (Phase 1 で 73 件)
 - `SalesCalculator` の入出力は `Pos.Shared` の Request / Response に依存しない。変換は呼び出し側 (端末のカート、サーバのエンドポイント) が行う
+- `TransactionRules` は DB を見ない。シフト・商品・元取引などの事実は呼び出し側が Context に詰めて渡す。検証できる入力なら再計算結果を `Expected` に返すので、エンドポイントはそれを `CALCULATION_MISMATCH` の `expected` と応答の計算項目に使う
 - `Pos.Domain.Tests` の `DependencyTests` が「UI / DB / HTTP / `Pos.Shared` を参照していない」ことを検証する (Phase 0 で作成済み)
 
 ### 4.2 `Pos.Shared`
@@ -260,10 +269,10 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | フェーズ | 内容 | 状態 |
 | --- | --- | --- |
 | Phase 0 土台 | ルート共通ファイル、`shared/` `server/` `terminal/` の骨組み、2 ソリューション | 完了 |
-| Phase 1 `Pos.Domain` | 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール、単体テスト | |
+| Phase 1 `Pos.Domain` | 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール、単体テスト | 完了 |
 | Phase 2 `Pos.Shared` | `XxxRequest` / `XxxResponse` 一式 | |
 | Phase 3 サーバ DB | DDL、Entity、Accessor、起動時スキーマ作成、初期データ | |
-| Phase 4 サーバ API | マスタ・同期 → 顧客 → シフト → 取引 → 在庫 → レポート、統合テスト | |
+| Phase 4 サーバ API | マスタ・同期 → 顧客 → シフト → 取引 → 在庫 → レポート → 帳票 (PDF)、統合テスト | |
 | Phase 5 管理画面 | レイアウト・ダッシュボード → マスタ CRUD → 取引 / シフト / 在庫 / 顧客 / レポート → 設定・QR | |
 | Phase 6 端末 | 土台・同期・Outbox → メニュー・開設 → 販売 → 会計・レシート → 精算・入出金 → 返品・履歴 → 照会・棚卸 → 設定 | |
 
