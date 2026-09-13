@@ -21,7 +21,7 @@ public sealed class DatabaseHealthCheck : IHealthCheck
             await con.OpenAsync(cancellationToken);
 
             await using var command = con.CreateCommand();
-            command.CommandText = "SELECT 1";
+            command.CommandText = "SELECT COUNT(*) FROM Settings";
             await command.ExecuteScalarAsync(cancellationToken);
 
             return HealthCheckResult.Healthy();

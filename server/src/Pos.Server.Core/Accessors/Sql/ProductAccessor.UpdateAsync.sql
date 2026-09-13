@@ -1,0 +1,22 @@
+UPDATE Products
+SET Code = /*@ code */'',
+    Barcode = /*@ barcode */'',
+    Name = /*@ name */'',
+    Kana = /*@ kana */'',
+    Brand = /*@ brand */'',
+    ModelNo = /*@ modelNo */'',
+    CategoryId = /*@ categoryId */'',
+    Kind = /*@ kind */'',
+    Price = /*@ price */0,
+    TaxIncluded = /*@ taxIncluded */1,
+    TaxRateId = /*@ taxRateId */'',
+    Cost = /*@ cost */0,
+    PointRate = /*@ pointRate */0,
+    RequiresSerial = /*@ requiresSerial */1,
+    TrackInventory = /*@ trackInventory */1,
+    AllowsPriceOverride = /*@ allowsPriceOverride */1,
+    Unit = /*@ unit */'',
+    IsActive = /*@ isActive */1,
+    UpdatedAt = /*@ updatedAt */'',
+    Version = Version + 1
+WHERE Id = /*@ id */'' AND Version = /*@ version */0 AND IsDeleted = 0

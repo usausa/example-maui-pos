@@ -10,7 +10,7 @@ public sealed class TestApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("http_ports", string.Empty);
-        builder.UseSetting("ConnectionStrings:Default", $"Data Source={databaseFile};Cache=Shared;Pooling=False");
+        builder.UseSetting("ConnectionStrings:Default", $"Data Source={databaseFile};Cache=Shared;Pooling=False;Foreign Keys=True");
         builder.UseSetting("Profiler:SqlLog:Enable", "false");
         builder.UseSetting("Log:HttpLog", "false");
     }

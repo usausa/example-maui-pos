@@ -21,7 +21,9 @@ using MiniDataProfiler.Listener.Logging;
 using MudBlazor;
 using MudBlazor.Services;
 
+using Pos.Server.Accessors;
 using Pos.Server.Host.Components;
+using Pos.Server.Host.Infrastructure.Data;
 using Pos.Server.Host.Infrastructure.ExceptionHandling;
 using Pos.Server.Host.Infrastructure.HealthChecks;
 using Pos.Shared.Common;
@@ -365,12 +367,30 @@ public static class ApplicationExtensions
     // Startup
     //--------------------------------------------------------------------------------
 
-    public static ValueTask InitializeApplicationAsync(this WebApplication app)
+    public static async ValueTask InitializeApplicationAsync(this WebApplication app)
     {
-        // Prepare database (health check opens the connection, so the file is created here as well)
-        _ = app.Services.GetRequiredService<IDbProvider>();
+        var services = app.Services;
 
-        return ValueTask.CompletedTask;
+        // Prepare database: PRAGMA (WAL) -> schema -> initial data
+        var provider = services.GetRequiredService<IDbProvider>();
+        await provider.UsingAsync(con => services.GetRequiredService<DatabaseAccessor>().ExecutePragmaAsync(con, CancellationToken.None));
+
+        services.GetRequiredService<SettingsAccessor>().Create();
+        services.GetRequiredService<StoreAccessor>().Create();
+        services.GetRequiredService<TerminalAccessor>().Create();
+        services.GetRequiredService<StaffAccessor>().Create();
+        services.GetRequiredService<CategoryAccessor>().Create();
+        services.GetRequiredService<TaxRateAccessor>().Create();
+        services.GetRequiredService<ProductAccessor>().Create();
+        services.GetRequiredService<DiscountAccessor>().Create();
+        services.GetRequiredService<PaymentMethodAccessor>().Create();
+        services.GetRequiredService<AdjustmentReasonAccessor>().Create();
+        services.GetRequiredService<CustomerAccessor>().Create();
+        services.GetRequiredService<ShiftAccessor>().Create();
+        services.GetRequiredService<TransactionAccessor>().Create();
+        services.GetRequiredService<InventoryAccessor>().Create();
+
+        await InitialData.SeedAsync(services, services.GetRequiredService<TimeProvider>().GetUtcNow().UtcDateTime, CancellationToken.None);
     }
 
     //--------------------------------------------------------------------------------

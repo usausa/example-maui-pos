@@ -102,7 +102,7 @@ api-design §3 の通信データ。
 - [x] レポート: `SalesSummaryResponse`、`ProductSalesResponse`
 - [x] 検証属性 (`Required` / `MaxLength` / `Range`) をテンプレートと同じ書き方で付与
 - [x] サーバの JSON 設定に `JsonDateTimeConverter` / `JsonStringEnumConverter` を登録し、`JsonContractTests` (統合テスト) で形式を固定
-- [x] CA1716 / CA1056 は `Pos.Shared` の `GlobalSuppressions.cs` で抑止 ([D-38](decisions.md#d-38-posshared-の警告抑止))
+- [x] CA1716 / CA1056 は `Pos.Shared` の `GlobalSuppressions.cs` で抑止 ([D-38](decisions.md#d-38-警告の抑止))
 
 ### 完了条件
 
@@ -111,28 +111,28 @@ api-design §3 の通信データ。
 
 ---
 
-## Phase 3: サーバ DB
+## Phase 3: サーバ DB (完了)
 
 db-design の DDL・Entity・Accessor・初期データ。
 
-- [ ] `EnumTextConverter<T>` と技術検証 (§9-2 / §9-3): 列挙型 TEXT、`Guid` TEXT、`decimal` NUMERIC (INSERT → SELECT → `SUM`) を単体テストで確認
-- [ ] Entity 一式 (db-design §3)
-- [ ] `Create.sql` を Accessor ごとに分割して全テーブル・インデックス (部分ユニークインデックス含む) を作成。起動時に PRAGMA (WAL / busy_timeout / foreign_keys)
-- [ ] Accessor:
-  - [ ] マスタ各種: 一覧 (updatedSince / includeDeleted / page / size / sort)、取得、登録、更新 (version 楽観ロック)、論理削除、`lookup` (商品: barcode / code)
-  - [ ] 顧客: 検索、lookup、CRUD、ポイント履歴、残高更新
-  - [ ] 取引: 一式の INSERT (`DbTransaction` 付き)、取得 (明細・値引・税・支払・配送・シリアル)、一覧、lookup、取消、`ReturnedQuantity` 更新
-  - [ ] シフト: 開設、current、一覧、取得、精算、入出金、集計 (支払方法別・税率別・部門別)
-  - [ ] 在庫: 現在庫一覧、商品別全店、UPSERT 加減算、変動履歴
-  - [ ] レポート: 売上集計 (groupBy)、商品別
-  - [ ] 設定: 取得・更新
-- [ ] 起動時: スキーマ作成 → テーブルが空なら初期データ投入 (architecture §8)。テンプレートの初期アカウント作成と同じ場所に置く
-- [ ] `DatabaseHealthCheck` の対象を調整
+- [x] `EnumTextConverter<T>` と技術検証 (§9-2 / §9-3): 列挙型 TEXT、`Guid` TEXT、`decimal` NUMERIC (INSERT → SELECT → `SUM`)、`DateOnly` / `DateTime` (UTC) を `DatabaseTests` で確認。コンバータは `DataProfile` に一括宣言
+- [x] Entity 一式 (db-design §3、24 クラス)
+- [x] `Create.sql` を Accessor ごとに分割して全テーブル・インデックス (部分ユニークインデックス含む) を作成。起動時に PRAGMA (WAL / busy_timeout)、外部キーは接続文字列 `Foreign Keys=True`
+- [x] Accessor (16 クラス、SQL 103 件):
+  - [x] マスタ各種: 一覧 (updatedSince / includeDeleted / page / size / sort)、取得、登録、更新 (version 楽観ロック)、論理削除、`lookup` (商品: barcode / code)、削除可否の件数
+  - [x] 顧客: 検索、lookup、CRUD、ポイント履歴、残高更新 (`RETURNING` で処理後残高)
+  - [x] 取引: 一式の INSERT (`DbTransaction` 付き)、取得 (明細・値引・税・支払・配送・シリアル)、一覧、lookup、取消、`ReturnedQuantity` 更新
+  - [x] シフト: 開設、current、一覧、取得、精算、入出金、集計 (支払方法別・税率別・部門別・ポイント)
+  - [x] 在庫: 現在庫一覧、商品別全店、UPSERT 加減算 (`RETURNING`)、変動履歴
+  - [x] レポート: 売上集計 (day / terminal / staff は生 SQL の GROUP BY、hour / paymentMethod / taxRate / category は専用クエリ)、商品別
+  - [x] 設定: 取得・更新
+- [x] 起動時: PRAGMA → スキーマ作成 → 会社設定がなければ初期データ投入 (`Host/Infrastructure/Data/InitialData.cs`、architecture §8。固定 ID)
+- [x] `DatabaseHealthCheck` を `SELECT COUNT(*) FROM Settings` に変更
 
 ### 完了条件
 
-- [ ] 起動で `pos.db` が作られ、初期データが入る。`/health` OK
-- [ ] 技術検証テストと Accessor の単体テスト (SQLite 一時ファイル) が緑
+- [x] 起動で `pos.db` (実行ディレクトリ) が作られ、初期データが入る。`/health` = Healthy
+- [x] 技術検証テスト (`DatabaseTests`) と Accessor のテスト (`AccessorTests`: 楽観ロック / 一覧フィルタ / 開設 → 販売 → 集計 → 返品数量 → 取消 → 精算 → レポート) が緑 (統合テスト 15 件、テンプレートと同じく `TestApplicationFactory` の一時 DB)
 
 ---
 

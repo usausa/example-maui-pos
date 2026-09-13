@@ -526,7 +526,7 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 - テンプレートは Excel で作る。1 シート = 1 ページを基本にし、明細行はプレースホルダの行から順に埋める。複数ページ (複数シフトなど) はシートのコピーで作る (`GadgetFood` の給与明細と同じ)
 - 端末のレシート (T-22) は画面表示 + 電子レシート QR + 画像共有のままで、サーバの PDF は使わない (オフラインでも出せるように)
 
-### D-38. `Pos.Shared` の警告抑止
+### D-38. 警告の抑止
 
 `Pos.Shared` に型を置くと、名前空間の `Shared` が VB の予約語のため CA1716 が全ファイルで出る。`ProductResponse.ImageUrl` (string) には CA1056 が出る。
 
@@ -537,3 +537,5 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 | C. 名前空間を `Pos.Contracts.*` に変える | プロジェクト名と名前空間が食い違う |
 
 **決定**: ✅ **B** (利用者確認済み)。
+
+`Pos.Server.Core` の CA1000 (汎用 `EnumTextConverter<T>` の static メンバー。`IValueConverter` の static abstract 実装なので回避できない)、CA1056 (`ProductEntity.ImageUrl`)、CA1819 (`StaffEntity.PinHash`) は該当箇所だけ `#pragma warning disable / restore` で抑止する (利用者確認済み)。

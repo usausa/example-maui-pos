@@ -20,27 +20,27 @@
 | データアクセス | `Usa.Smart.Data.Accessor` の `[DataAccessor]` + 2-way SQL ファイル (`Accessors/Sql/{Accessor}.{Method}.sql`)。ORM は使わない。Endpoints / Blazor ページが Accessor を直接使い、Service / Usecase の層は置かない ([D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠)) |
 | スキーマ作成 | 起動時に `{Accessor}.Create.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を実行 (テンプレートの `InitializeApplicationAsync` → `CreateTable()`)。マイグレーションは持たず、スキーマ変更時は DB を作り直す (サンプルのため) |
 | 命名 | テーブル = 複数形 PascalCase (`Transactions`)、列 = PascalCase。FK は `〜Id`。エンティティクラスは `{Table 単数}Entity` (`TransactionEntity`) |
-| 主キー | `guid` を **TEXT (36 文字、小文字)** で保存。端末発のデータは端末が GUID v7 を採番 ([D-10](decisions.md#d-10-冪等性-クライアント採番-id)) |
-| 列挙型 | TEXT (列挙名) + 汎用 `[TypeHandler(typeof(EnumTextConverter<T>))]` ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。値は API の enum と同じ |
+| 主キー | `guid` を **TEXT (36 文字。`Microsoft.Data.Sqlite` の既定で大文字)** で保存。端末発のデータは端末が GUID v7 を採番 ([D-10](decisions.md#d-10-冪等性-クライアント採番-id)) |
+| 列挙型 | TEXT (列挙名)。汎用 `EnumTextConverter<T>` を `DataProfile` (`[AccessorProfile]`) に列挙型ごとに宣言し、各 Accessor が `[ExecuteConfig(typeof(DataProfile))]` で参照する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。値は API の enum と同じ |
 | 論理削除 | マスタ系は `IsDeleted`。差分同期で削除も伝える必要があるので、通常の照会側で `IsDeleted = 0` を明示する |
 | 監査列 | `CreatedAt` / `UpdatedAt` (UTC)。マスタ系は楽観ロック用 `Version` (INTEGER、更新ごとに +1) |
 | 履歴 | 取引・シフト・入出金・在庫変動・ポイント履歴は**更新・削除しない** (取消も `Status` 更新 + 逆方向の履歴追加) |
 | スナップショット | 取引明細は商品名・単価・税率・還元率を販売時点の値で保持する。マスタ変更が過去の取引に影響しない |
-| 外部キー | `FOREIGN KEY` は宣言するが、SQLite の既定では強制されないため `PRAGMA foreign_keys = ON` を接続ごとに有効化する (テンプレートの `ExecutePragma` に追加) |
+| 外部キー | `FOREIGN KEY` は宣言するが、SQLite の既定では強制されないため接続文字列の `Foreign Keys=True` で接続ごとに有効化する (WAL と busy_timeout は起動時の `DatabaseAccessor.ExecutePragmaAsync`) |
 
 型の表記 (C# ↔ SQLite):
 
 | 表記 | C# | SQLite | 備考 |
 | --- | --- | --- | --- |
-| `guid` | `Guid` | `TEXT` | `Microsoft.Data.Sqlite` の既定 (36 文字)。生成コードは `GetGuid` で読む |
+| `guid` | `Guid` | `TEXT` | `Microsoft.Data.Sqlite` の既定 (36 文字、大文字)。生成コードは `GetGuid` で読む |
 | `string(n)` | `string` | `TEXT` | 長さはアプリ側で検証 (SQLite は長さ制約を強制しない) |
 | `money` | `decimal` | `NUMERIC` | 円。`Microsoft.Data.Sqlite` は `decimal` を TEXT で書くが、NUMERIC 親和性により数値 (INTEGER / REAL) に変換されて保存される ([D-13](decisions.md#d-13-金額数量率の表現-decimal)) |
 | `rate` | `decimal` | `NUMERIC` | `0.1` (REAL として保存)。集計しない |
 | `qty` | `decimal` | `NUMERIC` | 数量 (小数可) |
 | `int` | `int` | `INTEGER` | |
 | `bool` | `bool` | `INTEGER` | 0 / 1 |
-| `datetime` | `DateTime` (UTC) | `TEXT` | `yyyy-MM-dd HH:mm:ss.fffffff` (`Microsoft.Data.Sqlite` の既定書式。文字列比較で範囲検索できる) |
-| `date` | `DateOnly` | `TEXT` | `yyyy-MM-dd` |
+| `datetime` | `DateTime` (UTC) | `TEXT` | `yyyy-MM-dd HH:mm:ss.fffffff` (`Microsoft.Data.Sqlite` の既定書式。文字列比較で範囲検索できる)。`DateTimeTextConverter` で UTC に固定して読み書きする |
+| `date` | `DateOnly` | `TEXT` | `yyyy-MM-dd` (`DateOnlyTextConverter`) |
 | `enum` | enum | `TEXT` | 列挙名 |
 
 ---
@@ -732,34 +732,46 @@ CREATE INDEX IF NOT EXISTS IX_TransactionLines_OriginalLineId ON TransactionLine
 CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_Open ON Shifts (TerminalId) WHERE Status = 'Open';
 ```
 
-エンティティの例 (Smart.Data.Accessor の属性):
+エンティティと Accessor の例 (Smart.Data.Accessor 3.0.0-beta7。テーブル名はクラスの `[Name]` ではなく Builder 属性の `Table` で指定する):
 
 ```csharp
-[Name("Transactions")]
 public sealed class TransactionEntity
 {
     [Key]
     public Guid Id { get; set; }
 
-    [TypeHandler(typeof(EnumTextConverter<TransactionType>))]
-    public TransactionType Type { get; set; }
-
-    [TypeHandler(typeof(EnumTextConverter<TransactionStatus>))]
+    public TransactionType Type { get; set; }      // 変換は DataProfile の EnumTextConverter<TransactionType>
     public TransactionStatus Status { get; set; }
-
     public Guid StoreId { get; set; }
     // ...
     public decimal Total { get; set; }
-    public DateTime TransactedAt { get; set; }
+    public DateTime TransactedAt { get; set; }      // DateTimeTextConverter (UTC)
+}
+
+[DataAccessor]
+[ExecuteConfig(typeof(DataProfile))]
+public sealed partial class TransactionAccessor
+{
+    [Execute]
+    [Insert(typeof(TransactionEntity), Table = "Transactions")]
+    public partial ValueTask<int> InsertAsync(DbTransaction tx, TransactionEntity entity, CancellationToken cancellationToken);
+
+    [QueryFirst]
+    [SelectSingle(typeof(TransactionEntity), Table = "Transactions")]
+    public partial ValueTask<TransactionEntity?> QueryAsync(Guid id, CancellationToken cancellationToken);
 }
 ```
 
-起動時の PRAGMA (テンプレートの `ExecutePragma.sql` を拡張):
+- 2-way SQL の POCO 引数 (`/*@ entity.Prop */`) にはコンバータが効かないので、列挙型・日付を渡す UPDATE はスカラー引数で書く (`UpdateAsync(id, code, ..., kind, updatedAt, version)`)。INSERT は Builder (`[Insert]`) を使う
+- 生 SQL (`/*# sort */Id`) のプレースホルダは 1 トークン。並び替えは呼び出し側が `SqlHelper.NormalizeSort` で検証した `"Column DESC"` を渡す
+- 集計は `Models/` の record (`ShiftTotals` / `SalesSummaryRow` など) に列名で写す
+
+起動時の PRAGMA (`DatabaseAccessor.ExecutePragmaAsync.sql`。WAL は DB ファイルに永続化される):
 
 ```sql
 PRAGMA journal_mode = WAL;
 PRAGMA busy_timeout = 5000;
-PRAGMA foreign_keys = ON;
+PRAGMA foreign_keys = ON
 ```
 
 ---

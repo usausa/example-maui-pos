@@ -97,17 +97,21 @@ Accessors/
   CustomerAccessor.cs, TransactionAccessor.cs, ShiftAccessor.cs, InventoryAccessor.cs, ReportAccessor.cs,
   SettingsAccessor.cs
   Sql/{Accessor}.{Method}.sql       2-way SQL。Create.sql に DDL
-Models/Entity/                       {Table 単数}Entity (Smart.Data.Accessor の [Name] / [Key] / [TypeHandler])
-Models/                              集計結果の record (ReportAccessor の戻り値など)
+Models/Entity/                       {Table 単数}Entity (Smart.Data.Accessor の [Key]。テーブル名は Builder 属性の Table)
+Models/                              集計結果の record (ShiftTotals / PaymentMethodTotal / TaxRateTotal / CategoryTotal / PointTotals /
+                                     SalesSummaryRow / ProductSalesRow / ProductInventoryLevel、SalesSummaryGroup)
 Infrastructure/
   Data/SqlHelper.cs                  並び替え列の検証 (Phase 0 で作成済み)
-  Data/EnumTextConverter.cs          列挙型 ↔ TEXT の [TypeHandler]
+  Data/DataProfile.cs                [AccessorProfile]: 列挙型ごとの EnumTextConverter<T> と DateOnly / DateTime のコンバータ
+  Data/EnumTextConverter.cs          列挙型 ↔ TEXT、DateOnlyTextConverter.cs / DateTimeTextConverter.cs (UTC)
+  Data/ReportSql.cs                  売上集計の GROUP BY 式 (生 SQL へ渡す閉じた集合)
 Extensions.cs                        拡張メソッド置き場 (テンプレート既存の書き方)
 ```
 
 - 複数テーブルにまたがる書き込み (取引登録・取消・精算) は、呼び出し側が `IDbProvider.UsingTxAsync` で Accessor の `DbTransaction` 付きメソッド (`InsertTransactionAsync(DbTransaction tx, ...)` など) を順に呼ぶ ([db-design.md §5](db-design.md#5-整合性と更新の単位))
 - Accessor は SQL の実行だけを担い、業務ルールは `Pos.Domain` に置く
 - Accessor の DI 登録は Host の `AddDataAccessors(typeof(SqlHelper).Assembly)` (Core アセンブリを走査)
+- `DatabaseAccessor` (PRAGMA) を含めて 16 Accessor。マスタは 一覧 (Count + QueryList) / QueryAsync / InsertAsync / UpdateAsync (Version 楽観ロック、スカラー引数) / DeleteAsync (論理削除) を共通形にする
 
 ### 3.2 `Pos.Server.Host`
 
@@ -131,6 +135,7 @@ Components/
   Dialogs/ (AppMessageBox + 編集ダイアログ、詳細ダイアログ)
 Infrastructure/                      Components (AppComponentBase, DialogServiceExtensions, ErrorBoundaryLogger, SnackbarExtensions),
                                      ExceptionHandling (GlobalExceptionHandler), HealthChecks (DatabaseHealthCheck)   (テンプレート由来)
+Infrastructure/Data/InitialData.cs   起動時の初期データ (architecture §8)。固定 ID (InitialData.MainStoreId など) をテストと設定 QR で使う
 Infrastructure/Reports/              OysterReport の帳票: EmbeddedFontResolver (同梱 IPAex ゴシック)、ShiftReportBuilder (精算レポート)、
                                      DailySalesReportBuilder (売上日報)、ReceiptReportBuilder (レシート再発行、◎)   (D-37)
 Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート。出力ディレクトリへコピー)
@@ -201,7 +206,7 @@ Reports/       SalesSummaryResponse (+ Row), ProductSalesResponse (+ Row)
 - 入れ子の要素はテンプレートの `DataListResponseEntry` に倣い、親の名前に要素名を続ける (`TransactionResponseLine`)
 - 列挙型は `Pos.Domain` のものをそのまま使う。エラーコード定数は持たず、`Pos.Domain` の `ErrorCode.ToCode()` / `WarningCode.ToCode()` と `ProblemResponse.ErrorCode` (文字列) で突き合わせる
 - 日付は `DateOnly`、日時は `DateTime` (UTC)。サーバは `ConfigureHttpJsonOptions` で `JsonDateTimeConverter` と `JsonStringEnumConverter` を登録し、端末は Rester の設定で同じものを登録する (Phase 6)。形式は `Pos.Server.IntegrationTests` の `JsonContractTests` で固定
-- 名前空間 `Pos.Shared` は VB の予約語と重なるため CA1716 を、`ImageUrl` は CA1056 を `Pos.Shared` の `GlobalSuppressions.cs` で抑止している ([D-38](decisions.md#d-38-posshared-の警告抑止))
+- 名前空間 `Pos.Shared` は VB の予約語と重なるため CA1716 を、`ImageUrl` は CA1056 を `Pos.Shared` の `GlobalSuppressions.cs` で抑止している ([D-38](decisions.md#d-38-警告の抑止))
 
 ---
 
@@ -278,7 +283,7 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | Phase 0 土台 | ルート共通ファイル、`shared/` `server/` `terminal/` の骨組み、2 ソリューション | 完了 |
 | Phase 1 `Pos.Domain` | 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール、単体テスト | 完了 |
 | Phase 2 `Pos.Shared` | `XxxRequest` / `XxxResponse` 一式 | 完了 |
-| Phase 3 サーバ DB | DDL、Entity、Accessor、起動時スキーマ作成、初期データ | |
+| Phase 3 サーバ DB | DDL、Entity、Accessor、起動時スキーマ作成、初期データ | 完了 |
 | Phase 4 サーバ API | マスタ・同期 → 顧客 → シフト → 取引 → 在庫 → レポート → 帳票 (PDF)、統合テスト | |
 | Phase 5 管理画面 | レイアウト・ダッシュボード → マスタ CRUD → 取引 / シフト / 在庫 / 顧客 / レポート → 設定・QR | |
 | Phase 6 端末 | 土台・同期・Outbox → メニュー・開設 → 販売 → 会計・レシート → 精算・入出金 → 返品・履歴 → 照会・棚卸 → 設定 | |
@@ -317,8 +322,8 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | # | 項目 | 確認方法 | 状態 / だめなときの代替 |
 | --- | --- | --- | --- |
 | 1 | JSON の camelCase | `Service-CloudManager` の `NamingPolicy` (camelCase) をそのまま使う。端末側は Rester の設定で camelCase にする (Phase 6) | サーバ側は Phase 0 で確認済み |
-| 2 | `[TypeHandler(typeof(EnumTextConverter<T>))]` のジェネリック指定 | Phase 3 で 1 エンティティ試す | 列挙型ごとのコンバータクラス |
-| 3 | `Guid` ↔ TEXT、`decimal` ↔ NUMERIC の読み書き | Phase 3 で INSERT → SELECT → `SUM` を試す | `Guid` は `[TypeHandler]` で文字列変換、金額列は TEXT + `CAST` |
+| 2 | `[TypeHandler(typeof(EnumTextConverter<T>))]` のジェネリック指定 | Phase 3 で 1 エンティティ試す | 確認済み (`DataProfile` で一括宣言。CA1000 は `#pragma` で抑止) |
+| 3 | `Guid` ↔ TEXT、`decimal` ↔ NUMERIC の読み書き | Phase 3 で INSERT → SELECT → `SUM` を試す | 確認済み (`DatabaseTests`。Guid は大文字 TEXT、decimal は INTEGER / REAL に変換され `SUM` 可) |
 | 4 | `groupBy=hour` のタイムゾーン | UTC の `TransactedAt` を店舗時刻へ。SQL (`datetime(TransactedAt, '+9 hours')`) か C# 側集計かを Phase 4 で決める | C# 側で集計 |
 | 5 | MAUI ワークロード | Phase 0 で `Pos.Terminal` のビルドとエミュレータ実行を確認 | 確認済み |
 | 6 | Aspire | Phase 0 で AppHost の起動 (ダッシュボード表示) を確認 | 確認済み (CLI 13.5.2 + AppHost SDK 13.5.3) |
