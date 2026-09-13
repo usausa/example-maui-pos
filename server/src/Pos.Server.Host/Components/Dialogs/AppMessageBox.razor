@@ -1,0 +1,23 @@
+<MudDialog DefaultFocus="DefaultFocus.LastChild">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        @Message
+    </DialogContent>
+    <DialogActions>
+        <div tabindex="-1" @onkeydown="HandleKeyDown">
+            <MudFocusTrap DefaultFocus="DefaultFocus.LastChild">
+                @if (Type == MessageBoxType.Information)
+                {
+                    <MudButton Color="Color.Default" OnClick="OnOkClick">OK</MudButton>
+                }
+                @if (Type == MessageBoxType.Confirm)
+                {
+                    <MudButton Color="Color.Primary" OnClick="OnOkClick">OK</MudButton>
+                    <MudButton Color="Color.Default" OnClick="OnCancelClick">CANCEL</MudButton>
+                }
+            </MudFocusTrap>
+        </div>
+    </DialogActions>
+</MudDialog>

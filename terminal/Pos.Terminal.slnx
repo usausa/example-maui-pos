@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/Shared/">
+    <Project Path="../shared/Pos.Domain/Pos.Domain.csproj" />
+    <Project Path="../shared/Pos.Shared/Pos.Shared.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="../.editorconfig" />
+    <File Path="../.gitattributes" />
+    <File Path="../.gitignore" />
+    <File Path="../AGENTS.md" />
+    <File Path="../Analyzers.ruleset" />
+    <File Path="../Directory.Build.props" />
+    <File Path="../Directory.Build.targets" />
+    <File Path="../LICENSE" />
+    <File Path="../README.md" />
+    <File Path="Settings.XamlStyler" />
+    <File Path="Pos.Terminal.sln.DotSettings" />
+  </Folder>
+  <Project Path="Pos.Terminal/Pos.Terminal.csproj" DefaultStartup="true">
+    <Deploy />
+  </Project>
+</Solution>

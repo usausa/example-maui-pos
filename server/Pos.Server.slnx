@@ -1,0 +1,31 @@
+<Solution>
+  <Folder Name="/Aspire/">
+    <Project Path="src/Pos.Server.AppHost/Pos.Server.AppHost.csproj" DefaultStartup="true" />
+  </Folder>
+  <Folder Name="/Application/">
+    <Project Path="src/Pos.Server.Core/Pos.Server.Core.csproj" />
+    <Project Path="src/Pos.Server.Host/Pos.Server.Host.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="../shared/Pos.Domain/Pos.Domain.csproj" />
+    <Project Path="../shared/Pos.Shared/Pos.Shared.csproj" />
+  </Folder>
+  <Folder Name="/Test/">
+    <Project Path="../shared/Pos.Domain.Tests/Pos.Domain.Tests.csproj" />
+    <Project Path="tests/Pos.Server.UnitTests/Pos.Server.UnitTests.csproj" />
+    <Project Path="tests/Pos.Server.IntegrationTests/Pos.Server.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="../.editorconfig" />
+    <File Path="../.gitattributes" />
+    <File Path="../.gitignore" />
+    <File Path="../AGENTS.md" />
+    <File Path="../Analyzers.ruleset" />
+    <File Path="../CodeCoverage.runsettings" />
+    <File Path="../Directory.Build.props" />
+    <File Path="../Directory.Build.targets" />
+    <File Path="../LICENSE" />
+    <File Path="../README.md" />
+    <File Path="Pos.Server.sln.DotSettings" />
+  </Folder>
+</Solution>

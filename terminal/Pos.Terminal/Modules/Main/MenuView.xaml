@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Main"
+             x:Class="Pos.Terminal.Modules.Main.MenuView"
+             x:DataType="{x:Type module:MenuViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:MenuViewModel}"
+             shell:ShellProperty.Title="ホーム"
+             shell:ShellProperty.FunctionVisible="False">
+
+    <Grid Style="{StaticResource FillGrid}"
+          RowDefinitions="*,Auto">
+        <!-- 販売を最上段に 2 列幅で置く (docs/screen-design.md T-02)。機能は未実装のため無効 -->
+        <Grid Grid.Row="0"
+              Style="{StaticResource MenuGrid}"
+              RowDefinitions="*,*,*,*,*,*"
+              ColumnDefinitions="*,*">
+            <Button Grid.Row="0" Grid.ColumnSpan="2"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="販売" />
+            <Button Grid.Row="1" Grid.Column="0"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="返品" />
+            <Button Grid.Row="1" Grid.Column="1"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="取引履歴" />
+            <Button Grid.Row="2" Grid.Column="0"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="レジ開設・精算" />
+            <Button Grid.Row="2" Grid.Column="1"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="入出金" />
+            <Button Grid.Row="3" Grid.Column="0"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="商品・在庫照会" />
+            <Button Grid.Row="3" Grid.Column="1"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="会員" />
+            <Button Grid.Row="4" Grid.Column="0"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="棚卸・在庫調整" />
+            <Button Grid.Row="4" Grid.Column="1"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="売上照会" />
+            <Button Grid.Row="5" Grid.ColumnSpan="2"
+                    Style="{StaticResource MenuButton}"
+                    IsEnabled="False"
+                    Text="設定・同期" />
+        </Grid>
+
+        <Label Grid.Row="1"
+               Style="{StaticResource FooterLabel}"
+               Text="{Binding Version, StringFormat='Version {0}'}" />
+    </Grid>
+
+</ContentView>

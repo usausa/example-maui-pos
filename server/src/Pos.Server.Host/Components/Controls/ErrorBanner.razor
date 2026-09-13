@@ -1,0 +1,6 @@
+@if (!String.IsNullOrEmpty(Message))
+{
+    <MudAlert Severity="Severity.Error" Class="error-banner mb-2" ShowCloseIcon="true" CloseIconClicked="OnClear">
+        @Message
+    </MudAlert>
+}
