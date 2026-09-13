@@ -21,11 +21,14 @@ using MiniDataProfiler.Listener.Logging;
 using MudBlazor;
 using MudBlazor.Services;
 
+using Pos.Domain.Rules;
 using Pos.Server.Accessors;
 using Pos.Server.Host.Components;
+using Pos.Server.Host.Endpoints;
 using Pos.Server.Host.Infrastructure.Data;
 using Pos.Server.Host.Infrastructure.ExceptionHandling;
 using Pos.Server.Host.Infrastructure.HealthChecks;
+using Pos.Server.Host.Infrastructure.Reports;
 using Pos.Shared.Common;
 
 using Serilog;
@@ -150,6 +153,12 @@ public static class ApplicationExtensions
             options.CustomizeProblemDetails = static context =>
             {
                 context.ProblemDetails.Extensions.TryAdd("traceId", Activity.Current?.Id ?? context.HttpContext.TraceIdentifier);
+
+                // 入力検証 (AddValidation) の 400 にも errorCode を付ける (api-design §5)
+                if (context.ProblemDetails.Status == StatusCodes.Status400BadRequest)
+                {
+                    context.ProblemDetails.Extensions.TryAdd("errorCode", ErrorCode.ValidationError.ToCode());
+                }
             };
         });
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -297,6 +306,10 @@ public static class ApplicationExtensions
             static x => Regex.Replace(x, "[%_]", "[$0]")));
         builder.Services.AddDataAccessors(typeof(SqlHelper).Assembly);
 
+        // Report
+        builder.Services.AddSingleton<ShiftReportBuilder>();
+        builder.Services.AddSingleton<DailySalesReportBuilder>();
+
         // Setting
         builder.Services.AddOptions<ProfilerSetting>().BindConfiguration("Profiler").ValidateDataAnnotations().ValidateOnStart();
         builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<ProfilerSetting>>().Value);
@@ -359,6 +372,23 @@ public static class ApplicationExtensions
         {
             Predicate = static r => r.Tags.Contains("live")
         });
+
+        // API
+        app.MapSettingsEndpoints();
+        app.MapStoreEndpoints();
+        app.MapTerminalEndpoints();
+        app.MapStaffEndpoints();
+        app.MapCategoryEndpoints();
+        app.MapTaxRateEndpoints();
+        app.MapProductEndpoints();
+        app.MapDiscountEndpoints();
+        app.MapPaymentMethodEndpoints();
+        app.MapSyncEndpoints();
+        app.MapCustomerEndpoints();
+        app.MapTransactionEndpoints();
+        app.MapShiftEndpoints();
+        app.MapInventoryEndpoints();
+        app.MapReportEndpoints();
 
         return app;
     }

@@ -57,7 +57,7 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 
 - 並び替えは `sort` (列名) / `desc` (bool)。許可する列はリソースごとに決め、`SqlHelper.NormalizeSort` で検証する (テンプレートどおり)
 - マスタ系一覧は **差分同期**用に `updatedSince` (datetime) と `includeDeleted` (bool) を受け付ける。`updatedSince` 指定時は `updatedAt > updatedSince` のレコードを `updatedAt, id` 昇順で返し、論理削除済みも `isDeleted: true` で含める
-- 日付範囲は営業日 `from` / `to` (両端含む)。指定がなければ `to` は当日、`from` は `to` の 30 日前
+- 日付範囲は営業日 `from` / `to` (両端含む)。レポートは指定がなければ `to` は当日、`from` は `to` の 30 日前。一覧 (取引・シフト・在庫変動) は指定がなければ絞らない
 
 ### 2.3 書き込み
 
@@ -65,8 +65,8 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 | --- | --- |
 | 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxResponse`。端末発 (取引・シフト・入出金・在庫変動) は本文の `id` を必須とし、**同じ `id` が既に存在すれば `200 OK` で既存を返す**。本文が既存と一致しない場合は `409 Conflict` (`DUPLICATE_ID_MISMATCH`) |
 | 更新 | 管理系は `PUT /resources/{id}` (`XxxUpdateRequest`、全体置換)。本文の `version` で楽観ロック。不一致なら `409 Conflict` (`VERSION_MISMATCH`) |
-| 削除 | 管理系は `DELETE /resources/{id}` で論理削除 (`isDeleted = true`)。取引など履歴は削除しない |
-| 検証 | 入力エラーは `400` (テンプレートの `AddValidation` + DataAnnotations)、業務ルール違反は `422` |
+| 削除 | 管理系は `DELETE /resources/{id}` で論理削除 (`isDeleted = true`)。取引など履歴は削除しない。削除後も `GET /resources/{id}` は `isDeleted: true` で返し、更新・再削除は `404` |
+| 検証 | 入力エラーは `400` (テンプレートの `AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422` |
 | 重複 | コード・バーコード等の一意制約違反は `409` (`DUPLICATE_CODE`)。テンプレートの `IDialect.IsDuplicate` で SQLite の制約違反を判定する |
 
 ### 2.4 エラー応答

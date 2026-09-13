@@ -52,6 +52,24 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         Assert.Contains("ページが見つかりません", content, StringComparison.Ordinal);
     }
 
+    // OpenAPI document (Development) lists the API
+    [Fact]
+    public async Task OpenApiDocumentListsApi()
+    {
+        // Arrange
+        var client = factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        response.EnsureSuccessStatusCode();
+        Assert.Contains("/api/v1/transactions/calculate", content, StringComparison.Ordinal);
+        Assert.Contains("/api/v1/shifts/{id}/summary/pdf", content, StringComparison.Ordinal);
+        Assert.Contains("/api/v1/reports/sales/daily/pdf", content, StringComparison.Ordinal);
+    }
+
     // API returns a plain 404 instead of HTML
     [Fact]
     public async Task UnknownApiReturnsPlainNotFound()

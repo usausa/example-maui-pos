@@ -65,7 +65,21 @@ public static class TransactionRules
         return new TransactionValidation { Errors = errors, Warnings = warnings, Expected = expected };
     }
 
-    // 計算できる入力かを検証する (api-design §4.1 / §4.2 の前提)
+    // 計算できる入力か (api-design §4.1 / §4.2 の前提)。端末のカート検証や計算 API の事前チェックにも使う
+    public static IReadOnlyList<RuleError> ValidateInput(SalesInput input)
+    {
+        var errors = new List<RuleError>();
+        ValidateSalesInput(input, errors);
+        return errors;
+    }
+
+    public static IReadOnlyList<RuleError> ValidateInput(ReturnInput input)
+    {
+        var errors = new List<RuleError>();
+        ValidateReturnInput(input, errors);
+        return errors;
+    }
+
     private static bool ValidateSalesInput(SalesInput input, List<RuleError> errors)
     {
         var valid = true;

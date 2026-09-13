@@ -113,6 +113,10 @@ public sealed partial class TransactionAccessor
     [Execute]
     public partial ValueTask<int> VoidAsync(DbTransaction tx, Guid id, DateTime voidedAt, Guid voidedByStaffId, string reason, DateTime updatedAt, CancellationToken cancellationToken);
 
+    // 処理後残高 (ポイント更新後に確定)
+    [Execute]
+    public partial ValueTask<int> UpdatePointsBalanceAfterAsync(DbTransaction tx, Guid id, int? pointsBalanceAfter, CancellationToken cancellationToken);
+
     // 返品数量を元明細に加算 (超過するときは更新されず 0 が返る)。取消の戻しは負の quantity
     [Execute]
     public partial ValueTask<int> AddReturnedQuantityAsync(DbTransaction tx, Guid lineId, decimal quantity, CancellationToken cancellationToken);

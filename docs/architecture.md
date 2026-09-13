@@ -121,12 +121,15 @@ Extensions.cs                        拡張メソッド置き場 (テンプレ�
 Application/ApiRoutes.cs             /api/v1 の定数 (Prefix)
 Application/ApplicationExtensions.cs (テンプレート由来) + ConfigureOpenApi / MapOpenApi (開発時 /swagger, /redoc)
 Application/Log.cs, NamingPolicy.cs (camelCase), Styles.cs (MudBlazor テーマ)   (テンプレート由来)
-Endpoints/
+Endpoints/                           静的クラス + MapGroup (ハンドラは private static、引数は DI + ルート / クエリ / 本文)
   SettingsEndpoints, StoreEndpoints, TerminalEndpoints, StaffEndpoints, CategoryEndpoints, TaxRateEndpoints,
   ProductEndpoints, DiscountEndpoints, PaymentMethodEndpoints, SyncEndpoints, CustomerEndpoints,
-  TransactionEndpoints, ShiftEndpoints, InventoryEndpoints, ReportEndpoints
-Models/Forms/                        Blazor 用フォーム + FluentValidation (ProductForm / ProductFormValidator ...)
-Mappers/                             Smart.Mapper: Entity ↔ Shared の Request / Response、Entity ↔ Form
+  TransactionEndpoints, ShiftEndpoints (+ summary/pdf), InventoryEndpoints (+ adjustment-reasons), ReportEndpoints (+ daily/pdf)
+Infrastructure/Api/                  ApiProblems (errorCode / errors / expected 付き Problem Details)、ApiHelper (ページサイズ、並び替え、LIKE)、
+                                     RuleViolationException (DB トランザクション内の業務ルール違反 → 422)
+Models/Forms/                        Blazor 用フォーム + FluentValidation (ProductForm / ProductFormValidator ...)   (Phase 5)
+Mappers/                             Smart.Mapper: MasterMapper (マスタ・顧客)、TransactionMapper (取引一式と Domain の入出力)、ShiftMapper (集計付き応答)、
+                                     InventoryMapper、ReportMapper。Entity ↔ Form は Phase 5
 Components/
   App.razor, Routes.razor, _Imports.razor              (テンプレート由来)
   Layout/ (MainLayout, NavMenu, EmptyLayout, ReconnectModal)   NavMenu は Phase 5 で MudNavGroup 構成にする
@@ -136,8 +139,8 @@ Components/
 Infrastructure/                      Components (AppComponentBase, DialogServiceExtensions, ErrorBoundaryLogger, SnackbarExtensions),
                                      ExceptionHandling (GlobalExceptionHandler), HealthChecks (DatabaseHealthCheck)   (テンプレート由来)
 Infrastructure/Data/InitialData.cs   起動時の初期データ (architecture §8)。固定 ID (InitialData.MainStoreId など) をテストと設定 QR で使う
-Infrastructure/Reports/              OysterReport の帳票: EmbeddedFontResolver (同梱 IPAex ゴシック)、ShiftReportBuilder (精算レポート)、
-                                     DailySalesReportBuilder (売上日報)、ReceiptReportBuilder (レシート再発行、◎)   (D-37)
+Infrastructure/Reports/              OysterReport の帳票: EmbeddedFontResolver (同梱 IPAex ゴシック)、ReportText (表示文字列・明細行の複製)、
+                                     ShiftReportBuilder (精算レポート)、DailySalesReportBuilder (売上日報)、ReceiptReportBuilder (レシート再発行、◎ 未実装)   (D-37)
 Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート。出力ディレクトリへコピー)
 Settings/                            LogSetting / ProfilerSetting   (テンプレート由来)
 wwwroot/                             css/app.css, js/reconnect.js   (テンプレート由来)
@@ -284,7 +287,7 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | Phase 1 `Pos.Domain` | 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール、単体テスト | 完了 |
 | Phase 2 `Pos.Shared` | `XxxRequest` / `XxxResponse` 一式 | 完了 |
 | Phase 3 サーバ DB | DDL、Entity、Accessor、起動時スキーマ作成、初期データ | 完了 |
-| Phase 4 サーバ API | マスタ・同期 → 顧客 → シフト → 取引 → 在庫 → レポート → 帳票 (PDF)、統合テスト | |
+| Phase 4 サーバ API | マスタ・同期 → 顧客 → シフト → 取引 → 在庫 → レポート → 帳票 (PDF)、統合テスト | 完了 |
 | Phase 5 管理画面 | レイアウト・ダッシュボード → マスタ CRUD → 取引 / シフト / 在庫 / 顧客 / レポート → 設定・QR | |
 | Phase 6 端末 | 土台・同期・Outbox → メニュー・開設 → 販売 → 会計・レシート → 精算・入出金 → 返品・履歴 → 照会・棚卸 → 設定 | |
 
@@ -324,7 +327,7 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | 1 | JSON の camelCase | `Service-CloudManager` の `NamingPolicy` (camelCase) をそのまま使う。端末側は Rester の設定で camelCase にする (Phase 6) | サーバ側は Phase 0 で確認済み |
 | 2 | `[TypeHandler(typeof(EnumTextConverter<T>))]` のジェネリック指定 | Phase 3 で 1 エンティティ試す | 確認済み (`DataProfile` で一括宣言。CA1000 は `#pragma` で抑止) |
 | 3 | `Guid` ↔ TEXT、`decimal` ↔ NUMERIC の読み書き | Phase 3 で INSERT → SELECT → `SUM` を試す | 確認済み (`DatabaseTests`。Guid は大文字 TEXT、decimal は INTEGER / REAL に変換され `SUM` 可) |
-| 4 | `groupBy=hour` のタイムゾーン | UTC の `TransactedAt` を店舗時刻へ。SQL (`datetime(TransactedAt, '+9 hours')`) か C# 側集計かを Phase 4 で決める | C# 側で集計 |
+| 4 | `groupBy=hour` のタイムゾーン | UTC の `TransactedAt` を店舗時刻へ。SQL (`datetime(TransactedAt, '+9 hours')`) か C# 側集計かを Phase 4 で決める | 確認済み (SQL 側。店舗の `TimeZone` を `TimeZoneInfo` で解決し、営業日の UTC オフセットを `+540 minutes` の形で渡す。`storeId` なしはサーバのローカル) |
 | 5 | MAUI ワークロード | Phase 0 で `Pos.Terminal` のビルドとエミュレータ実行を確認 | 確認済み |
 | 6 | Aspire | Phase 0 で AppHost の起動 (ダッシュボード表示) を確認 | 確認済み (CLI 13.5.2 + AppHost SDK 13.5.3) |
 | 7 | テストの実行 | Microsoft.Testing.Platform の実行ファイルとして `dotnet run --project` で実行する (`dotnet test` と `global.json` は使わない) | 確認済み ([D-35](decisions.md#d-35-テストの実行方法)) |

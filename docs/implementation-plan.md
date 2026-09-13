@@ -5,7 +5,7 @@
 ## 進め方
 
 - 着手するフェーズを指示してもらってから始める。完了したら完了条件の確認結果を報告し、本書のチェックを更新する
-- 各フェーズの終わりは `dotnet build` 警告ゼロ・テスト緑 (テンプレートの規約)
+- 各フェーズの終わりは `dotnet build` 警告ゼロ・テスト緑 (テンプレートの規約)・`jb inspectcode` (ReSharper、Jenkins と同じ `--properties:Configuration=Release`) の指摘ゼロ
 - 実装中に設計を変えた場合は [decisions.md](decisions.md) に追記し、該当文書を直してからフェーズを閉じる
 - [architecture.md §9](architecture.md#9-実装時に確認する事項) の確認事項は該当フェーズで消化する (各項目に `§9-n` で示す)
 - コミットはフェーズ (大きいものはサブフェーズ) 単位
@@ -136,62 +136,62 @@ db-design の DDL・Entity・Accessor・初期データ。
 
 ---
 
-## Phase 4: サーバ API
+## Phase 4: サーバ API (完了)
 
 api-design §3 のエンドポイント。順番はマスタ → 顧客 → シフト → 取引 → 在庫 → レポート。
 
 ### 4a マスタ・設定・同期
 
-- [ ] `Mappers` (Entity ↔ Request / Response)
-- [ ] Settings / Stores / Terminals / Staff / Categories / TaxRates / Products (+ `lookup`) / Discounts / PaymentMethods / AdjustmentReasons
-- [ ] `GET /sync/masters`
-- [ ] 一覧の並び替え許可列 (`SqlHelper.NormalizeSort`)
+- [x] `Mappers` (Smart.Mapper の `[Mapper]`): `MasterMapper` (マスタ・顧客)、`TransactionMapper` (取引一式、`SalesInput` / `ReturnInput` への変換、計算結果 ↔ `TransactionCalculationResponse`)、`ShiftMapper` (集計付き応答、`ExpectedCash`)、`InventoryMapper`、`ReportMapper` (`GroupKey → Key` は `[MapProperty]`)
+- [x] Settings / Stores / Terminals / Staff / Categories / TaxRates / Products (+ `lookup`) / Discounts / PaymentMethods / AdjustmentReasons (`Endpoints/XxxEndpoints.cs`、静的クラス + `MapGroup`)。Problem Details は `Infrastructure/Api/ApiProblems.cs` (`errorCode` / `errors` / `expected`)、`AddValidation` の 400 にも `VALIDATION_ERROR` を付ける
+- [x] `GET /sync/masters?since` (変更がなければ `settings` は省略、`products` は `MaxPageSize` 超で `productsTruncated`)
+- [x] 一覧の並び替え許可列 (`ApiHelper.ResolveSort`: `updatedSince` 指定時は `UpdatedAt, Id` 固定)。`GET /{id}` は論理削除済みも `isDeleted: true` で返し、更新・削除は 404
 
 ### 4b 顧客・ポイント
 
-- [ ] 検索 / lookup / 登録 / 更新 / 論理削除
-- [ ] ポイント履歴、手動調整、購入履歴
+- [x] 検索 / lookup / 登録 / 更新 / 論理削除
+- [x] ポイント履歴、手動調整 (1 トランザクションで残高更新 + `Adjust` 履歴、応答は `PointHistoryResponse`)、購入履歴
 
 ### 4c シフト
 
-- [ ] 開設 (`TERMINAL_HAS_OPEN_SHIFT`)、current、一覧、詳細 (集計付き)
-- [ ] 入出金 (Open のみ)、精算 (集計確定)、summary
+- [x] 開設 (`TERMINAL_HAS_OPEN_SHIFT` は部分ユニークインデックスの違反で判定)、current、一覧、詳細 (Open は都度集計 + `expectedCash`、Closed は確定値)
+- [x] 入出金 (Open のみ、同一 id は 200)、精算 (集計確定 + 金種、同じ実査額の再送は 200)、summary
 
 ### 4d 取引
 
-- [ ] `POST /transactions/calculate`
-- [ ] `POST /transactions` (Sale): 冪等 (同一 id → 200 / 相違 → 409)、`TransactionRules` + `SalesCalculator` による検証、1 トランザクションでの副作用 (在庫・ポイント・`LastReceiptSeq`)
-- [ ] `POST /transactions` (Return): 元取引検証、`ReturnCalculator` との一致、`ReturnedQuantity`
-- [ ] `POST /transactions/{id}/void`
-- [ ] 一覧 / 詳細 / lookup
-- [ ] 警告 (`warnings[]`) と ProblemDetails の `errorCode` / `expected`
+- [x] `POST /transactions/calculate` (`TransactionRules.ValidateInput` で入力を検証してから計算。登録しない)
+- [x] `POST /transactions` (Sale): 冪等 (同一 id → 200 / 相違 → 409)、`TransactionRules.ValidateSale` による検証、1 トランザクションでの副作用 (在庫 `trackInventory` 分の加減算 + 変動履歴、ポイント Redeem → Earn と `pointsBalanceAfter`、`LastReceiptSeq`)
+- [x] `POST /transactions` (Return): 元取引検証、`ReturnCalculator` との一致、`ReturnedQuantity` (超過は `RETURN_QUANTITY_EXCEEDED` でロールバック)、ポイント Refund → Revoke
+- [x] `POST /transactions/{id}/void` (`ValidateVoid`、在庫の逆方向履歴、ポイント `Void` 履歴、返品取消は元明細の返品数量を戻す)
+- [x] 一覧 / 詳細 / lookup
+- [x] 警告 (`warnings[]`) と ProblemDetails の `errorCode` / `expected`
 
 ### 4e 在庫
 
-- [ ] 現在庫一覧、商品別全店在庫
-- [ ] `POST /inventory/changes` (PhysicalCount / Adjustment、Duplicate)、変動履歴
+- [x] 現在庫一覧 (`updatedSince` 指定時は `updatedAt` 順、通常は商品コード順)、商品別全店在庫
+- [x] `POST /inventory/changes` (PhysicalCount / Adjustment、要素ごとに 1 トランザクション、同一 id は Duplicate)、変動履歴、調整理由の CRUD
 
 ### 4f レポート
 
-- [ ] `summary` (groupBy 7 種)、`products`
-- [ ] `hour` のタイムゾーン処理を決めて実装 (§9-4)
+- [x] `summary` (groupBy 7 種。合計行は各行の合算、不正な groupBy は 400)、`products` (`sort=netSales|quantity`)。`from` / `to` 省略時は当日と 30 日前
+- [x] `hour` のタイムゾーン処理 (§9-4): 店舗の `TimeZone` を `TimeZoneInfo` で解決し、SQLite の `+NNN minutes` 修飾子で SQL 側集計
 
 ### 4g 帳票 (PDF、[D-37](decisions.md#d-37-帳票出力-pdf-oysterreport))
 
-- [ ] `OysterReport` の導入: パッケージ、`Assets/Fonts/ipaexg.ttf`、`EmbeddedFontResolver` (`template-blazor-server` から)
-- [ ] テンプレート `Assets/Reports/ShiftReport.xlsx` (精算レポート) / `DailySalesReport.xlsx` (売上日報) を Excel で作成
-- [ ] `ShiftReportBuilder` + `GET /shifts/{id}/summary/pdf`、`DailySalesReportBuilder` + `GET /reports/sales/daily/pdf`
-- [ ] 統合テスト: `application/pdf` で先頭が `%PDF` のレスポンス、対象なしは 404
+- [x] `OysterReport` 1.9.0 の導入: パッケージ、`Assets/Fonts/ipaexg.ttf`、`EmbeddedFontResolver` (`template-blazor-server` から)、`Assets/**` を出力ディレクトリへコピー
+- [x] テンプレート `Assets/Reports/ShiftReport.xlsx` (精算レポート) / `DailySalesReport.xlsx` (売上日報)。A4 縦 1 シート、明細行はプレースホルダの行を件数分に複製 (`ReportText.FillRows`)
+- [x] `ShiftReportBuilder` + `GET /shifts/{id}/summary/pdf`、`DailySalesReportBuilder` + `GET /reports/sales/daily/pdf?storeId&date` (シングルトン、`byte[] Build(...)`、日時は店舗のタイムゾーン)
+- [x] 統合テスト: `application/pdf` で先頭が `%PDF` のレスポンス、対象なしは 404 (生成した PDF は `TestResults/` に保存して目視確認)
 
 ### テスト
 
-- [ ] 統合テストのシナリオ: 開設 → 販売 (ポイント利用・複数支払) → 同一 id 再送で 200 → 返品 → 取消 → 入出金 → 精算 → summary / レポートの整合
-- [ ] 差分同期 (updatedSince / includeDeleted)、楽観ロック 409、重複コード 409
-- [ ] Swagger で ★ エンドポイントを確認
+- [x] 統合テストのシナリオ (`ApiTransactionFlowTests`): 開設 → 再送 200 / 再開設 409 → calculate (api-design §4.6 の値) → 販売 → 同一 id 再送 200 / 相違 409 / 計算違い 422 (`expected`) → ポイント・在庫・連番 → 返品 (§4.5 の値) → 超過 422 → 取消 (返品済みは `HAS_RETURNS`、返品の取消で戻る) → 入出金 → 精算 → 精算後は `SHIFT_CLOSED` → summary / レポート 7 種 / PDF の整合。棚卸・調整の冪等性は `InventoryChangesAreIdempotent`
+- [x] 差分同期 (`sync/masters` の全件 → 差分空)、楽観ロック 409、重複コード 409、使用中 422、入力検証 400 (`ApiMasterTests`)
+- [x] OpenAPI ドキュメント (`/openapi/v1.json`) にエンドポイントが載ることを `HostTests` で確認
 
 ### 完了条件
 
-- [ ] 統合テスト緑、警告ゼロ
+- [x] 統合テスト緑 (24 件。単体 14 件・Domain 73 件と合わせて 111 件)、警告ゼロ、InspectCode の指摘ゼロ
 
 ---
 
