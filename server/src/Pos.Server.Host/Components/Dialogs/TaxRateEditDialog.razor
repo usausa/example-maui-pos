@@ -1,0 +1,40 @@
+@inherits EditDialogBase<TaxRateForm>
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="EditForm" Model="Form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Form.Code" For="@(() => Form.Code)" Validation="@Validator.ValidateValue" Label="コード" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Form.Name" For="@(() => Form.Name)" Validation="@Validator.ValidateValue" Label="名称" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal" @bind-Value="Form.Rate" For="@(() => Form.Rate)" Validation="@Validator.ValidateValue" Label="税率 (0.10 = 10%)" Min="0" Max="1" Step="0.01m" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="TaxKind" @bind-Value="Form.Kind" Label="種別">
+                        @foreach (var kind in Enum.GetValues<TaxKind>())
+                        {
+                            <MudSelectItem T="TaxKind" Value="kind">@DisplayText.Name(kind)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="Form.SortOrder" Label="並び順" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Form.IsDefault" Label="既定の税率にする" Color="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnCancelClick">キャンセル</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnOkClick">保存</MudButton>
+    </DialogActions>
+</MudDialog>

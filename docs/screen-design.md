@@ -311,7 +311,8 @@ F1〜F4 はシェル下部のファンクションキー。「—」は無効 (�
 
 | パターン | 内容 |
 | --- | --- |
-| 一覧 | 上部に検索・フィルタ (`MudTextField` / `MudSelect` / `MudDateRangePicker`)、`MudDataGrid` (`ServerData` + `MudDataGridPager`、列ソートはサーバ側)、検索条件は URL クエリに同期 (テンプレートの `SearchAsync`) |
+| 一覧 | 上部に検索・フィルタ (`MudTextField` / `MudSelect` / `MudDateRangePicker`)、`MudDataGrid` (`ServerData` + `MudDataGridPager`、列ソートはサーバ側)。検索条件はページ内で保持し、他画面からのリンクだけクエリで受ける (`transactions?id=` / `?shiftId=`、`inventory/changes?productId=`) |
+| 絵文字・チップ・バッジ | ページ見出しは §2.2 のナビと同じ絵文字。状態は `StatusChip` (`ChipText` の文言 + 色: ✅ 完了 / ❌ 取消 / 🛒 販売 / ↩️ 返品 / 🟢 開設中 / 🔒 精算済み / ✅ 有効 / ⏸ 停止 / 🗑 削除済み / 🔴 マイナス / ⚠️ 欠品 / 🟢 通信中 ...)。件数は `MudBadge` とタブの `BadgeData`。KPI は `MudPaper` + `MudIcon` のカード ([D-39](decisions.md#d-39-管理画面の表現-絵文字チップバッジ)) |
 | 編集ダイアログ | 新規と編集で同じダイアログ (`{Xxx}EditDialog` + `{Xxx}Form` + FluentValidation)。保存時に `Version` を送り、`VERSION_MISMATCH` なら「他で更新されています。再読み込みしてください」 |
 | 削除 | `DialogService.ShowConfirm` → 論理削除。一覧に「削除済みを表示」トグル。使用中 (`IN_USE`) は Snackbar でメッセージ表示 |
 | 店舗フィルタ | 売上・取引・精算・在庫の各一覧は店舗セレクタを持つ (「全店舗」可)。選択はページ間で共有するスコープドサービスに保持 |

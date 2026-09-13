@@ -29,6 +29,13 @@ public sealed partial class InventoryAccessor
     [Query]
     public partial ValueTask<List<ProductInventoryLevel>> QueryLevelsByProductAsync(Guid productId, CancellationToken cancellationToken);
 
+    // 管理画面の現在庫一覧 (店舗名・商品名付き)。keyword は LIKE パターン
+    [ExecuteScalar]
+    public partial ValueTask<long> CountLevelDetailsAsync(Guid? storeId, Guid? categoryId, string? keyword, bool negativeOnly, CancellationToken cancellationToken);
+
+    [Query]
+    public partial ValueTask<List<InventoryLevelDetail>> QueryLevelDetailListAsync(Guid? storeId, Guid? categoryId, string? keyword, bool negativeOnly, string sort, int limit, int offset, CancellationToken cancellationToken);
+
     // UPSERT で加減算し、更新後の数量を返す
     [ExecuteScalar]
     public partial ValueTask<decimal> AddQuantityAsync(DbTransaction tx, Guid storeId, Guid productId, decimal delta, DateTime updatedAt, CancellationToken cancellationToken);

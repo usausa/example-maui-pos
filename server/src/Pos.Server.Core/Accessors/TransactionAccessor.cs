@@ -73,6 +73,10 @@ public sealed partial class TransactionAccessor
     [ExecuteScalar]
     public partial ValueTask<long> CountReturnsAsync(Guid originalTransactionId, CancellationToken cancellationToken);
 
+    // 元取引に紐付く返品取引 (取消済みも含む。管理画面の関連取引)
+    [Query]
+    public partial ValueTask<List<TransactionEntity>> QueryReturnsAsync(Guid originalTransactionId, CancellationToken cancellationToken);
+
     //--------------------------------------------------------------------------------
     // Insert
     //--------------------------------------------------------------------------------

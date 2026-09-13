@@ -3,6 +3,7 @@ namespace Pos.Server.Host.Endpoints;
 using Pos.Server.Accessors;
 using Pos.Server.Host.Application;
 using Pos.Server.Host.Infrastructure.Api;
+using Pos.Server.Host.Infrastructure.Data;
 using Pos.Server.Host.Mappers;
 using Pos.Server.Models.Entity;
 using Pos.Shared.Inventory;
@@ -93,30 +94,23 @@ public static class InventoryEndpoints
                 continue;
             }
 
-            var entity = await provider.UsingTxAsync(async (_, tx) =>
-            {
-                var delta = change.Type == InventoryChangeType.PhysicalCount
-                    ? change.Quantity - ((await accessor.QueryLevelAsync(tx, change.StoreId, change.ProductId, cancellationToken))?.Quantity ?? 0m)
-                    : change.Quantity;
-                var after = await accessor.AddQuantityAsync(tx, change.StoreId, change.ProductId, delta, now, cancellationToken);
-                var inserted = new InventoryChangeEntity
+            var entity = await InventoryChangeApplier.ApplyAsync(
+                accessor,
+                provider,
+                new InventoryChangeEntity
                 {
                     Id = change.Id,
                     StoreId = change.StoreId,
                     ProductId = change.ProductId,
                     Type = change.Type,
-                    QuantityDelta = delta,
-                    QuantityAfter = after,
                     ReasonId = change.ReasonId,
                     Reason = change.Reason,
                     StaffId = change.StaffId,
-                    OccurredAt = change.OccurredAt,
-                    CreatedAt = now
-                };
-                await accessor.InsertChangeAsync(tx, inserted, cancellationToken);
-                await tx.CommitAsync(cancellationToken);
-                return inserted;
-            }, cancellationToken);
+                    OccurredAt = change.OccurredAt
+                },
+                change.Quantity,
+                now,
+                cancellationToken);
 
             results.Add(new InventoryChangeResultResponseResult { Id = entity.Id, Status = InventoryChangeResultStatus.Created, QuantityDelta = entity.QuantityDelta, QuantityAfter = entity.QuantityAfter });
         }

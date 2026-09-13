@@ -28,6 +28,10 @@ public sealed partial class CustomerAccessor
     [QueryFirst]
     public partial ValueTask<CustomerEntity?> QueryByCodeAsync(string code, CancellationToken cancellationToken);
 
+    // 残高がマイナスの会員 (管理画面の警告)
+    [Query]
+    public partial ValueTask<List<CustomerEntity>> QueryNegativePointListAsync(int limit, CancellationToken cancellationToken);
+
     [Execute]
     [Insert(typeof(CustomerEntity), Table = "Customers")]
     public partial ValueTask<int> InsertAsync(CustomerEntity entity, CancellationToken cancellationToken);

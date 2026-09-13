@@ -1,9 +1,174 @@
 @page "/"
+@inherits PageComponentBase
 
 <PageTitle>POS 管理 - ダッシュボード</PageTitle>
 
-<MudText Typo="Typo.h5" Class="mb-2">ダッシュボード</MudText>
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">📊 ダッシュボード</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">本日 @DisplayText.Date(today)</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
+</MudStack>
 
-<MudPaper Class="pa-3">
-    <MudText Typo="Typo.body2">POS サーバは稼働しています。</MudText>
-</MudPaper>
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudGrid Spacing="2" Class="mb-2">
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-3 d-flex flex-column" Style="height: 110px;" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Color="Color.Primary" />
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">本日売上 (純)</MudText>
+            </div>
+            <MudText Typo="Typo.h6">¥@DisplayText.Yen(todaySummary.NetSales)</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">値引 ¥@DisplayText.Yen(todaySummary.DiscountTotal)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-3 d-flex flex-column" Style="height: 110px;" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Info" />
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">本日客数</MudText>
+            </div>
+            <MudText Typo="Typo.h6">@todaySummary.TransactionCount 件</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">客単価 ¥@DisplayText.Yen(AveragePerCustomer)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-3 d-flex flex-column" Style="height: 110px;" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.AssignmentReturn" Color="Color.Warning" />
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">本日返品</MudText>
+            </div>
+            <MudText Typo="Typo.h6" Color="@(todaySummary.ReturnCount > 0 ? Color.Warning : Color.Default)">¥@DisplayText.Yen(todaySummary.ReturnsTotal)</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@todaySummary.ReturnCount 件</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-3 d-flex flex-column" Style="height: 110px;" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="@(WarningCount > 0 ? Color.Error : Color.Default)" />
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">要確認</MudText>
+            </div>
+            <MudText Typo="Typo.h6" Color="@(WarningCount > 0 ? Color.Error : Color.Default)">@WarningCount 件</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">在庫マイナス @NegativeInventoryCount / 残高マイナス @negativeCustomers.Count</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudGrid Spacing="2">
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="1">
+            <MudTable T="SalesSummaryRow" Items="storeRows" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+                <ToolBarContent>
+                    <MudText Typo="Typo.subtitle1" Class="pa-2">🏬 店舗別売上 (本日)</MudText>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>店舗</MudTh>
+                    <MudTh Style="text-align: right;">件数</MudTh>
+                    <MudTh Style="text-align: right;">純売上</MudTh>
+                    <MudTh Style="text-align: right;">返品</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.GroupLabel</MudTd>
+                    <MudTd Style="text-align: right;">@context.TransactionCount</MudTd>
+                    <MudTd Style="text-align: right;">¥@DisplayText.Yen(context.NetSales)</MudTd>
+                    <MudTd Style="text-align: right;">¥@DisplayText.Yen(context.ReturnsTotal)</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">本日の売上はまだありません。</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="1">
+            <MudTable T="ShiftEntity" Items="openShifts" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+                <ToolBarContent>
+                    <MudBadge Content="openShifts.Count" Color="Color.Success" Overlap="true" Visible="openShifts.Count > 0">
+                        <MudText Typo="Typo.subtitle1" Class="pa-2">🟢 開設中シフト</MudText>
+                    </MudBadge>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>店舗 / 端末</MudTh>
+                    <MudTh>担当</MudTh>
+                    <MudTh>営業日</MudTh>
+                    <MudTh>開設時刻</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@names.Store(context.StoreId) / @names.Terminal(context.TerminalId)</MudTd>
+                    <MudTd>@names.StaffName(context.OpenedByStaffId)</MudTd>
+                    <MudTd>@DisplayText.Date(context.BusinessDate)</MudTd>
+                    <MudTd>@DisplayText.DateTime(context.OpenedAt)</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">開設中のシフトはありません。</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="1">
+            <MudTable T="TerminalEntity" Items="terminals" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+                <ToolBarContent>
+                    <MudText Typo="Typo.subtitle1" Class="pa-2">📱 端末の通信状態</MudText>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>店舗 / 端末</MudTh>
+                    <MudTh>状態</MudTh>
+                    <MudTh>アプリ版</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@names.Store(context.StoreId) / @context.Name</MudTd>
+                    <MudTd><StatusChip Value="@ChipText.Online(context.LastSeenAt, UtcNow)" /></MudTd>
+                    <MudTd>@context.AppVersion</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="1" Class="mb-2">
+            <MudTable T="InventoryLevelDetail" Items="negativeInventory" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+                <ToolBarContent>
+                    <MudBadge Content="NegativeInventoryCount" Color="Color.Error" Overlap="true" Visible="NegativeInventoryCount > 0">
+                        <MudText Typo="Typo.subtitle1" Class="pa-2">⚠️ 在庫マイナス</MudText>
+                    </MudBadge>
+                    <MudSpacer />
+                    <MudButton Size="Size.Small" Href="inventory" Variant="Variant.Text">一覧へ</MudButton>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>商品</MudTh>
+                    <MudTh>店舗</MudTh>
+                    <MudTh Style="text-align: right;">数量</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.ProductCode @context.ProductName</MudTd>
+                    <MudTd>@context.StoreName</MudTd>
+                    <MudTd Style="text-align: right;"><StatusChip Value="@(($"🔴 {DisplayText.Quantity(context.Quantity)}", Color.Error))" /></MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">✅ 在庫がマイナスの商品はありません。</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+        <MudPaper Elevation="1">
+            <MudTable T="CustomerEntity" Items="negativeCustomers" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+                <ToolBarContent>
+                    <MudBadge Content="negativeCustomers.Count" Color="Color.Error" Overlap="true" Visible="negativeCustomers.Count > 0">
+                        <MudText Typo="Typo.subtitle1" Class="pa-2">⚠️ ポイント残高マイナス</MudText>
+                    </MudBadge>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>会員</MudTh>
+                    <MudTh Style="text-align: right;">残高</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><MudLink Href="@($"customers/{context.Id}")" Typo="Typo.body2">@context.Code @context.Name</MudLink></MudTd>
+                    <MudTd Style="text-align: right;"><StatusChip Value="@ChipText.PointBalance(context.PointBalance)" /></MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">✅ 残高がマイナスの会員はいません。</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>

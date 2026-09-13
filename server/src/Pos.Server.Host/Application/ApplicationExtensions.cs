@@ -250,6 +250,9 @@ public static class ApplicationExtensions
         // Error boundary logging
         builder.Services.AddScoped<Microsoft.AspNetCore.Components.Web.IErrorBoundaryLogger, Infrastructure.Components.ErrorBoundaryLogger>();
 
+        // 店舗フィルタ (回線ごとに共有、screen-design §2.4)
+        builder.Services.AddScoped<Infrastructure.Components.StoreFilterState>();
+
         // MudBlazor
         builder.Services.AddMudServices(static options =>
         {

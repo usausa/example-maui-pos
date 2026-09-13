@@ -1,0 +1,77 @@
+@page "/shifts"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 精算</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">💰 精算 (シフト)</MudText>
+    <MudSpacer />
+</MudStack>
+
+<MudPaper Class="pa-2 mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <MudDateRangePicker @bind-DateRange="period" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" Style="min-width: 260px;" />
+        <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
+        <MudSelect T="Guid?" @bind-Value="terminalId" Label="端末" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 160px;">
+            <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
+            @foreach (var terminal in names.TerminalsOf(storeId))
+            {
+                <MudSelectItem T="Guid?" Value="terminal.Id">@terminal.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="ShiftStatus?" @bind-Value="status" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 130px;">
+            <MudSelectItem T="ShiftStatus?" Value="null">すべて</MudSelectItem>
+            <MudSelectItem T="ShiftStatus?" Value="ShiftStatus.Open">🟢 開設中</MudSelectItem>
+            <MudSelectItem T="ShiftStatus?" Value="ShiftStatus.Closed">🔒 精算済み</MudSelectItem>
+        </MudSelect>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
+    </MudStack>
+</MudPaper>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudDataGrid @ref="Grid" T="ShiftRow" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer">
+    <Columns>
+        <PropertyColumn Property="x => x.Shift.BusinessDate" Title="営業日" InitialDirection="SortDirection.Descending">
+            <CellTemplate>@DisplayText.Date(context.Item.Shift.BusinessDate)</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="店舗 / 端末" Sortable="false">
+            <CellTemplate>@names.Store(context.Item.Shift.StoreId) / @names.Terminal(context.Item.Shift.TerminalId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="担当" Sortable="false">
+            <CellTemplate>@names.StaffName(context.Item.Shift.OpenedByStaffId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="状態" Sortable="false">
+            <CellTemplate><StatusChip Value="@ChipText.Status(context.Item.Shift.Status)" /></CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.Shift.OpenedAt" Title="開設">
+            <CellTemplate>@DisplayText.DateTime(context.Item.Shift.OpenedAt)</CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.Shift.ClosedAt" Title="精算">
+            <CellTemplate>@DisplayText.DateTime(context.Item.Shift.ClosedAt)</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="売上" Sortable="false" CellStyle="text-align: right;">
+            <CellTemplate>@DisplayText.Yen(context.Item.SalesTotal) (@context.Item.SalesCount 件)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="予想現金" Sortable="false" CellStyle="text-align: right;">
+            <CellTemplate>@DisplayText.Yen(context.Item.ExpectedCash)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="実査" Sortable="false" CellStyle="text-align: right;">
+            <CellTemplate>@DisplayText.Yen(context.Item.Shift.ActualCash)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="過不足" Sortable="false">
+            <CellTemplate>
+                @if (context.Item.Shift.Status == ShiftStatus.Closed)
+                {
+                    <StatusChip Value="@ChipText.Difference(context.Item.Shift.Difference)" />
+                }
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>シフトがありません。</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="ShiftRow" />
+    </PagerContent>
+</MudDataGrid>

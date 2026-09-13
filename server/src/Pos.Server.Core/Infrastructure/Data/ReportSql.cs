@@ -8,6 +8,7 @@ public static class ReportSql
     public static string GroupKey(SalesSummaryGroup group) =>
         group switch
         {
+            SalesSummaryGroup.Store => "t.StoreId",
             SalesSummaryGroup.Terminal => "t.TerminalId",
             SalesSummaryGroup.Staff => "t.StaffId",
             _ => "t.BusinessDate"
@@ -16,6 +17,7 @@ public static class ReportSql
     public static string GroupLabel(SalesSummaryGroup group) =>
         group switch
         {
+            SalesSummaryGroup.Store => "COALESCE(st.Name, t.StoreId)",
             SalesSummaryGroup.Terminal => "COALESCE(tm.Name, t.TerminalId)",
             SalesSummaryGroup.Staff => "COALESCE(s.Name, t.StaffId)",
             _ => "t.BusinessDate"

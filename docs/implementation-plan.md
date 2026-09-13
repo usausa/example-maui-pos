@@ -195,44 +195,45 @@ api-design §3 のエンドポイント。順番はマスタ → 顧客 → シ�
 
 ---
 
-## Phase 5: 管理画面
+## Phase 5: 管理画面 (完了)
 
-screen-design §2 の ★ 画面。
+screen-design §2 の ★ 画面。ページは Accessor / Domain を直接使い、API と同じ処理は静的ヘルパー (`SalesSummaryQuery` / `InventoryChangeApplier`) で共用する。状態は絵文字付きチップとバッジで示す ([D-39](decisions.md#d-39-管理画面の表現-絵文字チップバッジ))。
 
 ### 5a 骨組み
 
-- [ ] `MainLayout` / `NavMenu` (`MudNavGroup` のグループ構成)
-- [ ] 店舗フィルタの共有状態 (スコープドサービス)
-- [ ] ダッシュボード S-01
+- [x] `MainLayout` / `NavMenu` (`MudNavGroup` のグループ構成。現在の URL のグループを開く)
+- [x] 店舗フィルタの共有状態 (`StoreFilterState`、scoped) と `StoreSelect` コントロール
+- [x] ダッシュボード S-01 (本日の KPI カード、店舗別売上 (`groupBy=store` を追加)、開設中シフト、端末の通信状態 (5 分以内は 🟢)、在庫マイナス・残高マイナスの警告)
+- [x] 共通基盤: `PageComponentBase` (読み込み / 実行 / エラー表示 / 確認 / 編集ダイアログ呼び出し、コード重複は `IDialect.IsDuplicate` で判定)、`EditDialogBase<TForm>`、`FormValidator<T>`、`FormMapper` (Entity ↔ Form)、`DisplayText` / `ChipText` / `StatusChip`、`NameLookup` (ID → 名称)
 
 ### 5b マスタ
 
-- [ ] 商品 S-50 / S-51 (CSV 出力含む)
-- [ ] 部門 S-53、税率 S-54、値引 S-55、支払方法 S-56、調整理由 S-44
-- [ ] 店舗 S-70、レジ端末 S-71 (設定 QR 表示)、スタッフ S-72
-- [ ] 会社設定 S-80
+- [x] 商品 S-50 / S-51 (`MudDataGrid` の `ServerData`、部門 / キーワード / 販売状態 / 削除済みの絞り込み、CSV は `GET /products/csv`)
+- [x] 部門 S-53 (`MudTreeView` 2 階層、商品数表示)、税率 S-54 (既定は 1 件)、値引 S-55、支払方法 S-56 (`Points` は有効 1 件の制約)、調整理由 S-44
+- [x] 店舗 S-70、レジ端末 S-71 (設定 QR は `TerminalQrDialog`、QRCoder で `ApiEndPoint` / `StoreId` / `TerminalId`)、スタッフ S-72
+- [x] 会社設定 S-80
 
 ### 5c 取引・精算
 
-- [ ] 取引一覧 S-20 / 詳細 S-21
-- [ ] シフト一覧 S-30 / 詳細 S-31 ([精算レポート PDF] ボタン)
+- [x] 取引一覧 S-20 (期間・店舗・端末・種別・状態、レシート番号は完全一致。`?id=` で詳細を開き、`?shiftId=` で絞り込み) / 詳細 S-21 (明細・シリアル・値引・税率別・支払・配送先・取消情報・関連取引の切り替え)
+- [x] シフト一覧 S-30 (Open は取引から都度集計、過不足はチップ) / 詳細 S-31 (精算レポート + 入出金 + 金種、[取引一覧] [精算レポート PDF])
 
 ### 5d 在庫
 
-- [ ] 現在庫 S-40 / 商品別全店 S-41、変動履歴 S-42、棚卸・調整登録 S-43
+- [x] 現在庫 S-40 (`InventoryLevelDetail` の一覧、マイナスのみ) / 商品別全店 S-41、変動履歴 S-42 (`?productId=`)、棚卸・調整登録 S-43 (`MudAutocomplete` で商品検索、適用は `InventoryChangeApplier` を API と共用)
 
 ### 5e 顧客
 
-- [ ] 顧客一覧 S-60 / 詳細 S-61 / ポイント調整 S-62
+- [x] 顧客一覧 S-60 (行クリックで詳細ページ) / 詳細 S-61 (タブにバッジ、ポイント履歴・購入履歴、編集・削除) / ポイント調整 S-62 (API と同じ `Adjust` 履歴 + 残高更新)
 
 ### 5f レポート
 
-- [ ] 売上集計 S-10 (グラフ・CSV・[売上日報 PDF])、商品別売上 S-11
+- [x] 売上集計 S-10 (`MudChart` 棒グラフ、合計行、CSV `GET /reports/sales/summary/csv`、[売上日報 PDF] は店舗と営業日を選んで開く)、商品別売上 S-11 (上位 3 位はメダル、CSV `GET /reports/sales/products/csv`)
 
 ### 完了条件
 
-- [ ] ★ 画面がすべて動く。編集ダイアログの検証・楽観ロック (`VERSION_MISMATCH`)・削除確認・使用中エラーが機能する
-- [ ] bUnit テスト (テンプレートの `MudBlazorTestBase`) は `NavMenu` など最小限
+- [x] ★ 画面がすべて動く (API で開設 → 販売 → 返品 → 入出金 → 精算を作り、ブラウザでダッシュボードから各画面・ダイアログを確認)。編集ダイアログの検証・楽観ロック (`VERSION_MISMATCH`)・削除確認・使用中エラーが機能する
+- [x] bUnit テスト (`NavMenu` のリンク、`StatusChip`) と `FormMapper` の単体テスト (単体 19 件、統合 24 件、Domain 73 件)。警告ゼロ、InspectCode の指摘ゼロ
 
 ---
 

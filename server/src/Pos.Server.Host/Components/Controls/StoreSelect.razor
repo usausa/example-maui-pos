@@ -1,0 +1,10 @@
+<MudSelect T="Guid?" Value="Value" ValueChanged="OnValueChanged" Label="@Label" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Class="@Class" Style="min-width: 160px;" Disabled="Disabled">
+    @if (AllowAll)
+    {
+        <MudSelectItem T="Guid?" Value="null">全店舗</MudSelectItem>
+    }
+    @foreach (var store in stores)
+    {
+        <MudSelectItem T="Guid?" Value="store.Id">@store.Name</MudSelectItem>
+    }
+</MudSelect>

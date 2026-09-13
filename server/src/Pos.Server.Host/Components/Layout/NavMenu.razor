@@ -1,3 +1,37 @@
+@inherits AppComponentBase
+
 <MudNavMenu Bordered="true" Dense="true">
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">ダッシュボード</MudNavLink>
+    <MudNavGroup Title="売上" Icon="@Icons.Material.Filled.BarChart"
+                 Expanded="@IsExpanded(NavGroup.Reports)" ExpandedChanged="@(x => SetExpanded(NavGroup.Reports, x))">
+        <MudNavLink Href="reports/sales" Icon="@Icons.Material.Filled.ShowChart">売上集計</MudNavLink>
+        <MudNavLink Href="reports/products" Icon="@Icons.Material.Filled.Leaderboard">商品別売上</MudNavLink>
+    </MudNavGroup>
+    <MudNavLink Href="transactions" Icon="@Icons.Material.Filled.Receipt">取引</MudNavLink>
+    <MudNavLink Href="shifts" Icon="@Icons.Material.Filled.PointOfSale">精算</MudNavLink>
+    <MudNavGroup Title="在庫" Icon="@Icons.Material.Filled.Inventory"
+                 Expanded="@IsExpanded(NavGroup.Inventory)" ExpandedChanged="@(x => SetExpanded(NavGroup.Inventory, x))">
+        <MudNavLink Href="inventory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Inventory2">現在庫</MudNavLink>
+        <MudNavLink Href="inventory/changes" Icon="@Icons.Material.Filled.History">在庫変動履歴</MudNavLink>
+        <MudNavLink Href="inventory/reasons" Icon="@Icons.Material.Filled.Rule">調整理由</MudNavLink>
+    </MudNavGroup>
+    <MudNavGroup Title="商品" Icon="@Icons.Material.Filled.Sell"
+                 Expanded="@IsExpanded(NavGroup.Products)" ExpandedChanged="@(x => SetExpanded(NavGroup.Products, x))">
+        <MudNavLink Href="products" Icon="@Icons.Material.Filled.ShoppingBag">商品</MudNavLink>
+        <MudNavLink Href="categories" Icon="@Icons.Material.Filled.AccountTree">部門</MudNavLink>
+        <MudNavLink Href="tax-rates" Icon="@Icons.Material.Filled.Percent">税率</MudNavLink>
+        <MudNavLink Href="discounts" Icon="@Icons.Material.Filled.Discount">値引</MudNavLink>
+        <MudNavLink Href="payment-methods" Icon="@Icons.Material.Filled.Payment">支払方法</MudNavLink>
+    </MudNavGroup>
+    <MudNavLink Href="customers" Icon="@Icons.Material.Filled.People">顧客</MudNavLink>
+    <MudNavGroup Title="店舗" Icon="@Icons.Material.Filled.Store"
+                 Expanded="@IsExpanded(NavGroup.Stores)" ExpandedChanged="@(x => SetExpanded(NavGroup.Stores, x))">
+        <MudNavLink Href="stores" Icon="@Icons.Material.Filled.Storefront">店舗</MudNavLink>
+        <MudNavLink Href="terminals" Icon="@Icons.Material.Filled.Devices">レジ端末</MudNavLink>
+        <MudNavLink Href="staff" Icon="@Icons.Material.Filled.Badge">スタッフ</MudNavLink>
+    </MudNavGroup>
+    <MudNavGroup Title="設定" Icon="@Icons.Material.Filled.Settings"
+                 Expanded="@IsExpanded(NavGroup.Settings)" ExpandedChanged="@(x => SetExpanded(NavGroup.Settings, x))">
+        <MudNavLink Href="settings" Icon="@Icons.Material.Filled.Business">会社設定</MudNavLink>
+    </MudNavGroup>
 </MudNavMenu>

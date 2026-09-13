@@ -1,0 +1,82 @@
+@page "/transactions"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 取引</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">🧾 取引</MudText>
+    <MudSpacer />
+</MudStack>
+
+<MudPaper Class="pa-2 mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <MudDateRangePicker @bind-DateRange="period" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" Style="min-width: 260px;" />
+        <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
+        <MudSelect T="Guid?" @bind-Value="terminalId" Label="端末" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 160px;">
+            <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
+            @foreach (var terminal in names.TerminalsOf(storeId))
+            {
+                <MudSelectItem T="Guid?" Value="terminal.Id">@terminal.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="TransactionType?" @bind-Value="type" Label="種別" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 120px;">
+            <MudSelectItem T="TransactionType?" Value="null">すべて</MudSelectItem>
+            <MudSelectItem T="TransactionType?" Value="TransactionType.Sale">🛒 販売</MudSelectItem>
+            <MudSelectItem T="TransactionType?" Value="TransactionType.Return">↩️ 返品</MudSelectItem>
+        </MudSelect>
+        <MudSelect T="TransactionStatus?" @bind-Value="status" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 120px;">
+            <MudSelectItem T="TransactionStatus?" Value="null">すべて</MudSelectItem>
+            <MudSelectItem T="TransactionStatus?" Value="TransactionStatus.Completed">✅ 完了</MudSelectItem>
+            <MudSelectItem T="TransactionStatus?" Value="TransactionStatus.Voided">❌ 取消</MudSelectItem>
+        </MudSelect>
+        <MudTextField @bind-Value="receiptNo" Label="レシート番号" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 180px;" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
+        @if (ShiftId is not null)
+        {
+            <MudChip T="string" Color="Color.Info" Size="Size.Small" OnClose="ClearShiftAsync">💰 シフトで絞り込み中</MudChip>
+        }
+    </MudStack>
+</MudPaper>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudDataGrid @ref="Grid" T="TransactionEntity" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer">
+    <Columns>
+        <PropertyColumn Property="x => x.TransactedAt" Title="日時" InitialDirection="SortDirection.Descending">
+            <CellTemplate>@DisplayText.DateTime(context.Item.TransactedAt)</CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.ReceiptNo" Title="レシート番号" />
+        <TemplateColumn Title="店舗 / 端末" Sortable="false">
+            <CellTemplate>@names.Store(context.Item.StoreId) / @names.Terminal(context.Item.TerminalId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="担当" Sortable="false">
+            <CellTemplate>@names.StaffName(context.Item.StaffId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="種別" Sortable="false">
+            <CellTemplate><StatusChip Value="@ChipText.Type(context.Item.Type)" /></CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="状態" Sortable="false">
+            <CellTemplate><StatusChip Value="@ChipText.Status(context.Item.Status)" /></CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.Total" Title="合計" CellStyle="text-align: right;" HeaderStyle="text-align: right;">
+            <CellTemplate>@DisplayText.Yen(context.Item.Total)</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="ポイント" Sortable="false" CellStyle="text-align: right;">
+            <CellTemplate>
+                @if (context.Item.PointsEarned != 0 || context.Item.PointsRedeemed != 0)
+                {
+                    <span title="付与 / 利用">@DisplayText.Delta(context.Item.PointsEarned) / @DisplayText.Delta(-context.Item.PointsRedeemed)</span>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="会員" Sortable="false">
+            <CellTemplate>@(context.Item.CustomerId is null ? string.Empty : "👤")</CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>取引がありません。</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="TransactionEntity" />
+    </PagerContent>
+</MudDataGrid>

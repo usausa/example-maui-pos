@@ -1,0 +1,86 @@
+@inherits EditDialogBase<ProductForm>
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="EditForm" Model="Form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Form.Code" For="@(() => Form.Code)" Validation="@Validator.ValidateValue" Label="コード" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Form.Barcode" For="@(() => Form.Barcode)" Validation="@Validator.ValidateValue" Label="JAN" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="ProductKind" @bind-Value="Form.Kind" Label="種別">
+                        @foreach (var kind in Enum.GetValues<ProductKind>())
+                        {
+                            <MudSelectItem T="ProductKind" Value="kind">@DisplayText.Name(kind)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Form.Name" For="@(() => Form.Name)" Validation="@Validator.ValidateValue" Label="商品名" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Form.Kana" For="@(() => Form.Kana)" Validation="@Validator.ValidateValue" Label="かな" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Form.Brand" For="@(() => Form.Brand)" Validation="@Validator.ValidateValue" Label="メーカー" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Form.ModelNo" For="@(() => Form.ModelNo)" Validation="@Validator.ValidateValue" Label="型番" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="Form.CategoryId" For="@(() => Form.CategoryId)" Validation="@Validator.ValidateValue" Label="部門">
+                        @foreach (var category in categories)
+                        {
+                            <MudSelectItem T="Guid?" Value="category.Id">@(category.ParentId is null ? string.Empty : "　")@category.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal" @bind-Value="Form.Price" For="@(() => Form.Price)" Validation="@Validator.ValidateValue" Label="価格" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="Form.TaxRateId" For="@(() => Form.TaxRateId)" Validation="@Validator.ValidateValue" Label="税率">
+                        @foreach (var taxRate in taxRates)
+                        {
+                            <MudSelectItem T="Guid?" Value="taxRate.Id">@taxRate.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="Form.TaxIncluded" Label="内税" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal?" @bind-Value="Form.Cost" For="@(() => Form.Cost)" Validation="@Validator.ValidateValue" Label="原価" Min="0" Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal" @bind-Value="Form.PointRate" For="@(() => Form.PointRate)" Validation="@Validator.ValidateValue" Label="還元率 (0.01 = 1%)" Min="0" Max="1" Step="0.01m" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Form.Unit" For="@(() => Form.Unit)" Validation="@Validator.ValidateValue" Label="単位" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudSwitch T="bool" @bind-Value="Form.RequiresSerial" Label="シリアル要" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudSwitch T="bool" @bind-Value="Form.TrackInventory" Label="在庫管理" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudSwitch T="bool" @bind-Value="Form.AllowsPriceOverride" Label="売価変更可" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudSwitch T="bool" @bind-Value="Form.IsActive" Label="販売可" Color="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnCancelClick">キャンセル</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnOkClick">保存</MudButton>
+    </DialogActions>
+</MudDialog>

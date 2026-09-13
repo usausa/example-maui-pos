@@ -1,0 +1,50 @@
+@page "/categories"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 部門</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">🏷 部門</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="() => AddAsync(null)">大分類を追加</MudButton>
+    <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
+</MudStack>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudPaper Class="pa-2">
+    @if (IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else if (tree.Count == 0)
+    {
+        <MudText>部門がありません。</MudText>
+    }
+    else
+    {
+        <MudTreeView T="CategoryEntity" Items="tree" ReadOnly="true" Dense="true" Hover="true">
+            <ItemTemplate Context="item">
+                <MudTreeViewItem Value="@item.Value" Items="@item.Children" Expanded="true"
+                                 Icon="@(item.Value!.ParentId is null ? Icons.Material.Filled.Folder : Icons.Material.Filled.Label)">
+                    <BodyContent Context="body">
+                        <div class="d-flex align-center flex-grow-1 gap-2">
+                            <MudText Typo="Typo.body2" Class="flex-grow-1">
+                                <span class="mud-text-secondary">@item.Value.Code</span> @item.Value.Name
+                                <span class="mud-text-secondary ml-2">(@ProductCount(item.Value.Id) 商品)</span>
+                            </MudText>
+                            @if (item.Value.ParentId is null)
+                            {
+                                <MudTooltip Text="中分類を追加">
+                                    <MudIconButton Icon="@Icons.Material.Filled.CreateNewFolder" Size="Size.Small" Disabled="IsBusy" OnClick="() => AddAsync(item.Value.Id)" />
+                                </MudTooltip>
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="IsBusy" OnClick="() => EditAsync(item.Value)" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="IsBusy" OnClick="() => DeleteAsync(item.Value)" />
+                        </div>
+                    </BodyContent>
+                </MudTreeViewItem>
+            </ItemTemplate>
+        </MudTreeView>
+    }
+</MudPaper>

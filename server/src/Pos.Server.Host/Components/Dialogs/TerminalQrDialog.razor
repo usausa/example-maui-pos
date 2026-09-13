@@ -1,0 +1,19 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">📱 設定 QR: @StoreName @Terminal.Name</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-2">端末の設定画面で読み取ると、接続先と店舗・端末が設定されます。</MudText>
+        <MudStack AlignItems="AlignItems.Center">
+            <MudPaper Outlined="true" Class="pa-4 d-inline-block">
+                <img src="@qrImage" alt="設定 QR コード" width="240" height="240" />
+            </MudPaper>
+            <MudPaper Outlined="true" Class="pa-2" Style="width: 100%;">
+                <pre style="margin: 0; font-size: 12px; white-space: pre-wrap; word-break: break-all;">@qrText</pre>
+            </MudPaper>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="() => MudDialog.Close()">閉じる</MudButton>
+    </DialogActions>
+</MudDialog>

@@ -539,3 +539,18 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 **決定**: ✅ **B** (利用者確認済み)。
 
 `Pos.Server.Core` の CA1000 (汎用 `EnumTextConverter<T>` の static メンバー。`IValueConverter` の static abstract 実装なので回避できない)、CA1056 (`ProductEntity.ImageUrl`)、CA1819 (`StaffEntity.PinHash`) は該当箇所だけ `#pragma warning disable / restore` で抑止する (利用者確認済み)。
+
+### D-39. 管理画面の表現 (絵文字・チップ・バッジ)
+
+管理画面は文字だけの表では状態が読み取りにくい。ナビ (screen-design §2.2) には絵文字を割り当ててある。
+
+| 案 | 内容 |
+| --- | --- |
+| A. 文字と色だけ | MudBlazor の既定。状態の違いが弱い |
+| ✅ **B. 絵文字 + チップ + バッジ** | 見出しに絵文字、状態は `MudChip` (絵文字付きの文言 + 色)、件数は `MudBadge` / タブの `BadgeData`、KPI はアイコン付きカード |
+| C. 独自アイコン | 画像の管理が増える |
+
+**決定**: ✅ **B** (利用者指示)。
+
+- 文言と色は `Application/ChipText.cs` に集約し、`Controls/StatusChip` で表示する。列挙型の日本語名・金額・日時の書式は `Application/DisplayText.cs`
+- 端末側 (MAUI) は対象外。レシートや帳票 (PDF) にも絵文字は使わない (フォントに依存するため)

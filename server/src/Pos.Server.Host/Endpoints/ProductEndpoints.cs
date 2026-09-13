@@ -5,6 +5,7 @@ using Pos.Server.Accessors;
 using Pos.Server.Host.Application;
 using Pos.Server.Host.Infrastructure.Api;
 using Pos.Server.Host.Mappers;
+using Pos.Server.Host.Models.Export;
 using Pos.Shared.Products;
 
 using Smart.Data;
@@ -23,6 +24,7 @@ public static class ProductEndpoints
 
         group.MapGet("/", HandleListAsync);
         group.MapGet("/lookup", HandleLookupAsync);
+        group.MapGet("/csv", HandleExportCsvAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);
         group.MapPut("/{id:guid}", HandleUpdateAsync);
@@ -52,6 +54,19 @@ public static class ProductEndpoints
         var total = await accessor.CountAsync(categoryId, pattern, isActive, updatedSince, includeDeleted, cancellationToken);
         var items = await accessor.QueryListAsync(categoryId, pattern, isActive, updatedSince, includeDeleted, ApiHelper.ResolveSort(SortColumns, "Code", sort, desc, updatedSince), size, page * size, cancellationToken);
         return TypedResults.Ok(new ProductListResponse { Total = (int)total, Page = page, Size = size, Items = items.Select(MasterMapper.ToProductResponse).ToList() });
+    }
+
+    // CSV 出力 (管理画面 S-50。削除済みを除く全件、コード順)
+    private static async ValueTask<IResult> HandleExportCsvAsync(
+        ProductAccessor accessor,
+        CategoryAccessor categoryAccessor,
+        TaxRateAccessor taxRateAccessor,
+        CancellationToken cancellationToken)
+    {
+        var categories = (await categoryAccessor.QueryListAsync(null, true, "SortOrder", ApiHelper.MaxPageSize, 0, cancellationToken)).ToDictionary(static x => x.Id);
+        var taxRates = (await taxRateAccessor.QueryListAsync(null, true, cancellationToken)).ToDictionary(static x => x.Id);
+        var products = await accessor.QueryListAsync(null, null, null, null, false, "Code", ApiHelper.MaxPageSize, 0, cancellationToken);
+        return CsvExport.Stream(products.Select(x => ProductExportRow.From(x, categories, taxRates)), "products.csv");
     }
 
     // スキャン用 1 件取得 (barcode または code)

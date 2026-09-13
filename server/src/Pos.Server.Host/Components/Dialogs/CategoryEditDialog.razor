@@ -1,0 +1,35 @@
+@inherits EditDialogBase<CategoryForm>
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="EditForm" Model="Form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudSelect T="Guid?" @bind-Value="Form.ParentId" For="@(() => Form.ParentId)" Validation="@Validator.ValidateValue" Label="親部門">
+                        <MudSelectItem T="Guid?" Value="null">(大分類)</MudSelectItem>
+                        @foreach (var parent in Parents.Where(x => x.Id != Form.Id))
+                        {
+                            <MudSelectItem T="Guid?" Value="parent.Id">@parent.Code @parent.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Form.Code" For="@(() => Form.Code)" Validation="@Validator.ValidateValue" Label="コード" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Form.Name" For="@(() => Form.Name)" Validation="@Validator.ValidateValue" Label="名称" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="Form.SortOrder" Label="並び順" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnCancelClick">キャンセル</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnOkClick">保存</MudButton>
+    </DialogActions>
+</MudDialog>

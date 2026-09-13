@@ -1,0 +1,121 @@
+@page "/customers/{Id:guid}"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 顧客詳細</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="customers" />
+    <MudText Typo="Typo.h5">👥 顧客詳細</MudText>
+    <MudSpacer />
+    @if (customer is not null && !customer.IsDeleted)
+    {
+        <MudButton StartIcon="@Icons.Material.Filled.Stars" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AdjustPointsAsync">ポイント調整</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Edit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="EditAsync">編集</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Delete" Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Disabled="IsBusy" OnClick="DeleteAsync">削除</MudButton>
+    }
+</MudStack>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+@if (customer is null)
+{
+    @if (!IsLoading)
+    {
+        <MudAlert Severity="Severity.Warning">顧客が見つかりません。</MudAlert>
+    }
+}
+else
+{
+    <MudGrid Spacing="2" Class="mb-2">
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                    <MudText Typo="Typo.h6">@customer.Name</MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@customer.Kana</MudText>
+                    @if (customer.IsDeleted)
+                    {
+                        <StatusChip Value="@ChipText.Deleted()" />
+                    }
+                </MudStack>
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <tbody>
+                        <tr><td style="width: 120px;" class="mud-text-secondary">会員番号</td><td>@customer.Code</td></tr>
+                        <tr><td class="mud-text-secondary">電話</td><td>@customer.Phone</td></tr>
+                        <tr><td class="mud-text-secondary">メール</td><td>@customer.Email</td></tr>
+                        <tr><td class="mud-text-secondary">住所</td><td>@customer.PostalCode @customer.Address</td></tr>
+                        <tr><td class="mud-text-secondary">生年月日</td><td>@DisplayText.Date(customer.BirthDate)</td></tr>
+                        <tr><td class="mud-text-secondary">備考</td><td>@customer.Note</td></tr>
+                        <tr><td class="mud-text-secondary">登録</td><td>@DisplayText.DateTime(customer.CreatedAt)</td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-3 d-flex flex-column align-center justify-center" Style="height: 100%;">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">ポイント残高</MudText>
+                <MudText Typo="Typo.h4" Color="@(customer.PointBalance < 0 ? Color.Error : Color.Primary)">@customer.PointBalance.ToString("N0") pt</MudText>
+                @if (customer.PointBalance < 0)
+                {
+                    <StatusChip Value="@(("🔴 残高がマイナスです", Color.Error))" />
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-2">
+        <MudTabPanel Text="⭐ ポイント履歴" BadgeData="@histories.Count" BadgeColor="Color.Primary">
+            <MudTable T="PointHistoryEntity" Items="histories" Dense="true" Hover="true" Bordered="true" Striped="true" Loading="IsLoading">
+                <HeaderContent>
+                    <MudTh>日時</MudTh>
+                    <MudTh>種別</MudTh>
+                    <MudTh Style="text-align: right;">増減</MudTh>
+                    <MudTh Style="text-align: right;">残高</MudTh>
+                    <MudTh>理由 / 取引</MudTh>
+                    <MudTh>担当</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd Class="no-wrap">@DisplayText.DateTime(context.OccurredAt)</MudTd>
+                    <MudTd><StatusChip Value="@ChipText.PointType(context.Type)" /></MudTd>
+                    <MudTd Style="text-align: right;">@context.Points.ToString("+#,##0;-#,##0;0")</MudTd>
+                    <MudTd Style="text-align: right;">@context.BalanceAfter.ToString("N0")</MudTd>
+                    <MudTd>
+                        @context.Reason
+                        @if (context.TransactionId is not null)
+                        {
+                            <MudLink Href="@($"transactions?id={context.TransactionId}")" Typo="Typo.body2">取引を表示</MudLink>
+                        }
+                    </MudTd>
+                    <MudTd>@StaffName(context.StaffId)</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>履歴がありません。</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudTabPanel>
+        <MudTabPanel Text="🧾 購入履歴" BadgeData="@transactions.Count" BadgeColor="Color.Primary">
+            <MudTable T="TransactionEntity" Items="transactions" Dense="true" Hover="true" Bordered="true" Striped="true" Loading="IsLoading">
+                <HeaderContent>
+                    <MudTh>日時</MudTh>
+                    <MudTh>レシート番号</MudTh>
+                    <MudTh>種別</MudTh>
+                    <MudTh>状態</MudTh>
+                    <MudTh Style="text-align: right;">合計</MudTh>
+                    <MudTh Style="text-align: right;">付与</MudTh>
+                    <MudTh Style="text-align: right;">利用</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd Class="no-wrap">@DisplayText.DateTime(context.TransactedAt)</MudTd>
+                    <MudTd><MudLink Href="@($"transactions?id={context.Id}")" Typo="Typo.body2">@context.ReceiptNo</MudLink></MudTd>
+                    <MudTd><StatusChip Value="@ChipText.Type(context.Type)" /></MudTd>
+                    <MudTd><StatusChip Value="@ChipText.Status(context.Status)" /></MudTd>
+                    <MudTd Style="text-align: right;">@DisplayText.Yen(context.Total)</MudTd>
+                    <MudTd Style="text-align: right;">@context.PointsEarned.ToString("N0")</MudTd>
+                    <MudTd Style="text-align: right;">@context.PointsRedeemed.ToString("N0")</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>購入履歴がありません。</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudTabPanel>
+    </MudTabs>
+}

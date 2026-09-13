@@ -1,0 +1,52 @@
+@inherits EditDialogBase<InventoryChangeForm>
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">📋 @Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="EditForm" Model="Form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <StoreSelect @bind-Value="Form.StoreId" AllowAll="false" Class="mt-2" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="InventoryChangeType" @bind-Value="Form.Type" Label="種別">
+                        <MudSelectItem T="InventoryChangeType" Value="InventoryChangeType.PhysicalCount">📋 棚卸 (実数を入力)</MudSelectItem>
+                        <MudSelectItem T="InventoryChangeType" Value="InventoryChangeType.Adjustment">🔧 調整 (増減を入力)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudAutocomplete T="ProductEntity" @bind-Value="Form.Product" For="@(() => Form.Product)" Validation="@Validator.ValidateValue" Label="商品" SearchFunc="SearchProductsAsync" ToStringFunc="@(x => x is null ? string.Empty : $"{x.Code} {x.Name}")" ResetValueOnEmptyText="true" Clearable="true" MinCharacters="1" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal" @bind-Value="Form.Quantity" For="@(() => Form.Quantity)" Validation="@Validator.ValidateValue" Label="@(Form.Type == InventoryChangeType.PhysicalCount ? "実数" : "増減")" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudSelect T="Guid?" @bind-Value="Form.ReasonId" Label="理由">
+                        <MudSelectItem T="Guid?" Value="null">(なし)</MudSelectItem>
+                        @foreach (var reason in reasons)
+                        {
+                            <MudSelectItem T="Guid?" Value="reason.Id">@reason.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="Form.StaffId" For="@(() => Form.StaffId)" Validation="@Validator.ValidateValue" Label="担当">
+                        @foreach (var staff in staffList)
+                        {
+                            <MudSelectItem T="Guid?" Value="staff.Id">@staff.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Form.Reason" For="@(() => Form.Reason)" Validation="@Validator.ValidateValue" Label="備考" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnCancelClick">キャンセル</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnOkClick">登録</MudButton>
+    </DialogActions>
+</MudDialog>

@@ -21,4 +21,10 @@ public static class Styles
         },
         PaletteDark = new PaletteDark()
     };
+
+    public static DialogOptions SmallDialog { get; } = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    public static DialogOptions MediumDialog { get; } = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+    public static DialogOptions LargeDialog { get; } = new() { MaxWidth = MaxWidth.Large, FullWidth = true };
 }

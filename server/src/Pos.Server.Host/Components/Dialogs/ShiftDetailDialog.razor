@@ -1,0 +1,116 @@
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudText Typo="Typo.h6">💰 精算レポート</MudText>
+            @if (summary is not null)
+            {
+                <StatusChip Value="@ChipText.Status(summary.Shift.Status)" />
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@Names.Store(summary.Shift.StoreId) / @Names.Terminal(summary.Shift.TerminalId) / @DisplayText.Date(summary.Shift.BusinessDate)</MudText>
+            }
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (summary is null)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">💴 現金</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary" style="width: 120px;">開設 / 精算</td><td>@DisplayText.DateTime(summary.Shift.OpenedAt) @Names.StaffName(summary.Shift.OpenedByStaffId) / @DisplayText.DateTime(summary.Shift.ClosedAt) @Names.StaffName(summary.Shift.ClosedByStaffId)</td></tr>
+                            <tr><td class="mud-text-secondary">釣銭準備金</td><td class="text-right">@DisplayText.Yen(summary.Cash.OpeningCash)</td></tr>
+                            <tr><td class="mud-text-secondary">現金売上 / 返金</td><td class="text-right">@DisplayText.Yen(summary.Cash.CashSales) / -@DisplayText.Yen(summary.Cash.CashReturns)</td></tr>
+                            <tr><td class="mud-text-secondary">入金 / 出金</td><td class="text-right">@DisplayText.Yen(summary.Cash.PaidIn) / -@DisplayText.Yen(summary.Cash.PaidOut)</td></tr>
+                            <tr><td class="mud-text-secondary">予想現金</td><td class="text-right"><strong>@DisplayText.Yen(summary.Cash.ExpectedCash)</strong></td></tr>
+                            <tr><td class="mud-text-secondary">実査</td><td class="text-right">@DisplayText.Yen(summary.Cash.ActualCash)</td></tr>
+                            <tr><td class="mud-text-secondary">過不足</td><td class="text-right"><StatusChip Value="@ChipText.Difference(summary.Cash.Difference)" /></td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">📈 件数・売上</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary" style="width: 120px;">販売 / 返品 / 取消</td><td class="text-right">@summary.Shift.Totals.SalesCount / @summary.Shift.Totals.ReturnCount / @summary.Shift.Totals.VoidCount 件</td></tr>
+                            <tr><td class="mud-text-secondary">売上 / 返品</td><td class="text-right">@DisplayText.Yen(summary.Shift.Totals.SalesTotal) / -@DisplayText.Yen(summary.Shift.Totals.ReturnsTotal)</td></tr>
+                            <tr><td class="mud-text-secondary">ポイント</td><td class="text-right">付与 @summary.Points.Earned.ToString("N0") / 利用 @summary.Points.Redeemed.ToString("N0")</td></tr>
+                            <tr><td class="mud-text-secondary">備考</td><td>@summary.Shift.Note</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.subtitle2">支払方法別</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            @foreach (var item in summary.ByPaymentMethod)
+                            {
+                                <tr><td>@item.Name</td><td class="text-right">@DisplayText.Yen(item.SalesAmount) (@item.SalesCount)</td><td class="text-right mud-text-secondary">返金 @DisplayText.Yen(item.ReturnAmount)</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.subtitle2">税率別</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            @foreach (var item in summary.ByTaxRate)
+                            {
+                                <tr><td>@DisplayText.Percent(item.Rate) @(item.TaxIncluded ? "内税" : "外税")</td><td class="text-right">@DisplayText.Yen(item.TaxableAmount)</td><td class="text-right mud-text-secondary">税 @DisplayText.Yen(item.TaxAmount)</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.subtitle2">部門別</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            @foreach (var item in summary.ByCategory)
+                            {
+                                <tr><td>@item.Name</td><td class="text-right">@DisplayText.Quantity(item.Quantity)</td><td class="text-right">@DisplayText.Yen(item.NetAmount)</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">入出金</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            @foreach (var item in cashEvents)
+                            {
+                                <tr><td>@DisplayText.Time(item.OccurredAt)</td><td><StatusChip Value="@ChipText.CashEvent(item.Type)" /></td><td class="text-right">@DisplayText.Yen(item.Amount)</td><td>@item.Reason</td><td>@Names.StaffName(item.StaffId)</td></tr>
+                            }
+                            @if (cashEvents.Count == 0)
+                            {
+                                <tr><td class="mud-text-secondary">なし</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">金種</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            @foreach (var item in summary.Shift.Denominations)
+                            {
+                                <tr><td>@DisplayText.Yen(item.Denomination) 円</td><td class="text-right">@item.Count 枚</td><td class="text-right">@DisplayText.Yen(item.Denomination * item.Count)</td></tr>
+                            }
+                            @if (summary.Shift.Denominations.Count == 0)
+                            {
+                                <tr><td class="mud-text-secondary">なし</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton StartIcon="@Icons.Material.Filled.Receipt" Href="@($"transactions?shiftId={Id}")" OnClick="() => MudDialog.Close()">取引一覧</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@($"api/v1/shifts/{Id}/summary/pdf")" Target="_blank">精算レポート PDF</MudButton>
+        <MudButton Color="Color.Primary" OnClick="() => MudDialog.Close()">閉じる</MudButton>
+    </DialogActions>
+</MudDialog>

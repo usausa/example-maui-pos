@@ -1,0 +1,52 @@
+@page "/inventory"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 現在庫</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">📦 現在庫</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.EditNote" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="RegisterChangeAsync">棚卸・調整</MudButton>
+</MudStack>
+
+<MudPaper Class="pa-2 mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
+        <MudSelect T="Guid?" @bind-Value="categoryId" Label="部門" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 200px;">
+            <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
+            @foreach (var category in categories)
+            {
+                <MudSelectItem T="Guid?" Value="category.Id">@(category.ParentId is null ? string.Empty : "　")@category.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField @bind-Value="keyword" Label="商品 (コード / JAN / 名称 / かな)" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 280px;" />
+        <MudSwitch T="bool" @bind-Value="negativeOnly" Label="🔴 マイナスのみ" Color="Color.Error" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
+    </MudStack>
+</MudPaper>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudDataGrid @ref="Grid" T="InventoryLevelDetail" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer">
+    <Columns>
+        <PropertyColumn Property="x => x.ProductCode" Title="コード" />
+        <PropertyColumn Property="x => x.ProductName" Title="商品名" />
+        <PropertyColumn Property="x => x.CategoryName" Title="部門" Sortable="false" />
+        <PropertyColumn Property="x => x.StoreName" Title="店舗" />
+        <PropertyColumn Property="x => x.Quantity" Title="数量" CellStyle="text-align: right;" HeaderStyle="text-align: right;">
+            <CellTemplate>@DisplayText.Quantity(context.Item.Quantity)</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="状態" Sortable="false">
+            <CellTemplate><StatusChip Value="@ChipText.Quantity(context.Item.Quantity)" /></CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.UpdatedAt" Title="更新日時">
+            <CellTemplate>@DisplayText.DateTime(context.Item.UpdatedAt)</CellTemplate>
+        </PropertyColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>在庫がありません。</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="InventoryLevelDetail" />
+    </PagerContent>
+</MudDataGrid>

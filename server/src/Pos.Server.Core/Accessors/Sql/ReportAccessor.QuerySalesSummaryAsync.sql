@@ -12,6 +12,7 @@ SELECT
     COALESCE(SUM(t.PointsEarned), 0) AS PointsEarned,
     COALESCE(SUM(t.PointsRedeemed), 0) AS PointsRedeemed
 FROM Transactions t
+LEFT JOIN Stores st ON st.Id = t.StoreId
 LEFT JOIN Terminals tm ON tm.Id = t.TerminalId
 LEFT JOIN Staff s ON s.Id = t.StaffId
 WHERE t.Status = 'Completed'

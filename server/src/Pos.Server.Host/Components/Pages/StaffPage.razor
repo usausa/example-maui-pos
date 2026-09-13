@@ -1,0 +1,42 @@
+@page "/staff"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - スタッフ</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">🏬 スタッフ</MudText>
+    <MudSpacer />
+    <MudSwitch T="bool" @bind-Value="includeDeleted" @bind-Value:after="LoadAsync" Label="削除済みを表示" Color="Color.Primary" />
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+    <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
+</MudStack>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudTable T="StaffEntity" Items="items" Dense="true" Hover="true" Bordered="true" Striped="true" Loading="IsLoading">
+    <HeaderContent>
+        <MudTh>コード</MudTh>
+        <MudTh>名前</MudTh>
+        <MudTh>役割</MudTh>
+        <MudTh>所属店舗</MudTh>
+        <MudTh>状態</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Code</MudTd>
+        <MudTd>@context.Name</MudTd>
+        <MudTd><StatusChip Value="@ChipText.Role(context.Role)" /></MudTd>
+        <MudTd>@(context.StoreId is null ? "全店舗" : stores.GetValueOrDefault(context.StoreId.Value, "-"))</MudTd>
+        <MudTd><StatusChip Value="@(context.IsDeleted ? ChipText.Deleted() : ChipText.Active(context.IsActive))" /></MudTd>
+        <MudTd Class="no-wrap">
+            @if (!context.IsDeleted)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="IsBusy" OnClick="() => EditAsync(context)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="IsBusy" OnClick="() => DeleteAsync(context)" />
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>スタッフがいません。</MudText>
+    </NoRecordsContent>
+</MudTable>

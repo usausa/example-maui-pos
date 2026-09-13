@@ -196,3 +196,21 @@ body {
     5% { top: 40px; left: 40px; width: 0; height: 0; opacity: 1; }
     100% { top: 0; left: 0; width: 80px; height: 80px; opacity: 0; }
 }
+
+/* POS: 数値の右寄せと行クリック */
+.text-right {
+    text-align: right;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.no-wrap {
+    white-space: nowrap;
+}
+
+/* POS: 見出しは折り返さない */
+.mud-table-head .mud-table-cell {
+    white-space: nowrap;
+}

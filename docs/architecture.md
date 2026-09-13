@@ -120,26 +120,35 @@ Extensions.cs                        拡張メソッド置き場 (テンプレ�
 ```
 Application/ApiRoutes.cs             /api/v1 の定数 (Prefix)
 Application/ApplicationExtensions.cs (テンプレート由来) + ConfigureOpenApi / MapOpenApi (開発時 /swagger, /redoc)
-Application/Log.cs, NamingPolicy.cs (camelCase), Styles.cs (MudBlazor テーマ)   (テンプレート由来)
+Application/Log.cs, NamingPolicy.cs (camelCase), Styles.cs (MudBlazor テーマ + ダイアログ幅)   (テンプレート由来)
+Application/DisplayText.cs, ChipText.cs  管理画面の表示文字列 (列挙型の日本語名・金額・日時) と、状態を示すチップの文言と色 (D-39)
 Endpoints/                           静的クラス + MapGroup (ハンドラは private static、引数は DI + ルート / クエリ / 本文)
   SettingsEndpoints, StoreEndpoints, TerminalEndpoints, StaffEndpoints, CategoryEndpoints, TaxRateEndpoints,
   ProductEndpoints, DiscountEndpoints, PaymentMethodEndpoints, SyncEndpoints, CustomerEndpoints,
   TransactionEndpoints, ShiftEndpoints (+ summary/pdf), InventoryEndpoints (+ adjustment-reasons), ReportEndpoints (+ daily/pdf)
 Infrastructure/Api/                  ApiProblems (errorCode / errors / expected 付き Problem Details)、ApiHelper (ページサイズ、並び替え、LIKE)、
                                      RuleViolationException (DB トランザクション内の業務ルール違反 → 422)
-Models/Forms/                        Blazor 用フォーム + FluentValidation (ProductForm / ProductFormValidator ...)   (Phase 5)
+Models/Forms/                        管理画面のフォーム + FluentValidation (FormValidator<T> を基底に XxxForm / XxxFormValidator。マスタ 10 種 + Customer / Settings / InventoryChange / PointAdjust)
+Models/Export/                       CSV の行 (ProductExportRow, SalesSummaryExportRow, ProductSalesExportRow。CsvHelper の [Name] で日本語見出し)
 Mappers/                             Smart.Mapper: MasterMapper (マスタ・顧客)、TransactionMapper (取引一式と Domain の入出力)、ShiftMapper (集計付き応答)、
-                                     InventoryMapper、ReportMapper。Entity ↔ Form は Phase 5
+                                     InventoryMapper、ReportMapper、FormMapper (Entity ↔ Form。Guid? / DateOnly の変換は [MapUsing])
 Components/
   App.razor, Routes.razor, _Imports.razor              (テンプレート由来)
-  Layout/ (MainLayout, NavMenu, EmptyLayout, ReconnectModal)   NavMenu は Phase 5 で MudNavGroup 構成にする
-  Pages/  (Home, Error, NotFound + screen-design §2.3 の S-xx)
-  Controls/ (ErrorBanner, ProgressOverlay)             (テンプレート由来)
-  Dialogs/ (AppMessageBox + 編集ダイアログ、詳細ダイアログ)
-Infrastructure/                      Components (AppComponentBase, DialogServiceExtensions, ErrorBoundaryLogger, SnackbarExtensions),
+  Layout/ (MainLayout, NavMenu (MudNavGroup。現在の URL のグループを開く), EmptyLayout, ReconnectModal)
+  Pages/  Home (S-01), SalesSummaryPage (S-10), ProductSalesPage (S-11), TransactionsPage (S-20), ShiftsPage (S-30), InventoryPage (S-40),
+          InventoryChangesPage (S-42), AdjustmentReasonsPage (S-44), ProductsPage (S-50), CategoriesPage (S-53), TaxRatesPage (S-54), DiscountsPage (S-55),
+          PaymentMethodsPage (S-56), CustomersPage (S-60), CustomerDetailPage (S-61), StoresPage (S-70), TerminalsPage (S-71), StaffPage (S-72), SettingsPage (S-80),
+          Error, NotFound (テンプレート由来)。ページは .razor + .razor.cs
+  Controls/ (ErrorBanner, ProgressOverlay (テンプレート由来), StoreSelect (店舗セレクタ), StatusChip (ChipText の文言 + 色))
+  Dialogs/ (AppMessageBox (テンプレート由来), XxxEditDialog (EditDialogBase<TForm>。マスタ 10 種 + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31),
+            ProductInventoryDialog (S-41), InventoryChangeDialog (S-43), PointAdjustDialog (S-62), TerminalQrDialog (S-71))
+Infrastructure/                      Components (AppComponentBase, DialogServiceExtensions, ErrorBoundaryLogger, SnackbarExtensions (テンプレート由来),
+                                     PageComponentBase (読み込み / 実行 / エラー / 確認 / 編集ダイアログ), EditDialogBase<TForm>, StoreFilterState (scoped), NameLookup (ID → 名称)),
                                      ExceptionHandling (GlobalExceptionHandler), HealthChecks (DatabaseHealthCheck)   (テンプレート由来)
 Infrastructure/Data/InitialData.cs   起動時の初期データ (architecture §8)。固定 ID (InitialData.MainStoreId など) をテストと設定 QR で使う
-Infrastructure/Reports/              OysterReport の帳票: EmbeddedFontResolver (同梱 IPAex ゴシック)、ReportText (表示文字列・明細行の複製)、
+Infrastructure/Data/                 CategoryOrder (大分類 → 中分類の並び)、InventoryChangeApplier (棚卸・調整の適用。API と画面で共用)
+Infrastructure/Reports/              SalesSummaryQuery (売上集計の groupBy 振り分け・合計行・期間の既定値。API / CSV / 画面で共用)
+                                     OysterReport の帳票: EmbeddedFontResolver (同梱 IPAex ゴシック)、ReportText (表示文字列・明細行の複製)、
                                      ShiftReportBuilder (精算レポート)、DailySalesReportBuilder (売上日報)、ReceiptReportBuilder (レシート再発行、◎ 未実装)   (D-37)
 Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート。出力ディレクトリへコピー)
 Settings/                            LogSetting / ProfilerSetting   (テンプレート由来)
@@ -147,7 +156,8 @@ wwwroot/                             css/app.css, js/reconnect.js   (テンプ�
 ```
 
 - エンドポイントのハンドラは「Request を受ける → Domain で検証・計算 → Accessor で読み書き → Response を返す」を担う。取引登録 (`POST /transactions`) の流れは [db-design.md §5.1](db-design.md#51-取引登録-post-transactions-は-1-つの-db-トランザクション)
-- Blazor ページも同じ Accessor / Domain を `[Inject]` して使う。エンドポイントとページで同じ処理が要る場合は静的ヘルパーにまとめる (層は増やさない)
+- Blazor ページも同じ Accessor / Domain を `[Inject]` して使う。エンドポイントとページで同じ処理が要る場合は静的ヘルパーにまとめる (層は増やさない): `SalesSummaryQuery`、`InventoryChangeApplier`、`ShiftMapper.ToSummaryResponseAsync`
+- 管理画面の一覧・ダイアログはページ側で Accessor を呼び、コード重複は `IDialect.IsDuplicate`、楽観ロックは `UpdateAsync` の戻り値 0、使用中は件数クエリで判定する (API と同じ規則)
 - `InitializeApplicationAsync` で起動時にスキーマ作成と初期データ投入を行う (Phase 3)
 - 認証は MVP では持たない。Phase 2 で `template-maui-server` を参考に追加する
 
@@ -288,7 +298,7 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | Phase 2 `Pos.Shared` | `XxxRequest` / `XxxResponse` 一式 | 完了 |
 | Phase 3 サーバ DB | DDL、Entity、Accessor、起動時スキーマ作成、初期データ | 完了 |
 | Phase 4 サーバ API | マスタ・同期 → 顧客 → シフト → 取引 → 在庫 → レポート → 帳票 (PDF)、統合テスト | 完了 |
-| Phase 5 管理画面 | レイアウト・ダッシュボード → マスタ CRUD → 取引 / シフト / 在庫 / 顧客 / レポート → 設定・QR | |
+| Phase 5 管理画面 | レイアウト・ダッシュボード → マスタ CRUD → 取引 / シフト / 在庫 / 顧客 / レポート → 設定・QR | 完了 |
 | Phase 6 端末 | 土台・同期・Outbox → メニュー・開設 → 販売 → 会計・レシート → 精算・入出金 → 返品・履歴 → 照会・棚卸 → 設定 | |
 
 後回しの項目は [api-design.md §7](api-design.md#7-phase-2-以降-後回し)。

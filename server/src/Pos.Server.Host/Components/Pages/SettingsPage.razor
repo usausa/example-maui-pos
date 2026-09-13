@@ -1,0 +1,46 @@
+@page "/settings"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 会社設定</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">⚙ 会社設定</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.Save" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="SaveAsync">保存</MudButton>
+    <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">再読み込み</MudButton>
+</MudStack>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudPaper Class="pa-3" Style="max-width: 720px;">
+    <MudForm @ref="Form" Model="settings">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="settings.CompanyName" For="@(() => settings.CompanyName)" Validation="@Validator.ValidateValue" Label="会社名" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="settings.Currency" For="@(() => settings.Currency)" Validation="@Validator.ValidateValue" Label="通貨" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="TaxRounding" @bind-Value="settings.TaxRounding" Label="税の端数処理">
+                    @foreach (var value in Enum.GetValues<TaxRounding>())
+                    {
+                        <MudSelectItem T="TaxRounding" Value="value">@DisplayText.Name(value)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="PointBasis" @bind-Value="settings.PointBasis" Label="ポイント付与基準">
+                    @foreach (var value in Enum.GetValues<PointBasis>())
+                    {
+                        <MudSelectItem T="PointBasis" Value="value">@DisplayText.Name(value)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="settings.BusinessDayStartTime" For="@(() => settings.BusinessDayStartTime)" Validation="@Validator.ValidateValue" Label="営業日切替時刻 (HH:mm)" Immediate="true" />
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+    <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">💡 税の端数処理とポイント付与基準は端末の計算にも使われます (同期後に反映)。</MudText>
+</MudPaper>

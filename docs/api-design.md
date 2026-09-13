@@ -264,7 +264,7 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | ★ | DELETE | `/products/{id}` | 管理 | 論理削除 |
 | ◎ | PUT / DELETE | `/products/{id}/image` | 管理 | 画像アップロード (multipart) / 削除 |
 | ◎ | POST | `/products/import` | 管理 | CSV 一括取込 (テンプレートの CsvHelper) |
-| ◎ | GET | `/products/csv` | 管理 | CSV 出力 (テンプレートの `QueryExportEnumerable` パターン) |
+| ★ | GET | `/products/csv` | 管理 | CSV 出力 (BOM 付き UTF-8、削除済みを除く全件) |
 
 ### 3.8 値引 (Discounts)
 
@@ -693,9 +693,9 @@ POST /api/v1/transactions      (TransactionRequest)
 
 | 優先 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- | --- |
-| ★ | GET | `/reports/sales/summary?storeId&from&to&groupBy=` | 管理 / 端末 | 売上集計 (`SalesSummaryResponse`)。`groupBy` = `day` / `hour` / `terminal` / `staff` / `paymentMethod` / `taxRate` / `category` |
+| ★ | GET | `/reports/sales/summary?storeId&from&to&groupBy=` | 管理 / 端末 | 売上集計 (`SalesSummaryResponse`)。`groupBy` = `day` / `store` / `hour` / `terminal` / `staff` / `paymentMethod` / `taxRate` / `category` (不正なら 400) |
 | ★ | GET | `/reports/sales/products?storeId&from&to&categoryId&sort=netSales\|quantity&size` | 管理 | 商品別売上 (`ProductSalesResponse`) |
-| ◎ | GET | `/reports/sales/summary/csv`, `/reports/sales/products/csv` | 管理 | CSV 出力 (テンプレートの CsvHelper) |
+| ★ | GET | `/reports/sales/summary/csv`, `/reports/sales/products/csv` | 管理 | CSV 出力 (同じクエリ、CsvHelper、BOM 付き UTF-8。summary は合計行付き) |
 | ★ | GET | `/reports/sales/daily/pdf?storeId&date` | 管理 | 売上日報の PDF (店舗 × 営業日、[D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
 
 ```jsonc

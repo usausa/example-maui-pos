@@ -1,0 +1,51 @@
+@page "/customers"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 顧客</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">👥 顧客</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+</MudStack>
+
+<MudPaper Class="pa-2 mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <MudTextField @bind-Value="keyword" Label="会員番号 / 名前 / かな / 電話" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 320px;" />
+        <MudSwitch T="bool" @bind-Value="includeDeleted" Label="削除済みを表示" Color="Color.Primary" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
+    </MudStack>
+</MudPaper>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudDataGrid @ref="Grid" T="CustomerEntity" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer">
+    <Columns>
+        <PropertyColumn Property="x => x.Code" Title="会員番号" />
+        <PropertyColumn Property="x => x.Name" Title="名前" />
+        <PropertyColumn Property="x => x.Kana" Title="かな" />
+        <TemplateColumn Title="電話" Sortable="false">
+            <CellTemplate>@context.Item.Phone</CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.PointBalance" Title="ポイント残高" CellStyle="text-align: right;" HeaderStyle="text-align: right;">
+            <CellTemplate><StatusChip Value="@ChipText.PointBalance(context.Item.PointBalance)" /></CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.CreatedAt" Title="登録日">
+            <CellTemplate>@DisplayText.DateTime(context.Item.CreatedAt)</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="状態" Sortable="false">
+            <CellTemplate>
+                @if (context.Item.IsDeleted)
+                {
+                    <StatusChip Value="@ChipText.Deleted()" />
+                }
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>顧客がいません。</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="CustomerEntity" />
+    </PagerContent>
+</MudDataGrid>
