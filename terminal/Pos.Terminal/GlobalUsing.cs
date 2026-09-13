@@ -44,6 +44,7 @@ global using Smart.Mvvm.Messaging;
 global using Smart.Mvvm.ViewModels;
 global using Smart.Navigation;
 global using Smart.Navigation.Attributes;
+global using Smart.Navigation.Plugins.Hierarchy;
 global using Smart.Navigation.Plugins.Parameter;
 global using Smart.Navigation.Plugins.Scope;
 global using Smart.Reactive;

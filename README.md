@@ -22,4 +22,4 @@ terminal/  Pos.Terminal.slnx: Pos.Terminal (MAUI, Android)
 
 開発時は `/swagger` と `/redoc` で API 仕様を確認できる。データベース (SQLite `pos.db`) は起動時に自動作成される。
 
-テストは `dotnet test server/Pos.Server.slnx` で実行する (`shared/Pos.Domain.Tests` を含む。ルートの `global.json` で Microsoft.Testing.Platform を有効化している)。
+テストはテストプロジェクトごとに `dotnet run --project` で実行する (`shared/Pos.Domain.Tests`、`server/tests/Pos.Server.UnitTests`、`server/tests/Pos.Server.IntegrationTests`)。`dotnet test` は使わない (CI の Jenkins も同じコマンド)。

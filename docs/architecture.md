@@ -40,9 +40,8 @@
 ```
 template-maui-pos/
 ├─ .editorconfig / .gitattributes / .gitignore / Directory.Build.props / Directory.Build.targets
-├─ Analyzers.ruleset / CodeCoverage.runsettings / global.json / AGENTS.md / CLAUDE.md / LICENSE / README.md
+├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md / CLAUDE.md / LICENSE / README.md
 │                                    ↑ ルートに 1 セット (テンプレート間で同一。MAUI 用の NoWarn NU1608 を含める)
-│                                    ↑ global.json は dotnet test の Microsoft.Testing.Platform オプトイン (D-35)
 ├─ docs/                             本設計
 ├─ shared/                           両ソリューションに含める共有プロジェクト
 │  ├─ Pos.Domain/                    ドメインロジック: 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール検証 (net10.0)
@@ -195,7 +194,7 @@ Common/       ErrorCodes (定数)
 `net10.0-android`。`template-maui-keyboard` の `Template.MobileApp` を `Pos.Terminal` にリネームし、サンプル画面 (Key モジュール) を除いたもの。Phase 0 で作成済みの骨組みは (テンプレート由来) と記す。
 
 ```
-MauiProgram.cs                       (テンプレート由来) BunnyTail DI、Navigator、Dialog / Popup、フォントは MaterialIcons のみ
+MauiProgram.cs                       (テンプレート由来) BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド、D-36)、Dialog / Popup、フォントは MaterialIcons のみ
 MainPage.xaml / MainPageViewModel    (テンプレート由来) シェル (タイトル + F1〜F4)。起動時に ViewId.Menu へ
 Shell/                               (テンプレート由来) ShellProperty / ShellEvent / ShellUpdateBehavior / IShellControl
 Input/ Behaviors/ Extender/ Helpers/ (テンプレート由来) 物理キー・ショートカット、Entry / Label / Scroll などの動作、フォーカス制御
@@ -247,7 +246,7 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | サーバ起動 | `server/Pos.Server.slnx` を VS で開く、または `dotnet run --project server/src/Pos.Server.Host` / Aspire (`dotnet run --project server/src/Pos.Server.AppHost`、ダッシュボードは http://localhost:15000)。ポート 8080 (`appsettings.json` の `http_ports`) |
 | DB | 起動時に `pos.db` (SQLite、実行ディレクトリ) を自動作成。テーブルと初期データ (店舗 / 端末 / 税率 / 支払方法 / 部門・商品サンプル) は Phase 3 で `InitializeApplicationAsync` に追加 |
 | OpenAPI | 開発時 `/swagger`、`/redoc`、`/openapi/v1.json` |
-| テスト | `dotnet test server/Pos.Server.slnx` (`shared/Pos.Domain.Tests` を含む)。[D-35](decisions.md#d-35-テストの実行方法) |
+| テスト | テストプロジェクトごとに `dotnet run --project` (例: `dotnet run --project server/tests/Pos.Server.UnitTests`)。`dotnet test` は使わない。[D-35](decisions.md#d-35-テストの実行方法) |
 | 端末 | `terminal/Pos.Terminal.slnx` を VS で開いて Android エミュレータで実行、または `dotnet build -t:Run -f net10.0-android -p:AdbTarget="-s emulator-5554"`。エミュレータからサーバへは `10.0.2.2:8080`。設定 QR を管理画面 S-71 で表示して読み取る (Phase 5 / 6) |
 | UI の言語 | 日本語固定。多言語化はしない ([D-28](decisions.md#d-28-ui-の言語-日本語固定)) |
 | コーディング規約 | ルートの `AGENTS.md`: `.editorconfig` に従う、フィールドに `_` を付けない、警告ゼロ、新規テキストファイルは CRLF、「DTO」は使わない ([D-27](decisions.md#d-27-用語-dto-は使わない)) |
@@ -307,5 +306,5 @@ Platforms/Android/                   (テンプレート由来) MainActivity (po
 | 4 | `groupBy=hour` のタイムゾーン | UTC の `TransactedAt` を店舗時刻へ。SQL (`datetime(TransactedAt, '+9 hours')`) か C# 側集計かを Phase 4 で決める | C# 側で集計 |
 | 5 | MAUI ワークロード | Phase 0 で `Pos.Terminal` のビルドとエミュレータ実行を確認 | 確認済み |
 | 6 | Aspire | Phase 0 で AppHost の起動 (ダッシュボード表示) を確認 | 確認済み (CLI 13.5.2 + AppHost SDK 13.5.3) |
-| 7 | `dotnet test` | `global.json` の `test.runner` で Microsoft.Testing.Platform にオプトイン | 確認済み ([D-35](decisions.md#d-35-テストの実行方法)) |
+| 7 | テストの実行 | Microsoft.Testing.Platform の実行ファイルとして `dotnet run --project` で実行する (`dotnet test` と `global.json` は使わない) | 確認済み ([D-35](decisions.md#d-35-テストの実行方法)) |
 | 8 | レシート QR・電子レシート | QR の中身はレシート番号のみ、共有は画像 / テキスト、で Phase 6 に入る | — |

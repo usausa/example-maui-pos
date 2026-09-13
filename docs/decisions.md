@@ -474,12 +474,29 @@ TerminalId=0192...-guid
 
 ### D-35. テストの実行方法
 
-.NET 10 SDK の `dotnet test` は Microsoft.Testing.Platform (xunit.v3) を使うために `global.json` の `test.runner` でのオプトインが必要。ルートに次を置く。
+テストプロジェクトは Microsoft.Testing.Platform (xunit.v3) の実行ファイルなので、`dotnet test` ではなく **テストプロジェクトごとに `dotnet run --project` で実行する** (参考プロジェクトの Jenkins 設定と同じ)。
 
-```json
-{ "test": { "runner": "Microsoft.Testing.Platform" } }
+```bash
+dotnet run --project shared/Pos.Domain.Tests
+dotnet run --project server/tests/Pos.Server.UnitTests
+dotnet run --project server/tests/Pos.Server.IntegrationTests
 ```
 
-- `dotnet test server/Pos.Server.slnx` で `shared/` のテストも含めて実行される
-- `--nologo` などテストホストが知らないオプションはそのまま渡されて終了コード 5 になるので付けない
+- .NET 10 SDK の `dotnet test` で Microsoft.Testing.Platform を使うには `global.json` の `test.runner` でのオプトインが必要になるが、この方式なら不要なので `global.json` は置かない
+- レポートは `--report-xunit-trx` と `--coverage --coverage-settings CodeCoverage.runsettings` で出力する (Jenkins のパイプラインも同じコマンド。パイプラインは Jenkins 側の設定で、リポジトリには置かない)
 - Visual Studio のテストエクスプローラーからも実行できる
+
+### D-36. 端末の画面遷移アニメーション
+
+**背景**: 端末の画面遷移 (`ContentView` の差し替え) にアニメーションがなく、進む / 戻るの感覚がつかみにくい。Smart.Navigation.Maui には効果 (`MauiEffect.Forward` = 右からスライド、`MauiEffect.Back` = 左からスライド、`Push` / `Pop` / `Fade`) が用意されている。
+
+| 選択肢 | 内容 | 評価 |
+| --- | --- | --- |
+| A. 遷移ごとに効果を指定 | `Navigator.ForwardAsync(ViewId.Xxx, new NavigationParameter().WithForwardEffect())` のように呼び出し側で毎回指定 | 指定漏れが起きやすく、メニューへ戻る `ForwardAsync(ViewId.Menu)` を Back にし忘れやすい |
+| ✅ **B. 画面の階層で自動決定** | 各画面に `[Hierarchy(n)]` を付け、`HierarchyEffectPlugin` (Usa.Smart.Navigation 3.11.0) が階層が深くなる遷移に Forward、浅くなる遷移に Back を付ける | 遷移の呼び方は変えずに済む。`config.AddHierarchyEffectPlugin()` の 1 行と属性だけ |
+
+**反映**:
+
+- 階層は screen-design §1.3 の遷移図の深さ: T-00 = 0、T-01 = 1、ホーム T-02 = 2、ホーム直下 = 3、その下 = 4 …。親が複数ある画面は最も深い親 + 1
+- 同じ階層への遷移と起動時の最初の遷移は効果なし。別の効果にしたい遷移は `NavigationParameter` の `WithFadeEffect()` などで明示する (明示した効果が優先)
+- Debug ビルドの `Navigated` ログに `effect=[...]` を出して確認できるようにした

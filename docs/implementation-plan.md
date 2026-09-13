@@ -20,7 +20,7 @@
 
 - [x] `.editorconfig` / `.gitattributes` / `.gitignore` / `Directory.Build.targets` / `Analyzers.ruleset` / `CodeCoverage.runsettings` を `Service-CloudManager` からコピー
 - [x] `Directory.Build.props` をコピーし、`NoWarn` に MAUI 用の `NU1608` を含める (テンプレート間の唯一の差分)
-- [x] `global.json` で `dotnet test` の Microsoft.Testing.Platform オプトイン ([D-35](decisions.md#d-35-テストの実行方法))
+- [x] Jenkins のパイプライン (サーバと端末を 1 つでビルド / 検査 / テスト / 公開。Jenkins 側の設定)。テストは `dotnet run --project` で実行し、`global.json` は置かない ([D-35](decisions.md#d-35-テストの実行方法))
 - [x] `AGENTS.md` を作成 (テンプレートの規約 + 本プロジェクト固有: 「DTO」不使用、Service / Usecase なし、camelCase、フォルダ構成)。`CLAUDE.md` は `AGENTS.md` を参照
 - [x] ルート `README.md` に構成と起動方法
 
@@ -46,11 +46,12 @@
 - [x] `ViewId` を `Menu` のみにし、`Modules/Main/MenuView` (T-02。販売を最上段 2 列幅、機能未実装のため全ボタン無効) を作成。起動時に `Menu` へ遷移
 - [x] `Styles.xaml` に `FooterLabel` と POS 節 (`Pos` 接頭辞: 背景・行・区切り線・名称 / 金額ラベル・オプション / 数量 / 実行ボタン) を追加。配色は `Colors.xaml` の Material パレット
 - [x] `terminal/Pos.Terminal.slnx`: `Pos.Terminal` + `../shared/Pos.Domain` + `../shared/Pos.Shared`。`Settings.XamlStyler` / `Pos.Terminal.sln.DotSettings` をコピー
+- [x] 画面遷移の Forward / Back アニメーション: `AddHierarchyEffectPlugin` + 各画面の `[Hierarchy(n)]` ([D-36](decisions.md#d-36-端末の画面遷移アニメーション))
 - [ ] Rester の JSON を camelCase に設定 → Phase 6 (通信を取り込むとき)
 
 ### 完了条件
 
-- [x] `dotnet build server/Pos.Server.slnx` が警告ゼロで通り、`dotnet test server/Pos.Server.slnx` が緑 (19 件)
+- [x] `dotnet build server/Pos.Server.slnx` が警告ゼロで通り、3 つのテストプロジェクトが `dotnet run --project` で緑 (19 件)
 - [x] `dotnet build terminal/Pos.Terminal.slnx` が警告ゼロで通る (MAUI ワークロード確認済み)
 - [x] サーバ起動で `/health` = Healthy、`/` 200、`/swagger` 200、`/openapi/v1.json` に "POS API"、`/api/unknown` 404
 - [x] Aspire AppHost から起動できる (ダッシュボード http://localhost:15000)
@@ -236,6 +237,7 @@ screen-design §1 の ★ 画面。サーバが動いている前提。
 - [ ] `SyncWorker`: 差分同期、Outbox 送信 (順序・バックオフ・要確認で停止)
 - [ ] `Settings` (ApiEndPoint / StoreId / TerminalId / OpenSalesAfterLogin)、`Session`
 - [ ] セットアップ T-00 (設定 QR / 手入力 / 初回同期)、スタッフ選択 T-01
+- [ ] 各画面の `ContentView` に `[Hierarchy(n)]` を付ける (screen-design §1.3 の深さ。[D-36](decisions.md#d-36-端末の画面遷移アニメーション))
 
 ### 6b メニュー・開設・設定
 

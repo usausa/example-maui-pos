@@ -19,7 +19,7 @@
 | --- | --- |
 | 端末 | 通常のスマートフォン (Android、縦持ち・片手操作)。画面幅 360〜430 dp を想定 |
 | 画面の骨格 | テンプレートのシェル: **上部タイトルバー + コンテンツ + 下部 F1〜F4 ファンクションキー**。各画面は `ContentView` で、`ShellProperty` でタイトルと F キーの文言・有効を宣言する。ハードウェアの戻るは `OnNotifyBackAsync` で処理 |
-| ナビゲーション | Smart.Navigation の `ViewId` 列挙で遷移 (`Navigator.ForwardAsync(ViewId.Xxx)`)。パラメータは `NavigationParameter` |
+| ナビゲーション | Smart.Navigation の `ViewId` 列挙で遷移 (`Navigator.ForwardAsync(ViewId.Xxx)`)。パラメータは `NavigationParameter`。各画面に `[Hierarchy(n)]` を付け、階層が深くなる遷移は右から (Forward)、浅くなる遷移は左から (Back) スライドする ([D-36](decisions.md#d-36-端末の画面遷移アニメーション)) |
 | ダイアログ | MauiComponents の `IDialog` (確認 / 情報 / 選択 / トースト / ローディング) と `IPopupNavigator` のポップアップ (`DialogId`)。**ボトムシートは使わない** |
 | 数値入力 | テンプレートの `InputNumber` ポップアップ (テンキー、`NumberInputModel`) を数量・金額に流用。会計画面だけはテンキーを画面に埋め込む |
 | スキャン | `BarcodeScanning.Native.Maui` (`BarcodeController` + `CameraView`)。1D (JAN/EAN) と 2D (QR) を連続読み取り。用途: 商品 JAN、会員証 (QR / バーコード)、レシート QR (返品時の取引呼び出し)、設定 QR |
@@ -88,6 +88,8 @@ flowchart TD
 ```
 
 実線 = `ViewId` による画面遷移、点線 = ポップアップ (`DialogId`)。
+
+`[Hierarchy(n)]` の n はこの図の深さ (T-00 = 0、T-01 = 1、T-02 = 2、ホーム直下 = 3、その下 = 4 …)。親が複数ある画面は最も深い親 + 1。遷移アニメーションはこの差で決まる ([D-36](decisions.md#d-36-端末の画面遷移アニメーション))。
 
 ### 1.4 画面一覧
 

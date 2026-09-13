@@ -222,6 +222,7 @@ public static partial class MauiProgram
         services.AddNavigator(static (_, config) =>
         {
             config.UseMauiNavigationProvider();
+            config.AddHierarchyEffectPlugin();
             config.AddPlugin<NavigationFocusPlugin>();
             config.AddPlugin<NavigationFeedbackPlugin>();
             config.UseIdViewMapper(static m => m.AutoRegister(ViewSource()));
@@ -269,7 +270,7 @@ public static partial class MauiProgram
         navigator.Navigated += (_, args) =>
         {
             // for debug
-            System.Diagnostics.Debug.WriteLine($"Navigated: [{args.Context.FromId}]->[{args.Context.ToId}] : stacked=[{navigator.StackedCount}]");
+            System.Diagnostics.Debug.WriteLine($"Navigated: [{args.Context.FromId}]->[{args.Context.ToId}] : stacked=[{navigator.StackedCount}] effect=[{args.Context.Parameter.Effect}]");
         };
 #endif
 
