@@ -5,6 +5,7 @@
 ## 進め方
 
 - 着手するフェーズを指示してもらってから始める。完了したら完了条件の確認結果を報告し、本書のチェックを更新する
+- Phase 0〜7 (MVP) は完了。後回しにしていた項目は [Phase 8 以降](#phase-8-以降-後回し項目の計画) に計画した
 - 各フェーズの終わりは `dotnet build` 警告ゼロ・テスト緑 (テンプレートの規約)・`jb inspectcode` (ReSharper、Jenkins と同じ `--properties:Configuration=Release`) の指摘ゼロ
 - 実装中に設計を変えた場合は [decisions.md](decisions.md) に追記し、該当文書を直してからフェーズを閉じる
 - [architecture.md §9](architecture.md#9-実装時に確認する事項) の確認事項は該当フェーズで消化する (各項目に `§9-n` で示す)
@@ -300,3 +301,223 @@ screen-design §1 の ★ 画面。サーバが動いている前提。ViewModel
 
 - [x] 空の DB に対してツールを実行し、ダッシュボード・売上集計・取引一覧・精算一覧・在庫 (マイナス在庫の要確認を含む) に反映されることを確認
 - [x] 警告ゼロ、InspectCode の指摘ゼロ、テスト green
+
+---
+
+## Phase 8 以降: 後回し項目の計画
+
+MVP (Phase 0〜7) で「後回し (◎ / Phase 2)」とした項目 ([api-design.md §7](api-design.md#7-phase-2-以降-後回し)、[screen-design.md](screen-design.md) の ◎、[db-design.md §7](db-design.md#7-phase-2-のテーブル)) を機能単位のフェーズに分けた。順序の判断は [D-42](decisions.md#d-42-後回し項目の実装順序-phase-8-以降)。
+
+| フェーズ | 内容 | 主な対象 | 規模 |
+| --- | --- | --- | --- |
+| Phase 8 | 認証・端末登録 (管理画面ログイン、端末ペアリング、PIN ログイン、役割による認可) | サーバ + 管理画面 + 端末 | 大 |
+| Phase 9 | 日次締め | サーバ + 管理画面 | 小 |
+| Phase 10 | 受注 (取り寄せ・取り置き) | サーバ + 管理画面 + 端末 | 中 |
+| Phase 11 | 商品画像・CSV 取込 | サーバ + 管理画面 (+ 端末の画像表示) | 小 |
+| Phase 12 | レシート・帳票・検索の拡張 (レシート PDF、端末の印刷、シリアル検索、一括送信) | サーバ + 管理画面 + 端末 | 小 |
+| Phase 13 | 通知 (SignalR によるマスタ更新通知、管理画面の自動更新) | サーバ + 管理画面 + 端末 | 中 |
+| Phase 14 | 在庫移動・入荷 (仕入先、入荷、店舗間移動) | サーバ + 管理画面 + 端末 | 中 |
+
+各フェーズ共通の進め方 (Phase 0〜7 と同じ):
+
+- 着手時にまず設計を詳細化する: api-design (エンドポイント・Request / Response・エラーコード)、db-design (テーブル定義・DDL)、screen-design (画面・遷移) の該当節を追加し、判断は decisions.md に `D-4x` として記録する。本書のチェックリストは詳細化で変わりうる
+- 既存テーブルへの列追加は避け、新しいテーブルで持つ (起動時の `CREATE TABLE IF NOT EXISTS` だけで済ませる)。避けられない場合は `DatabaseAccessor` に `PRAGMA table_info` で列を確認して `ALTER TABLE ADD COLUMN` する仕組みを入れる。端末のローカル DB は `SyncState` にスキーマ版を持ち、違えばマスタ表を作り直して全件同期する
+- 完了条件は共通: 該当画面 / 端末の流れを実機 (エミュレータ) とブラウザで確認、統合テストの追加、`dotnet build` 警告ゼロ、テスト緑、`jb inspectcode` の指摘ゼロ、docs (api / db / screen / architecture / README) を実装に合わせる
+- 引き続き後回し (本計画の対象外): 外部向け Webhook、Bluetooth レシートプリンタ、受注の前受金 (内金)、発注 (仕入先への注文)、管理画面の MFA / パスキー
+
+---
+
+## Phase 8: 認証・端末登録
+
+[D-09](decisions.md#d-09-認証端末登録-後回し) で後回しにした認証を入れる。`template-maui-server` の 2 スキーム構成 (管理画面 = Cookie、API = Bearer) を土台にする。方針 (着手時に D-43 として記録):
+
+- **管理画面**: `Accounts` テーブル (テンプレートの `AccountEntity` + `IPasswordProvider`) による Cookie ログイン。役割は `Administrator` (すべて) / `Operator` (参照と、取引・在庫・顧客の操作。マスタ・設定・ユーザー・端末登録は不可)
+- **端末**: 管理画面で発行するペアリングコードで `POST /terminals/pair` を呼び、**端末トークン** (ランダム値、サーバはハッシュを `TerminalTokens` に保存) を受け取って `SecureStorage` に持つ。以後の API は `Authorization: Bearer` で呼ぶ。JWT ではなく DB 照合にする (管理画面からの即時失効、署名鍵の運用が不要、端末は数か月単位で動き続ける)
+- **スタッフ**: PIN は端末でローカル検証する (オフラインでもログインできるように)。`Staff.PinHash` (PBKDF2 + salt、`Pos.Domain` の `PinHasher` を端末とサーバで共用) を端末向けの同期応答にだけ含める。サーバ向けの `POST /auth/login` (スタッフ JWT) は置かず、端末の要求は端末トークンで認証し、担当は本文の `staffId` (サーバは有効・所属・役割を検証する)
+- **認可**: 端末の要求は本文 / クエリの `storeId` / `terminalId` がトークンのクレームと一致すること (`TERMINAL_MISMATCH` 403)。役割: 承認が必要な値引の承認者と取消の承認者は Manager 以上 (`APPROVAL_REQUIRED` 422)。管理画面のマスタ・設定・ユーザー・端末登録は Administrator
+- **開発・デモ**: `Auth:Enabled` (既定 `true`)。`false` なら認可ポリシーを素通しにし、端末の一致検証も省く (`template-web-mvc` の「認証なしで使える」と同じ考え。テストと SampleData ツールは両方で通す)
+
+### 8a 管理画面ログイン (サーバ)
+
+- [ ] `Core`: `AccountEntity` / `AccountAccessor` (`Create` / 一覧 / 名前検索 / 追加 / 更新 / 削除)、`Infrastructure/Security` の `IPasswordProvider` + `DefaultPasswordProvider` (PBKDF2) を `template-maui-server` から移植。`Accounts` は db-design §3 に追加 (§7 の「テンプレート既存」は誤り。ベースの `Service-CloudManager` に認証はない)
+- [ ] `Host`: `AuthSetting` (`Enabled` / `ExpireMinutes` / `InitialName` / `InitialPassword`)、`ConfigureAuthentication` (Cookie: `LoginPath=/login`、`/api` 配下は 401 / 403 を返す)、`/auth/login` `/auth/logout` (form POST)、`Login.razor` + `LoginLayout` + `RedirectToLogin`、`Routes.razor` を `AuthorizeRouteView` に、`NavMenu` にユーザー名とログアウト。起動時に `Accounts` が空なら初期アカウント (`appsettings` の `Auth:InitialName` / `InitialPassword`、既定 `admin` / `admin`) を投入
+- [ ] ユーザー S-92 (`/accounts`、ナビ「設定 › ユーザー」): 一覧、追加、パスワード変更、役割、無効化、削除 (自分自身は不可)
+- [ ] 全ページに `[Authorize]`。マスタ (商品 / 部門 / 税率 / 値引 / 支払方法 / 調整理由 / 店舗 / 端末 / スタッフ) の編集・削除、会社設定、ユーザー、端末登録は `Policies.Administrator` (Operator にはボタンを出さない + `AuthorizeView`)
+
+### 8b 端末登録 (サーバ)
+
+- [ ] `TerminalTokens` テーブル (`Id`, `TerminalId`, `PairingCode`, `PairingExpiresAt`, `TokenHash`, `DeviceName`, `PairedAt`, `RevokedAt`, `CreatedAt`)。端末ごとに有効なトークンは 1 つ (再ペアリングで旧トークンは失効)
+- [ ] S-71 レジ端末: [ペアリングコード発行] (6 桁、10 分有効。ダイアログにコードと設定 QR (`ApiEndPoint` + `PairingCode`、[D-24](decisions.md#d-24-端末セットアップ-qr-テンプレート互換フォーマット) の形式に項目追加) を表示)、[登録の解除]、一覧に登録状態チップ (未登録 / 登録済み (端末名・日時) / 解除)
+- [ ] `POST /terminals/pair` (匿名): `{ pairingCode, deviceName, appVersion }` → `{ token, terminal, store }`。不一致・期限切れ・使用済みは 422 `PAIRING_CODE_INVALID`。成功でコードを消費し `LastSeenAt` / `AppVersion` を更新
+- [ ] `POST /terminals/me/heartbeat` (端末): `{ appVersion }` → `LastSeenAt` / `AppVersion`。現状は取引登録時にしか `LastSeenAt` が動かないため、ダッシュボードの通信状態をこれで出す
+- [ ] `TerminalTokenAuthenticationHandler` (スキーム `Terminal`): Bearer → SHA-256 → `TerminalTokens` 照合 → クレーム `terminalId` / `storeId` / 役割 `Terminal`。失効済み・不明は 401。照合結果は短時間 (1 分) キャッシュ
+- [ ] OpenAPI に Bearer のセキュリティスキームを載せ、Swagger UI から試せるようにする (管理向けは Cookie のままブラウザで通る)
+
+### 8c 認可 (サーバ)
+
+- [ ] ポリシー: `Api` (Cookie または Terminal)、`Admin` (Cookie)、`Administrator` (Cookie + 役割)。`/api/v1` 全体に `Api`、api-design の用途が「管理」だけの endpoint は `Admin`、マスタ・会社設定の書き込みは `Administrator`。api-design §2 に「認証」節を追加し、各表に列を足す
+- [ ] 端末クレームとの一致検証 (`TERMINAL_MISMATCH` 403): `sync/*` (自店在庫)、`shifts` (開設・入出金・精算・current)、`transactions` (登録・取消)、`inventory/changes`、`terminals/me/*`。Cookie の要求には適用しない
+- [ ] 役割検証: `requiresApproval` の値引は `approvedByStaffId` が必須で Manager 以上 (現状は保存するだけで検証していない)。取消は `TransactionVoidRequest` に `approvedByStaffId?` を追加し、`staffId` が Cashier なら承認者が必須。担当・承認者は有効で、その店舗 (または本部) に所属していること
+- [ ] `Auth:Enabled=false`: 全ポリシーを `RequireAssertion(true)` にし、一致検証と役割検証のうちクレームに依存する部分を省く (役割検証は残す)
+
+### 8d 端末
+
+- [ ] `HttpService`: `SecureStorage` の端末トークンを Bearer で付与。401 は「端末登録が無効です」の通知 → トークンを破棄して T-00 へ (ローカル DB と Outbox は保持し、再登録後に送信を続ける)
+- [ ] T-00 初期設定: 入力を「サーバ URL + ペアリングコード」に変更 (店舗 ID / 端末 ID の手入力は廃止)。設定 QR (`ApiEndPoint` + `PairingCode`) の読取 → `POST /terminals/pair` → トークン・店舗・端末を保存 → 全件同期。`SettingParser` は `PairingCode` を読む
+- [ ] T-91 PIN ログイン: T-01 で担当を選んだら PIN 入力 (`InputNumber` のマスク表示、4〜6 桁) → `PinHasher.Verify`。PIN 未設定のスタッフはチップ「PIN 未設定」で選べない。3 回失敗で担当選択へ戻る。ログイン中の担当の役割を `Session` に持つ
+- [ ] 承認: 明細値引 / 取引値引の承認者選択 (P-13 / P-15) に承認者の PIN 入力を追加。取消 (T-31) は担当が Cashier なら承認者選択 + PIN (`approvedByStaffId`)、Manager 以上はそのまま
+- [ ] T-90 設定・同期: 端末登録の状態 (端末名・登録日時)、[登録の解除] (トークン破棄 → T-00)。`SyncWorker` の周期で heartbeat (5 分に 1 回)
+- [ ] ローカル DB: `Staff.PinHash` 列 (端末向け `StaffResponse.PinHash`)、`SyncState` のスキーマ版 (違えばマスタ表を作り直して全件同期)
+- [ ] スタッフ S-72 に PIN 設定 (Administrator。`PinHasher` でハッシュ化)。初期データのスタッフに PIN (`0000` 〜) を入れる
+
+### 8e ツール・テスト・docs
+
+- [ ] `Pos.Server.SampleData`: `--user` / `--password` (既定 `admin` / `admin`) で `/auth/login` し、Cookie で呼ぶ。`Auth:Enabled=false` のサーバではそのまま通る
+- [ ] 統合テスト: `TestApplicationFactory` に管理者ログイン (Cookie) と端末ペアリング (Bearer) のヘルパーを足し、既存テストは管理者クライアントに切り替える。追加: 匿名 401、Operator のマスタ更新 403、端末の店舗不一致 403、期限切れペアリングコード 422、承認なし値引 422、Cashier の取消 422、失効トークン 401、`Auth:Enabled=false` で匿名が通ること
+- [ ] 単体テスト: `PinHasher` (`Pos.Domain.Tests`)、`Login` ページ (bUnit)
+- [ ] docs: api-design §2 に認証、§3.3 にペアリング / heartbeat、§5 にエラーコード、§7 から削除。db-design §3 に `Accounts` / `TerminalTokens`。screen-design の T-00 / T-01 / T-91 / S-71 / S-72 / S-92。architecture §3 / §5 / §6。D-09 の「当面の扱い」を更新し D-43 を追加。README の起動手順 (ログイン、ペアリング)
+
+### 完了条件
+
+- [ ] 未ログインで管理画面を開くと `/login` へ。`admin` でログインしてユーザーを追加し、Operator でログインするとマスタ編集の操作が出ず、API も 403
+- [ ] 初期化した端末からペアリングコードで登録 → PIN ログイン → 販売 → 送信が通る。管理画面で登録を解除すると次の通信で 401 になり T-00 に戻り、再登録後に Outbox の送信が続く。機内モードでも PIN ログインできる
+- [ ] Cashier で承認が必要な値引・取消を行うと承認者の PIN が求められ、承認なしの要求はサーバでも 422 になる
+- [ ] 統合テスト緑、警告ゼロ、InspectCode の指摘ゼロ
+
+---
+
+## Phase 9: 日次締め
+
+[D-16](decisions.md#d-16-日次締めは-phase-2)。店舗 × 営業日の締めをサーバで確定し、締め後の変更を制御する。
+
+### 9a DB / API
+
+- [ ] `DailyClosings` (`Id`, `StoreId`, `BusinessDate` (店舗と組で UQ), `ClosedAt`, `ClosedBy` (管理画面のアカウント名), `ShiftCount`, `SalesCount`, `ReturnCount`, `VoidCount`, `CustomerCount`, `SalesTotal`, `ReturnsTotal`, `DiscountTotal`, `TaxTotal`, `NetSales`, `PointsEarned`, `PointsRedeemed`, `Version`)、`DailyClosingPayments` (支払方法別)、`DailyClosingTaxes` (税率別)。集計は `SalesSummaryQuery` を共用
+- [ ] `POST /daily-closings` (管理): `{ storeId, businessDate }`。その日のシフトに Open が残っていれば 422 `SHIFT_STILL_OPEN`、締め済みは 409 `ALREADY_CLOSED`。`GET /daily-closings?storeId&from&to`、`GET /daily-closings/{id}` (内訳とシフト一覧)、`DELETE /daily-closings/{id}` (締め解除、Administrator)
+- [ ] 取引側の制約: 締め済みの店舗 × 営業日の取引は取消不可 (422 `DAY_CLOSED`)。締め後に届いた同日の取引 (端末のオフライン分) は受け付けて `warnings[]` に `DAY_ALREADY_CLOSED` を付け、`DailyClosings.HasLateTransactions` を立てる (再締めで取り込む)
+
+### 9b 管理画面
+
+- [ ] S-90 日次締め (`/daily-closings`、ナビ「精算 › 日次締め」): 店舗 × 営業日の一覧 (直近 30 日。状態チップ: 未締め / 締め済み / 締め後の取引あり、未精算シフト数)、[締め] ダイアログ (未精算シフトの警告、日計プレビュー)、詳細ダイアログ (日計、支払方法別、税率別、シフト一覧)、[売上日報 PDF]、[締め解除] (Administrator)
+- [ ] ダッシュボードに「前日までの未締め」警告と件数
+
+### 9c 端末
+
+- [ ] 変更なし (締め済みの日の取消はサーバが 422 で拒否し、Outbox の要確認として表示される)。T-31 の取消確認に「営業日が締め済みなら取消できない」旨を出すかは着手時に判断
+
+### 完了条件
+
+- [ ] 統合テスト: 未精算で 422 → 精算後に締め → 取消 422 → 締め後の再送取引に warning → 解除 → 再締めで取り込み
+- [ ] 画面: 一覧・締め・詳細・PDF・解除。警告ゼロ、InspectCode ゼロ、テスト緑
+
+---
+
+## Phase 10: 受注 (取り寄せ・取り置き)
+
+[D-01](decisions.md#d-01-取引モデル-一体型-vs-分離型) の「受注は将来」。会計はこれまでどおり取引 1 回で行い、受注は会計前の約束 (取り寄せ / 取り置き) を管理するリソースにする。前受金 (内金) は対象外。
+
+### 10a DB / API
+
+- [ ] `Orders` (`Id` (端末採番), `OrderNo` (`{店舗コード}-O-{連番}`), `StoreId`, `TerminalId?`, `StaffId`, `CustomerId?`, `CustomerName`, `Phone`, `Type` (`BackOrder` 取り寄せ / `Hold` 取り置き), `Status` (`Ordered` → `Arrived` → `Completed` / `Cancelled`), `RequestedDate?`, `Note`, `TransactionId?`, `OrderedAt`, `ArrivedAt?`, `CompletedAt?`, `CancelledAt?`, `Version`)、`OrderLines` (`ProductId`, `Quantity`, `UnitPrice`, `Note`)。取り置きは登録時点で `Arrived`
+- [ ] `POST /orders` (端末 / 管理、同一 id は 200)、`GET /orders?storeId&status&customerId&keyword&from&to`、`GET /orders/{id}`、`PUT /orders/{id}` (`Ordered` のみ)、`POST /orders/{id}/arrive`、`POST /orders/{id}/cancel`
+- [ ] 会計との紐付け: `TransactionRequest.OrderId?`。登録時に受注が `Arrived` でなければ 422 `ORDER_NOT_READY`、成功で `Orders.TransactionId` + `Completed`。取引の取消で `Arrived` に戻す。`TransactionResponse` に `orderId` / `orderNo`
+- [ ] 在庫は会計時に減る (受注時の引当はしない)。取り寄せの入荷は Phase 14 の入荷とは独立 (状態だけ)
+
+### 10b 管理画面
+
+- [ ] S-91 受注 (`/orders`、ナビ「取引 › 受注」): 一覧 (店舗・状態・種別・期間・キーワード)、詳細 / 編集ダイアログ (連絡先・明細・希望日・備考)、[入荷] [キャンセル]、完了した受注から取引詳細 S-21 へ
+- [ ] 会員詳細 S-61 に受注タブ、ダッシュボードに「入荷待ち / 引き渡し待ち」件数
+
+### 10c 端末
+
+- [ ] ホーム T-02 に「受注」タイル (最下段を「受注 / 設定・同期」の 2 列に)
+- [ ] T-92 受注一覧 (自店、状態フィルタ、検索。オンライン限定) → 詳細 → [会計へ] (明細をカートに展開し会員を設定、`SalesState.OrderId` を持って T-10 へ。会計で `orderId` を送る)、[入荷] [キャンセル]
+- [ ] T-10 販売の [⋯] に「受注にする」: 会員 (または宛名・電話)、種別、希望日、備考 → `POST /orders` (オンライン限定) → カートをクリア。会計時に受注から来た取引はレシートに受注番号を印字
+
+### 完了条件
+
+- [ ] 端末で受注 → 管理画面で入荷 → 端末で会計 → `Completed`、取消で `Arrived` に戻る。`Ordered` のまま会計すると 422
+- [ ] 統合テスト (登録 / 状態遷移 / 会計 / 取消)、警告ゼロ、InspectCode ゼロ
+
+---
+
+## Phase 11: 商品画像・CSV 取込
+
+### 11a 商品画像
+
+- [ ] `PUT /products/{id}/image` (multipart、JPEG / PNG、2 MB まで) → `Storage:ImageDirectory` (既定 `App_Data/images/products`) に `{id}.{ext}` で保存し `ImageUrl` = `/api/v1/products/{id}/image?v={version}`。`GET /products/{id}/image` (`Api`)、`DELETE /products/{id}/image`。縮小はしない (サイズ制限のみ)
+- [ ] S-51 商品編集に画像 (プレビュー、アップロード、削除)、S-50 一覧にサムネイル列
+- [ ] 端末: 商品照会 T-60 と検索 T-12 に画像。オンラインで取得して `FileSystem.CacheDirectory` にキャッシュ (`v` が変わったら取り直す)、オフラインはキャッシュのみ
+
+### 11b CSV 取込
+
+- [ ] `POST /products/import` (multipart CSV。列は `GET /products/csv` と同じ。`dryRun=true` でプレビュー): 行ごとに `Insert` / `Update` (コード一致) / `Error` (メッセージ) を返す。部門・税率はコードで参照。エラーが 1 行でもあれば取り込まず 422 で行結果を返す (全件成功のときだけ 1 トランザクションで反映)
+- [ ] S-52 取込ダイアログ (`MudFileUpload` → プレビュー表 (結果チップ) → [取込])。初期データと同じ 33 商品の CSV を `docs/samples/products.csv` に置く
+
+### 完了条件
+
+- [ ] 画像をアップロードして端末に表示される (オフラインではキャッシュ)。CSV で新規 / 更新 / エラーの各行が期待どおりになる
+- [ ] 統合テスト (画像の PUT / GET / DELETE、取込の dryRun / 成功 / エラー)、警告ゼロ、InspectCode ゼロ
+
+---
+
+## Phase 12: レシート・帳票・検索の拡張
+
+### 12a レシート PDF (サーバ)
+
+- [ ] `GET /transactions/{id}/receipt/pdf` ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport))。テンプレート `Assets/Reports/Receipt.xlsx` (レシート幅相当の 1 列)、`ReceiptReportBuilder`。内容は端末の `ReceiptFormatter` と同じ項目 (`Pos.Domain` に共通の行生成を寄せるかは着手時に判断)
+- [ ] S-21 取引詳細に [レシート PDF]
+
+### 12b 端末の印刷
+
+- [ ] T-22 レシート / T-52 精算レポートの [印刷] を有効化: Android の印刷フレームワーク (`PrintManager` + `PrintDocumentAdapter`) にレシート画像 / レポートのテキストを渡す (「PDF に保存」や対応プリンタで出力)。Bluetooth レシートプリンタ (ESC/POS) は対象外として記録
+
+### 12c 検索・送信
+
+- [ ] シリアル番号検索: `GET /transactions?serialNumber=` (完全一致)、S-20 のフィルタ、T-30 取引履歴の検索欄 (オンライン限定)
+- [ ] `POST /transactions/batch` (要素ごとの結果)。`SyncWorker` は Outbox に取引が連続して 10 件以上溜まっているときだけ使う (任意。着手時に効果を見て省いてもよい)
+
+### 完了条件
+
+- [ ] レシート PDF が端末表示と同じ内容で出る。エミュレータで [印刷] → 「PDF に保存」が動く。シリアルで取引が引ける
+- [ ] 統合テスト、警告ゼロ、InspectCode ゼロ
+
+---
+
+## Phase 13: 通知 (SignalR)
+
+### 13a 端末向けハブ
+
+- [ ] `/hubs/terminal` (端末トークンで認証、`Groups` は店舗単位): `MasterUpdated(kind)` (マスタ保存時に管理画面 / API から `IHubContext` で送る)、`TerminalRevoked` (登録解除)
+- [ ] 端末: `SyncWorker` が `HubConnection` を保持し、接続中は 5 分周期の差分同期を通知駆動にする (切断時は従来の周期に戻る)。接続状態を通信インジケータと T-90 に表示。heartbeat はハブ接続中は不要
+
+### 13b 管理画面の自動更新
+
+- [ ] プロセス内の `ChangeNotifier` (シングルトン、種別ごとのイベント): 取引・シフト・在庫変動の登録時に発火し、ダッシュボードと開設中シフト・端末の通信状態・要確認を自動更新する (Blazor Server 内なので SignalR クライアントは使わない)
+
+### 完了条件
+
+- [ ] 管理画面で商品を保存すると端末が数秒で再同期する。端末を解除すると即座に T-00 へ。ダッシュボードが端末の販売で更新される
+- [ ] 統合テスト (ハブ接続の認証)、警告ゼロ、InspectCode ゼロ
+
+---
+
+## Phase 14: 在庫移動・入荷
+
+### 14a DB / API
+
+- [ ] `Suppliers` (仕入先マスタ: コード・名称・連絡先)、`InventoryReceipts` (入荷: 店舗・仕入先・伝票番号・入荷日・状態 `Draft` → `Received`) + 明細 (商品・数量・原価)。受領で `InventoryChangeType.Receive` (+数量) を記録
+- [ ] `InventoryTransfers` (店舗間移動: 出荷店・入荷店・状態 `Requested` → `Shipped` → `Received` / `Cancelled`) + 明細。出荷で `TransferOut` (−)、受領で `TransferIn` (+)
+- [ ] API: `/inventory/suppliers`、`/inventory/receipts` (登録・一覧・詳細・受領)、`/inventory/transfers` (登録・一覧・詳細・出荷・受領・キャンセル)。変動履歴の `type` フィルタに新種別を追加
+
+### 14b 管理画面
+
+- [ ] S-45 入荷、S-46 移動、S-57 仕入先 (一覧・編集・状態遷移)。在庫変動履歴 S-42 の種別に追加。ダッシュボードに「未受領の移動」件数
+
+### 14c 端末
+
+- [ ] T-71 入荷検品 / T-72 移動受領: 自店宛の未受領一覧 → スキャンで数量を確認 → 受領 (オンライン限定)。`SampleData` の「サンプル入荷」を入荷 (`Receive`) に置き換える
+
+### 完了条件
+
+- [ ] 入荷と店舗間移動が在庫と変動履歴に反映される (他店在庫照会で確認)。統合テスト、警告ゼロ、InspectCode ゼロ

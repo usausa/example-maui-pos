@@ -857,6 +857,8 @@ API 設計が前提にしている MAUI 側の動き。通信は `HttpService` (
 
 ## 7. Phase 2 以降 (後回し)
 
+実装の順序と各項目のチェックリストは [implementation-plan.md の Phase 8 以降](implementation-plan.md#phase-8-以降-後回し項目の計画) ([D-42](decisions.md#d-42-後回し項目の実装順序-phase-8-以降))。各フェーズの着手時に本書へ節を追加する。シリアル入力 UI と帳票 PDF (精算レポート・売上日報) は MVP で実装済み。
+
 | 領域 | 内容 | 参考 |
 | --- | --- | --- |
 | 認証・端末登録 | テンプレートの JWT (`/api/account/login` / `TokenService`) を土台に、管理画面でワンタイムコード発行 → `POST /terminals/pair` で端末トークン取得。`POST /auth/login` (スタッフコード + PIN) → JWT。役割による認可 (取消 / 値引承認 / 精算 / マスタ編集)。`POST /terminals/me/heartbeat`。管理画面ログイン (Cookie) はテンプレートのまま | Square Devices API / スマレジ 役割 |

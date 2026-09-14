@@ -4,9 +4,9 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 
 | 文書 | 内容 |
 | --- | --- |
-| [decisions.md](decisions.md) | **設計判断の記録**。検討した選択肢・採用した案・意図・設計への反映 (D-00 〜 D-41) |
+| [decisions.md](decisions.md) | **設計判断の記録**。検討した選択肢・採用した案・意図・設計への反映 (D-00 〜 D-42) |
 | [architecture.md](architecture.md) | ソリューション構成。参考プロジェクトとの対応、プロジェクト・層・パッケージ、初期データ、実装時の確認事項 |
-| [implementation-plan.md](implementation-plan.md) | 実装プラン。フェーズごとのチェックリストと完了条件 |
+| [implementation-plan.md](implementation-plan.md) | 実装プラン。フェーズごとのチェックリストと完了条件 (Phase 0〜7 完了、Phase 8〜14 は計画) |
 | [api-survey.md](api-survey.md) | 公開 POS API (Square / Clover / Lightspeed / Loyverse / スマレジ) の調査と共通モデル |
 | [api-design.md](api-design.md) | サーバ API 設計。共通仕様、リソース別エンドポイントと Request / Response、金額・税・ポイント計算仕様、エラーコード、端末の同期フロー |
 | [db-design.md](db-design.md) | サーバ DB 設計 (SQLite)。ER 図、テーブル定義、DDL 例、更新の単位、端末ローカル DB |

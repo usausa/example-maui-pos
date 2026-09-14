@@ -825,7 +825,7 @@ MAUI 側のローカル DB。`template-maui` 系テンプレートと同じく `
 
 ## 7. Phase 2 のテーブル
 
-設計だけ先に置く。MVP の `Create.sql` には含めない。
+設計だけ先に置く。MVP の `Create.sql` には含めない。実装は [implementation-plan.md の Phase 8 以降](implementation-plan.md#phase-8-以降-後回し項目の計画) で、着手時に §3 へ定義を移す。
 
 | テーブル | 内容 |
 | --- | --- |
