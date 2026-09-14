@@ -17,12 +17,14 @@
             <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
             @foreach (var category in categories)
             {
-                <MudSelectItem T="Guid?" Value="category.Id">@(category.ParentId is null ? string.Empty : "　")@category.Name</MudSelectItem>
+                <MudSelectItem T="Guid?" Value="category.Id">@category.ToIndentedName()</MudSelectItem>
             }
         </MudSelect>
-        <MudSelect T="string" @bind-Value="sort" Label="並び順" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 130px;">
-            <MudSelectItem T="string" Value="@("netSales")">純売上順</MudSelectItem>
-            <MudSelectItem T="string" Value="@("quantity")">数量順</MudSelectItem>
+        <MudSelect T="ProductSalesSort" @bind-Value="sort" Label="並び順" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 130px;">
+            @foreach (var value in Enum.GetValues<ProductSalesSort>())
+            {
+                <MudSelectItem T="ProductSalesSort" Value="value">@value.ToDisplayName()</MudSelectItem>
+            }
         </MudSelect>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">集計</MudButton>
     </MudStack>
@@ -43,15 +45,15 @@
         <MudTh Style="text-align: right;">粗利</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd>@Rank(rows.IndexOf(context) + 1)</MudTd>
+        <MudTd>@ViewHelper.RankText(rows.IndexOf(context) + 1)</MudTd>
         <MudTd>@context.ProductCode @context.ProductName</MudTd>
         <MudTd>@context.CategoryName</MudTd>
-        <MudTd Style="text-align: right;">@DisplayText.Quantity(context.QuantitySold)</MudTd>
-        <MudTd Style="text-align: right;">@DisplayText.Quantity(context.QuantityReturned)</MudTd>
-        <MudTd Style="text-align: right;">@DisplayText.Quantity(context.NetQuantity)</MudTd>
-        <MudTd Style="text-align: right;"><strong>@DisplayText.Yen(context.NetSales)</strong></MudTd>
-        <MudTd Style="text-align: right;">@DisplayText.Yen(context.DiscountTotal)</MudTd>
-        <MudTd Style="text-align: right;">@DisplayText.Yen(context.GrossProfit)</MudTd>
+        <MudTd Style="text-align: right;">@context.QuantitySold.ToQuantityText()</MudTd>
+        <MudTd Style="text-align: right;">@context.QuantityReturned.ToQuantityText()</MudTd>
+        <MudTd Style="text-align: right;">@context.NetQuantity.ToQuantityText()</MudTd>
+        <MudTd Style="text-align: right;"><strong>@context.NetSales.ToYen()</strong></MudTd>
+        <MudTd Style="text-align: right;">@context.DiscountTotal.ToYen()</MudTd>
+        <MudTd Style="text-align: right;">@context.GrossProfit.ToYen()</MudTd>
     </RowTemplate>
     <NoRecordsContent>
         <MudText>期間内の売上がありません。</MudText>

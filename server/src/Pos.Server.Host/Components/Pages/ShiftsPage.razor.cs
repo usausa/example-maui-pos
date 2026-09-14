@@ -4,40 +4,33 @@ using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
-using Pos.Server.Accessors;
 using Pos.Server.Host.Components.Dialogs;
-using Pos.Server.Host.Infrastructure.Components;
-using Pos.Server.Host.Mappers;
-using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
+using Pos.Server.Models.Views;
+using Pos.Server.Services;
 
 // S-30 シフト一覧
 public sealed partial class ShiftsPage
 {
-    private static readonly string[] SortColumns = ["OpenedAt", "BusinessDate", "ClosedAt"];
-
-    private MudDataGrid<ShiftRow> Grid { get; set; } = default!;
+    private MudDataGrid<ShiftDetail> Grid { get; set; } = default!;
 
     private NameLookup names = new();
-
     private DateRange? period;
-
     private Guid? storeId;
-
     private Guid? terminalId;
-
     private ShiftStatus? status;
 
     [Inject]
-    public required ShiftAccessor ShiftAccessor { get; set; }
+    public required ShiftService ShiftService { get; set; }
 
     [Inject]
-    public required StoreAccessor StoreAccessor { get; set; }
+    public required StoreService StoreService { get; set; }
 
     [Inject]
-    public required TerminalAccessor TerminalAccessor { get; set; }
+    public required TerminalService TerminalService { get; set; }
 
     [Inject]
-    public required StaffAccessor StaffAccessor { get; set; }
+    public required StaffService StaffService { get; set; }
 
     [Inject]
     public required StoreFilterState StoreFilter { get; set; }
@@ -47,7 +40,7 @@ public sealed partial class ShiftsPage
         storeId = StoreFilter.StoreId;
         return LoadAsync(async () =>
         {
-            names = await NameLookup.LoadAsync(StoreAccessor, TerminalAccessor, StaffAccessor, null, CancellationToken);
+            names = await NameLookup.LoadAsync(StoreService, TerminalService, StaffService, null, CancellationToken);
         });
     }
 
@@ -56,24 +49,26 @@ public sealed partial class ShiftsPage
     //--------------------------------------------------------------------------------
 
     // Open 中は取引から都度集計し、Closed は確定値
-    private async Task<GridData<ShiftRow>> LoadServerData(GridState<ShiftRow> state, CancellationToken cancellationToken)
+    private async Task<GridData<ShiftDetail>> LoadServerData(GridState<ShiftDetail> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
-        var order = SqlHelper.NormalizeSort(SortColumns, "OpenedAt", sort?.SortBy.Replace("Shift.", string.Empty, StringComparison.Ordinal), sort?.Descending ?? true);
-        var from = period?.Start is null ? (DateOnly?)null : DateOnly.FromDateTime(period.Start.Value);
-        var to = period?.End is null ? (DateOnly?)null : DateOnly.FromDateTime(period.End.Value);
-
-        var total = await ShiftAccessor.CountAsync(storeId, terminalId, status, from, to, cancellationToken);
-        var shifts = await ShiftAccessor.QueryListAsync(storeId, terminalId, status, from, to, order, state.PageSize, state.Page * state.PageSize, cancellationToken);
-        var rows = new List<ShiftRow>(shifts.Count);
-        foreach (var shift in shifts)
+        var parameter = new ShiftQueryParameter
         {
-            var totals = await ShiftMapper.ResolveTotalsAsync(ShiftAccessor, shift, cancellationToken);
-            rows.Add(new ShiftRow(shift, ShiftMapper.ExpectedCash(shift.OpeningCash, totals), totals.SalesTotal, totals.SalesCount));
-        }
-
-        return new GridData<ShiftRow> { TotalItems = (int)total, Items = rows };
+            StoreId = storeId,
+            TerminalId = terminalId,
+            Status = status,
+            From = ToDateOnly(period?.Start),
+            To = ToDateOnly(period?.End),
+            Sort = sort?.SortBy.Replace("Shift.", string.Empty, StringComparison.Ordinal),
+            Desc = sort?.Descending ?? true,
+            Page = state.Page,
+            Size = state.PageSize
+        };
+        var result = await ShiftService.QueryDetailPageAsync(parameter, cancellationToken);
+        return new GridData<ShiftDetail> { TotalItems = result.Total, Items = result.Items };
     }
+
+    private static DateOnly? ToDateOnly(DateTime? value) => value is null ? null : DateOnly.FromDateTime(value.Value);
 
     private Task SearchAsync() => Grid.ReloadServerData();
 
@@ -85,7 +80,7 @@ public sealed partial class ShiftsPage
         return SearchAsync();
     }
 
-    private async Task OnRowClick(DataGridRowClickEventArgs<ShiftRow> args)
+    private async Task OnRowClick(DataGridRowClickEventArgs<ShiftDetail> args)
     {
         var reference = await DialogService.ShowAsync<ShiftDetailDialog>(
             string.Empty,
@@ -97,6 +92,4 @@ public sealed partial class ShiftsPage
             Styles.LargeDialog);
         await reference.Result;
     }
-
-    private sealed record ShiftRow(ShiftEntity Shift, decimal ExpectedCash, decimal SalesTotal, int SalesCount);
 }

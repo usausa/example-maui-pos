@@ -30,10 +30,10 @@
 
 <ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
 
-<MudDataGrid @ref="Grid" T="ShiftRow" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
+<MudDataGrid @ref="Grid" T="ShiftDetail" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
     <Columns>
         <PropertyColumn Property="x => x.Shift.BusinessDate" Title="営業日" InitialDirection="SortDirection.Descending">
-            <CellTemplate>@DisplayText.Date(context.Item.Shift.BusinessDate)</CellTemplate>
+            <CellTemplate>@context.Item.Shift.BusinessDate.ToDateText()</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="店舗 / 端末" Sortable="false">
             <CellTemplate>@names.Store(context.Item.Shift.StoreId) / @names.Terminal(context.Item.Shift.TerminalId)</CellTemplate>
@@ -42,28 +42,28 @@
             <CellTemplate>@names.StaffName(context.Item.Shift.OpenedByStaffId)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="状態" Sortable="false">
-            <CellTemplate><StatusChip Value="@ChipText.Status(context.Item.Shift.Status)" /></CellTemplate>
+            <CellTemplate><StatusChip Value="@ViewHelper.StatusChip(context.Item.Shift.Status)" /></CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.Shift.OpenedAt" Title="開設">
-            <CellTemplate>@DisplayText.DateTime(context.Item.Shift.OpenedAt)</CellTemplate>
+            <CellTemplate>@context.Item.Shift.OpenedAt.ToDateTimeText()</CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.Shift.ClosedAt" Title="精算">
-            <CellTemplate>@DisplayText.DateTime(context.Item.Shift.ClosedAt)</CellTemplate>
+            <CellTemplate>@context.Item.Shift.ClosedAt.ToDateTimeText()</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="売上" Sortable="false" CellStyle="text-align: right;">
-            <CellTemplate>@DisplayText.Yen(context.Item.SalesTotal) (@context.Item.SalesCount 件)</CellTemplate>
+            <CellTemplate>@context.Item.Totals.SalesTotal.ToYen() (@context.Item.Totals.SalesCount 件)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="予想現金" Sortable="false" CellStyle="text-align: right;">
-            <CellTemplate>@DisplayText.Yen(context.Item.ExpectedCash)</CellTemplate>
+            <CellTemplate>@context.Item.ExpectedCash.ToYen()</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="実査" Sortable="false" CellStyle="text-align: right;">
-            <CellTemplate>@DisplayText.Yen(context.Item.Shift.ActualCash)</CellTemplate>
+            <CellTemplate>@context.Item.Shift.ActualCash.ToYen()</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="過不足" Sortable="false">
             <CellTemplate>
                 @if (context.Item.Shift.Status == ShiftStatus.Closed)
                 {
-                    <StatusChip Value="@ChipText.Difference(context.Item.Shift.Difference)" />
+                    <StatusChip Value="@ViewHelper.DifferenceChip(context.Item.Shift.Difference)" />
                 }
             </CellTemplate>
         </TemplateColumn>
@@ -72,6 +72,6 @@
         <MudText>シフトがありません。</MudText>
     </NoRecordsContent>
     <PagerContent>
-        <MudDataGridPager T="ShiftRow" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
+        <MudDataGridPager T="ShiftDetail" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
     </PagerContent>
 </MudDataGrid>

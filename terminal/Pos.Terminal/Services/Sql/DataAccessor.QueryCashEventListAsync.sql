@@ -1,1 +1,8 @@
-SELECT * FROM CashEvents WHERE ShiftId = /*@ shiftId */'' ORDER BY OccurredAt
+SELECT
+    *
+FROM
+    CashEvents
+WHERE
+    ShiftId = /*@ shiftId */''
+ORDER BY
+    OccurredAt

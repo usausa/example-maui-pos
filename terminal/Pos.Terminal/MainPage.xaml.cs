@@ -1,5 +1,6 @@
 namespace Pos.Terminal;
 
+using Pos.Terminal.Modules;
 using Pos.Terminal.Shell;
 
 public sealed partial class MainPage
@@ -9,13 +10,20 @@ public sealed partial class MainPage
         InitializeComponent();
     }
 
+    // 根の画面 (戻るを扱わない画面) ではプラットフォームの既定動作に任せる
     protected override bool OnBackButtonPressed()
     {
-        if (BindingContext is MainPageViewModel { BusyState.IsBusy: false } context)
+        if (BindingContext is not MainPageViewModel { BusyState.IsBusy: false } context)
         {
-            context.Navigator.NotifyAsync(ShellEvent.Back);
+            return true;
         }
 
+        if (context.Navigator.CurrentTarget is AppViewModelBase { HandlesBack: false })
+        {
+            return false;
+        }
+
+        context.Navigator.NotifyAsync(ShellEvent.Back);
         return true;
     }
 }

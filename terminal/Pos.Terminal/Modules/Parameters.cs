@@ -1,8 +1,8 @@
 namespace Pos.Terminal.Modules;
 
-using Pos.Shared.Customers;
+using Pos.Contract.Customers;
 
-// スキャン画面の用途 (T-11)
+// スキャン画面の用途
 public enum ScanMode
 {
     // 販売: 読むたびに明細追加して継続
@@ -26,8 +26,7 @@ public static class Parameters
     private const string CustomerIdKey = nameof(CustomerIdKey);
     private const string CallerReturnToKey = nameof(CallerReturnToKey);
     private const string ProductIdKey = nameof(ProductIdKey);
-    private const string ApplyToCartKey = nameof(ApplyToCartKey);
-    private const string StateKey = nameof(StateKey);
+    private const string ContextKey = nameof(ContextKey);
 
     public static NavigationParameter Make() => new();
 
@@ -65,11 +64,11 @@ public static class Parameters
 
     // Customer
 
-    public static NavigationParameter WithCustomer(this NavigationParameter parameter, CustomerResponse? customer) =>
+    public static NavigationParameter WithCustomer(this NavigationParameter parameter, CustomerResponseItem? customer) =>
         customer is null ? parameter : parameter.SetValue(CustomerKey, customer);
 
-    public static CustomerResponse? GetCustomer(this INavigationParameter parameter) =>
-        parameter.TryGetValue<CustomerResponse>(CustomerKey, out var value) ? value : null;
+    public static CustomerResponseItem? GetCustomer(this INavigationParameter parameter) =>
+        parameter.TryGetValue<CustomerResponseItem>(CustomerKey, out var value) ? value : null;
 
     public static NavigationParameter WithCustomerId(this NavigationParameter parameter, Guid id) =>
         parameter.SetValue(CustomerIdKey, id);
@@ -88,14 +87,14 @@ public static class Parameters
     public static ViewId? GetCallerReturnTo(this INavigationParameter parameter) =>
         parameter.TryGetValue<ViewId>(CallerReturnToKey, out var value) ? value : null;
 
-    // 呼び出し元の状態 (スキャン画面がそのまま返す)
+    // 機能の画面間で共有するコンテキスト (販売・返品・棚卸)。スキャンなど途中の画面はそのまま返す
 
-    public static NavigationParameter WithState(this NavigationParameter parameter, object? state) =>
-        state is null ? parameter : parameter.SetValue(StateKey, state);
+    public static NavigationParameter WithContext(this NavigationParameter parameter, object? context) =>
+        context is null ? parameter : parameter.SetValue(ContextKey, context);
 
-    public static T? GetState<T>(this INavigationParameter parameter)
+    public static T? GetContext<T>(this INavigationParameter parameter)
         where T : class =>
-        parameter.TryGetValue<T>(StateKey, out var value) ? value : null;
+        parameter.TryGetValue<T>(ContextKey, out var value) ? value : null;
 
     // Product
 
@@ -104,13 +103,5 @@ public static class Parameters
 
     public static Guid? GetProductId(this INavigationParameter parameter) =>
         parameter.TryGetValue<Guid>(ProductIdKey, out var value) ? value : null;
-
-    // 会員登録後にカートへ紐付ける (会員選択からの新規登録)
-
-    public static NavigationParameter WithApplyToCart(this NavigationParameter parameter) =>
-        parameter.SetValue(ApplyToCartKey, true);
-
-    public static bool GetApplyToCart(this INavigationParameter parameter) =>
-        parameter.TryGetValue<bool>(ApplyToCartKey, out var value) && value;
 }
 #pragma warning restore CA1724

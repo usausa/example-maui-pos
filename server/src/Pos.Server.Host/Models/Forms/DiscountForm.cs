@@ -1,6 +1,10 @@
 namespace Pos.Server.Host.Models.Forms;
 
-public sealed class DiscountForm
+using Pos.Server.Models.Entity;
+
+using Smart.Mapper;
+
+public sealed partial class DiscountForm
 {
     public Guid Id { get; set; }
 
@@ -22,4 +26,11 @@ public sealed class DiscountForm
     public int SortOrder { get; set; }
 
     public int Version { get; set; }
+
+    // Entity ↔ フォーム (サーバ付与項目はサービスが設定する)
+    [Mapper]
+    public static partial DiscountForm ToForm(DiscountEntity entity);
+
+    [Mapper]
+    public static partial DiscountEntity ToEntity(DiscountForm form);
 }

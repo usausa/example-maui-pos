@@ -19,7 +19,7 @@ public enum OutboxStatus
     Failed
 }
 
-// db-design §6 の Outbox。Payload は XxxRequest の JSON
+// 送信待ち。Payload は XxxRequest の JSON
 public sealed class OutboxEntity
 {
     [Key]

@@ -2,34 +2,23 @@ namespace Pos.Terminal.Modules.History;
 
 using Pos.Terminal.Models.Entity;
 
-public sealed record TransactionItem(LocalTransactionEntity Entity, string TypeText, Color TypeColor, string ReceiptNo, string TotalText, string Detail, string SyncText, Color SyncColor);
+// 種別・送信状態の文言と色は画面側の Converter で付ける
+public sealed record TransactionItem(LocalTransactionEntity Entity, TransactionType Type, bool IsVoided, string ReceiptNo, string TotalText, string Detail, OutboxStatus SyncStatus);
 
-// T-30 取引履歴: ローカルの取引を期間・種別で絞り込む。送信状態は Outbox から
+// 取引履歴: ローカルの取引を期間・種別で絞り込む。送信状態は Outbox から
 public sealed partial class TransactionListViewModel : AppViewModelBase
 {
-    private static readonly Color SaleColor = Color.FromArgb("#1E88E5");
-
-    private static readonly Color ReturnColor = Color.FromArgb("#FB8C00");
-
-    private static readonly Color VoidColor = Color.FromArgb("#9E9E9E");
-
-    private static readonly Color SentColor = Color.FromArgb("#43A047");
-
-    private static readonly Color PendingColor = Color.FromArgb("#FB8C00");
-
-    private static readonly Color FailedColor = Color.FromArgb("#E53935");
-
     private static readonly string[] Periods = ["本シフト", "本日", "昨日", "すべて (直近 200 件)"];
 
     private static readonly string[] Types = ["すべて", "販売", "返品", "取消済み"];
 
     private readonly IDialog dialog;
 
-    private readonly DataAccessor accessor;
-
     private readonly Session session;
 
-    private readonly SyncWorker syncWorker;
+    private readonly TransactionUsecase transactions;
+
+    private readonly SyncService sync;
 
     private int period;
 
@@ -44,8 +33,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string CountText { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<TransactionItem> Items { get; set; } = [];
+    public ObservableCollection<TransactionItem> Items { get; } = [];
 
     public IObserveCommand PeriodCommand { get; }
 
@@ -55,14 +43,14 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
 
     public TransactionListViewModel(
         IDialog dialog,
-        DataAccessor accessor,
         Session session,
-        SyncWorker syncWorker)
+        TransactionUsecase transactions,
+        SyncService sync)
     {
         this.dialog = dialog;
-        this.accessor = accessor;
         this.session = session;
-        this.syncWorker = syncWorker;
+        this.transactions = transactions;
+        this.sync = sync;
 
         PeriodCommand = MakeAsyncCommand(ChoosePeriodAsync);
         TypeCommand = MakeAsyncCommand(async () =>
@@ -87,7 +75,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
             PeriodText = Periods[1];
         }
 
-        await LoadAsync();
+        await Navigator.PostActionAsync(LoadAsync);
     }
 
     private async Task ChoosePeriodAsync()
@@ -101,7 +89,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         }
     }
 
-    private async ValueTask LoadAsync()
+    private async Task LoadAsync()
     {
         var shiftId = period == 0 ? session.CurrentShift?.Id : null;
         DateOnly? businessDate = period switch
@@ -117,34 +105,15 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
             _ => (TransactionType?)null
         };
 
-        var list = await accessor.QueryTransactionListAsync(shiftId, businessDate, transactionType, 200);
-        if (type == 3)
-        {
-            list = list.Where(static x => x.Status == TransactionStatus.Voided).ToList();
-        }
-
-        // 未送信 (Pending / Failed) の取引
-        var outbox = (await accessor.QueryOutboxListAsync(null, 1000))
-            .Where(static x => x.Kind is OutboxKind.Transaction or OutboxKind.TransactionVoid)
-            .GroupBy(static x => x.TargetId)
-            .ToDictionary(static g => g.Key, static g => g.Any(static x => x.Status == OutboxStatus.Failed) ? OutboxStatus.Failed : OutboxStatus.Pending);
-
-        Items = list.Select(x =>
-        {
-            var voided = x.Status == TransactionStatus.Voided;
-            var (syncText, syncColor) = outbox.TryGetValue(x.Id, out var status)
-                ? status == OutboxStatus.Failed ? ("⚠ 要確認", FailedColor) : ("⏳ 未送信", PendingColor)
-                : ("✓ 送信済", SentColor);
-            return new TransactionItem(
-                x,
-                voided ? "取消" : DisplayText.Name(x.Type),
-                voided ? VoidColor : x.Type == TransactionType.Return ? ReturnColor : SaleColor,
-                x.ReceiptNo,
-                DisplayText.Yen(x.Total),
-                $"{DisplayText.DateTime(x.TransactedAt)}  {(x.CustomerId is null ? string.Empty : "👤")}",
-                syncText,
-                syncColor);
-        }).ToList();
+        var list = await transactions.QueryListAsync(shiftId, businessDate, transactionType, type == 3, 200);
+        Items.Replace(list.Select(static x => new TransactionItem(
+            x.Transaction,
+            x.Transaction.Type,
+            x.Transaction.Status.IsVoided(),
+            x.Transaction.ReceiptNo,
+            DisplayText.Yen(x.Transaction.Total),
+            $"{DisplayText.DateTime(x.Transaction.TransactedAt)}  {(x.Transaction.CustomerId is null ? string.Empty : "👤")}",
+            x.SyncStatus)));
         CountText = $"{Items.Count} 件";
     }
 
@@ -156,7 +125,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
 
     protected override async Task OnNotifyFunction4()
     {
-        syncWorker.Trigger();
+        sync.Trigger();
         await dialog.Toast("未送信の取引を再送します。");
     }
 }

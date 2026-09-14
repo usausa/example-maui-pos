@@ -1,69 +1,55 @@
 namespace Pos.Terminal.Modules.Main;
 
-// T-02 ホーム: 機能選択。シフト未開設なら販売・返品・入出金は開設へ誘導する
+using Pos.Terminal.Modules.Inventory;
+using Pos.Terminal.Modules.Returns;
+using Pos.Terminal.Modules.Sales;
+
+// ホーム: 機能選択。シフト未開設なら販売・返品・入出金は開設へ誘導する
 public sealed partial class MenuViewModel : AppViewModelBase
 {
-    private static readonly Color OpenColor = Color.FromArgb("#43A047");
-
-    private static readonly Color ClosedColor = Color.FromArgb("#9E9E9E");
-
     private readonly IDialog dialog;
 
     private readonly Session session;
 
-    private readonly SyncWorker syncWorker;
+    private readonly SyncService sync;
 
     [ObservableProperty]
     public partial Version Version { get; set; }
 
+    // シフト状態の文言と色は画面側の Converter で付ける
     [ObservableProperty]
-    public partial string ShiftText { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial Color ShiftColor { get; set; } = ClosedColor;
+    public partial bool IsShiftOpen { get; set; }
 
     [ObservableProperty]
     public partial string ShiftDetail { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial string ShiftButtonText { get; set; } = string.Empty;
-
     public IObserveCommand ForwardCommand { get; }
+
+    // 根の画面: 戻るはプラットフォームに任せる (タスクを背面へ)
+    public override bool HandlesBack => false;
 
     public MenuViewModel(
         IAppInfo appInfo,
         IDialog dialog,
         Session session,
-        SyncWorker syncWorker)
+        SyncService sync)
     {
         this.dialog = dialog;
         this.session = session;
-        this.syncWorker = syncWorker;
+        this.sync = sync;
 
         Version = appInfo.Version;
-
         ForwardCommand = MakeAsyncCommand<ViewId>(NavigateAsync);
     }
 
     public override Task OnNavigatedToAsync(INavigationContext context)
     {
         var shift = session.CurrentShift;
-        if (shift is { Status: ShiftStatus.Open })
-        {
-            ShiftText = "開設中";
-            ShiftColor = OpenColor;
-            ShiftDetail = $"営業日 {DisplayText.Date(shift.BusinessDate)}  {DisplayText.Time(shift.OpenedAt)} 開設  担当 {session.Staff?.Name}";
-            ShiftButtonText = "🔒 精算";
-        }
-        else
-        {
-            ShiftText = "未開設";
-            ShiftColor = ClosedColor;
-            ShiftDetail = $"担当 {session.Staff?.Name}";
-            ShiftButtonText = "🔓 レジ開設";
-        }
-
-        syncWorker.Trigger();
+        IsShiftOpen = session.IsShiftOpen;
+        ShiftDetail = shift is not null && IsShiftOpen
+            ? $"営業日 {DisplayText.Date(shift.BusinessDate)}  {DisplayText.Time(shift.OpenedAt)} 開設  担当 {session.Staff?.Name}"
+            : $"担当 {session.Staff?.Name}";
+        sync.Trigger();
         return Task.CompletedTask;
     }
 
@@ -85,7 +71,6 @@ public sealed partial class MenuViewModel : AppViewModelBase
                 }
 
                 break;
-
             case ViewId.ShiftOpen:
                 if (session.IsShiftOpen)
                 {
@@ -96,12 +81,14 @@ public sealed partial class MenuViewModel : AppViewModelBase
                 break;
         }
 
-        await Navigator.ForwardAsync(id);
-    }
-
-    protected override Task OnNotifyBackAsync()
-    {
-        AndroidHelper.MoveTaskToBack();
-        return Task.CompletedTask;
+        // 機能ごとのコンテキストはここで作る
+        var parameter = id switch
+        {
+            ViewId.Sales => Parameters.Make().WithContext(new SalesContext()),
+            ViewId.Return => Parameters.Make().WithContext(new ReturnContext()),
+            ViewId.StockCount => Parameters.Make().WithContext(new StockContext()),
+            _ => Parameters.Make()
+        };
+        await Navigator.ForwardAsync(id, parameter);
     }
 }

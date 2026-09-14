@@ -1,8 +1,8 @@
 namespace Pos.Terminal.Services;
 
-using Pos.Domain.Sales;
-using Pos.Shared.Transactions;
-using Pos.Terminal.Models.Sales;
+using Pos.Contract.Transactions;
+using Pos.Domain.Logic;
+using Pos.Terminal.Models.Cart;
 
 // 取引の文脈 (店舗・端末・担当・シフト・レシート番号)
 public sealed record TransactionContext(
@@ -17,12 +17,20 @@ public sealed record TransactionContext(
 // Cart → Pos.Domain の計算入力 → TransactionRequest (端末が計算した項目を含む)。サーバは同じ計算で検証する
 public static class TransactionBuilder
 {
+    // 店舗・端末・担当・シフトが揃っているとき (Session.CanTransact) だけ呼ぶ
+    public static TransactionContext CreateContext(Session session, string receiptNo, DateTime transactedAt)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+
+        return new TransactionContext(session.Store!.Id, session.Terminal!.Id, session.Staff!.Id, session.CurrentShift!.Id, receiptNo, session.BusinessDate, transactedAt);
+    }
+
     //--------------------------------------------------------------------------------
     // Sale
     //--------------------------------------------------------------------------------
 
     // 会員がいないときはポイントを付けない (サーバの CUSTOMER_REQUIRED を避ける)
-    public static SalesInput ToSalesInput(Cart cart, IReadOnlyList<CartPayment> payments, TaxRounding taxRounding, PointBasis pointBasis)
+    public static SalesInput ToSalesInput(SalesCart cart, IReadOnlyList<CartPayment> payments, TaxRounding taxRounding, PointBasis pointBasis)
     {
         ArgumentNullException.ThrowIfNull(cart);
         ArgumentNullException.ThrowIfNull(payments);
@@ -61,7 +69,7 @@ public static class TransactionBuilder
         };
     }
 
-    public static TransactionRequest ToRequest(Cart cart, IReadOnlyList<CartPayment> payments, SalesResult result, TransactionContext context)
+    public static TransactionRequest ToRequest(SalesCart cart, IReadOnlyList<CartPayment> payments, SalesResult result, TransactionContext context)
     {
         ArgumentNullException.ThrowIfNull(cart);
         ArgumentNullException.ThrowIfNull(payments);
@@ -162,7 +170,7 @@ public static class TransactionBuilder
     // Return
     //--------------------------------------------------------------------------------
 
-    public static ReturnInput ToReturnInput(TransactionResponse original, IReadOnlyList<(TransactionResponseLine Line, decimal Quantity)> returns, IReadOnlyList<CartPayment> payments, TaxRounding taxRounding)
+    public static ReturnInput ToReturnInput(TransactionResponseItem original, IReadOnlyList<(TransactionResponseItemLine Line, decimal Quantity)> returns, IReadOnlyList<CartPayment> payments, TaxRounding taxRounding)
     {
         ArgumentNullException.ThrowIfNull(original);
         ArgumentNullException.ThrowIfNull(returns);
@@ -190,7 +198,7 @@ public static class TransactionBuilder
         };
     }
 
-    public static TransactionRequest ToReturnRequest(TransactionResponse original, IReadOnlyList<(TransactionResponseLine Line, decimal Quantity)> returns, IReadOnlyList<CartPayment> payments, SalesResult result, TransactionContext context, string? note)
+    public static TransactionRequest ToReturnRequest(TransactionResponseItem original, IReadOnlyList<(TransactionResponseItemLine Line, decimal Quantity)> returns, IReadOnlyList<CartPayment> payments, SalesResult result, TransactionContext context, string? note)
     {
         ArgumentNullException.ThrowIfNull(original);
         ArgumentNullException.ThrowIfNull(returns);
@@ -271,11 +279,11 @@ public static class TransactionBuilder
         payments.Select(static (x, i) => new TransactionRequestPayment { Id = x.Id, SeqNo = i + 1, PaymentMethodId = x.Method.Id, Kind = x.Method.Kind, Amount = x.Amount, TenderedAmount = x.TenderedAmount, Reference = x.Reference }).ToList();
 
     // 端末側の履歴用にサーバ応答と同じ形へ (送信後はサーバの応答で置き換える)
-    public static TransactionResponse ToResponse(TransactionRequest request)
+    public static TransactionResponseItem ToResponse(TransactionRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return new TransactionResponse
+        return new TransactionResponseItem
         {
             Id = request.Id,
             Type = request.Type,
@@ -289,7 +297,7 @@ public static class TransactionBuilder
             BusinessDate = request.BusinessDate,
             TransactedAt = request.TransactedAt,
             OriginalTransactionId = request.OriginalTransactionId,
-            Lines = request.Lines.Select(static x => new TransactionResponseLine
+            Lines = request.Lines.Select(static x => new TransactionResponseItemLine
             {
                 Id = x.Id,
                 LineNo = x.LineNo,
@@ -315,19 +323,19 @@ public static class TransactionBuilder
                 OriginalLineId = x.OriginalLineId,
                 Note = x.Note
             }).ToList(),
-            Discounts = request.Discounts.Select(static x => new TransactionResponseDiscount { Id = x.Id, LineId = x.LineId, DiscountId = x.DiscountId, Name = x.Name, Type = x.Type, Value = x.Value, Amount = x.Amount, Reason = x.Reason, ApprovedByStaffId = x.ApprovedByStaffId }).ToList(),
-            TaxSummaries = request.TaxSummaries.Select(static x => new TransactionResponseTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList(),
+            Discounts = request.Discounts.Select(static x => new TransactionResponseItemDiscount { Id = x.Id, LineId = x.LineId, DiscountId = x.DiscountId, Name = x.Name, Type = x.Type, Value = x.Value, Amount = x.Amount, Reason = x.Reason, ApprovedByStaffId = x.ApprovedByStaffId }).ToList(),
+            TaxSummaries = request.TaxSummaries.Select(static x => new TransactionResponseItemTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList(),
             Subtotal = request.Subtotal,
             DiscountTotal = request.DiscountTotal,
             NetSubtotal = request.NetSubtotal,
             TaxTotal = request.TaxTotal,
             Total = request.Total,
-            Payments = request.Payments.Select(static x => new TransactionResponsePayment { Id = x.Id, SeqNo = x.SeqNo, PaymentMethodId = x.PaymentMethodId, Kind = x.Kind, Amount = x.Amount, TenderedAmount = x.TenderedAmount, Reference = x.Reference, Note = x.Note }).ToList(),
+            Payments = request.Payments.Select(static x => new TransactionResponseItemPayment { Id = x.Id, SeqNo = x.SeqNo, PaymentMethodId = x.PaymentMethodId, Kind = x.Kind, Amount = x.Amount, TenderedAmount = x.TenderedAmount, Reference = x.Reference, Note = x.Note }).ToList(),
             TenderedTotal = request.TenderedTotal,
             ChangeAmount = request.ChangeAmount,
             PointsEarned = request.PointsEarned,
             PointsRedeemed = request.PointsRedeemed,
-            Delivery = request.Delivery is null ? null : new TransactionResponseDelivery
+            Delivery = request.Delivery is null ? null : new TransactionResponseItemDelivery
             {
                 RecipientName = request.Delivery.RecipientName,
                 Phone = request.Delivery.Phone,

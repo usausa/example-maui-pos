@@ -6,10 +6,9 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-using Pos.Domain;
-using Pos.Shared.Transactions;
+using Pos.Contract.Transactions;
 
-// api-design §2.1: camelCase、null は省略、列挙型は文字列、日時は yyyy-MM-ddTHH:mm:ss.fffZ、日付は yyyy-MM-dd
+// JSON の約束: camelCase、null は省略、列挙型は文字列、日時は yyyy-MM-ddTHH:mm:ss.fffZ、日付は yyyy-MM-dd
 public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
 {
     private readonly TestApplicationFactory factory;
@@ -46,7 +45,7 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
             TaxSummaries = [new TransactionCalculationResponseTaxSummary { TaxRateId = Guid.Empty, Rate = 0.10m, TaxIncluded = true, TaxableAmount = 80100m, TaxAmount = 7281m }],
             Total = 80100m
         };
-        var delivery = new TransactionResponseDelivery { RecipientName = "山田 太郎", Address = "東京都", RequestedDate = new DateOnly(2026, 9, 14) };
+        var delivery = new TransactionResponseItemDelivery { RecipientName = "山田 太郎", Address = "東京都", RequestedDate = new DateOnly(2026, 9, 14) };
 
         var json = JsonSerializer.Serialize(response, Options);
         var deliveryJson = JsonSerializer.Serialize(delivery, Options);

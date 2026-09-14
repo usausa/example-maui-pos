@@ -1,7 +1,5 @@
 namespace Pos.Terminal.Services;
 
-using Pos.Shared.Common;
-
 public enum ApiStatus
 {
     // 2xx

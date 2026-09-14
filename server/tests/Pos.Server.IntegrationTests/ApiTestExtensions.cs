@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-using Pos.Shared.Common;
-
 // API テスト用の JSON 入出力 (アプリと同じ JsonSerializerOptions を使う)
 internal static class ApiTestExtensions
 {

@@ -1,8 +1,7 @@
 namespace Pos.Server.Accessors;
 
-using Pos.Server.Infrastructure.Data;
-using Pos.Server.Models;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Views;
 
 [DataAccessor]
 [ExecuteConfig(typeof(DataProfile))]
@@ -18,8 +17,9 @@ public sealed partial class InventoryAccessor
     [ExecuteScalar]
     public partial ValueTask<long> CountLevelsAsync(Guid? storeId, Guid? productId, Guid? categoryId, bool negativeOnly, DateTime? updatedSince, CancellationToken cancellationToken);
 
+    // 差分同期 (updatedSince 指定時) は更新日時順、通常は商品コード順
     [Query]
-    public partial ValueTask<List<InventoryLevelEntity>> QueryLevelListAsync(Guid? storeId, Guid? productId, Guid? categoryId, bool negativeOnly, DateTime? updatedSince, string sort, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<InventoryLevelEntity>> QueryLevelListAsync(Guid? storeId, Guid? productId, Guid? categoryId, bool negativeOnly, DateTime? updatedSince, int limit, int offset, CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(InventoryLevelEntity), Table = "InventoryLevels")]

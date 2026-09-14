@@ -58,7 +58,7 @@
                        Text="{Binding LastSyncText}" />
                 <Border Grid.Row="0" Grid.Column="1"
                         Style="{StaticResource PosChipBorder}"
-                        BackgroundColor="{Binding UnsentColor}">
+                        BackgroundColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}">
                     <Label Style="{StaticResource PosChipLabel}"
                            Text="{Binding UnsentText}" />
                 </Border>
@@ -95,13 +95,13 @@
                                 <Border Grid.Row="0" Grid.Column="0"
                                         Style="{StaticResource PosChipBorder}"
                                         Margin="0,0,8,0"
-                                        BackgroundColor="{Binding StatusColor}">
+                                        BackgroundColor="{Binding Status, Converter={StaticResource OutboxStatusColorConverter}}">
                                     <Label Style="{StaticResource PosChipLabel}"
-                                           Text="{Binding StatusText}" />
+                                           Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}" />
                                 </Border>
                                 <Label Grid.Row="0" Grid.Column="1"
                                        Style="{StaticResource PosListNameLabel}"
-                                       Text="{Binding KindText}" />
+                                       Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}" />
                                 <Label Grid.Row="0" Grid.Column="2"
                                        Style="{StaticResource PosCaptionLabel}"
                                        Text="{Binding TimeText}" />

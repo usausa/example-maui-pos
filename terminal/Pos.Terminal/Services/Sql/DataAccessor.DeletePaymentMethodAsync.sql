@@ -1,1 +1,4 @@
-DELETE FROM PaymentMethods WHERE Id = /*@ id */''
+DELETE FROM
+    PaymentMethods
+WHERE
+    Id = /*@ id */''

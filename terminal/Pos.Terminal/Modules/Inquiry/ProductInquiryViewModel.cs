@@ -1,15 +1,15 @@
 namespace Pos.Terminal.Modules.Inquiry;
 
-// T-60 商品・在庫照会: スキャン / 検索で価格・税・還元率・自店在庫を見せる。他店在庫はオンライン
+// 商品・在庫照会: スキャン / 検索で価格・税・還元率・自店在庫を見せる。他店在庫はオンライン
 public sealed partial class ProductInquiryViewModel : AppViewModelBase
 {
+    private readonly Session session;
+
     private readonly DataAccessor accessor;
 
-    private readonly Settings settings;
+    private readonly NetworkService network;
 
-    private readonly NetworkOperator network;
-
-    private ProductResponse? product;
+    private ProductResponseItem? product;
 
     [ObservableProperty]
     public partial string Message { get; set; } = "商品をスキャンするか、検索してください。";
@@ -29,35 +29,33 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string PriceDetail { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<SummarySection> Sections { get; set; } = [];
+    public ObservableCollection<SummarySection> Sections { get; } = [];
 
     public ProductInquiryViewModel(
+        Session session,
         DataAccessor accessor,
-        Settings settings,
-        NetworkOperator network)
+        NetworkService network)
     {
+        this.session = session;
         this.accessor = accessor;
-        this.settings = settings;
         this.network = network;
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
         var id = context.Parameter.GetProductId();
+        var scanned = context.Parameter.GetScanResult();
         if (id is not null)
         {
-            await ShowAsync(await accessor.QueryProductAsync(id.Value), id.Value.ToString());
+            await Navigator.PostActionAsync(async () => await UpdateProductAsync(await accessor.QueryProductAsync(id.Value), id.Value.ToString()));
         }
-
-        var scanned = context.Parameter.GetScanResult();
-        if (scanned is not null)
+        else if (scanned is not null)
         {
-            await ShowAsync(await accessor.QueryProductByBarcodeAsync(scanned) ?? await accessor.QueryProductByCodeAsync(scanned), scanned);
+            await Navigator.PostActionAsync(async () => await UpdateProductAsync(await accessor.QueryProductByBarcodeAsync(scanned) ?? await accessor.QueryProductByCodeAsync(scanned), scanned));
         }
     }
 
-    private async ValueTask ShowAsync(ProductResponse? value, string key)
+    private async Task UpdateProductAsync(ProductResponseItem? value, string key)
     {
         product = value;
         if (value is null)
@@ -76,8 +74,8 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
         var category = (await accessor.QueryCategoryListAsync()).FirstOrDefault(x => x.Id == value.CategoryId);
         PriceDetail = $"{(value.TaxIncluded ? "税込" : "税抜")} {(taxRate is null ? string.Empty : DisplayText.Percent(taxRate.Rate))}  還元率 {DisplayText.Percent(value.PointRate)}";
 
-        var level = settings.StoreId is null ? null : await accessor.QueryInventoryLevelAsync(settings.StoreId.Value, value.Id);
-        Sections =
+        var level = session.StoreId is null ? null : await accessor.QueryInventoryLevelAsync(session.StoreId.Value, value.Id);
+        Sections.Replace(
         [
             new SummarySection("📦 自店在庫",
             [
@@ -92,7 +90,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
                 new SummaryRow("シリアル", value.RequiresSerial ? "必須" : "不要"),
                 new SummaryRow("状態", value.IsActive && !value.IsDeleted ? "販売中" : "取扱終了")
             ])
-        ];
+        ]);
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Menu);
@@ -120,10 +118,10 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
         }
 
         var rows = result.Content!.Levels
-            .Select(x => new SummaryRow((x.StoreId == settings.StoreId ? "🏪 " : string.Empty) + x.StoreName, DisplayText.Quantity(x.Quantity)))
+            .Select(x => new SummaryRow((x.StoreId == session.StoreId ? "🏪 " : string.Empty) + x.StoreName, DisplayText.Quantity(x.Quantity)))
             .ToList();
-        Sections = Sections.Where(static x => !x.Title.StartsWith("🌐", StringComparison.Ordinal))
+        Sections.Replace(Sections.Where(static x => !x.Title.StartsWith("🌐", StringComparison.Ordinal))
             .Append(new SummarySection("🌐 他店在庫", rows.Count == 0 ? [new SummaryRow("在庫なし", string.Empty)] : rows))
-            .ToList();
+            .ToList());
     }
 }

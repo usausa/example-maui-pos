@@ -1,6 +1,10 @@
 namespace Pos.Server.Host.Models.Forms;
 
-public sealed class ProductForm
+using Pos.Server.Models.Entity;
+
+using Smart.Mapper;
+
+public sealed partial class ProductForm
 {
     public Guid Id { get; set; }
 
@@ -42,4 +46,17 @@ public sealed class ProductForm
     public bool IsActive { get; set; } = true;
 
     public int Version { get; set; }
+
+    // Entity ↔ フォーム (サーバ付与項目はサービスが設定する)
+    [Mapper]
+    public static partial ProductForm ToForm(ProductEntity entity);
+
+    [Mapper]
+    [MapUsing(nameof(ProductEntity.CategoryId), nameof(ResolveCategoryId))]
+    [MapUsing(nameof(ProductEntity.TaxRateId), nameof(ResolveTaxRateId))]
+    public static partial ProductEntity ToEntity(ProductForm form);
+
+    private static Guid ResolveCategoryId(ProductForm form) => form.CategoryId ?? Guid.Empty;
+
+    private static Guid ResolveTaxRateId(ProductForm form) => form.TaxRateId ?? Guid.Empty;
 }

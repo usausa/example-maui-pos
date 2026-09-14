@@ -4,11 +4,11 @@ using System.Data.Common;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using Pos.Domain;
 using Pos.Server.Accessors;
-using Pos.Server.Host.Infrastructure.Data;
-using Pos.Server.Models;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
+using Pos.Server.Models.Views;
+using Pos.Server.Services;
 
 using Smart.Data;
 
@@ -39,14 +39,15 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task MasterUpdateUsesOptimisticLock()
     {
-        var accessor = Resolve<StoreAccessor>();
+        var accessor = Resolve<MasterAccessor>();
         var now = DateTime.UtcNow;
         var id = Guid.NewGuid();
-        await accessor.InsertAsync(new StoreEntity { Id = id, Code = $"L{id:N}"[..10], Name = "楽観ロック", TimeZone = "Asia/Tokyo", IsActive = true, CreatedAt = now, UpdatedAt = now, Version = 1 }, Token);
+        var code = $"L{id:N}"[..10];
+        await accessor.InsertStoreAsync(new StoreEntity { Id = id, Code = code, Name = "楽観ロック", TimeZone = "Asia/Tokyo", IsActive = true, CreatedAt = now, UpdatedAt = now, Version = 1 }, Token);
 
-        var updated = await accessor.UpdateAsync(id, $"L{id:N}"[..10], "更新 1", null, null, null, null, null, null, "Asia/Tokyo", true, now.AddSeconds(1), 1, Token);
-        var conflicted = await accessor.UpdateAsync(id, $"L{id:N}"[..10], "更新 2", null, null, null, null, null, null, "Asia/Tokyo", true, now.AddSeconds(2), 1, Token);
-        var stored = await accessor.QueryAsync(id, Token);
+        var updated = await accessor.UpdateStoreAsync(id, code, "更新 1", null, null, null, null, null, null, "Asia/Tokyo", true, now.AddSeconds(1), 1, Token);
+        var conflicted = await accessor.UpdateStoreAsync(id, code, "更新 2", null, null, null, null, null, null, "Asia/Tokyo", true, now.AddSeconds(2), 1, Token);
+        var stored = await accessor.QueryStoreAsync(id, Token);
 
         Assert.Equal(1, updated);
         Assert.Equal(0, conflicted);
@@ -55,14 +56,14 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(2, stored.Version);
 
         // 差分同期: updatedSince 以降のものだけ
-        var since = await accessor.QueryListAsync(now.AddMilliseconds(500), true, "UpdatedAt, Id", 100, 0, Token);
+        var since = await accessor.QueryStoreListAsync(now.AddMilliseconds(500), true, "UpdatedAt, Id", 100, 0, Token);
         Assert.Contains(since, x => x.Id == id);
         Assert.DoesNotContain(since, x => x.Id == InitialData.MainStoreId);
 
-        Assert.Equal(1, await accessor.DeleteAsync(id, now.AddSeconds(3), Token));
-        Assert.Equal(0, await accessor.DeleteAsync(id, now.AddSeconds(4), Token));
-        Assert.DoesNotContain(await accessor.QueryListAsync(null, false, "Code", 100, 0, Token), x => x.Id == id);
-        Assert.Contains(await accessor.QueryListAsync(null, true, "Code", 100, 0, Token), x => (x.Id == id) && x.IsDeleted);
+        Assert.Equal(1, await accessor.DeleteStoreAsync(id, now.AddSeconds(3), Token));
+        Assert.Equal(0, await accessor.DeleteStoreAsync(id, now.AddSeconds(4), Token));
+        Assert.DoesNotContain(await accessor.QueryStoreListAsync(null, false, "Code", 100, 0, Token), x => x.Id == id);
+        Assert.Contains(await accessor.QueryStoreListAsync(null, true, "Code", 100, 0, Token), x => (x.Id == id) && x.IsDeleted);
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         var transactions = Resolve<TransactionAccessor>();
         var inventory = Resolve<InventoryAccessor>();
         var customers = Resolve<CustomerAccessor>();
-        var terminals = Resolve<TerminalAccessor>();
+        var masters = Resolve<MasterAccessor>();
         var reports = Resolve<ReportAccessor>();
 
         var now = new DateTime(2026, 9, 11, 3, 15, 0, DateTimeKind.Utc);
@@ -113,7 +114,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.NotNull(current);
         Assert.Equal(shiftId, current.Id);
 
-        // 販売 (api-design §4.6 の例を SD カードだけ現金で)
+        // 販売
         var sdBefore = (await inventory.QueryLevelsByProductAsync(InitialData.SdCardProductId, Token)).Single(x => x.StoreId == InitialData.MainStoreId).Quantity;
         await provider.UsingTxAsync(async (_, tx) =>
         {
@@ -140,7 +141,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
             await customers.InsertPointHistoryAsync(tx, new PointHistoryEntity { Id = Guid.NewGuid(), CustomerId = InitialData.Customer1Id, Type = PointHistoryType.Earn, Points = 7640, BalanceAfter = balance, TransactionId = transactionId, OccurredAt = now, CreatedAt = now }, Token);
             Assert.Equal(6000 + 7640, balance);
 
-            await terminals.UpdateLastReceiptSeqAsync(tx, InitialData.MainTerminal2Id, 1, now, Token);
+            await masters.UpdateTerminalLastReceiptSeqAsync(tx, InitialData.MainTerminal2Id, 1, now, Token);
             await tx.CommitAsync(Token);
         }, Token);
 
@@ -157,7 +158,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(PaymentKind.Cash, (await transactions.QueryPaymentsAsync(transactionId, Token)).Single().Kind);
         Assert.Equal(new DateOnly(2026, 9, 14), (await transactions.QueryDeliveryAsync(transactionId, Token))!.RequestedDate);
         Assert.Equal(sdBefore - 2m, (await inventory.QueryLevelsByProductAsync(InitialData.SdCardProductId, Token)).Single(x => x.StoreId == InitialData.MainStoreId).Quantity);
-        Assert.Equal(1, (await terminals.QueryAsync(InitialData.MainTerminal2Id, Token))!.LastReceiptSeq);
+        Assert.Equal(1, (await masters.QueryTerminalAsync(InitialData.MainTerminal2Id, Token))!.LastReceiptSeq);
         Assert.Equal(1, await transactions.CountAsync(null, null, null, shiftId, null, null, null, TransactionType.Sale, TransactionStatus.Completed, Token));
         Assert.Single(await transactions.QueryListAsync(InitialData.MainStoreId, null, null, null, InitialData.Customer1Id, businessDate, businessDate, null, null, "TransactedAt DESC", 10, 0, Token));
 
@@ -179,7 +180,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(0, await transactions.CountReturnsAsync(transactionId, Token));
 
         // レポート
-        var byDay = await reports.QuerySalesSummaryAsync(InitialData.MainStoreId, businessDate, businessDate, SalesSummaryGroup.Day, Token);
+        var byDay = await reports.QuerySalesSummaryAsync(InitialData.MainStoreId, businessDate, businessDate, SalesSummaryGroupBy.Day, Token);
         var day = Assert.Single(byDay);
         Assert.Equal("2026-09-11", day.GroupKey);
         Assert.Equal(1, day.TransactionCount);
@@ -189,8 +190,8 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal("現金", Assert.Single(await reports.QuerySalesSummaryByPaymentMethodAsync(InitialData.MainStoreId, businessDate, businessDate, Token)).GroupLabel);
         Assert.Equal(7272m, Assert.Single(await reports.QuerySalesSummaryByTaxRateAsync(InitialData.MainStoreId, businessDate, businessDate, Token)).TaxAmount);
         Assert.Equal(2, (await reports.QuerySalesSummaryByCategoryAsync(InitialData.MainStoreId, businessDate, businessDate, Token)).Count);
-        Assert.Equal("本店 レジ 2", Assert.Single(await reports.QuerySalesSummaryAsync(null, businessDate, businessDate, SalesSummaryGroup.Terminal, Token)).GroupLabel);
-        var products = await reports.QueryProductSalesAsync(null, businessDate, businessDate, null, "NetSales DESC", 10, Token);
+        Assert.Equal("本店 レジ 2", Assert.Single(await reports.QuerySalesSummaryAsync(null, businessDate, businessDate, SalesSummaryGroupBy.Terminal, Token)).GroupLabel);
+        var products = await reports.QueryProductSalesAsync(null, businessDate, businessDate, null, ProductSalesSort.NetSales, 10, Token);
         Assert.Equal(2, products.Count);
         Assert.Equal("CAM-X100", products[0].ProductCode);
         Assert.Equal(76000m - 60000m, products[0].GrossProfit);

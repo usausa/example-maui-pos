@@ -17,8 +17,8 @@
 | 項目 | 内容 |
 | --- | --- |
 | RDBMS | **SQLite** (`Microsoft.Data.Sqlite`)。接続文字列は `Data Source=pos.db;Cache=Shared;Pooling=True`。WAL と `busy_timeout` を起動時の PRAGMA で設定する |
-| データアクセス | `Usa.Smart.Data.Accessor` の `[DataAccessor]` + 2-way SQL ファイル (`Accessors/Sql/{Accessor}.{Method}.sql`)。ORM は使わない。Endpoints / Blazor ページが Accessor を直接使い、Service / Usecase の層は置かない ([D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠)) |
-| スキーマ作成 | 起動時に `{Accessor}.Create.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を実行する。後から増えた列は `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確認して `ALTER TABLE ADD COLUMN`) で既存の DB に足す |
+| データアクセス | `Usa.Smart.Data.Accessor` の `[DataAccessor]` + 2-way SQL ファイル (`Accessors/Sql/{Accessor}.{Method}.sql`)。ORM は使わない。SQL は Accessor だけが持ち、Accessor を使うのは `Services/` の Service だけ ([D-45](decisions.md#d-45-サーバの-service-層)) |
+| スキーマ作成 | 起動時に `{Accessor}.Create.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を実行する。後から増えた列は `SqlHelper.EnsureColumnAsync` (`PRAGMA table_info` で確認して `ALTER TABLE ADD COLUMN`) で既存の DB に足す |
 | 命名 | テーブル = 複数形 PascalCase (`Transactions`)、列 = PascalCase。FK は `〜Id`。エンティティクラスは `{Table 単数}Entity` (`TransactionEntity`) |
 | 主キー | `guid` を **TEXT (36 文字。`Microsoft.Data.Sqlite` の既定で大文字)** で保存。端末発のデータは端末が GUID v7 を採番 ([D-10](decisions.md#d-10-冪等性-クライアント採番-id)) |
 | 列挙型 | TEXT (列挙名)。汎用 `EnumTextConverter<T>` を `DataProfile` (`[AccessorProfile]`) に列挙型ごとに宣言し、各 Accessor が `[ExecuteConfig(typeof(DataProfile))]` で参照する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。値は API の enum と同じ |
@@ -783,7 +783,7 @@ PRAGMA foreign_keys = ON
 ## 5. 整合性と更新の単位
 
 SQLite は書き込みが直列化される (単一ライター) ため、サーバ内の同時更新は DB トランザクションで十分に守れる。  
-トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、エンドポイント (または Blazor ページ) が Accessor の `DbTransaction` 付きメソッドを束ねる (Service / Usecase は置かない、[D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠))。
+トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、Service が Accessor の `DbTransaction` 付きメソッドを束ねる (Service / Usecase は置かない、[D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠))。
 
 ### 5.1 取引登録 (`POST /transactions`) は 1 つの DB トランザクション
 
@@ -819,11 +819,13 @@ SQLite は書き込みが直列化される (単一ライター) ため、サー
 ## 6. 端末ローカル DB (SQLite) の概要
 
 MAUI 側のローカル DB。  
-`Microsoft.Data.Sqlite` + Smart.Data.Accessor (`DataAccessor` + `Services/Sql/*.sql`) で扱い、日時は INTEGER (UTC ticks) + `DateTimeTicksConverter` で保存する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。
+`Microsoft.Data.Sqlite` + Smart.Data.Accessor (`DataAccessor` + `Services/Sql/*.sql`) で扱い、日時は INTEGER (UTC ticks) + `DateTimeTicksConverter` で保存する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。  
+ローカルのエンティティ (`[Key]` あり) のキーによる取得・削除は `[SelectSingle]` / `[Delete]` で生成し、SQL ファイルは `SELECT` / `FROM` / `WHERE` / `ORDER BY` を行頭に置いて列と条件を字下げする。  
+書き込みは `Services/` の Usecase が行い、1 文だけの書き込みにはトランザクションを使わない。
 
 | テーブル | 内容 |
 | --- | --- |
-| マスタ各種 | `Settings` / `Stores` / `Terminals` / `Staff` / `Categories` / `TaxRates` / `Products` / `Discounts` / `PaymentMethods` / `AdjustmentReasons` を `Pos.Shared` の Response と同じ列で保持 (エンティティクラスは Response をそのまま使う)。`GET /sync/masters` の結果を Id で削除 → 挿入 (1 トランザクション)。削除済み (`IsDeleted`) も保持し、検索時に除く |
+| マスタ各種 | `Settings` / `Stores` / `Terminals` / `Staff` / `Categories` / `TaxRates` / `Products` / `Discounts` / `PaymentMethods` / `AdjustmentReasons` を `Pos.Contract` の Response と同じ列で保持 (エンティティクラスは Response をそのまま使う)。`GET /sync/masters` の結果を Id で削除 → 挿入 (1 トランザクション)。削除済み (`IsDeleted`) も保持し、検索時に除く |
 | `InventoryLevels` | 自店分のみ (`updatedSince` で差分取り込み。販売・返品・取消・棚卸ではローカルでも増減させる) |
 | `Shifts` / `CashEvents` | 端末で開設したシフトと入出金 (精算の予想現金の計算に使う) |
 | `Transactions` | 検索用の列 (種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引) + `Payload` (`TransactionResponse` の JSON。送信後はサーバの応答で置き換える)。取引履歴・再印字・返品の元取引参照に使う |

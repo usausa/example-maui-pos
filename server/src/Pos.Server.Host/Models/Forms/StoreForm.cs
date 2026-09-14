@@ -1,6 +1,10 @@
 namespace Pos.Server.Host.Models.Forms;
 
-public sealed class StoreForm
+using Pos.Server.Models.Entity;
+
+using Smart.Mapper;
+
+public sealed partial class StoreForm
 {
     public Guid Id { get; set; }
 
@@ -25,4 +29,11 @@ public sealed class StoreForm
     public bool IsActive { get; set; } = true;
 
     public int Version { get; set; }
+
+    // Entity ↔ フォーム (サーバ付与項目はサービスが設定する)
+    [Mapper]
+    public static partial StoreForm ToForm(StoreEntity entity);
+
+    [Mapper]
+    public static partial StoreEntity ToEntity(StoreForm form);
 }

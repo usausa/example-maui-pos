@@ -1,7 +1,7 @@
 namespace Pos.Terminal.Services;
 
-using Pos.Shared.Shifts;
-using Pos.Shared.Transactions;
+using Pos.Contract.Shifts;
+using Pos.Contract.Transactions;
 using Pos.Terminal.Models.Entity;
 
 // ローカルの取引・入出金からシフト集計を作る (精算画面の予想現金、オフライン時の精算レポート)。サーバの ShiftSummary と同じ形にする
@@ -9,10 +9,10 @@ public static class ShiftSummaryBuilder
 {
     public static ShiftSummaryResponse Build(
         LocalShiftEntity shift,
-        IReadOnlyList<TransactionResponse> transactions,
+        IReadOnlyList<TransactionResponseItem> transactions,
         IReadOnlyList<LocalCashEventEntity> cashEvents,
-        IReadOnlyList<PaymentMethodResponse> paymentMethods,
-        IReadOnlyList<CategoryResponse> categories)
+        IReadOnlyList<PaymentMethodResponseItem> paymentMethods,
+        IReadOnlyList<CategoryResponseItem> categories)
     {
         ArgumentNullException.ThrowIfNull(shift);
         ArgumentNullException.ThrowIfNull(transactions);
@@ -26,7 +26,7 @@ public static class ShiftSummaryBuilder
         var byMethod = new Dictionary<Guid, ShiftSummaryResponsePaymentMethod>();
         var byTax = new Dictionary<Guid, ShiftSummaryResponseTaxRate>();
         var byCategory = new Dictionary<Guid, ShiftSummaryResponseCategory>();
-        var totals = new ShiftResponseTotals();
+        var totals = new ShiftResponseItemTotals();
         var pointsEarned = 0;
         var pointsRedeemed = 0;
 
@@ -129,7 +129,7 @@ public static class ShiftSummaryBuilder
 
         return new ShiftSummaryResponse
         {
-            Shift = new ShiftResponse
+            Shift = new ShiftResponseItem
             {
                 Id = shift.Id,
                 StoreId = shift.StoreId,

@@ -2,9 +2,6 @@ namespace Pos.Terminal;
 
 using System.Reflection;
 
-using Pos.Terminal.Behaviors;
-using Pos.Terminal.Helpers;
-
 #pragma warning disable CA1724
 public static class Extensions
 {
@@ -50,25 +47,20 @@ public static class Extensions
     }
 
     //--------------------------------------------------------------------------------
-    // Element
+    // Dialog (日本語の既定ボタン)
     //--------------------------------------------------------------------------------
 
-    public static void SetDefaultFocus(this IVisualTreeElement parent)
-    {
-        var first = default(VisualElement);
-        foreach (var visualElement in ElementHelper.EnumerateFocusable(parent))
-        {
-            if (Focus.GetDefault(visualElement))
-            {
-                visualElement.Focus();
-                return;
-            }
+    public static ValueTask<bool> AskAsync(this IDialog dialog, string message, string? title = null, string ok = "OK") =>
+        dialog.ConfirmAsync(message, title, ok, "キャンセル");
 
-            first ??= visualElement;
-        }
+    public static ValueTask<int> ChooseAsync(this IDialog dialog, string[] items, string? title = null, int selected = -1) =>
+        dialog.SelectAsync(items, selected, title, "キャンセル");
 
-        first?.Focus();
-    }
+    public static ValueTask<T?> ChooseAsync<T>(this IDialog dialog, IList<T> items, Func<T, string> formatter, string? title = null, int selected = -1) =>
+        dialog.SelectAsync(items, formatter, selected, title, "キャンセル");
+
+    public static ValueTask<PromptResult> InputAsync(this IDialog dialog, string title, string? defaultValue = null, string? placeHolder = null, PromptParameter? parameter = null) =>
+        dialog.PromptAsync(defaultValue, null, title, "OK", "キャンセル", placeHolder, parameter);
 
     //--------------------------------------------------------------------------------
     // Navigation
@@ -117,6 +109,27 @@ public static class Extensions
         else
         {
             await task();
+        }
+    }
+
+    //--------------------------------------------------------------------------------
+    // Text
+    //--------------------------------------------------------------------------------
+
+    // 空白だけなら null、それ以外は前後の空白を除く
+    public static string? TrimToNull(this string? value) =>
+        String.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    //--------------------------------------------------------------------------------
+    // Collection
+    //--------------------------------------------------------------------------------
+
+    public static void Replace<T>(this ObservableCollection<T> collection, IEnumerable<T> items)
+    {
+        collection.Clear();
+        foreach (var item in items)
+        {
+            collection.Add(item);
         }
     }
 

@@ -28,16 +28,31 @@
                 <Border Grid.Row="0" Grid.Column="0"
                         Style="{StaticResource PosChipBorder}"
                         Margin="0,0,6,0"
-                        BackgroundColor="{Binding TypeColor}">
+                        BackgroundColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}">
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border"
+                                     Binding="{Binding IsVoided}"
+                                     Value="True">
+                            <Setter Property="BackgroundColor" Value="{StaticResource GrayDefault}" />
+                        </DataTrigger>
+                    </Border.Triggers>
                     <Label Style="{StaticResource PosChipLabel}"
-                           Text="{Binding TypeText}" />
+                           Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}">
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label"
+                                         Binding="{Binding IsVoided}"
+                                         Value="True">
+                                <Setter Property="Text" Value="取消" />
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="1"
                         Style="{StaticResource PosChipBorder}"
                         Margin="0,0,6,0"
-                        BackgroundColor="{Binding SyncColor}">
+                        BackgroundColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}">
                     <Label Style="{StaticResource PosChipLabel}"
-                           Text="{Binding SyncText}" />
+                           Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}" />
                 </Border>
                 <Label Grid.Row="0" Grid.Column="2"
                        Style="{StaticResource PosListNameLabel}"

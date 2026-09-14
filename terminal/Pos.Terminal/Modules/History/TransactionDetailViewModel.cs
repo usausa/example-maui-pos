@@ -1,52 +1,33 @@
 namespace Pos.Terminal.Modules.History;
 
-using System.Text.Json;
-
-using Pos.Shared.Transactions;
+using Pos.Contract.Transactions;
 using Pos.Terminal.Models.Entity;
+using Pos.Terminal.Modules.Returns;
 
-using Smart.Data;
-
-// T-31 取引詳細: 明細・支払・ポイント・配送。取消は同一シフト内のみ、返品は完了した販売のみ
+// 取引詳細: 明細・支払・ポイント・配送。取消は同一シフト内のみ、返品は完了した販売のみ
 public sealed partial class TransactionDetailViewModel : AppViewModelBase
 {
-    private static readonly Color SaleColor = Color.FromArgb("#1E88E5");
-
-    private static readonly Color ReturnColor = Color.FromArgb("#FB8C00");
-
-    private static readonly Color VoidColor = Color.FromArgb("#9E9E9E");
-
-    private static readonly Color SentColor = Color.FromArgb("#43A047");
-
-    private static readonly Color PendingColor = Color.FromArgb("#FB8C00");
-
-    private static readonly Color FailedColor = Color.FromArgb("#E53935");
-
     private readonly IDialog dialog;
-
-    private readonly IDbProvider provider;
-
-    private readonly DataAccessor accessor;
 
     private readonly Session session;
 
-    private readonly SyncWorker syncWorker;
+    private readonly DataAccessor accessor;
+
+    private readonly TransactionUsecase transactions;
 
     private Guid transactionId;
 
-    private TransactionResponse? transaction;
+    private TransactionResponseItem? transaction;
+
+    // 種別・送信状態の文言と色は画面側の Converter で付ける
+    [ObservableProperty]
+    public partial TransactionType Type { get; set; }
 
     [ObservableProperty]
-    public partial string TypeText { get; set; } = string.Empty;
+    public partial bool IsVoided { get; set; }
 
     [ObservableProperty]
-    public partial Color TypeColor { get; set; } = SaleColor;
-
-    [ObservableProperty]
-    public partial string SyncText { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial Color SyncColor { get; set; } = SentColor;
+    public partial OutboxStatus SyncStatus { get; set; } = OutboxStatus.Sent;
 
     [ObservableProperty]
     public partial string ReceiptNo { get; set; } = string.Empty;
@@ -57,8 +38,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string HeaderDetail { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<SummarySection> Sections { get; set; } = [];
+    public ObservableCollection<SummarySection> Sections { get; } = [];
 
     [ObservableProperty]
     public partial bool CanVoid { get; set; }
@@ -68,16 +48,14 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
 
     public TransactionDetailViewModel(
         IDialog dialog,
-        IDbProvider provider,
-        DataAccessor accessor,
         Session session,
-        SyncWorker syncWorker)
+        DataAccessor accessor,
+        TransactionUsecase transactions)
     {
         this.dialog = dialog;
-        this.provider = provider;
-        this.accessor = accessor;
         this.session = session;
-        this.syncWorker = syncWorker;
+        this.accessor = accessor;
+        this.transactions = transactions;
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
@@ -85,18 +63,17 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
         var id = context.Parameter.GetTransactionId();
         if (id is null)
         {
-            await Navigator.ForwardAsync(ViewId.TransactionList);
+            await Navigator.PostForwardAsync(ViewId.TransactionList);
             return;
         }
 
         transactionId = id.Value;
-        await LoadAsync();
+        await Navigator.PostActionAsync(LoadAsync);
     }
 
-    private async ValueTask LoadAsync()
+    private async Task LoadAsync()
     {
-        var entity = await accessor.QueryTransactionAsync(transactionId);
-        transaction = entity is null ? null : JsonSerializer.Deserialize<TransactionResponse>(entity.Payload, HttpService.JsonOptions);
+        transaction = await transactions.QueryAsync(transactionId);
         if (transaction is null)
         {
             await dialog.InformationAsync("取引が見つかりません。");
@@ -104,14 +81,12 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             return;
         }
 
-        var voided = transaction.Status == TransactionStatus.Voided;
-        TypeText = voided ? "取消済み" : DisplayText.Name(transaction.Type);
-        TypeColor = voided ? VoidColor : transaction.Type == TransactionType.Return ? ReturnColor : SaleColor;
+        var voided = transaction.Status.IsVoided();
+        Type = transaction.Type;
+        IsVoided = voided;
         ReceiptNo = transaction.ReceiptNo;
         TotalText = DisplayText.Yen(transaction.Total);
-
-        var outbox = (await accessor.QueryOutboxListAsync(null, 1000)).Where(x => x.TargetId == transaction.Id).ToList();
-        (SyncText, SyncColor) = outbox.Count == 0 ? ("送信済", SentColor) : outbox.Any(static x => x.Status == OutboxStatus.Failed) ? ("要確認", FailedColor) : ("未送信", PendingColor);
+        SyncStatus = await transactions.QuerySyncStatusAsync(transaction.Id);
 
         var staff = await accessor.QueryStaffAsync(transaction.StaffId);
         HeaderDetail = $"{DisplayText.DateTime(transaction.TransactedAt)}  担当 {staff?.Name}  営業日 {DisplayText.Date(transaction.BusinessDate)}";
@@ -137,7 +112,6 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
                 x.TenderedAmount != x.Amount ? $"{DisplayText.Yen(x.Amount)} (預り {DisplayText.Yen(x.TenderedAmount)})" : DisplayText.Yen(x.Amount)))
                 .Append(new SummaryRow("お釣り", DisplayText.Yen(transaction.ChangeAmount))).ToList())
         };
-
         if (transaction.CustomerId is not null)
         {
             sections.Add(new SummarySection("🎁 ポイント",
@@ -169,11 +143,11 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             ]));
         }
 
-        Sections = sections;
+        Sections.Replace(sections);
 
         // 取消は同一シフト内の完了取引、返品は完了した販売
         CanVoid = !voided && (session.CurrentShift?.Id == transaction.ShiftId);
-        CanReturn = !voided && (transaction.Type == TransactionType.Sale) && session.IsShiftOpen && transaction.Lines.Any(static x => x.Quantity > x.ReturnedQuantity);
+        CanReturn = session.IsShiftOpen && transaction.IsReturnable();
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.TransactionList);
@@ -201,15 +175,11 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             return;
         }
 
-        var request = new TransactionVoidRequest { StaffId = session.Staff.Id, Reason = reason.Text.Trim(), VoidedAt = DateTime.UtcNow };
-        await TransactionWriter.VoidAsync(provider, accessor, transaction, request);
-        await syncWorker.UpdateCountsAsync();
-        syncWorker.Trigger();
-
+        await transactions.VoidAsync(transaction, session.Staff.Id, reason.Text.Trim());
         await dialog.Toast("取り消しました。");
         await LoadAsync();
     }
 
     protected override Task OnNotifyFunction4() =>
-        Navigator.ForwardAsync(ViewId.Return, Parameters.Make().WithTransactionId(transactionId));
+        Navigator.ForwardAsync(ViewId.Return, Parameters.Make().WithTransactionId(transactionId).WithContext(new ReturnContext()));
 }

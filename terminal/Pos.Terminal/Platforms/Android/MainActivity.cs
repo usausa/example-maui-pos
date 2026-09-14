@@ -18,15 +18,11 @@ using AndroidX.Activity;
     ScreenOrientation = ScreenOrientation.Portrait)]
 public sealed class MainActivity : MauiAppCompatActivity
 {
-    private KeyInputDriver keyInputDriver = default!;
-
     private BackPressedCallback? backPressedCallback;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-
-        keyInputDriver = new KeyInputDriver(this);
 
         backPressedCallback = new BackPressedCallback(this);
         OnBackPressedDispatcher.AddCallback(this, backPressedCallback);
@@ -43,16 +39,7 @@ public sealed class MainActivity : MauiAppCompatActivity
         base.Dispose(disposing);
     }
 
-    public override bool DispatchKeyEvent(Android.Views.KeyEvent? e)
-    {
-        if (keyInputDriver.Process(e!))
-        {
-            return true;
-        }
-
-        return base.DispatchKeyEvent(e);
-    }
-
+    // 画面が戻るを処理しないとき (ホームなどの根の画面) はアプリを終了せずタスクを背面へ回す
     private sealed class BackPressedCallback : OnBackPressedCallback
     {
         private readonly MainActivity activity;
@@ -72,15 +59,7 @@ public sealed class MainActivity : MauiAppCompatActivity
                 return;
             }
 
-            Enabled = false;
-            try
-            {
-                activity.OnBackPressedDispatcher.OnBackPressed();
-            }
-            finally
-            {
-                Enabled = true;
-            }
+            activity.MoveTaskToBack(true);
         }
     }
 }

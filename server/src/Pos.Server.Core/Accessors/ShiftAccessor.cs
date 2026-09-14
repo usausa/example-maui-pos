@@ -1,8 +1,7 @@
 namespace Pos.Server.Accessors;
 
-using Pos.Server.Infrastructure.Data;
-using Pos.Server.Models;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Views;
 
 [DataAccessor]
 [ExecuteConfig(typeof(DataProfile))]

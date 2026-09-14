@@ -1,16 +1,16 @@
 namespace Pos.Server.Accessors;
 
-using Pos.Server.Infrastructure.Data;
-using Pos.Server.Models;
+using Pos.Server.Models.Parameters;
+using Pos.Server.Models.Views;
 
-// 取引テーブルからの集計 (api-design §3.15)。取消済みは除外し、返品は負として扱う
+// 取引テーブルからの集計。取消済みは除外し、返品は負として扱う
 [DataAccessor]
 [ExecuteConfig(typeof(DataProfile))]
 public sealed partial class ReportAccessor
 {
-    // groupBy = day / terminal / staff
+    // groupBy = Day / Store / Terminal / Staff
     [Query]
-    public partial ValueTask<List<SalesSummaryRow>> QuerySalesSummaryAsync(Guid? storeId, DateOnly from, DateOnly to, SalesSummaryGroup groupBy, CancellationToken cancellationToken);
+    public partial ValueTask<List<SalesSummaryRow>> QuerySalesSummaryAsync(Guid? storeId, DateOnly from, DateOnly to, SalesSummaryGroupBy groupBy, CancellationToken cancellationToken);
 
     // timeZoneOffset は SQLite の修飾子 ("+540 minutes" など)。TransactedAt (UTC) を店舗時刻にしてから時間帯で集計する
     [Query]
@@ -27,7 +27,6 @@ public sealed partial class ReportAccessor
     [Query]
     public partial ValueTask<List<SalesSummaryRow>> QuerySalesSummaryByCategoryAsync(Guid? storeId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
 
-    // sort は NetSales DESC / NetQuantity DESC など (呼び出し側で検証済み)
     [Query]
-    public partial ValueTask<List<ProductSalesRow>> QueryProductSalesAsync(Guid? storeId, DateOnly from, DateOnly to, Guid? categoryId, string sort, int limit, CancellationToken cancellationToken);
+    public partial ValueTask<List<ProductSalesRow>> QueryProductSalesAsync(Guid? storeId, DateOnly from, DateOnly to, Guid? categoryId, ProductSalesSort sort, int limit, CancellationToken cancellationToken);
 }

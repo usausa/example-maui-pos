@@ -16,7 +16,7 @@
             <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
             @foreach (var category in categories)
             {
-                <MudSelectItem T="Guid?" Value="category.Id">@(category.ParentId is null ? string.Empty : "　")@category.Name</MudSelectItem>
+                <MudSelectItem T="Guid?" Value="category.Id">@category.ToIndentedName()</MudSelectItem>
             }
         </MudSelect>
         <MudTextField @bind-Value="keyword" Label="キーワード (コード / JAN / 名称 / かな / 型番)" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 320px;" />
@@ -41,16 +41,16 @@
             <CellTemplate>@CategoryName(context.Item.CategoryId)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="種別" Sortable="false">
-            <CellTemplate>@DisplayText.Name(context.Item.Kind)</CellTemplate>
+            <CellTemplate>@context.Item.Kind.ToDisplayName()</CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.Price" Title="価格" CellStyle="text-align: right;" HeaderStyle="text-align: right;">
-            <CellTemplate>@DisplayText.Yen(context.Item.Price) @(context.Item.TaxIncluded ? "(内税)" : "(外税)")</CellTemplate>
+            <CellTemplate>@context.Item.Price.ToYen() (@context.Item.TaxIncluded.ToTaxIncludedText())</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="税率" Sortable="false">
             <CellTemplate>@TaxRateName(context.Item.TaxRateId)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="還元率" Sortable="false" CellStyle="text-align: right;">
-            <CellTemplate>@DisplayText.Percent(context.Item.PointRate)</CellTemplate>
+            <CellTemplate>@context.Item.PointRate.ToPercentText()</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="属性" Sortable="false">
             <CellTemplate>
@@ -69,7 +69,7 @@
             </CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="状態" Sortable="false">
-            <CellTemplate><StatusChip Value="@(context.Item.IsDeleted ? ChipText.Deleted() : ChipText.Active(context.Item.IsActive))" /></CellTemplate>
+            <CellTemplate><StatusChip Value="@(context.Item.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.Item.IsActive))" /></CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="" Sortable="false" CellStyle="width: 100px; white-space: nowrap;">
             <CellTemplate>

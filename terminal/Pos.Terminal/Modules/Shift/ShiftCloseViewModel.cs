@@ -1,31 +1,18 @@
 namespace Pos.Terminal.Modules.Shift;
 
-using System.Text.Json;
-
-using Pos.Shared.Shifts;
-using Pos.Shared.Transactions;
+using Pos.Contract.Shifts;
 using Pos.Terminal.Models.Entity;
 
-using Smart.Data;
-
-// T-51 精算: ローカルの取引・入出金から予想現金を出し、実査金額との過不足を確認してシフトを閉じる
+// 精算: ローカルの取引・入出金から予想現金を出し、実査金額との過不足を確認してシフトを閉じる
 public sealed partial class ShiftCloseViewModel : AppViewModelBase
 {
-    private static readonly Color EvenColor = Color.FromArgb("#1976D2");
-
-    private static readonly Color DifferenceColorValue = Color.FromArgb("#E53935");
-
     private readonly IDialog dialog;
 
     private readonly IPopupNavigator popupNavigator;
 
-    private readonly IDbProvider provider;
-
-    private readonly DataAccessor accessor;
-
     private readonly Session session;
 
-    private readonly SyncWorker syncWorker;
+    private readonly ShiftUsecase shifts;
 
     private LocalShiftEntity? shift;
 
@@ -44,8 +31,7 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string ShiftText { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<SummaryRow> Rows { get; set; } = [];
+    public ObservableCollection<SummaryRow> Rows { get; } = [];
 
     [ObservableProperty]
     public partial string ActualCashText { get; set; } = "未入力";
@@ -53,25 +39,22 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string DifferenceText { get; set; } = "-";
 
+    // 過不足があるとき (色は画面側の Converter で変える)
     [ObservableProperty]
-    public partial Color DifferenceColor { get; set; } = EvenColor;
+    public partial bool HasDifference { get; set; }
 
     public IObserveCommand InputActualCommand { get; }
 
     public ShiftCloseViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
-        IDbProvider provider,
-        DataAccessor accessor,
         Session session,
-        SyncWorker syncWorker)
+        ShiftUsecase shifts)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
-        this.provider = provider;
-        this.accessor = accessor;
         this.session = session;
-        this.syncWorker = syncWorker;
+        this.shifts = shifts;
 
         InputActualCommand = MakeAsyncCommand(InputActualAsync);
     }
@@ -81,7 +64,7 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
         shift = session.CurrentShift;
         if (shift is null)
         {
-            await Navigator.ForwardAsync(ViewId.Menu);
+            await Navigator.PostForwardAsync(ViewId.Menu);
             return;
         }
 
@@ -90,11 +73,17 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
             ? $"⚠ 未送信 {session.UnsentCount} 件 (要確認 {session.FailedCount} 件)。精算前に「未送信」で確認してください。"
             : $"⚠ 未送信 {session.UnsentCount} 件があります。送信完了を待ってから精算することを推奨します。";
         ShiftText = $"営業日 {DisplayText.Date(shift.BusinessDate)}  {DisplayText.Time(shift.OpenedAt)} 開設";
+        UpdateDifference();
 
-        var summary = await BuildSummaryAsync(accessor, shift);
+        await Navigator.PostActionAsync(() => LoadAsync(shift));
+    }
+
+    private async Task LoadAsync(LocalShiftEntity target)
+    {
+        var summary = await shifts.BuildSummaryAsync(target);
         expectedCash = summary.Cash.ExpectedCash ?? 0m;
         var totals = summary.Shift.Totals;
-        Rows =
+        Rows.Replace(
         [
             new SummaryRow("🛒 販売", $"{totals.SalesCount} 件  {DisplayText.Yen(totals.SalesTotal)}"),
             new SummaryRow("↩ 返品", $"{totals.ReturnCount} 件  {DisplayText.Yen(totals.ReturnsTotal)}"),
@@ -105,20 +94,8 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
             new SummaryRow("入金", DisplayText.Yen(summary.Cash.PaidIn)),
             new SummaryRow("出金", DisplayText.MinusYen(summary.Cash.PaidOut)),
             new SummaryRow("予想現金", DisplayText.Yen(expectedCash))
-        ];
+        ]);
         UpdateDifference();
-    }
-
-    // ローカルの取引 (Payload = TransactionResponse) と入出金から集計する
-    public static async ValueTask<ShiftSummaryResponse> BuildSummaryAsync(DataAccessor accessor, LocalShiftEntity shift)
-    {
-        var transactions = (await accessor.QueryTransactionListAsync(shift.Id, null, null, 10000))
-            .Select(static x => JsonSerializer.Deserialize<TransactionResponse>(x.Payload, HttpService.JsonOptions)!)
-            .ToList();
-        var cashEvents = await accessor.QueryCashEventListAsync(shift.Id);
-        var paymentMethods = await accessor.QueryPaymentMethodListAsync();
-        var categories = await accessor.QueryCategoryListAsync();
-        return ShiftSummaryBuilder.Build(shift, transactions, cashEvents, paymentMethods, categories);
     }
 
     private void UpdateDifference()
@@ -126,13 +103,13 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
         if (actualCash is null)
         {
             DifferenceText = "-";
-            DifferenceColor = EvenColor;
+            HasDifference = false;
             return;
         }
 
         var difference = actualCash.Value - expectedCash;
-        DifferenceText = difference == 0 ? "±¥0" : difference > 0 ? "+" + DisplayText.Yen(difference) : DisplayText.Yen(difference);
-        DifferenceColor = difference == 0 ? EvenColor : DifferenceColorValue;
+        DifferenceText = DisplayText.SignedYen(difference);
+        HasDifference = difference != 0;
     }
 
     private async Task InputActualAsync()
@@ -168,7 +145,7 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
 
     protected override async Task OnNotifyFunction4()
     {
-        if ((shift is null) || (session.Staff is null))
+        if ((shift is null) || !session.CanTransact)
         {
             return;
         }
@@ -190,27 +167,7 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
             return;
         }
 
-        var now = DateTime.UtcNow;
-        var difference = actualCash.Value - expectedCash;
-        var request = new ShiftCloseRequest
-        {
-            ClosedAt = now,
-            ClosedByStaffId = session.Staff.Id,
-            ActualCash = actualCash.Value,
-            Denominations = denominations
-        };
-
-        await provider.UsingTxAsync(async (_, tx) =>
-        {
-            await accessor.CloseShiftAsync(tx, shift.Id, now, session.Staff.Id, actualCash.Value, expectedCash, difference, null);
-            await accessor.InsertOutboxAsync(tx, SyncWorker.CreateEntry(OutboxKind.ShiftClose, shift.Id, request, now));
-            await tx.CommitAsync();
-        });
-
-        session.CurrentShift = await accessor.QueryShiftAsync(shift.Id);
-        await syncWorker.UpdateCountsAsync();
-        syncWorker.Trigger();
-
+        await shifts.CloseAsync(shift, actualCash.Value, expectedCash, denominations);
         await Navigator.ForwardAsync(ViewId.ShiftReport, Parameters.Make().WithShiftId(shift.Id));
     }
 }

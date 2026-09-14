@@ -2,8 +2,6 @@ namespace Pos.Server.Host.Models.Export;
 
 using CsvHelper.Configuration.Attributes;
 
-using Pos.Server.Models.Entity;
-
 // 商品 CSV の 1 行 (GET /products/csv)
 public sealed class ProductExportRow
 {
@@ -63,27 +61,4 @@ public sealed class ProductExportRow
 
     [Name("販売可")]
     public bool IsActive { get; set; }
-
-    public static ProductExportRow From(ProductEntity entity, IReadOnlyDictionary<Guid, CategoryEntity> categories, IReadOnlyDictionary<Guid, TaxRateEntity> taxRates) => new()
-    {
-        Code = entity.Code,
-        Barcode = entity.Barcode,
-        Name = entity.Name,
-        Kana = entity.Kana,
-        Brand = entity.Brand,
-        ModelNo = entity.ModelNo,
-        CategoryCode = categories.TryGetValue(entity.CategoryId, out var category) ? category.Code : String.Empty,
-        CategoryName = category?.Name ?? String.Empty,
-        Kind = entity.Kind,
-        Price = entity.Price,
-        TaxIncluded = entity.TaxIncluded,
-        TaxRateCode = taxRates.TryGetValue(entity.TaxRateId, out var taxRate) ? taxRate.Code : String.Empty,
-        Cost = entity.Cost,
-        PointRate = entity.PointRate,
-        RequiresSerial = entity.RequiresSerial,
-        TrackInventory = entity.TrackInventory,
-        AllowsPriceOverride = entity.AllowsPriceOverride,
-        Unit = entity.Unit,
-        IsActive = entity.IsActive
-    };
 }

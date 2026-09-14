@@ -4,8 +4,8 @@
             <MudText Typo="Typo.h6">💰 精算レポート</MudText>
             @if (summary is not null)
             {
-                <StatusChip Value="@ChipText.Status(summary.Shift.Status)" />
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">@Names.Store(summary.Shift.StoreId) / @Names.Terminal(summary.Shift.TerminalId) / @DisplayText.Date(summary.Shift.BusinessDate)</MudText>
+                <StatusChip Value="@ViewHelper.StatusChip(summary.Shift.Shift.Status)" />
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@Names.Store(summary.Shift.Shift.StoreId) / @Names.Terminal(summary.Shift.Shift.TerminalId) / @summary.Shift.Shift.BusinessDate.ToDateText()</MudText>
             }
         </MudStack>
     </TitleContent>
@@ -21,13 +21,13 @@
                     <MudText Typo="Typo.subtitle2">💴 現金</MudText>
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
-                            <tr><td class="mud-text-secondary" style="width: 120px;">開設 / 精算</td><td>@DisplayText.DateTime(summary.Shift.OpenedAt) @Names.StaffName(summary.Shift.OpenedByStaffId) / @DisplayText.DateTime(summary.Shift.ClosedAt) @Names.StaffName(summary.Shift.ClosedByStaffId)</td></tr>
-                            <tr><td class="mud-text-secondary">釣銭準備金</td><td class="text-right">@DisplayText.Yen(summary.Cash.OpeningCash)</td></tr>
-                            <tr><td class="mud-text-secondary">現金売上 / 返金</td><td class="text-right">@DisplayText.Yen(summary.Cash.CashSales) / -@DisplayText.Yen(summary.Cash.CashReturns)</td></tr>
-                            <tr><td class="mud-text-secondary">入金 / 出金</td><td class="text-right">@DisplayText.Yen(summary.Cash.PaidIn) / -@DisplayText.Yen(summary.Cash.PaidOut)</td></tr>
-                            <tr><td class="mud-text-secondary">予想現金</td><td class="text-right"><strong>@DisplayText.Yen(summary.Cash.ExpectedCash)</strong></td></tr>
-                            <tr><td class="mud-text-secondary">実査</td><td class="text-right">@DisplayText.Yen(summary.Cash.ActualCash)</td></tr>
-                            <tr><td class="mud-text-secondary">過不足</td><td class="text-right"><StatusChip Value="@ChipText.Difference(summary.Cash.Difference)" /></td></tr>
+                            <tr><td class="mud-text-secondary" style="width: 120px;">開設 / 精算</td><td>@summary.Shift.Shift.OpenedAt.ToDateTimeText() @Names.StaffName(summary.Shift.Shift.OpenedByStaffId) / @summary.Shift.Shift.ClosedAt.ToDateTimeText() @Names.StaffName(summary.Shift.Shift.ClosedByStaffId)</td></tr>
+                            <tr><td class="mud-text-secondary">釣銭準備金</td><td class="text-right">@summary.Shift.Shift.OpeningCash.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary">現金売上 / 返金</td><td class="text-right">@summary.Shift.Totals.CashSales.ToYen() / -@summary.Shift.Totals.CashReturns.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary">入金 / 出金</td><td class="text-right">@summary.Shift.Totals.PaidIn.ToYen() / -@summary.Shift.Totals.PaidOut.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary">予想現金</td><td class="text-right"><strong>@summary.Shift.ExpectedCash.ToYen()</strong></td></tr>
+                            <tr><td class="mud-text-secondary">実査</td><td class="text-right">@summary.Shift.Shift.ActualCash.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary">過不足</td><td class="text-right"><StatusChip Value="@ViewHelper.DifferenceChip(summary.Shift.Shift.Difference)" /></td></tr>
                         </tbody>
                     </MudSimpleTable>
                 </MudItem>
@@ -36,9 +36,9 @@
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
                             <tr><td class="mud-text-secondary" style="width: 120px;">販売 / 返品 / 取消</td><td class="text-right">@summary.Shift.Totals.SalesCount / @summary.Shift.Totals.ReturnCount / @summary.Shift.Totals.VoidCount 件</td></tr>
-                            <tr><td class="mud-text-secondary">売上 / 返品</td><td class="text-right">@DisplayText.Yen(summary.Shift.Totals.SalesTotal) / -@DisplayText.Yen(summary.Shift.Totals.ReturnsTotal)</td></tr>
-                            <tr><td class="mud-text-secondary">ポイント</td><td class="text-right">付与 @summary.Points.Earned.ToString("N0") / 利用 @summary.Points.Redeemed.ToString("N0")</td></tr>
-                            <tr><td class="mud-text-secondary">備考</td><td>@summary.Shift.Note</td></tr>
+                            <tr><td class="mud-text-secondary">売上 / 返品</td><td class="text-right">@summary.Shift.Totals.SalesTotal.ToYen() / -@summary.Shift.Totals.ReturnsTotal.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary">ポイント</td><td class="text-right">付与 @summary.Points.Earned.ToPointText() / 利用 @summary.Points.Redeemed.ToPointText()</td></tr>
+                            <tr><td class="mud-text-secondary">備考</td><td>@summary.Shift.Shift.Note</td></tr>
                         </tbody>
                     </MudSimpleTable>
                 </MudItem>
@@ -48,7 +48,7 @@
                         <tbody>
                             @foreach (var item in summary.ByPaymentMethod)
                             {
-                                <tr><td>@item.Name</td><td class="text-right">@DisplayText.Yen(item.SalesAmount) (@item.SalesCount)</td><td class="text-right mud-text-secondary">返金 @DisplayText.Yen(item.ReturnAmount)</td></tr>
+                                <tr><td>@item.Name</td><td class="text-right">@item.SalesAmount.ToYen() (@item.SalesCount)</td><td class="text-right mud-text-secondary">返金 @item.ReturnAmount.ToYen()</td></tr>
                             }
                         </tbody>
                     </MudSimpleTable>
@@ -59,7 +59,7 @@
                         <tbody>
                             @foreach (var item in summary.ByTaxRate)
                             {
-                                <tr><td>@DisplayText.Percent(item.Rate) @(item.TaxIncluded ? "内税" : "外税")</td><td class="text-right">@DisplayText.Yen(item.TaxableAmount)</td><td class="text-right mud-text-secondary">税 @DisplayText.Yen(item.TaxAmount)</td></tr>
+                                <tr><td>@item.Rate.ToPercentText() @item.TaxIncluded.ToTaxIncludedText()</td><td class="text-right">@item.TaxableAmount.ToYen()</td><td class="text-right mud-text-secondary">税 @item.TaxAmount.ToYen()</td></tr>
                             }
                         </tbody>
                     </MudSimpleTable>
@@ -70,7 +70,7 @@
                         <tbody>
                             @foreach (var item in summary.ByCategory)
                             {
-                                <tr><td>@item.Name</td><td class="text-right">@DisplayText.Quantity(item.Quantity)</td><td class="text-right">@DisplayText.Yen(item.NetAmount)</td></tr>
+                                <tr><td>@item.Name</td><td class="text-right">@item.Quantity.ToQuantityText()</td><td class="text-right">@item.NetAmount.ToYen()</td></tr>
                             }
                         </tbody>
                     </MudSimpleTable>
@@ -81,7 +81,7 @@
                         <tbody>
                             @foreach (var item in cashEvents)
                             {
-                                <tr><td>@DisplayText.Time(item.OccurredAt)</td><td><StatusChip Value="@ChipText.CashEvent(item.Type)" /></td><td class="text-right">@DisplayText.Yen(item.Amount)</td><td>@item.Reason</td><td>@Names.StaffName(item.StaffId)</td></tr>
+                                <tr><td>@item.OccurredAt.ToTimeText()</td><td><StatusChip Value="@ViewHelper.CashEventChip(item.Type)" /></td><td class="text-right">@item.Amount.ToYen()</td><td>@item.Reason</td><td>@Names.StaffName(item.StaffId)</td></tr>
                             }
                             @if (cashEvents.Count == 0)
                             {
@@ -96,7 +96,7 @@
                         <tbody>
                             @foreach (var item in summary.Shift.Denominations)
                             {
-                                <tr><td>@DisplayText.Yen(item.Denomination) 円</td><td class="text-right">@item.Count 枚</td><td class="text-right">@DisplayText.Yen(item.Denomination * item.Count)</td></tr>
+                                <tr><td>@item.Denomination.ToYen() 円</td><td class="text-right">@item.Count 枚</td><td class="text-right">@((item.Denomination * item.Count).ToYen())</td></tr>
                             }
                             @if (summary.Shift.Denominations.Count == 0)
                             {

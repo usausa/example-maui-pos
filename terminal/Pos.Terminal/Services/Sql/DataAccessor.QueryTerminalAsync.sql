@@ -1,1 +1,6 @@
-SELECT * FROM Terminals WHERE Id = /*@ id */''
+SELECT
+    *
+FROM
+    Terminals
+WHERE
+    Id = /*@ id */''

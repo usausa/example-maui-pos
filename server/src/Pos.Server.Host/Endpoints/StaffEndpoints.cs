@@ -1,17 +1,13 @@
 namespace Pos.Server.Host.Endpoints;
 
-using Pos.Server.Accessors;
-using Pos.Server.Host.Application;
-using Pos.Server.Host.Infrastructure.Api;
-using Pos.Server.Host.Mappers;
-using Pos.Shared.Staff;
+using Pos.Contract.Staff;
+using Pos.Server.Models.Entity;
+using Pos.Server.Services;
 
-using Smart.Data;
+using Smart.Mapper;
 
-public static class StaffEndpoints
+public static partial class StaffEndpoints
 {
-    private static readonly string[] SortColumns = ["Code", "Name", "UpdatedAt"];
-
     //--------------------------------------------------------------------------------
     // Mapping
     //--------------------------------------------------------------------------------
@@ -19,7 +15,6 @@ public static class StaffEndpoints
     public static void MapStaffEndpoints(this WebApplication app)
     {
         var group = app.MapGroup(ApiRoutes.Staff);
-
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);
@@ -28,11 +23,24 @@ public static class StaffEndpoints
     }
 
     //--------------------------------------------------------------------------------
+    // Mapper
+    //--------------------------------------------------------------------------------
+
+    [Mapper]
+    internal static partial StaffResponseItem ToResponse(StaffEntity entity);
+
+    [Mapper]
+    private static partial StaffEntity ToEntity(StaffCreateRequest request);
+
+    [Mapper]
+    private static partial StaffEntity ToEntity(StaffUpdateRequest request);
+
+    //--------------------------------------------------------------------------------
     // Handler
     //--------------------------------------------------------------------------------
 
     private static async ValueTask<IResult> HandleListAsync(
-        StaffAccessor accessor,
+        StaffService service,
         Guid? storeId,
         DateTime? updatedSince,
         string? sort,
@@ -40,82 +48,53 @@ public static class StaffEndpoints
         bool includeDeleted = false,
         bool desc = false,
         [Range(0, Int32.MaxValue)] int page = 0,
-        [Range(1, ApiHelper.MaxPageSize)] int size = ApiHelper.DefaultPageSize)
+        [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        var total = await accessor.CountAsync(storeId, updatedSince, includeDeleted, cancellationToken);
-        var items = await accessor.QueryListAsync(storeId, updatedSince, includeDeleted, ApiHelper.ResolveSort(SortColumns, "Code", sort, desc, updatedSince), size, page * size, cancellationToken);
-        return TypedResults.Ok(new StaffListResponse { Total = (int)total, Page = page, Size = size, Items = items.Select(MasterMapper.ToStaffResponse).ToList() });
+        var result = await service.QueryPageAsync(storeId, updatedSince, includeDeleted, sort, desc, page, size, cancellationToken);
+        return TypedResults.Ok(new StaffResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
-        StaffAccessor accessor,
+        StaffService service,
         Guid id,
         CancellationToken cancellationToken)
     {
-        var entity = await accessor.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(MasterMapper.ToStaffResponse(entity));
+        var entity = await service.QueryAsync(id, cancellationToken);
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
-        StaffAccessor accessor,
-        IDialect dialect,
-        TimeProvider timeProvider,
+        StaffService service,
         StaffCreateRequest request,
         CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        var entity = MasterMapper.ToStaffEntity(request);
-        entity.Id = Guid.CreateVersion7();
-        entity.CreatedAt = now;
-        entity.UpdatedAt = now;
-        entity.Version = 1;
-
-        try
-        {
-            await accessor.InsertAsync(entity, cancellationToken);
-        }
-        catch (DbException ex) when (dialect.IsDuplicate(ex))
-        {
-            return ApiProblems.DuplicateCode();
-        }
-
-        return TypedResults.Created($"{ApiRoutes.Staff}/{entity.Id}", MasterMapper.ToStaffResponse(entity));
+        var entity = ToEntity(request);
+        var status = await service.InsertAsync(entity, cancellationToken);
+        return status == DataWriteStatus.Success
+            ? TypedResults.Created($"{ApiRoutes.Staff}/{entity.Id}", ToResponse(entity))
+            : ApiProblems.DuplicateCode();
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(
-        StaffAccessor accessor,
-        IDialect dialect,
-        TimeProvider timeProvider,
+        StaffService service,
         Guid id,
         StaffUpdateRequest request,
         CancellationToken cancellationToken)
     {
-        int rows;
-        try
-        {
-            rows = await accessor.UpdateAsync(id, request.Code, request.Name, request.Role, request.StoreId, request.IsActive, timeProvider.GetUtcNow().UtcDateTime, request.Version, cancellationToken);
-        }
-        catch (DbException ex) when (dialect.IsDuplicate(ex))
-        {
-            return ApiProblems.DuplicateCode();
-        }
-
-        var entity = await accessor.QueryAsync(id, cancellationToken);
-        if ((entity is null) || entity.IsDeleted)
-        {
-            return ApiProblems.NotFound();
-        }
-
-        return rows == 0 ? ApiProblems.VersionMismatch() : TypedResults.Ok(MasterMapper.ToStaffResponse(entity));
+        var entity = ToEntity(request);
+        entity.Id = id;
+        var status = await service.UpdateAsync(entity, cancellationToken);
+        return status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
+            : ApiProblems.FromStatus(status);
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(
-        StaffAccessor accessor,
-        TimeProvider timeProvider,
+        StaffService service,
         Guid id,
         CancellationToken cancellationToken)
     {
-        var rows = await accessor.DeleteAsync(id, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
-        return rows == 0 ? ApiProblems.NotFound() : TypedResults.NoContent();
+        var status = await service.DeleteAsync(id, cancellationToken);
+        return status == DataWriteStatus.Success ? TypedResults.NoContent() : ApiProblems.FromStatus(status);
     }
 }

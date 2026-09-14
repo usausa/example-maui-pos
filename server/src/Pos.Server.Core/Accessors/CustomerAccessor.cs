@@ -1,6 +1,5 @@
 namespace Pos.Server.Accessors;
 
-using Pos.Server.Infrastructure.Data;
 using Pos.Server.Models.Entity;
 
 [DataAccessor]
@@ -36,7 +35,7 @@ public sealed partial class CustomerAccessor
     [Insert(typeof(CustomerEntity), Table = "Customers")]
     public partial ValueTask<int> InsertAsync(CustomerEntity entity, CancellationToken cancellationToken);
 
-    // PointBalance は更新しない (ポイントは AddPointsAsync で加減算する)
+    // PointBalance は更新しない (ポイントは AddPointsAsync で加減算する)。Version が一致する行だけ更新する
     [Execute]
     public partial ValueTask<int> UpdateAsync(
         Guid id,

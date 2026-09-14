@@ -5,7 +5,6 @@
              xmlns:navigation="http://smart/navigation"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:local="clr-namespace:Pos.Terminal"
-             xmlns:input="clr-namespace:Pos.Terminal.Input"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              x:Class="Pos.Terminal.MainPage"
              x:DataType="{x:Type local:MainPageViewModel}"
@@ -14,7 +13,6 @@
 
     <ContentPage.Behaviors>
         <s:AppLifecycleBehavior />
-        <input:InputPageBehavior />
         <shell:ShellUpdateBehavior Navigator="{Binding Navigator, Mode=OneTime}" />
         <toolkit:StatusBarBehavior ApplyOn="OnBehaviorAttachedTo"
                                    StatusBarColor="{StaticResource BlueDefault}"
@@ -36,14 +34,14 @@
             <Label Grid.Column="0"
                    Style="{StaticResource HeaderTitleLabel}"
                    Text="{Binding Title}" />
-            <!-- 店舗-端末 担当 (screen-design §1.5) -->
+            <!-- 店舗-端末 担当 -->
             <Label Grid.Column="1"
                    Style="{StaticResource HeaderStatusLabel}"
                    Text="{Binding HeaderText}" />
             <!-- 未送信バッジ (要確認があれば赤) -->
             <Border Grid.Column="2"
                     Style="{StaticResource HeaderBadgeBorder}"
-                    BackgroundColor="{Binding BadgeColor}"
+                    BackgroundColor="{Binding HasFailed, Converter={StaticResource FailedBadgeColorConverter}}"
                     IsVisible="{Binding BadgeVisible}">
                 <Label Style="{StaticResource HeaderBadgeLabel}"
                        Text="{Binding UnsentCount}" />
@@ -67,23 +65,19 @@
             <Button Grid.Column="0"
                     Style="{StaticResource FunctionButton1}"
                     Command="{Binding Function1Command}"
-                    Text="{Binding Function1Text}"
-                    input:Shortcut.Key="Function1" />
+                    Text="{Binding Function1Text}" />
             <Button Grid.Column="1"
                     Style="{StaticResource FunctionButton2}"
                     Command="{Binding Function2Command}"
-                    Text="{Binding Function2Text}"
-                    input:Shortcut.Key="Function2" />
+                    Text="{Binding Function2Text}" />
             <Button Grid.Column="2"
                     Style="{StaticResource FunctionButton3}"
                     Command="{Binding Function3Command}"
-                    Text="{Binding Function3Text}"
-                    input:Shortcut.Key="Function3" />
+                    Text="{Binding Function3Text}" />
             <Button Grid.Column="3"
                     Style="{StaticResource FunctionButton4}"
                     Command="{Binding Function4Command}"
-                    Text="{Binding Function4Text}"
-                    input:Shortcut.Key="Function4" />
+                    Text="{Binding Function4Text}" />
         </Grid>
     </Grid>
 

@@ -1,6 +1,6 @@
 SELECT
-    /*# Pos.Server.Infrastructure.Data.ReportSql.GroupKey(groupBy) */t.BusinessDate AS GroupKey,
-    /*# Pos.Server.Infrastructure.Data.ReportSql.GroupLabel(groupBy) */t.BusinessDate AS GroupLabel,
+    /*# Pos.Server.Accessors.SqlHelper.GroupKey(groupBy) */t.BusinessDate AS GroupKey,
+    /*# Pos.Server.Accessors.SqlHelper.GroupLabel(groupBy) */t.BusinessDate AS GroupLabel,
     SUM(CASE WHEN t.Type = 'Sale' THEN 1 ELSE 0 END) AS TransactionCount,
     SUM(CASE WHEN t.Type = 'Return' THEN 1 ELSE 0 END) AS ReturnCount,
     COUNT(DISTINCT t.CustomerId) AS CustomerCount,

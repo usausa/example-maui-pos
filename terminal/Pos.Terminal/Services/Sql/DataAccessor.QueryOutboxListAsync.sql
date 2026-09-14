@@ -1,8 +1,14 @@
-SELECT * FROM Outbox
+SELECT
+    *
+FROM
+    Outbox
 /*% if (status != null) { */
-WHERE Status = /*@ status */''
+WHERE
+    Status = /*@ status */''
 /*% } else { */
-WHERE Status <> 'Sent'
+WHERE
+    Status <> 'Sent'
 /*% } */
-ORDER BY CreatedAt
+ORDER BY
+    CreatedAt
 LIMIT /*@ limit */100

@@ -45,9 +45,9 @@
                                Text="{Binding Name}" />
                         <Border Grid.Column="1"
                                 Style="{StaticResource PosChipBorder}"
-                                BackgroundColor="{Binding RoleColor}">
+                                BackgroundColor="{Binding Role, Converter={StaticResource StaffRoleColorConverter}}">
                             <Label Style="{StaticResource PosChipLabel}"
-                                   Text="{Binding RoleText}" />
+                                   Text="{Binding Role, Converter={StaticResource DisplayNameConverter}}" />
                         </Border>
                     </Grid>
                 </DataTemplate>

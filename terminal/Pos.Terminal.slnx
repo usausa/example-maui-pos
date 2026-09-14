@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/Shared/">
     <Project Path="../shared/Pos.Domain/Pos.Domain.csproj" />
-    <Project Path="../shared/Pos.Shared/Pos.Shared.csproj" />
+    <Project Path="../shared/Pos.Contract/Pos.Contract.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="../.editorconfig" />

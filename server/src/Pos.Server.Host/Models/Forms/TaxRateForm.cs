@@ -1,6 +1,10 @@
 namespace Pos.Server.Host.Models.Forms;
 
-public sealed class TaxRateForm
+using Pos.Server.Models.Entity;
+
+using Smart.Mapper;
+
+public sealed partial class TaxRateForm
 {
     public Guid Id { get; set; }
 
@@ -18,4 +22,11 @@ public sealed class TaxRateForm
     public int SortOrder { get; set; }
 
     public int Version { get; set; }
+
+    // Entity ↔ フォーム (サーバ付与項目はサービスが設定する)
+    [Mapper]
+    public static partial TaxRateForm ToForm(TaxRateEntity entity);
+
+    [Mapper]
+    public static partial TaxRateEntity ToEntity(TaxRateForm form);
 }

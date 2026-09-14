@@ -1,1 +1,7 @@
-SELECT * FROM InventoryLevels WHERE StoreId = /*@ storeId */'' AND ProductId = /*@ productId */''
+SELECT
+    *
+FROM
+    InventoryLevels
+WHERE
+    StoreId = /*@ storeId */''
+    AND ProductId = /*@ productId */''

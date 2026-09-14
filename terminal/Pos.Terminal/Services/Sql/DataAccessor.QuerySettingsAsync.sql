@@ -1,1 +1,5 @@
-SELECT * FROM Settings LIMIT 1
+SELECT
+    *
+FROM
+    Settings
+LIMIT 1

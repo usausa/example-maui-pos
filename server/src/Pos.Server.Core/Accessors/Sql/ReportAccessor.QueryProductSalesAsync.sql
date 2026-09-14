@@ -27,5 +27,5 @@ WHERE t.Status = 'Completed'
   AND p.CategoryId = /*@ categoryId */''
 /*% } */
 GROUP BY l.ProductId, p.Code, p.Name, p.CategoryId, c.Name, p.Cost
-ORDER BY /*# sort */NetSales
+ORDER BY /*# Pos.Server.Accessors.SqlHelper.ProductSalesOrder(sort) */NetSales DESC, ProductCode
 LIMIT /*@ limit */50

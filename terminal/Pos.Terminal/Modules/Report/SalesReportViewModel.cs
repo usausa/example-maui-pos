@@ -1,8 +1,8 @@
 namespace Pos.Terminal.Modules.Report;
 
-using Pos.Shared.Reports;
+using Pos.Contract.Reports;
 
-// T-80 売上照会: サーバの売上集計 (オンライン限定)。期間・範囲 (自端末 / 自店 / 全店)・集計軸を切り替える
+// 売上照会: サーバの売上集計 (オンライン限定)。期間・範囲 (自端末 / 自店 / 全店)・集計軸を切り替える
 public sealed partial class SalesReportViewModel : AppViewModelBase
 {
     private static readonly string[] Periods = ["本日", "昨日", "今週", "今月"];
@@ -20,11 +20,9 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
 
     private readonly IDialog dialog;
 
-    private readonly Settings settings;
-
     private readonly Session session;
 
-    private readonly NetworkOperator network;
+    private readonly NetworkService network;
 
     private int period;
 
@@ -44,8 +42,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string Message { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<SummarySection> Sections { get; set; } = [];
+    public ObservableCollection<SummarySection> Sections { get; } = [];
 
     public IObserveCommand PeriodCommand { get; }
 
@@ -55,12 +52,10 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
 
     public SalesReportViewModel(
         IDialog dialog,
-        Settings settings,
         Session session,
-        NetworkOperator network)
+        NetworkService network)
     {
         this.dialog = dialog;
-        this.settings = settings;
         this.session = session;
         this.network = network;
 
@@ -78,7 +73,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         });
     }
 
-    public override Task OnNavigatedToAsync(INavigationContext context) => LoadAsync();
+    public override Task OnNavigatedToAsync(INavigationContext context) => Navigator.PostActionAsync(LoadAsync).AsTask();
 
     private async Task ChoosePeriodAsync()
     {
@@ -117,7 +112,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
     private async Task LoadAsync()
     {
         var (from, to) = ResolvePeriod();
-        var storeId = scope == 2 ? null : settings.StoreId;
+        var storeId = scope == 2 ? null : session.StoreId;
 
         // 合計は日別集計の Total (支払方法別などは値引・税を持たない)。自端末は端末別集計から自分の行を取り出す (集計軸は選べない)
         var totalGroupBy = scope == 0 ? "terminal" : "day";
@@ -125,14 +120,13 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         if (!result.IsSuccess)
         {
             Message = "取得できませんでした。オンラインで「更新」してください。";
-            Sections = [];
+            Sections.Clear();
             return;
         }
 
         var total = scope == 0
-            ? result.Content!.Rows.FirstOrDefault(x => x.Key == settings.TerminalId?.ToString()) ?? new SalesSummaryResponseRow { Key = string.Empty, Label = string.Empty }
+            ? result.Content!.Rows.FirstOrDefault(x => x.Key == session.TerminalId?.ToString()) ?? new SalesSummaryResponseRow { Key = string.Empty, Label = string.Empty }
             : result.Content!.Total;
-
         var summary = result.Content;
         if ((scope != 0) && (Groups[group].GroupBy != totalGroupBy))
         {
@@ -146,6 +140,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         }
 
         Message = $"📅 {DisplayText.Date(from)} 〜 {DisplayText.Date(to)}  {Scopes[scope]}";
+
         var sections = new List<SummarySection>
         {
             new("💰 合計",
@@ -159,7 +154,6 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
                 new SummaryRow("ポイント", $"付与 {total.PointsEarned:#,##0}  利用 {total.PointsRedeemed:#,##0}")
             ])
         };
-
         if (scope != 0)
         {
             sections.Add(new SummarySection("📊 " + Groups[group].Name, summary.Rows
@@ -168,7 +162,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
                 .ToList()));
         }
 
-        Sections = sections;
+        Sections.Replace(sections);
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Menu);

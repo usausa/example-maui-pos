@@ -1,8 +1,8 @@
 namespace Pos.Terminal.Modules.Sales;
 
-using Pos.Terminal.Models.Sales;
+using Pos.Terminal.Models.Cart;
 
-public sealed record LineEditParameter(CartLine Line, IReadOnlyList<DiscountResponse> Discounts);
+public sealed record LineEditParameter(CartLine Line, IReadOnlyList<DiscountResponseItem> Discounts);
 
 public enum LineEditResult
 {
@@ -11,20 +11,20 @@ public enum LineEditResult
     Delete
 }
 
-// P-13 明細編集: 数量・単価 (AllowsPriceOverride のみ)・明細値引・シリアル番号・備考。OK で明細に書き戻す
+// 明細編集: 数量・単価 (AllowsPriceOverride のみ)・明細値引・シリアル番号・備考。OK で明細に書き戻す
 public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupInitialize<LineEditParameter>
 {
     private readonly IDialog dialog;
 
     private readonly IPopupNavigator popupNavigator;
 
-    private readonly DataAccessor accessor;
+    private readonly Session session;
 
-    private readonly Settings settings;
+    private readonly DataAccessor accessor;
 
     private CartLine line = default!;
 
-    private IReadOnlyList<DiscountResponse> discounts = [];
+    private IReadOnlyList<DiscountResponseItem> discounts = [];
 
     private decimal quantity;
 
@@ -81,13 +81,13 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
     public LineEditViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
-        DataAccessor accessor,
-        Settings settings)
+        Session session,
+        DataAccessor accessor)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
+        this.session = session;
         this.accessor = accessor;
-        this.settings = settings;
 
         DecrementCommand = MakeDelegateCommand(() => SetQuantity(quantity - 1));
         IncrementCommand = MakeDelegateCommand(() => SetQuantity(quantity + 1));
@@ -162,7 +162,7 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
     private async Task ChooseDiscountAsync()
     {
-        var selected = await DiscountChooser.ChooseAsync(dialog, accessor, settings, new DiscountParameter("明細値引", discounts, unitPrice * quantity));
+        var selected = await DiscountChooser.ChooseAsync(dialog, accessor, session, new DiscountParameter("明細値引", discounts, unitPrice * quantity));
         if (selected is not null)
         {
             SetDiscount(selected);
@@ -193,7 +193,7 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
             line.SerialNumbers.Add(serial);
         }
 
-        line.Note = String.IsNullOrWhiteSpace(Note.Text) ? null : Note.Text.Trim();
+        line.Note = Note.Text.TrimToNull();
 
         await popupNavigator.CloseAsync(LineEditResult.Ok);
     }

@@ -1,1 +1,4 @@
-DELETE FROM Terminals WHERE Id = /*@ id */''
+DELETE FROM
+    Terminals
+WHERE
+    Id = /*@ id */''

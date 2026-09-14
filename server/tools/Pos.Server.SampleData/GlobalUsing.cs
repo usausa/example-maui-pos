@@ -10,4 +10,4 @@ global using System.Net.Http;
 global using System.Text.Json;
 global using System.Threading.Tasks;
 
-global using Pos.Domain;
+global using Pos.Domain.Enums;

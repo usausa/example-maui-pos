@@ -1,1 +1,2 @@
-DELETE FROM Settings
+DELETE FROM
+    Settings

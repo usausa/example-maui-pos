@@ -1,1 +1,6 @@
-SELECT COUNT(*) FROM Outbox WHERE Status = /*@ status */''
+SELECT
+    COUNT(*)
+FROM
+    Outbox
+WHERE
+    Status = /*@ status */''

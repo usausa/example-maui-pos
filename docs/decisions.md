@@ -19,8 +19,8 @@ POS サーバ API / DB 設計にあたって行った判断の記録。
 | 項目 | 決定 | 参照 |
 | --- | --- | --- |
 | 業種 | 家電・カメラ・ホームセンター (物販) | [D-00](#d-00-業種前提) |
-| 技術スタック | 既存テンプレート準拠: SQLite + Smart.Data.Accessor、Minimal API + Blazor Server (MudBlazor) + Aspire、MAUI (Android) + Smart.Navigation。Service / Usecase の層は置かない | [D-19](#d-19-技術スタックプロジェクト構成-テンプレート準拠) |
-| プロジェクト名 | `Pos.Server.*` (Core / Host / AppHost) / `Pos.Terminal` / `Pos.Shared` (通信データ) / `Pos.Domain` (ドメインロジック) | [D-22](#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト), [D-26](#d-26-命名-posserver--posterminal--posshared--posdomain) |
+| 技術スタック | 既存テンプレート準拠: SQLite + Smart.Data.Accessor、Minimal API + Blazor Server (MudBlazor) + Aspire、MAUI (Android) + Smart.Navigation。層はサーバが Service、端末が Service / Usecase ([D-45](#d-45-サーバの-service-層) / [D-46](#d-46-端末の-service--usecase-とナビゲーションのコンテキスト)) | [D-19](#d-19-技術スタックプロジェクト構成-テンプレート準拠) |
+| プロジェクト名 | `Pos.Server.*` (Core / Host / AppHost) / `Pos.Terminal` / `Pos.Contract` (通信データ) / `Pos.Domain` (ドメインロジック) | [D-22](#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト), [D-26](#d-26-命名-posserver--posterminal--posshared--posdomain) |
 | 取引モデル | 一体型 (会計完了後に 1 回で送信)。受注は将来 | [D-01](#d-01-取引モデル-一体型-vs-分離型) |
 | 金額計算 | 端末計算 + サーバ検証 (`Pos.Domain`) | [D-02](#d-02-金額計算の主体-端末計算--サーバ検証-vs-サーバ計算のみ) |
 | MVP | 販売・レジ開閉精算 + 顧客ポイント・在庫・返品交換・売上レポート | [D-03](#d-03-mvp-の範囲) |
@@ -412,10 +412,9 @@ DB は利用者指定で SQLite。
 - ORM ではなく `[DataAccessor]` + 2-way SQL ファイル。  
   テーブルは起動時に `CREATE TABLE IF NOT EXISTS` (テンプレートの `InitializeApplicationAsync` → `CreateTable()`) で作る。  
   マイグレーションは持たない
-- **Service / Usecase の層は置かない** (利用者指示)。  
-  サーバは Endpoints (API) / Blazor ページ → **Accessor (SQL) + Domain (ロジック)** の 2 段。  
-  複数テーブルの更新は呼び出し側が `IDbProvider.UsingTxAsync` で Accessor の `DbTransaction` 付きメソッドを束ねる。  
-  プロジェクトは `Core` (Accessors / Sql / Models.Entity / Infrastructure) と `Web` (Endpoints / Models / Mappers / Components / Settings)
+- 当初は **Service / Usecase の層を置かず**、Endpoints (API) / Blazor ページ → Accessor (SQL) + Domain (ロジック) の 2 段としていた。  
+  ソースの見直しで、SQL を Accessor に閉じ、業務の手順を Service に集める形に変えた ([D-45](#d-45-サーバの-service-層)、端末は [D-46](#d-46-端末の-service--usecase-とナビゲーションのコンテキスト))。  
+  プロジェクトは `Core` (Accessors / Sql / Models / Services) と `Host` (Endpoints / Application / Models / Components / Settings)
 - Serilog / OpenTelemetry / FeatureManagement / ヘルスチェック / OpenAPI (NSwag UI) はテンプレートのまま
 - MAUI 側は `template-maui` 系テンプレートの構成 (Smart.Navigation + 独自シェル、Smart.Mvvm、BarcodeScanning.Native.Maui、Smart.Data.Accessor + SQLite、BunnyTail DI) をそのまま使う (通信は Rester ではなく HttpClient、[D-40](#d-40-端末の通信-rester-ではなく-httpclient)) (Phase 0 でベースを `template-maui-keyboard` に変更、[D-34](#d-34-参考プロジェクトの差し替え-phase-0))。  
   **Android 専用** (テンプレートが `net10.0-android` のみ)
@@ -448,19 +447,19 @@ DB は利用者指定で SQLite。
 | 案 | 内容 |
 | --- | --- |
 | A. 1 つの共有プロジェクトに通信データと計算ロジックをまとめる | 当初案。概念が混ざる |
-| ✅ **B. `Pos.Domain` (ドメインロジック) と `Pos.Shared` (通信データ) の 2 プロジェクト** | ドメインロジックを共通に切り出すなら `Xxx.Domain` (利用者指示)。通信データは Blazor の Client / Server / Shared 慣例に倣い `Shared` |
+| ✅ **B. `Pos.Domain` (ドメインロジック) と `Pos.Contract` (通信データ) の 2 プロジェクト** | ドメインロジックを共通に切り出すなら `Xxx.Domain` (利用者指示)。通信データは Blazor の Client / Server / Shared 慣例に倣い `Shared` |
 | C. 通信データは共有せず、テンプレート流儀でサーバ (`Web/Models/Api`) と端末 (`Models/Api`) に別々に持つ | 契約の変更に両側の修正が要る。取引の Request / Response は大きく、ずれやすい |
 
 **決定**: ✅ **B**。
 
 - `Pos.Domain`: 列挙型、計算ロジック (税・値引按分・ポイント・返品導出)、業務ルールの検証。  
   UI・DB・HTTP に依存しない
-- `Pos.Shared`: `XxxRequest` / `XxxResponse`。  
+- `Pos.Contract`: `XxxRequest` / `XxxResponse`。  
   `Pos.Domain` の列挙型を参照する。  
   サーバ (`Web`) と端末の両方から参照する
 - エンティティ (DB) はサーバ `Core` に、端末のローカルエンティティは MAUI 側に、それぞれテンプレートどおり残す
 
-### D-26. 命名: `Pos.Server.*` / `Pos.Terminal` / `Pos.Shared` / `Pos.Domain`
+### D-26. 命名: `Pos.Server.*` / `Pos.Terminal` / `Pos.Contract` / `Pos.Domain`
 
 テンプレートの `Template.MobileServer.*` / `Template.MobileApp` に対し、`Template` の部分を `Pos` にし、続けてサーバ / 端末が分かる名称にする (利用者指示)。
 
@@ -468,7 +467,7 @@ DB は利用者指定で SQLite。
 | --- | --- |
 | `Pos.Server.Core` / `Pos.Server.Host` / `Pos.Server.AppHost` | サーバ (テンプレートの `Template.MobileServer.*` 相当) |
 | `Pos.Terminal` | 端末 (MAUI、テンプレートの `Template.MobileApp` 相当) |
-| `Pos.Shared` | 通信データ |
+| `Pos.Contract` | 通信データ |
 | `Pos.Domain` | ドメインロジック |
 | `Pos.Domain.Tests` / `Pos.Server.UnitTests` / `Pos.Server.IntegrationTests` | テスト |
 
@@ -478,7 +477,7 @@ DB は利用者指定で SQLite。
 ### D-27. 用語: DTO は使わない
 
 通信データは `XxxRequest` / `XxxResponse` と呼び、「DTO」という語は文書・アセンブリ名・名前空間・クラス名のいずれにも使わない (利用者指示)。  
-一覧は `XxxListResponse`、入れ子の要素はテンプレートの `DataListResponseEntry` に倣い `XxxResponseLine` / `XxxRequestLine` のように親の名前に要素名を続ける。
+一覧は `XxxResponse` でその要素は `XxxResponseItem`、入れ子の要素は `TransactionResponseItemLine` / `TransactionRequestLine` のように親の名前に要素名を続ける ([D-47](#d-47-通信データと名前空間の命名))。
 
 ### D-23. 端末の画面骨格: `template-maui` のシェル準拠
 
@@ -526,7 +525,7 @@ JSON 契約は両者とも ISO 8601 (UTC) なので、境界での変換はテ�
 
 ### D-29. 実装順序
 
-[implementation-plan.md](implementation-plan.md) の順 (土台 → `Pos.Domain` → `Pos.Shared` → サーバ DB → サーバ API → 管理画面 → 端末) で進める (利用者確認済み)。  
+[implementation-plan.md](implementation-plan.md) の順 (土台 → `Pos.Domain` → `Pos.Contract` → サーバ DB → サーバ API → 管理画面 → 端末) で進める (利用者確認済み)。  
 サーバを先に通してから端末に入る。
 
 ### D-30. 初期データの規模
@@ -647,13 +646,13 @@ Smart.Navigation.Maui には効果 (`MauiEffect.Forward` = 右からスライド
 
 ### D-38. 警告の抑止
 
-`Pos.Shared` に型を置くと、名前空間の `Shared` が VB の予約語のため CA1716 が全ファイルで出る。  
+`Pos.Contract` に型を置くと、名前空間の `Shared` が VB の予約語のため CA1716 が全ファイルで出る。  
 `ProductResponse.ImageUrl` (string) には CA1056 が出る。
 
 | 案 | 内容 |
 | --- | --- |
 | A. `Analyzers.ruleset` で Hidden | 他の `.Shared` プロジェクトと同じだが、全プロジェクトに効く |
-| ✅ **B. `Pos.Shared` の `GlobalSuppressions.cs` でアセンブリ単位に抑止** | 影響を `Pos.Shared` に限定する |
+| ✅ **B. `Pos.Contract` の `GlobalSuppressions.cs` でアセンブリ単位に抑止** | 影響を `Pos.Contract` に限定する |
 | C. 名前空間を `Pos.Contracts.*` に変える | プロジェクト名と名前空間が食い違う |
 
 **決定**: ✅ **B** (利用者確認済み)。
@@ -673,8 +672,8 @@ Smart.Navigation.Maui には効果 (`MauiEffect.Forward` = 右からスライド
 
 **決定**: ✅ **B** (利用者指示)。
 
-- 文言と色は `Application/ChipText.cs` に集約し、`Controls/StatusChip` で表示する。  
-  列挙型の日本語名・金額・日時の書式は `Application/DisplayText.cs`
+- 文言と色は `Application/ViewHelper.cs` に集約し、`Controls/StatusChip` で表示する。  
+  列挙型の日本語名・金額・日時の書式は `Application/ViewExtensions.cs` の拡張メソッド ([D-45](#d-45-サーバの-service-層))
 - 端末側 (MAUI) は対象外。  
   レシートや帳票 (PDF) にも絵文字は使わない (フォントに依存するため)
 
@@ -693,7 +692,7 @@ Smart.Navigation.Maui には効果 (`MauiEffect.Forward` = 右からスライド
 
 - `ApiResult<T>` は `Status` (Success / HttpError / Unavailable / Canceled)、`StatusCode`、`Content`、`Problem`、`ErrorCode` を持つ。  
   `IsRejected` (4xx) を Outbox の Failed 判定に使う
-- 接続確認・インジケータ・エラー通知は `NetworkOperator.ExecuteAsync` に集約する (オンライン限定の操作で使う)
+- 接続確認・インジケータ・エラー通知は `NetworkService.ExecuteAsync` に集約する (オンライン限定の操作で使う)
 - 端末の JSON 設定はサーバ (`ConfigureHttpJsonOptions`) と同じ (architecture §4.2)
 
 ### D-41. サンプル取引の生成: API 経由のコンソールツール
@@ -716,7 +715,7 @@ Smart.Navigation.Maui には効果 (`MauiEffect.Forward` = 右からスライド
 - 乱数は `--seed` で固定し、同じ引数なら同じ内容になる (ID と時刻は除く)。  
   サーバに拒否された取引 (409 / 422) は省略して続行する
 - `Pos.Server.slnx` の `/Tools/` に含める。  
-  `Pos.Domain` / `Pos.Shared` だけを参照し、`Pos.Server.Core` / `Host` には依存しない
+  `Pos.Domain` / `Pos.Contract` だけを参照し、`Pos.Server.Core` / `Host` には依存しない
 
 ### D-42. 後回し項目の実装順序 (Phase 8 以降)
 
@@ -755,7 +754,7 @@ MVP (Phase 0〜7) の完了後、後回しにしていた項目 (認証・端末
 - `Styles.xaml` の `HeaderTitleLabel` / `FunctionGrid` / `FunctionButton1〜4` / `MenuGrid` / `MenuButton` / `MenuPrimaryButton` / `InputCancelButton` / `InputConfirmButton` / `InputDeleteButton`。  
   F1 = 戻る・メニュー、F4 = 会計・確定・開設・精算 という割り当てに色を合わせる
 - 会計画面の支払方法ボタンは横に長くなる名称 (クレジットカード) があるため、支払方法マスタに `shortName` (ボタン名、10 文字まで) を足し、端末はそれを表示する (省略時は `name`)。  
-  既存 DB には起動時に列を足し、初期データ相当のボタン名を入れる (`SchemaHelper.EnsureColumnAsync`)
+  既存 DB には起動時に列を足し、初期データ相当のボタン名を入れる (サーバは `SqlHelper.EnsureColumnAsync`、端末は `SchemaHelper.EnsureColumnAsync`)
 - 画面を離れるときに入力欄のフォーカスを外し、ソフトキーボードが次の画面に残らないようにする (`ShellUpdateBehavior`)
 
 ### D-44. 入力はキーボードに依存しない (数値・番号は電卓ボタン)
@@ -773,5 +772,68 @@ OS のソフトキーボードは画面の半分を隠し、機種やキーボ�
 
 - `NumberInputModel.KeepLeadingZeros` / `NumberInputParameter.Digits` / `IPopupNavigator.InputDigitsAsync` を足し、番号 (先頭が 0 の電話番号など) も電卓で入力できるようにした
 - 適用: P-13 数量・単価、P-15 値引の値、金種別入力の枚数、T-16 / T-62 の電話・郵便番号・生年月日、T-11 の手入力コード、T-20 の伝票番号、T-12 / T-14 の 🔢
-- テンプレートの `NavigationFocusPlugin` (遷移先の最初の入力欄に自動フォーカス。キーボード端末向け) は使わない。  
+- テンプレートの `NavigationFocusPlugin` (遷移先の最初の入力欄に自動フォーカス。キーボード端末向け) は物理キー向けの `Input` 名前空間ごと削除した ([D-46](#d-46-端末の-service--usecase-とナビゲーションのコンテキスト))。  
   画面を離れるときはフォーカスを外し、キーボードを残さない (`ShellUpdateBehavior`)
+
+### D-45. サーバの Service 層
+
+実装後のソース見直し (利用者指摘) で、Endpoints と Blazor ページが Accessor と `IDbProvider` を直接使い、SQL の知識 (LIKE のエスケープ、並び替え列) や重複判定・トランザクションが呼び出し側に散っていた。  
+表示用の加工 (チップの文言・色、金額や日時の書式) も `DisplayText` / `ChipText` と razor に分かれていた。
+
+| 案 | 内容 |
+| --- | --- |
+| A. 2 段のまま (D-19) | 呼び出し側が増えるたびに同じ手順が重複する |
+| ✅ **B. Service 層を置く** | SQL は Accessor だけ、業務の手順は `Core/Services` の `XxxService`、Endpoints / ページは入力の検証と表示だけ |
+
+**決定**: ✅ **B** (利用者指示)。
+
+- SQL は Accessor 以外に置かない。  
+  パラメータの正規化 (並び替え列・LIKE・既定値) は Service で行う
+- Accessor は処理の単位でまとめる (`MasterAccessor` にマスタ 9 種、`ProductAccessor` / `CustomerAccessor` / `TransactionAccessor` / `ShiftAccessor` / `InventoryAccessor` / `ReportAccessor`)。  
+  DB の結果は `Models/Views`、Service への入力は `Models/Parameters` に置き、`DataProfile` / `SqlHelper` は `Accessors` に置く
+- 重複判定は「読んでから更新」ではなく Service の中で `IDialect.IsDuplicate` と更新件数 0 で判定し、`DataWriteStatus` で返す
+- Endpoints は Request → Entity / Parameter (Smart.Mapper の `[Mapper]`) → Service → Response の変換だけを持つ。  
+  `Mappers` フォルダは廃止し、Entity ↔ Form の変換はフォームが持つ
+- razor 表示用の加工は `ViewHelper` (部品の文言と色) と `ViewExtensions` (書式の拡張メソッド) に集約する
+- Host は `Application` (アプリ固有) と `Infrastructure` (アプリに依存しない) に分ける。  
+  自前の `DatabaseHealthCheck` は置かない
+- Service は BunnyTail.ServiceRegistration で `AddCoreServices()` に一括登録する
+
+### D-46. 端末の Service / Usecase とナビゲーションのコンテキスト
+
+同じ見直しで、端末の ViewModel が `IDbProvider` を使ってトランザクションを書き、通信 → DB → 完了メッセージの手順や色・文言の切り替えを持っていた。  
+`SalesState` / `StockState` は特定の機能の画面間でしか使わないのに Singleton の State だった。
+
+| 案 | 内容 |
+| --- | --- |
+| A. ViewModel に手順を書く (従来) | 画面ごとに同じ手順が重複し、ViewModel が DB とサーバの両方を知る |
+| ✅ **B. Service / Usecase に切り出し、共有状態はナビゲーションのコンテキストにする** | ViewModel は検証済みの入力を渡すだけ。機能内の共有状態は遷移パラメータで次の画面へ渡す |
+
+**決定**: ✅ **B** (利用者指示)。
+
+- `Services/` は単機能を `XxxService`、複合機能を `XxxUsecase`、組み立てを `XxxBuilder` と呼ぶ (`HttpService` / `DataAccessor` / `NetworkService` はそのまま)。  
+  `TransactionUsecase` (保存・取消・履歴)、`SalesUsecase`、`ReturnUsecase`、`ShiftUsecase`、`StockUsecase`、`SetupUsecase`、`ReceiptService`、`DatabaseService`、`SyncService`
+- ViewModel は `IDbProvider` を使わず、フィールドは Component → State → Service の順に並べる
+- 特定の機能の画面間でだけ共有する状態は `SalesContext` / `ReturnContext` / `StockContext` として `Parameters.WithContext` で渡す。  
+  使用者に常に紐付く情報 (店舗・端末・担当・シフト) は `Session` に集約する
+- `DataAccessor` はローカルのエンティティ (`[Key]` あり) のキー取得・削除に `[SelectSingle]` / `[Delete]` を使い、1 文だけの書き込みにはトランザクションを使わない。  
+  SQL は `SELECT` / `FROM` / `WHERE` / `ORDER BY` を行頭に置き、列と条件を字下げする書き方に揃える
+- ナビゲーションイベントの中の遷移と非同期処理は `PostForwardAsync` / `PostActionAsync` で後回しにする
+- 色・列挙型の文言・選択マーク・画面固有の文言 (棚卸の表題など) は ViewModel ではなく Converter (Smart.Maui の `BoolToColorConverter` / `MapToColorConverter` / `BoolToTextConverter` と `DisplayNameConverter`) と Trigger で扱う
+- 物理キーボードは前提にしないので `Input` 名前空間 (ショートカット・フォーカス制御) と `KeyInputDriver` を削除した。  
+  根の画面の戻るは ViewModel が `HandlesBack = false` で宣言し、`MainActivity` がタスクを背面へ回す (ViewModel は遷移だけを行う)
+- `Helpers` にはアプリに依存しない処理だけを置く (`DisplayText` は `Models`、`DataProfile` は `Services`、`AppDialogExtensions` は `Extensions.cs` へ)。  
+  日付の書式は `DateTimeHelper` に集約し、`Trim` のような補助は拡張メソッドにする
+- `Models/Sales` は `Models/Cart` (`SalesCart` ...)、共通ダイアログは `Modules/Dialogs`、一覧は `ObservableCollection<T>`、`Show...` はダイアログを出すメソッドだけに使う
+
+### D-47. 通信データと名前空間の命名
+
+| 項目 | 決定 |
+| --- | --- |
+| 共有プロジェクト | `Pos.Shared` は `Pos.Contract` に改名 (通信データの契約であることを名前で示す) |
+| 一覧と要素 | 一覧は `XxxResponse`、その要素は `XxxResponseItem` (`DiscountResponse` の `Items` は `DiscountResponseItem`)。`ListResponse<T>` は `Pos.Contract` 直下 |
+| 契約でないもの | `JsonDateTimeConverter` と `ProblemResponse` はサーバと端末がそれぞれ持つ |
+| 列挙型 | `Pos.Domain.Enums` に 1 型 1 ファイル |
+| ロジック | 業務でまとめず `Pos.Domain.Logic` に `SalesLogic` / `ReturnLogic` / `TaxLogic` / `TransactionLogic` のようにまとめる。エラーの扱い (文言) はコアドメインではないので、Domain は `RuleReason` だけを返す |
+| ソースの注釈 | ソースが正。ソースから設計文書 (節番号・`§`・画面 ID・決定番号) を参照しない |
+

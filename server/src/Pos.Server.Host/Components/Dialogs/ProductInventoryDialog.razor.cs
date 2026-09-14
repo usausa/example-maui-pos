@@ -4,13 +4,13 @@ using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
-using Pos.Server.Accessors;
-using Pos.Server.Models;
+using Pos.Server.Models.Views;
+using Pos.Server.Services;
 
 // S-41 商品別全店在庫
 public sealed partial class ProductInventoryDialog
 {
-    private List<ProductInventoryLevel> levels = [];
+    private IReadOnlyList<ProductInventoryLevel> levels = [];
 
     [Parameter]
     public Guid ProductId { get; set; }
@@ -22,10 +22,10 @@ public sealed partial class ProductInventoryDialog
     public required IMudDialogInstance MudDialog { get; set; }
 
     [Inject]
-    public required InventoryAccessor InventoryAccessor { get; set; }
+    public required InventoryService InventoryService { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        levels = await InventoryAccessor.QueryLevelsByProductAsync(ProductId, CancellationToken.None);
+        levels = await InventoryService.QueryProductLevelsAsync(ProductId, CancellationToken.None) ?? [];
     }
 }

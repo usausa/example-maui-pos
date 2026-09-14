@@ -2,9 +2,8 @@ namespace Pos.Server.Host.Components.Controls;
 
 using Microsoft.AspNetCore.Components;
 
-using Pos.Server.Accessors;
-using Pos.Server.Host.Infrastructure.Api;
 using Pos.Server.Models.Entity;
+using Pos.Server.Services;
 
 // 店舗セレクタ (null = 全店舗)
 public sealed partial class StoreSelect
@@ -12,7 +11,7 @@ public sealed partial class StoreSelect
     private List<StoreEntity> stores = [];
 
     [Inject]
-    public required StoreAccessor StoreAccessor { get; set; }
+    public required StoreService StoreService { get; set; }
 
     [Parameter]
     public Guid? Value { get; set; }
@@ -34,7 +33,7 @@ public sealed partial class StoreSelect
 
     protected override async Task OnInitializedAsync()
     {
-        stores = await StoreAccessor.QueryListAsync(null, false, "Code", ApiHelper.MaxPageSize, 0, CancellationToken.None);
+        stores = await StoreService.QueryAllAsync(false, CancellationToken.None);
     }
 
     private Task OnValueChanged(Guid? value)

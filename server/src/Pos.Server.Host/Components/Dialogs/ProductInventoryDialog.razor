@@ -13,9 +13,9 @@
                 {
                     <tr>
                         <td>@level.StoreName</td>
-                        <td class="text-right">@DisplayText.Quantity(level.Quantity)</td>
-                        <td><StatusChip Value="@ChipText.Quantity(level.Quantity)" /></td>
-                        <td>@DisplayText.DateTime(level.UpdatedAt)</td>
+                        <td class="text-right">@level.Quantity.ToQuantityText()</td>
+                        <td><StatusChip Value="@ViewHelper.QuantityChip(level.Quantity)" /></td>
+                        <td>@level.UpdatedAt.ToDateTimeText()</td>
                     </tr>
                 }
                 @if (levels.Count == 0)

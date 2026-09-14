@@ -4,19 +4,17 @@ using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
-using Pos.Server.Accessors;
-using Pos.Server.Host.Infrastructure.Api;
-using Pos.Server.Host.Infrastructure.Components;
-using Pos.Server.Host.Mappers;
 using Pos.Server.Models.Entity;
-using Pos.Shared.Shifts;
+using Pos.Server.Models.Views;
+using Pos.Server.Services;
 
 // S-31 シフト詳細 (精算レポートと同じ内容 + 入出金・金種)
 public sealed partial class ShiftDetailDialog
 {
-    private ShiftSummaryResponse? summary;
+    private const int CashEventLimit = 1000;
 
-    private List<CashEventEntity> cashEvents = [];
+    private ShiftSummary? summary;
+    private IReadOnlyList<CashEventEntity> cashEvents = [];
 
     [Parameter]
     public Guid Id { get; set; }
@@ -28,17 +26,16 @@ public sealed partial class ShiftDetailDialog
     public required IMudDialogInstance MudDialog { get; set; }
 
     [Inject]
-    public required ShiftAccessor ShiftAccessor { get; set; }
+    public required ShiftService ShiftService { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        var entity = await ShiftAccessor.QueryAsync(Id, CancellationToken.None);
-        if (entity is null)
+        summary = await ShiftService.QuerySummaryAsync(Id, CancellationToken.None);
+        if (summary is null)
         {
             return;
         }
 
-        summary = await ShiftMapper.ToSummaryResponseAsync(ShiftAccessor, entity, CancellationToken.None);
-        cashEvents = await ShiftAccessor.QueryCashEventListAsync(Id, ApiHelper.MaxPageSize, 0, CancellationToken.None);
+        cashEvents = (await ShiftService.QueryCashEventPageAsync(Id, 0, CashEventLimit, CancellationToken.None))?.Items ?? [];
     }
 }

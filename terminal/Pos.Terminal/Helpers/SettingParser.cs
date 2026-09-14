@@ -1,6 +1,6 @@
 namespace Pos.Terminal.Helpers;
 
-// 設定 QR (Key=Value 行) の読み取り (D-24)
+// 設定 QR (Key=Value 行) の読み取り
 public sealed class SettingParser
 {
     private readonly Dictionary<string, string> values;

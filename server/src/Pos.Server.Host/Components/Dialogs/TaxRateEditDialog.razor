@@ -20,7 +20,7 @@
                     <MudSelect T="TaxKind" @bind-Value="Form.Kind" Label="種別">
                         @foreach (var kind in Enum.GetValues<TaxKind>())
                         {
-                            <MudSelectItem T="TaxKind" Value="kind">@DisplayText.Name(kind)</MudSelectItem>
+                            <MudSelectItem T="TaxKind" Value="kind">@kind.ToDisplayName()</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>

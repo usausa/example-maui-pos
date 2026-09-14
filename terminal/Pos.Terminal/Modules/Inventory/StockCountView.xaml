@@ -8,15 +8,15 @@
              x:Class="Pos.Terminal.Modules.Inventory.StockCountView"
              x:DataType="{x:Type module:StockCountViewModel}"
              s:BindingContextResolver.Type="{x:Type module:StockCountViewModel}"
-             shell:ShellProperty.Title="{Binding Title}"
+             shell:ShellProperty.Title="{Binding IsAdjustment, Converter={StaticResource StockTitleConverter}}"
              shell:ShellProperty.Function1Text="戻る"
              shell:ShellProperty.Function2Text="スキャン"
              shell:ShellProperty.Function3Text="モード"
-             shell:ShellProperty.Function4Text="{Binding SendText}"
+             shell:ShellProperty.Function4Text="{Binding Items.Count, Converter={StaticResource StockSendTextConverter}}"
              shell:ShellProperty.Function1Enabled="True"
              shell:ShellProperty.Function2Enabled="True"
              shell:ShellProperty.Function3Enabled="True"
-             shell:ShellProperty.Function4Enabled="{Binding HasChanges}">
+             shell:ShellProperty.Function4Enabled="{Binding Items.Count, Converter={StaticResource IntToBoolConverter}}">
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,Auto,*">
@@ -41,7 +41,7 @@
                Style="{StaticResource PosMessageLabel}"
                Padding="16,0,16,8"
                FontSize="14"
-               Text="{Binding ModeText}" />
+               Text="{Binding IsAdjustment, Converter={StaticResource StockModeTextConverter}}" />
 
         <CollectionView Grid.Row="2"
                         Style="{StaticResource PosListCollectionView}"

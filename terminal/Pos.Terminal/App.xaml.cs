@@ -2,10 +2,6 @@ namespace Pos.Terminal;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using Pos.Terminal.Helpers.Data;
-
-using Smart.Data;
-
 #pragma warning disable CA1724
 public sealed partial class App
 {
@@ -36,20 +32,11 @@ public sealed partial class App
         await CrashReport.ShowReport();
 
         // ローカル DB とセッション
-        var provider = serviceProvider.GetRequiredService<IDbProvider>();
-        var accessor = serviceProvider.GetRequiredService<DataAccessor>();
-        await provider.UsingAsync(async con =>
-        {
-            await accessor.ExecutePragmaAsync(con);
-            await accessor.CreateTablesAsync(con);
+        await serviceProvider.GetRequiredService<DatabaseService>().InitializeAsync();
 
-            // 後から増えた列 (マスタは次の同期で埋まる)
-            await SchemaHelper.EnsureColumnAsync(con, "PaymentMethods", "ShortName", "TEXT");
-        });
-
-        var syncWorker = serviceProvider.GetRequiredService<SyncWorker>();
-        await syncWorker.RefreshSessionAsync();
-        syncWorker.Start();
+        var syncService = serviceProvider.GetRequiredService<SyncService>();
+        await syncService.RefreshSessionAsync();
+        syncService.Start();
 
         // Completed
         serviceProvider.GetRequiredService<StartupState>().NotifyCompleted();

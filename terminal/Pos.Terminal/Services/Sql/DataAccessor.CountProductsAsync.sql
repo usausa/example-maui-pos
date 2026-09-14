@@ -1,1 +1,6 @@
-SELECT COUNT(*) FROM Products WHERE IsDeleted = 0
+SELECT
+    COUNT(*)
+FROM
+    Products
+WHERE
+    IsDeleted = 0

@@ -1,0 +1,10 @@
+namespace Pos.Terminal.Modules.Dialogs;
+
+[Popup(DialogId.InputNumber)]
+public sealed partial class InputNumberView
+{
+    public InputNumberView()
+    {
+        InitializeComponent();
+    }
+}

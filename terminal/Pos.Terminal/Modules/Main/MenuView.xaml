@@ -19,16 +19,16 @@
               ColumnDefinitions="Auto,*">
             <Border Grid.Column="0"
                     Style="{StaticResource PosChipBorder}"
-                    BackgroundColor="{Binding ShiftColor}">
+                    BackgroundColor="{Binding IsShiftOpen, Converter={StaticResource ShiftOpenColorConverter}}">
                 <Label Style="{StaticResource PosChipLabel}"
-                       Text="{Binding ShiftText}" />
+                       Text="{Binding IsShiftOpen, Converter={StaticResource ShiftStateTextConverter}}" />
             </Border>
             <Label Grid.Column="1"
                    Style="{StaticResource PosCaptionLabel}"
                    Text="{Binding ShiftDetail}" />
         </Grid>
 
-        <!-- 販売を最上段に 2 列幅で置く (docs/screen-design.md T-02) -->
+        <!-- 販売を最上段に 2 列幅で置く -->
         <Grid Grid.Row="1"
               Style="{StaticResource MenuGrid}"
               RowDefinitions="*,*,*,*,*,*"
@@ -52,7 +52,7 @@
                     Style="{StaticResource MenuButton}"
                     Command="{Binding ForwardCommand}"
                     CommandParameter="{x:Static modules:ViewId.ShiftOpen}"
-                    Text="{Binding ShiftButtonText}" />
+                    Text="{Binding IsShiftOpen, Converter={StaticResource ShiftButtonTextConverter}}" />
             <Button Grid.Row="2" Grid.Column="1"
                     Style="{StaticResource MenuButton}"
                     Command="{Binding ForwardCommand}"

@@ -32,9 +32,9 @@
 ### shared/
 
 - [x] `shared/Pos.Domain` (net10.0、`Usa.Smart.Core`) の空プロジェクト
-- [x] `shared/Pos.Shared` (net10.0、`Pos.Domain` 参照) の空プロジェクト
+- [x] `shared/Pos.Contract` (net10.0、`Pos.Domain` 参照) の空プロジェクト
 - [x] `shared/Pos.Domain.Tests` (xunit.v3 + Microsoft.Testing.Platform)。  
-      `Pos.Domain` が UI / DB / HTTP / `Pos.Shared` を参照しないことを検証する `DependencyTests`
+      `Pos.Domain` が UI / DB / HTTP / `Pos.Contract` を参照しないことを検証する `DependencyTests`
 
 ### server/
 
@@ -55,7 +55,7 @@
       起動時に `Menu` へ遷移
 - [x] `Styles.xaml` に `FooterLabel` と POS 節 (`Pos` 接頭辞: 背景・行・区切り線・名称 / 金額ラベル・オプション / 数量 / 実行ボタン) を追加。  
       配色は `Colors.xaml` の Material パレット
-- [x] `terminal/Pos.Terminal.slnx`: `Pos.Terminal` + `../shared/Pos.Domain` + `../shared/Pos.Shared`。  
+- [x] `terminal/Pos.Terminal.slnx`: `Pos.Terminal` + `../shared/Pos.Domain` + `../shared/Pos.Contract`。  
       `Settings.XamlStyler` / `Pos.Terminal.sln.DotSettings` をコピー
 - [x] 画面遷移の Forward / Back アニメーション: `AddHierarchyEffectPlugin` + 各画面の `[Hierarchy(n)]` ([D-36](decisions.md#d-36-端末の画面遷移アニメーション))
 - [x] 通信の JSON を camelCase に設定 → Phase 6 で `HttpService` (HttpClient + System.Text.Json、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) に実装
@@ -77,7 +77,7 @@
 api-design §4 を実装し、テストで固定する。
 
 - [x] 列挙型 (architecture §4.1 の一覧)
-- [x] `global using Pos.Domain;` を `Pos.Shared` / `Pos.Server.Core` / `Pos.Server.Host` (`GlobalUsing.cs`、`_Imports.razor`) に追加 (Phase 0 では空の名前空間のため外してある)
+- [x] `global using Pos.Domain;` を `Pos.Contract` / `Pos.Server.Core` / `Pos.Server.Host` (`GlobalUsing.cs`、`_Imports.razor`) に追加 (Phase 0 では空の名前空間のため外してある)
 - [x] `SalesInput` / `SalesResult` (明細・値引・支払・会社設定 → 計算項目)。  
       Request / Response には依存しない (record)
 - [x] `Allocation`: 最大剰余法の按分 (同値は順序で決定)
@@ -100,11 +100,11 @@ api-design §4 を実装し、テストで固定する。
 ### 完了条件
 
 - [x] テスト緑 (Pos.Domain.Tests 73 / UnitTests 14 / IntegrationTests 4)、両ソリューション警告ゼロ
-- [x] `Pos.Domain` が UI / DB / HTTP / `Pos.Shared` に依存していない (`DependencyTests`)
+- [x] `Pos.Domain` が UI / DB / HTTP / `Pos.Contract` に依存していない (`DependencyTests`)
 
 ---
 
-## Phase 2: `Pos.Shared` (完了)
+## Phase 2: `Pos.Contract` (完了)
 
 api-design §3 の通信データ。
 
@@ -117,7 +117,7 @@ api-design §3 の通信データ。
 - [x] レポート: `SalesSummaryResponse`、`ProductSalesResponse`
 - [x] 検証属性 (`Required` / `MaxLength` / `Range`) をテンプレートと同じ書き方で付与
 - [x] サーバの JSON 設定に `JsonDateTimeConverter` / `JsonStringEnumConverter` を登録し、`JsonContractTests` (統合テスト) で形式を固定
-- [x] CA1716 / CA1056 は `Pos.Shared` の `GlobalSuppressions.cs` で抑止 ([D-38](decisions.md#d-38-警告の抑止))
+- [x] CA1716 / CA1056 は `Pos.Contract` の `GlobalSuppressions.cs` で抑止 ([D-38](decisions.md#d-38-警告の抑止))
 
 ### 完了条件
 
@@ -269,14 +269,14 @@ screen-design §2 の ★ 画面。
 
 screen-design §1 の ★ 画面。  
 サーバが動いている前提。  
-ViewModel は `DataAccessor` / `HttpService` / `Pos.Domain` を直接使い、画面をまたぐ処理は静的ヘルパー (`TransactionBuilder` / `TransactionWriter` / `ShiftSummaryBuilder` / `ReceiptFormatter` / `ReceiptRenderer`) に置く。
+ViewModel は `DataAccessor` / `HttpService` / `Pos.Domain` を直接使い、画面をまたぐ処理は静的ヘルパー (`TransactionBuilder` / `TransactionUsecase` / `ShiftSummaryBuilder` / `ReceiptTextBuilder` / `ReceiptImageBuilder`) に置く。
 
 ### 6a 土台
 
-- [x] ローカル DB (`Services/DataAccessor.cs` + `Sql/*.sql`、db-design §6): マスタは `Pos.Shared` の Response をそのままエンティティにし Id で削除 → 挿入、取引は `LocalTransactionEntity` (検索列 + `TransactionResponse` の JSON)、`Outbox` / `SyncState` / `HoldCarts`。  
-      日時は ticks、列挙型は文字列 (`Helpers/Data/DataProfile`)
-- [x] `HttpService` (HttpClient + `System.Text.Json`。camelCase / null 省略 / 列挙型は文字列 / `JsonDateTimeConverter`。失敗時は Problem Details を `ApiResult<T>` で返す、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))、`NetworkOperator` (接続確認・インジケータ・通知)
-- [x] `SyncWorker`: 15 秒周期 + `Trigger()`、マスタ差分同期 (5 分ごと、商品が省かれたらページ取得、自店在庫は `updatedSince`)、Outbox を発生順に送信 (4xx は要確認 `Failed` で停止、5xx / 通信不可は指数バックオフ)、レシート番号の採番 (`SyncState` の連番、サーバの `LastReceiptSeq` と合わせる)
+- [x] ローカル DB (`Services/DataAccessor.cs` + `Sql/*.sql`、db-design §6): マスタは `Pos.Contract` の Response をそのままエンティティにし Id で削除 → 挿入、取引は `LocalTransactionEntity` (検索列 + `TransactionResponse` の JSON)、`Outbox` / `SyncState` / `HoldCarts`。  
+      日時は ticks、列挙型は文字列 (`Services/DataProfile`)
+- [x] `HttpService` (HttpClient + `System.Text.Json`。camelCase / null 省略 / 列挙型は文字列 / `JsonDateTimeConverter`。失敗時は Problem Details を `ApiResult<T>` で返す、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))、`NetworkService` (接続確認・インジケータ・通知)
+- [x] `SyncService`: 15 秒周期 + `Trigger()`、マスタ差分同期 (5 分ごと、商品が省かれたらページ取得、自店在庫は `updatedSince`)、Outbox を発生順に送信 (4xx は要確認 `Failed` で停止、5xx / 通信不可は指数バックオフ)、レシート番号の採番 (`SyncState` の連番、サーバの `LastReceiptSeq` と合わせる)
 - [x] `Settings` (IPreferences: ApiEndPoint / StoreId / TerminalId / OpenSalesAfterLogin)、`Session` (会社設定・店舗・端末・担当・シフト・未送信件数。タイトルバーの `店舗-端末 担当` と未送信バッジは `MainPageViewModel` が `Session` を写す)、`SalesState` (カート・支払・完了取引・返品元)、`StockState`
 - [x] セットアップ T-00 (設定 QR は `SettingParser` 互換、手入力、店舗・端末をサーバで確認してから全件同期)、スタッフ選択 T-01 (役割チップ)
 - [x] 各画面の `[Hierarchy(n)]` (screen-design §1.3 の深さ)。  
@@ -290,15 +290,15 @@ ViewModel は `DataAccessor` / `HttpService` / `Pos.Domain` を直接使い、�
 
 ### 6c 販売
 
-- [x] `Cart` (`Models/Sales`): 同じ商品は数量 +1、`TransactionBuilder.ToSalesInput` で `SalesCalculator` の入力へ。  
+- [x] `Cart` (`Models/Cart`): 同じ商品は数量 +1、`TransactionBuilder.ToSalesInput` で `SalesCalculator` の入力へ。  
       保留は JSON で `HoldCarts` に保存
 - [x] 販売 T-10 (会員チップ、明細タップで P-13、左スワイプで削除、[⋯] = 取引値引 / 配送先 / 保留 / 呼出 / クリア)、スキャン T-11 (商品モードは連続読み取り、同一コードは 2 秒抑制、他モードは 1 件で呼び出し元へ。手入力あり)、商品検索 T-12 (キーワード + 部門 2 階層)
 - [x] 明細編集 P-13 (数量・単価は `IDialog` の Prompt、明細値引は `DiscountChooser`、シリアル番号・備考・削除)、会員選択 T-14 (検索 / スキャン / 新規 / 解除)、取引値引 P-15 (定義済み + 任意額 / 任意率 + 理由、承認が必要な値引は承認者を選ぶ)、配送先 T-16 (会員住所の転記)、保留 T-17
 
 ### 6d 会計・レシート
 
-- [x] 会計 T-20 (埋め込みテンキー + 金額ショートカット + ちょうど、支払方法ボタン、複数支払、`RequiresReference` は伝票番号、ポイント利用は残高と残りまで、お釣り表示、確定で `TransactionWriter` がローカル取引 + Outbox + 自店在庫を 1 トランザクションで書く)
-- [x] 会計完了 T-21 (お釣り / 返金額、ポイント、次へ)、レシート T-22 (`ReceiptFormatter` の 32 桁テキストを `ReceiptRenderer` (SkiaSharp) で桁位置描画した画像、電子レシート QR (レシート番号)、共有は PNG)
+- [x] 会計 T-20 (埋め込みテンキー + 金額ショートカット + ちょうど、支払方法ボタン、複数支払、`RequiresReference` は伝票番号、ポイント利用は残高と残りまで、お釣り表示、確定で `TransactionUsecase` がローカル取引 + Outbox + 自店在庫を 1 トランザクションで書く)
+- [x] 会計完了 T-21 (お釣り / 返金額、ポイント、次へ)、レシート T-22 (`ReceiptTextBuilder` の 32 桁テキストを `ReceiptImageBuilder` (SkiaSharp) で桁位置描画した画像、電子レシート QR (レシート番号)、共有は PNG)
 
 ### 6e 精算・入出金
 
@@ -337,6 +337,19 @@ ViewModel は `DataAccessor` / `HttpService` / `Pos.Domain` を直接使い、�
 
 - [x] 空の DB に対してツールを実行し、ダッシュボード・売上集計・取引一覧・精算一覧・在庫 (マイナス在庫の要確認を含む) に反映されることを確認
 - [x] 警告ゼロ、InspectCode の指摘ゼロ、テスト green
+
+---
+
+## ソースの見直し (完了)
+
+実装後のソースレビュー (利用者指摘) への対応。  
+判断は [D-45](decisions.md#d-45-サーバの-service-層) / [D-46](decisions.md#d-46-端末の-service--usecase-とナビゲーションのコンテキスト) / [D-47](decisions.md#d-47-通信データと名前空間の命名)。
+
+- [x] 共有: `Pos.Shared` → `Pos.Contract`、一覧 `XxxResponse` / 要素 `XxxResponseItem`、`ListResponse` は直下、`JsonDateTimeConverter` / `ProblemResponse` は各側で定義、`Pos.Domain` は `Enums` / `Logic` 名前空間
+- [x] サーバ: `Services/` (Service 層、`DataWriteStatus`)、`MasterAccessor`、`Models/Views` / `Models/Parameters`、`DataProfile` / `SqlHelper` を `Accessors` へ、Endpoints は `[Mapper]` + Service 呼び出しだけ、`ViewHelper` / `ViewExtensions`、`Application` / `Infrastructure` の整理
+- [x] 端末: `Input` 名前空間の削除、`SalesContext` / `ReturnContext` / `StockContext`、`Services/` の Usecase / Service / Builder、`Models/Cart`、`Modules/Dialogs`、Converter への置き換え、`PostForwardAsync` / `PostActionAsync`、`DataAccessor` の組み込み属性と SQL の整形
+- [x] 全体: ソースから `§` と設計文書への参照を除く
+- [ ] サーバの SQL ファイルも端末と同じ書き方 (`SELECT` / `FROM` / `WHERE` / `ORDER BY` を行頭) に揃える
 
 ---
 
@@ -439,7 +452,7 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 - [ ] 承認: 明細値引 / 取引値引の承認者選択 (P-13 / P-15) に承認者の PIN 入力を追加。  
       取消 (T-31) は担当が Cashier なら承認者選択 + PIN (`approvedByStaffId`)、Manager 以上はそのまま
 - [ ] T-90 設定・同期: 端末登録の状態 (端末名・登録日時)、[登録の解除] (トークン破棄 → T-00)。  
-      `SyncWorker` の周期で heartbeat (5 分に 1 回)
+      `SyncService` の周期で heartbeat (5 分に 1 回)
 - [ ] ローカル DB: `Staff.PinHash` 列 (端末向け `StaffResponse.PinHash`)、`SyncState` のスキーマ版 (違えばマスタ表を作り直して全件同期)
 - [ ] スタッフ S-72 に PIN 設定 (Administrator。`PinHasher` でハッシュ化)。  
       初期データのスタッフに PIN (`0000` 〜) を入れる
@@ -529,7 +542,7 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 ### 10c 端末
 
 - [ ] ホーム T-02 に「受注」タイル (最下段を「受注 / 設定・同期」の 2 列に)
-- [ ] T-92 受注一覧 (自店、状態フィルタ、検索。オンライン限定) → 詳細 → [会計へ] (明細をカートに展開し会員を設定、`SalesState.OrderId` を持って T-10 へ。会計で `orderId` を送る)、[入荷] [キャンセル]
+- [ ] T-92 受注一覧 (自店、状態フィルタ、検索。オンライン限定) → 詳細 → [会計へ] (明細をカートに展開し会員を設定、`SalesContext.OrderId` を持って T-10 へ。会計で `orderId` を送る)、[入荷] [キャンセル]
 - [ ] T-10 販売の [⋯] に「受注にする」: 会員 (または宛名・電話)、種別、希望日、備考 → `POST /orders` (オンライン限定) → カートをクリア。  
       会計時に受注から来た取引はレシートに受注番号を印字
 
@@ -574,7 +587,7 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 - [ ] `GET /transactions/{id}/receipt/pdf` ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport))。  
       テンプレート `Assets/Reports/Receipt.xlsx` (レシート幅相当の 1 列)、`ReceiptReportBuilder`。  
-      内容は端末の `ReceiptFormatter` と同じ項目 (`Pos.Domain` に共通の行生成を寄せるかは着手時に判断)
+      内容は端末の `ReceiptTextBuilder` と同じ項目 (`Pos.Domain` に共通の行生成を寄せるかは着手時に判断)
 - [ ] S-21 取引詳細に [レシート PDF]
 
 ### 12b 端末の印刷
@@ -586,7 +599,7 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 - [ ] シリアル番号検索: `GET /transactions?serialNumber=` (完全一致)、S-20 のフィルタ、T-30 取引履歴の検索欄 (オンライン限定)
 - [ ] `POST /transactions/batch` (要素ごとの結果)。  
-      `SyncWorker` は Outbox に取引が連続して 10 件以上溜まっているときだけ使う (任意。着手時に効果を見て省いてもよい)
+      `SyncService` は Outbox に取引が連続して 10 件以上溜まっているときだけ使う (任意。着手時に効果を見て省いてもよい)
 
 ### 完了条件
 
@@ -602,7 +615,7 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 ### 13a 端末向けハブ
 
 - [ ] `/hubs/terminal` (端末トークンで認証、`Groups` は店舗単位): `MasterUpdated(kind)` (マスタ保存時に管理画面 / API から `IHubContext` で送る)、`TerminalRevoked` (登録解除)
-- [ ] 端末: `SyncWorker` が `HubConnection` を保持し、接続中は 5 分周期の差分同期を通知駆動にする (切断時は従来の周期に戻る)。  
+- [ ] 端末: `SyncService` が `HubConnection` を保持し、接続中は 5 分周期の差分同期を通知駆動にする (切断時は従来の周期に戻る)。  
       接続状態を通信インジケータと T-90 に表示。  
       heartbeat はハブ接続中は不要
 

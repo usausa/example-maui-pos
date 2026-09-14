@@ -1,6 +1,6 @@
 namespace Pos.Terminal.State;
 
-// 端末設定 (IPreferences)。サーバ URL・店舗・端末は設定 QR で投入する (D-24)
+// 端末設定 (IPreferences)。サーバ URL・店舗・端末は設定 QR で投入する
 #pragma warning disable CA1724
 public sealed class Settings
 {
@@ -29,7 +29,7 @@ public sealed class Settings
         set => preferences.Set(nameof(TerminalId), value?.ToString() ?? string.Empty);
     }
 
-    // スタッフ選択後にシフト開設済みなら販売画面を直接開く (screen-design §1.2)
+    // スタッフ選択後にシフト開設済みなら販売画面を直接開く
     public bool OpenSalesAfterLogin
     {
         get => preferences.Get(nameof(OpenSalesAfterLogin), false);

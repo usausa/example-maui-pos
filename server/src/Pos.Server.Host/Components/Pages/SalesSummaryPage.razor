@@ -16,7 +16,7 @@
         <MudSelect T="SalesSummaryGroupBy" @bind-Value="groupBy" Label="集計単位" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 150px;">
             @foreach (var value in Enum.GetValues<SalesSummaryGroupBy>())
             {
-                <MudSelectItem T="SalesSummaryGroupBy" Value="value">@DisplayText.Name(value)</MudSelectItem>
+                <MudSelectItem T="SalesSummaryGroupBy" Value="value">@value.ToDisplayName()</MudSelectItem>
             }
         </MudSelect>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">集計</MudButton>
@@ -31,7 +31,7 @@
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">💴 純売上</MudText>
-                <MudText Typo="Typo.h6">@DisplayText.Yen(total.NetSales) 円</MudText>
+                <MudText Typo="Typo.h6">@total.NetSales.ToYen() 円</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
@@ -43,26 +43,26 @@
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">🏷 値引</MudText>
-                <MudText Typo="Typo.h6">@DisplayText.Yen(total.DiscountTotal) 円</MudText>
+                <MudText Typo="Typo.h6">@total.DiscountTotal.ToYen() 円</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">⭐ ポイント付与 / 利用</MudText>
-                <MudText Typo="Typo.h6">@total.PointsEarned.ToString("N0") / @total.PointsRedeemed.ToString("N0")</MudText>
+                <MudText Typo="Typo.h6">@total.PointsEarned.ToPointText() / @total.PointsRedeemed.ToPointText()</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
 
     <MudPaper Class="pa-2 mb-2">
-        <MudText Typo="Typo.subtitle2" Class="mb-1">純売上 (@DisplayText.Name(groupBy))</MudText>
+        <MudText Typo="Typo.subtitle2" Class="mb-1">純売上 (@groupBy.ToDisplayName())</MudText>
         <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="chartSeries" ChartLabels="chartLabels" ChartOptions="chartOptions" Height="260px" />
     </MudPaper>
 }
 
 <MudTable T="SalesSummaryRow" Items="rows" Dense="true" Hover="true" Bordered="true" Striped="true" Loading="IsLoading">
     <HeaderContent>
-        <MudTh>@DisplayText.Name(groupBy)</MudTh>
+        <MudTh>@groupBy.ToDisplayName()</MudTh>
         <MudTh Style="text-align: right;">販売件数</MudTh>
         <MudTh Style="text-align: right;">返品件数</MudTh>
         <MudTh Style="text-align: right;">客数</MudTh>
@@ -70,7 +70,7 @@
         <MudTh Style="text-align: right;">返品</MudTh>
         <MudTh Style="text-align: right;">純売上</MudTh>
         <MudTh Style="text-align: right;">値引</MudTh>
-        <MudTh Style="text-align: right;">@(groupBy == SalesSummaryGroupBy.TaxRate ? "課税対象 / 税額" : "税")</MudTh>
+        <MudTh Style="text-align: right;">@ViewHelper.TaxColumnHeader(groupBy)</MudTh>
         <MudTh Style="text-align: right;">pt 付与 / 利用</MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -78,12 +78,12 @@
         <MudTd Style="text-align: right;">@context.TransactionCount</MudTd>
         <MudTd Style="text-align: right;">@context.ReturnCount</MudTd>
         <MudTd Style="text-align: right;">@context.CustomerCount</MudTd>
-        <MudTd Style="text-align: right;">@DisplayText.Yen(context.SalesTotal)</MudTd>
-        <MudTd Style="text-align: right;">@DisplayText.Yen(context.ReturnsTotal)</MudTd>
-        <MudTd Style="text-align: right;"><strong>@DisplayText.Yen(context.NetSales)</strong></MudTd>
-        <MudTd Style="text-align: right;">@DisplayText.Yen(context.DiscountTotal)</MudTd>
-        <MudTd Style="text-align: right;">@(groupBy == SalesSummaryGroupBy.TaxRate ? $"{DisplayText.Yen(context.TaxableAmount)} / {DisplayText.Yen(context.TaxAmount)}" : DisplayText.Yen(context.TaxTotal))</MudTd>
-        <MudTd Style="text-align: right;">@context.PointsEarned.ToString("N0") / @context.PointsRedeemed.ToString("N0")</MudTd>
+        <MudTd Style="text-align: right;">@context.SalesTotal.ToYen()</MudTd>
+        <MudTd Style="text-align: right;">@context.ReturnsTotal.ToYen()</MudTd>
+        <MudTd Style="text-align: right;"><strong>@context.NetSales.ToYen()</strong></MudTd>
+        <MudTd Style="text-align: right;">@context.DiscountTotal.ToYen()</MudTd>
+        <MudTd Style="text-align: right;">@context.ToTaxText(groupBy)</MudTd>
+        <MudTd Style="text-align: right;">@context.PointsEarned.ToPointText() / @context.PointsRedeemed.ToPointText()</MudTd>
     </RowTemplate>
     <FooterContent>
         @if (rows.Count > 0)
@@ -93,12 +93,12 @@
                 <MudTd Style="text-align: right;">@total.TransactionCount</MudTd>
                 <MudTd Style="text-align: right;">@total.ReturnCount</MudTd>
                 <MudTd Style="text-align: right;">@total.CustomerCount</MudTd>
-                <MudTd Style="text-align: right;">@DisplayText.Yen(total.SalesTotal)</MudTd>
-                <MudTd Style="text-align: right;">@DisplayText.Yen(total.ReturnsTotal)</MudTd>
-                <MudTd Style="text-align: right;">@DisplayText.Yen(total.NetSales)</MudTd>
-                <MudTd Style="text-align: right;">@DisplayText.Yen(total.DiscountTotal)</MudTd>
-                <MudTd Style="text-align: right;">@(groupBy == SalesSummaryGroupBy.TaxRate ? $"{DisplayText.Yen(total.TaxableAmount)} / {DisplayText.Yen(total.TaxAmount)}" : DisplayText.Yen(total.TaxTotal))</MudTd>
-                <MudTd Style="text-align: right;">@total.PointsEarned.ToString("N0") / @total.PointsRedeemed.ToString("N0")</MudTd>
+                <MudTd Style="text-align: right;">@total.SalesTotal.ToYen()</MudTd>
+                <MudTd Style="text-align: right;">@total.ReturnsTotal.ToYen()</MudTd>
+                <MudTd Style="text-align: right;">@total.NetSales.ToYen()</MudTd>
+                <MudTd Style="text-align: right;">@total.DiscountTotal.ToYen()</MudTd>
+                <MudTd Style="text-align: right;">@total.ToTaxText(groupBy)</MudTd>
+                <MudTd Style="text-align: right;">@total.PointsEarned.ToPointText() / @total.PointsRedeemed.ToPointText()</MudTd>
             </MudTFootRow>
         }
     </FooterContent>

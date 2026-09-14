@@ -1,1 +1,6 @@
-SELECT * FROM HoldCarts ORDER BY CreatedAt DESC
+SELECT
+    *
+FROM
+    HoldCarts
+ORDER BY
+    CreatedAt DESC

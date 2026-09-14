@@ -1,1 +1,6 @@
-SELECT * FROM Transactions WHERE ReceiptNo = /*@ receiptNo */''
+SELECT
+    *
+FROM
+    Transactions
+WHERE
+    ReceiptNo = /*@ receiptNo */''

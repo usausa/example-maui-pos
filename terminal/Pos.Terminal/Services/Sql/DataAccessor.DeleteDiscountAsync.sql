@@ -1,1 +1,4 @@
-DELETE FROM Discounts WHERE Id = /*@ id */''
+DELETE FROM
+    Discounts
+WHERE
+    Id = /*@ id */''

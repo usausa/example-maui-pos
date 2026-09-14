@@ -6,7 +6,7 @@ using Pos.Server.Host.Components.Layout;
 
 public sealed class NavMenuTests : MudBlazorTestBase
 {
-    // screen-design §2.2 の ★ 画面へのリンクがすべてある
+    // 主要画面へのリンクがすべてある
     [Fact]
     public void RenderShowsNavigationLinks()
     {

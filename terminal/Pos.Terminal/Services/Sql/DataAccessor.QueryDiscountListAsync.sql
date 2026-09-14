@@ -1,1 +1,10 @@
-SELECT * FROM Discounts WHERE IsActive = 1 AND IsDeleted = 0 ORDER BY SortOrder, Code
+SELECT
+    *
+FROM
+    Discounts
+WHERE
+    IsActive = 1
+    AND IsDeleted = 0
+ORDER BY
+    SortOrder,
+    Code

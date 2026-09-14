@@ -21,15 +21,14 @@ using MiniDataProfiler.Listener.Logging;
 using MudBlazor;
 using MudBlazor.Services;
 
-using Pos.Domain.Rules;
 using Pos.Server.Accessors;
+using Pos.Server.Host.Application.Reports;
 using Pos.Server.Host.Components;
 using Pos.Server.Host.Endpoints;
-using Pos.Server.Host.Infrastructure.Data;
+using Pos.Server.Host.Infrastructure.Components;
 using Pos.Server.Host.Infrastructure.ExceptionHandling;
-using Pos.Server.Host.Infrastructure.HealthChecks;
-using Pos.Server.Host.Infrastructure.Reports;
-using Pos.Shared.Common;
+using Pos.Server.Host.Infrastructure.Json;
+using Pos.Server.Services;
 
 using Serilog;
 
@@ -154,7 +153,7 @@ public static class ApplicationExtensions
             {
                 context.ProblemDetails.Extensions.TryAdd("traceId", Activity.Current?.Id ?? context.HttpContext.TraceIdentifier);
 
-                // 入力検証 (AddValidation) の 400 にも errorCode を付ける (api-design §5)
+                // 入力検証 (AddValidation) の 400 にも errorCode を付ける
                 if (context.ProblemDetails.Status == StatusCodes.Status400BadRequest)
                 {
                     context.ProblemDetails.Extensions.TryAdd("errorCode", ErrorCode.ValidationError.ToCode());
@@ -248,10 +247,10 @@ public static class ApplicationExtensions
             .AddInteractiveServerComponents();
 
         // Error boundary logging
-        builder.Services.AddScoped<Microsoft.AspNetCore.Components.Web.IErrorBoundaryLogger, Infrastructure.Components.ErrorBoundaryLogger>();
+        builder.Services.AddScoped<Microsoft.AspNetCore.Components.Web.IErrorBoundaryLogger, ErrorBoundaryLogger>();
 
-        // 店舗フィルタ (回線ごとに共有、screen-design §2.4)
-        builder.Services.AddScoped<Infrastructure.Components.StoreFilterState>();
+        // 店舗フィルタ (回線ごとに共有)
+        builder.Services.AddScoped<StoreFilterState>();
 
         // MudBlazor
         builder.Services.AddMudServices(static options =>
@@ -275,8 +274,7 @@ public static class ApplicationExtensions
     {
         builder.Services
             .AddHealthChecks()
-            .AddCheck("self", static () => HealthCheckResult.Healthy(), ["live"])
-            .AddCheck<DatabaseHealthCheck>("database");
+            .AddCheck("self", static () => HealthCheckResult.Healthy(), ["live"]);
 
         return builder;
     }
@@ -307,7 +305,10 @@ public static class ApplicationExtensions
         builder.Services.AddSingleton<IDialect>(new DelegateDialect(
             static ex => ex is SqliteException { SqliteErrorCode: 19 } or SqliteException { SqliteExtendedErrorCode: 1555 or 2067 },
             static x => Regex.Replace(x, "[%_]", "[$0]")));
-        builder.Services.AddDataAccessors(typeof(SqlHelper).Assembly);
+        builder.Services.AddDataAccessors(typeof(DataProfile).Assembly);
+
+        // Service
+        builder.Services.AddCoreServices();
 
         // Report
         builder.Services.AddSingleton<ShiftReportBuilder>();
@@ -400,38 +401,8 @@ public static class ApplicationExtensions
     // Startup
     //--------------------------------------------------------------------------------
 
-    public static async ValueTask InitializeApplicationAsync(this WebApplication app)
-    {
-        var services = app.Services;
-
-        // Prepare database: PRAGMA (WAL) -> schema -> initial data
-        var provider = services.GetRequiredService<IDbProvider>();
-        await provider.UsingAsync(con => services.GetRequiredService<DatabaseAccessor>().ExecutePragmaAsync(con, CancellationToken.None));
-
-        services.GetRequiredService<SettingsAccessor>().Create();
-        services.GetRequiredService<StoreAccessor>().Create();
-        services.GetRequiredService<TerminalAccessor>().Create();
-        services.GetRequiredService<StaffAccessor>().Create();
-        services.GetRequiredService<CategoryAccessor>().Create();
-        services.GetRequiredService<TaxRateAccessor>().Create();
-        services.GetRequiredService<ProductAccessor>().Create();
-        services.GetRequiredService<DiscountAccessor>().Create();
-        services.GetRequiredService<PaymentMethodAccessor>().Create();
-        services.GetRequiredService<AdjustmentReasonAccessor>().Create();
-        services.GetRequiredService<CustomerAccessor>().Create();
-        services.GetRequiredService<ShiftAccessor>().Create();
-        services.GetRequiredService<TransactionAccessor>().Create();
-        services.GetRequiredService<InventoryAccessor>().Create();
-
-        // 後から増えた列 (既存の DB に足す。足したときは初期データ相当の値を入れる)
-        var now = services.GetRequiredService<TimeProvider>().GetUtcNow().UtcDateTime;
-        if (await provider.UsingAsync(con => SchemaHelper.EnsureColumnAsync(con, "PaymentMethods", "ShortName", "TEXT", CancellationToken.None)))
-        {
-            await InitialData.BackfillPaymentMethodShortNamesAsync(services, now, CancellationToken.None);
-        }
-
-        await InitialData.SeedAsync(services, now, CancellationToken.None);
-    }
+    public static ValueTask InitializeApplicationAsync(this WebApplication app) =>
+        app.Services.GetRequiredService<DatabaseService>().InitializeAsync(CancellationToken.None);
 
     //--------------------------------------------------------------------------------
     // Profiler

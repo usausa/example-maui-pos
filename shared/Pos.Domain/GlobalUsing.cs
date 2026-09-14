@@ -9,3 +9,5 @@ global using System.Linq;
 global using Smart;
 global using Smart.Collections.Generic;
 global using Smart.Linq;
+
+global using Pos.Domain.Enums;

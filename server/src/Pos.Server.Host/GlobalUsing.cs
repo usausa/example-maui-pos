@@ -37,8 +37,7 @@ global using Smart.Linq;
 global using Smart.Text;
 
 // ReSharper disable MissingBlankLines
-global using Pos.Domain;
+global using Pos.Domain.Enums;
 global using Pos.Server;
-global using Pos.Server.Infrastructure.Data;
 global using Pos.Server.Host.Application;
 global using Pos.Server.Host.Settings;

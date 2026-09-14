@@ -9,10 +9,12 @@
 # Project Rules
 
 - **Structure:** Monorepo. `server/Pos.Server.slnx` (ASP.NET Core) and `terminal/Pos.Terminal.slnx` (MAUI) are opened separately, both include the `shared/` projects. See `docs/architecture.md`
-- **Layers:** No Service / Usecase layer. Endpoints and Blazor pages call Accessor (SQL) and `Pos.Domain` (logic) directly
-- **Naming:** Communication data is `XxxRequest` / `XxxResponse` (`XxxListResponse` for lists). Never use the word "DTO" in code, namespaces or documents
+- **Layers:** SQL lives only in Accessors. Server: Endpoints and Blazor pages call `Services/` (`XxxService`), which use Accessors and `Pos.Domain`; Razor display formatting lives only in `ViewHelper` / `ViewExtensions`. Terminal: ViewModels call `Services/` (`XxxService` for a single function, `XxxUsecase` for a sequence, `XxxBuilder` for building); no `IDbProvider` in ViewModels
+- **Naming:** Communication data is `XxxRequest` / `XxxResponse`; a list is `XxxResponse` whose `Items` are `XxxResponseItem` (nested elements append the element name: `TransactionResponseItemLine`). Never use the word "DTO" in code, namespaces or documents
+- **Source comments:** Source is the source of truth: do not reference design documents (section numbers, `§`, screen IDs, decision numbers) from source code
 - **JSON:** camelCase, `null` properties omitted, UTC datetime as `yyyy-MM-ddTHH:mm:ss.fffZ`
 - **Database:** SQLite with `Usa.Smart.Data.Accessor` (2-way SQL files), no ORM. Design in `docs/db-design.md`
+- **SQL format:** `SELECT` / `FROM` / `WHERE` / `ORDER BY` each on its own line, columns and conditions indented on the following lines
 - **UI language:** Japanese only, no localization resources
 - **Design docs:** Record decisions in `docs/decisions.md` and update the affected design document before closing a phase (`docs/implementation-plan.md`)
 

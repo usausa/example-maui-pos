@@ -17,7 +17,7 @@
                     <MudSelect T="ProductKind" @bind-Value="Form.Kind" Label="種別">
                         @foreach (var kind in Enum.GetValues<ProductKind>())
                         {
-                            <MudSelectItem T="ProductKind" Value="kind">@DisplayText.Name(kind)</MudSelectItem>
+                            <MudSelectItem T="ProductKind" Value="kind">@kind.ToDisplayName()</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -37,7 +37,7 @@
                     <MudSelect T="Guid?" @bind-Value="Form.CategoryId" For="@(() => Form.CategoryId)" Validation="@Validator.ValidateValue" Label="部門">
                         @foreach (var category in categories)
                         {
-                            <MudSelectItem T="Guid?" Value="category.Id">@(category.ParentId is null ? string.Empty : "　")@category.Name</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="category.Id">@category.ToIndentedName()</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>

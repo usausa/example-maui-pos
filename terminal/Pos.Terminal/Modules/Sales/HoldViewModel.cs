@@ -1,9 +1,6 @@
 namespace Pos.Terminal.Modules.Sales;
 
-using System.Text.Json;
-
 using Pos.Terminal.Models.Entity;
-using Pos.Terminal.Models.Sales;
 
 public sealed class HoldItem : NotificationObject
 {
@@ -27,19 +24,18 @@ public sealed class HoldItem : NotificationObject
     }
 }
 
-// T-17 保留・呼出: 端末ローカルの保留一覧から呼び出す / 破棄する
+// 保留・呼出: 端末ローカルの保留一覧から呼び出す / 破棄する
 public sealed partial class HoldViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
-    private readonly DataAccessor accessor;
+    private SalesContext salesContext = new();
 
-    private readonly SalesState sales;
+    private readonly SalesUsecase sales;
 
     private HoldItem? selected;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<HoldItem> Items { get; set; } = [];
+    public ObservableCollection<HoldItem> Items { get; } = [];
 
     [ObservableProperty]
     public partial bool HasSelection { get; set; }
@@ -48,11 +44,9 @@ public sealed partial class HoldViewModel : AppViewModelBase
 
     public HoldViewModel(
         IDialog dialog,
-        DataAccessor accessor,
-        SalesState sales)
+        SalesUsecase sales)
     {
         this.dialog = dialog;
-        this.accessor = accessor;
         this.sales = sales;
 
         SelectCommand = MakeDelegateCommand<HoldItem>(x =>
@@ -69,17 +63,20 @@ public sealed partial class HoldViewModel : AppViewModelBase
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
-        await LoadAsync();
+        salesContext = context.Parameter.GetContext<SalesContext>() ?? new SalesContext();
+        await Navigator.PostActionAsync(LoadAsync);
     }
 
-    private async ValueTask LoadAsync()
+    private async Task LoadAsync()
     {
-        Items = (await accessor.QueryHoldCartListAsync()).Select(static x => new HoldItem(x)).ToList();
+        Items.Replace((await sales.QueryHoldListAsync()).Select(static x => new HoldItem(x)));
         selected = null;
         HasSelection = false;
     }
 
-    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Sales);
+    private Task<bool> ReturnAsync() => Navigator.ForwardAsync(ViewId.Sales, Parameters.Make().WithContext(salesContext));
+
+    protected override Task OnNotifyBackAsync() => ReturnAsync();
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
@@ -90,7 +87,7 @@ public sealed partial class HoldViewModel : AppViewModelBase
             return;
         }
 
-        await accessor.DeleteHoldCartAsync(selected.Entity.Id);
+        await sales.DiscardHoldAsync(selected.Entity.Id);
         await LoadAsync();
     }
 
@@ -101,21 +98,20 @@ public sealed partial class HoldViewModel : AppViewModelBase
             return;
         }
 
-        if (!sales.Cart.IsEmpty && !await dialog.AskAsync("現在の明細を破棄して呼び出しますか？", null, "呼出"))
+        if (!salesContext.Cart.IsEmpty && !await dialog.AskAsync("現在の明細を破棄して呼び出しますか？", null, "呼出"))
         {
             return;
         }
 
-        var cart = JsonSerializer.Deserialize<Cart>(selected.Entity.Payload, HttpService.JsonOptions);
+        var cart = await sales.RecallAsync(selected.Entity);
         if (cart is null)
         {
             await dialog.InformationAsync("保留データを読めませんでした。");
             return;
         }
 
-        sales.ResetSale();
-        sales.Cart = cart;
-        await accessor.DeleteHoldCartAsync(selected.Entity.Id);
-        await Navigator.ForwardAsync(ViewId.Sales);
+        salesContext.Reset();
+        salesContext.Cart = cart;
+        await ReturnAsync();
     }
 }

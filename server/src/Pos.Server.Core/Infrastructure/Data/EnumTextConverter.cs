@@ -2,7 +2,7 @@ namespace Pos.Server.Infrastructure.Data;
 
 using Smart.Data.Accessor.Converters;
 
-// 列挙型を列挙名の TEXT で保存する (db-design §1)
+// 列挙型を列挙名の TEXT で保存する
 #pragma warning disable CA1000
 public sealed class EnumTextConverter<T> : IValueConverter<string, T>
     where T : struct, Enum

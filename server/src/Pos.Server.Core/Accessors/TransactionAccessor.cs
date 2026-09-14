@@ -1,9 +1,8 @@
 namespace Pos.Server.Accessors;
 
-using Pos.Server.Infrastructure.Data;
 using Pos.Server.Models.Entity;
 
-// 取引一式。書き込みは呼び出し側が IDbProvider.UsingTxAsync で束ねる (db-design §5.1)
+// 取引一式。書き込みは呼び出し側が IDbProvider.UsingTxAsync で束ねる
 [DataAccessor]
 [ExecuteConfig(typeof(DataProfile))]
 public sealed partial class TransactionAccessor

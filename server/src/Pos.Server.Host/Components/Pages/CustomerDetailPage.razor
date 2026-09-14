@@ -34,7 +34,7 @@ else
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">@customer.Kana</MudText>
                     @if (customer.IsDeleted)
                     {
-                        <StatusChip Value="@ChipText.Deleted()" />
+                        <StatusChip Value="@ViewHelper.DeletedChip()" />
                     }
                 </MudStack>
                 <MudSimpleTable Dense="true" Elevation="0">
@@ -43,9 +43,9 @@ else
                         <tr><td class="mud-text-secondary">電話</td><td>@customer.Phone</td></tr>
                         <tr><td class="mud-text-secondary">メール</td><td>@customer.Email</td></tr>
                         <tr><td class="mud-text-secondary">住所</td><td>@customer.PostalCode @customer.Address</td></tr>
-                        <tr><td class="mud-text-secondary">生年月日</td><td>@DisplayText.Date(customer.BirthDate)</td></tr>
+                        <tr><td class="mud-text-secondary">生年月日</td><td>@customer.BirthDate.ToDateText()</td></tr>
                         <tr><td class="mud-text-secondary">備考</td><td>@customer.Note</td></tr>
-                        <tr><td class="mud-text-secondary">登録</td><td>@DisplayText.DateTime(customer.CreatedAt)</td></tr>
+                        <tr><td class="mud-text-secondary">登録</td><td>@customer.CreatedAt.ToDateTimeText()</td></tr>
                     </tbody>
                 </MudSimpleTable>
             </MudPaper>
@@ -53,7 +53,7 @@ else
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-3 d-flex flex-column align-center justify-center" Style="height: 100%;">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">ポイント残高</MudText>
-                <MudText Typo="Typo.h4" Color="@(customer.PointBalance < 0 ? Color.Error : Color.Primary)">@customer.PointBalance.ToString("N0") pt</MudText>
+                <MudText Typo="Typo.h4" Color="@ViewHelper.PointBalanceColor(customer.PointBalance)">@customer.PointBalance.ToPointText() pt</MudText>
                 @if (customer.PointBalance < 0)
                 {
                     <StatusChip Value="@(("🔴 残高がマイナスです", Color.Error))" />
@@ -74,10 +74,10 @@ else
                     <MudTh>担当</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd Class="no-wrap">@DisplayText.DateTime(context.OccurredAt)</MudTd>
-                    <MudTd><StatusChip Value="@ChipText.PointType(context.Type)" /></MudTd>
-                    <MudTd Style="text-align: right;">@context.Points.ToString("+#,##0;-#,##0;0")</MudTd>
-                    <MudTd Style="text-align: right;">@context.BalanceAfter.ToString("N0")</MudTd>
+                    <MudTd Class="no-wrap">@context.OccurredAt.ToDateTimeText()</MudTd>
+                    <MudTd><StatusChip Value="@ViewHelper.PointTypeChip(context.Type)" /></MudTd>
+                    <MudTd Style="text-align: right;">@context.Points.ToDeltaText()</MudTd>
+                    <MudTd Style="text-align: right;">@context.BalanceAfter.ToPointText()</MudTd>
                     <MudTd>
                         @context.Reason
                         @if (context.TransactionId is not null)
@@ -104,13 +104,13 @@ else
                     <MudTh Style="text-align: right;">利用</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd Class="no-wrap">@DisplayText.DateTime(context.TransactedAt)</MudTd>
+                    <MudTd Class="no-wrap">@context.TransactedAt.ToDateTimeText()</MudTd>
                     <MudTd><MudLink Href="@($"transactions?id={context.Id}")" Typo="Typo.body2">@context.ReceiptNo</MudLink></MudTd>
-                    <MudTd><StatusChip Value="@ChipText.Type(context.Type)" /></MudTd>
-                    <MudTd><StatusChip Value="@ChipText.Status(context.Status)" /></MudTd>
-                    <MudTd Style="text-align: right;">@DisplayText.Yen(context.Total)</MudTd>
-                    <MudTd Style="text-align: right;">@context.PointsEarned.ToString("N0")</MudTd>
-                    <MudTd Style="text-align: right;">@context.PointsRedeemed.ToString("N0")</MudTd>
+                    <MudTd><StatusChip Value="@ViewHelper.TypeChip(context.Type)" /></MudTd>
+                    <MudTd><StatusChip Value="@ViewHelper.StatusChip(context.Status)" /></MudTd>
+                    <MudTd Style="text-align: right;">@context.Total.ToYen()</MudTd>
+                    <MudTd Style="text-align: right;">@context.PointsEarned.ToPointText()</MudTd>
+                    <MudTd Style="text-align: right;">@context.PointsRedeemed.ToPointText()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText>購入履歴がありません。</MudText>

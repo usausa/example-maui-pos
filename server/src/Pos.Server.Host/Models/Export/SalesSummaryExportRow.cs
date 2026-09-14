@@ -2,8 +2,6 @@ namespace Pos.Server.Host.Models.Export;
 
 using CsvHelper.Configuration.Attributes;
 
-using Pos.Server.Models;
-
 // 売上集計 CSV の 1 行 (GET /reports/sales/summary/csv)
 public sealed class SalesSummaryExportRow
 {
@@ -48,22 +46,4 @@ public sealed class SalesSummaryExportRow
 
     [Name("税額")]
     public decimal? TaxAmount { get; set; }
-
-    public static SalesSummaryExportRow From(SalesSummaryRow row) => new()
-    {
-        Key = row.GroupKey,
-        Label = row.GroupLabel,
-        TransactionCount = row.TransactionCount,
-        ReturnCount = row.ReturnCount,
-        CustomerCount = row.CustomerCount,
-        SalesTotal = row.SalesTotal,
-        ReturnsTotal = row.ReturnsTotal,
-        NetSales = row.NetSales,
-        DiscountTotal = row.DiscountTotal,
-        TaxTotal = row.TaxTotal,
-        PointsEarned = row.PointsEarned,
-        PointsRedeemed = row.PointsRedeemed,
-        TaxableAmount = row.TaxableAmount,
-        TaxAmount = row.TaxAmount
-    };
 }

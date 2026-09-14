@@ -41,7 +41,7 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 | 数量 (`qty`) | `decimal(9,2)` 相当。ホームセンターの切り売り (m 単位) を想定 |
 | ポイント | 整数 (`int`)。1 pt = 1 円 |
 | ID | GUID。端末発の書き込みは端末が GUID v7 を採番 ([D-10](decisions.md#d-10-冪等性-クライアント採番-id)) |
-| 通信データ | `XxxRequest` / `XxxResponse` (一覧は `XxxListResponse`) を `Pos.Shared` に置き、サーバと端末の両方で使う ([D-22](decisions.md#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト), [D-27](decisions.md#d-27-用語-dto-は使わない))。端末は HttpClient + System.Text.Json の `HttpService` (手書き、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) |
+| 通信データ | `XxxRequest` / `XxxResponse` (一覧は `XxxResponse`、要素は `XxxResponseItem`) を `Pos.Contract` に置き、サーバと端末の両方で使う ([D-22](decisions.md#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト), [D-27](decisions.md#d-27-用語-dto-は使わない))。端末は HttpClient + System.Text.Json の `HttpService` (手書き、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) |
 | OpenAPI | `Microsoft.AspNetCore.OpenApi` + 開発時 NSwag UI (`/swagger`, `/redoc`) |
 
 本書のフィールド名は JSON (camelCase) で書く。  
@@ -50,15 +50,16 @@ C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
 ### 2.2 一覧取得 (ページング・フィルタ)
 
 - 一覧は `page` (0 始まり) / `size` (既定 20、最大 1000) のページ方式 ([D-21](decisions.md#d-21-ページング-page--size--総件数))。  
-  応答は `XxxListResponse`。  
+  応答は `XxxResponse` (要素は `XxxResponseItem`)。  
   ページングしない一覧 (税率など) も同じ形で返す (`page` = 0、`size` = 件数)
 
 ```jsonc
-{ "total": 1234, "page": 0, "size": 20, "items": [ /* XxxResponse */ ] }
+{ "total": 1234, "page": 0, "size": 20, "items": [ /* XxxResponseItem */ ] }
 ```
 
 - 並び替えは `sort` (列名) / `desc` (bool)。  
-  許可する列はリソースごとに決め、`SqlHelper.NormalizeSort` で検証する
+  許可する列はリソースごとに決め、`SqlHelper.NormalizeSort` で検証する。  
+  `sort` / `groupBy` の値は大文字小文字を区別しない
 - マスタ系一覧は **差分同期**用に `updatedSince` (datetime) と `includeDeleted` (bool) を受け付ける。  
   `updatedSince` 指定時は `updatedAt > updatedSince` のレコードを `updatedAt, id` 昇順で返し、論理削除済みも `isDeleted: true` で含める
 - 日付範囲は営業日 `from` / `to` (両端含む)。  
@@ -69,7 +70,7 @@ C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
 
 | 項目 | 仕様 |
 | --- | --- |
-| 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxResponse`。端末発 (取引・シフト・入出金・在庫変動) は本文の `id` を必須とし、**同じ `id` が既に存在すれば `200 OK` で既存を返す**。本文が既存と一致しない場合は `409 Conflict` (`DUPLICATE_ID_MISMATCH`) |
+| 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxResponseItem`。端末発 (取引・シフト・入出金・在庫変動) は本文の `id` を必須とし、**同じ `id` が既に存在すれば `200 OK` で既存を返す**。本文が既存と一致しない場合は `409 Conflict` (`DUPLICATE_ID_MISMATCH`) |
 | 更新 | 管理系は `PUT /resources/{id}` (`XxxUpdateRequest`、全体置換)。本文の `version` で楽観ロック。不一致なら `409 Conflict` (`VERSION_MISMATCH`) |
 | 削除 | 管理系は `DELETE /resources/{id}` で論理削除 (`isDeleted = true`)。取引など履歴は削除しない。削除後も `GET /resources/{id}` は `isDeleted: true` で返し、更新・再削除は `404` |
 | 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422` |
@@ -107,7 +108,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 ## 3. リソース別 API
 
 各表の「用途」: **端末** = MAUI レジアプリが使う / **管理** = Blazor 管理画面が使う。  
-フィールド表は `XxxResponse` の項目。  
+フィールド表は `XxxResponseItem` の項目。  
 `XxxCreateRequest` / `XxxUpdateRequest` はそこからサーバ付与項目 (`id`, `createdAt`, `updatedAt`) を除いたもの (`version` は Update のみ)。
 
 ### 3.1 会社設定 (Settings)
@@ -144,7 +145,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| GET | `/stores?updatedSince&includeDeleted&page&size` | 端末 / 管理 | 店舗一覧 (`StoreListResponse`) |
+| GET | `/stores?updatedSince&includeDeleted&page&size` | 端末 / 管理 | 店舗一覧 (`StoreResponse`) |
 | GET | `/stores/{id}` | 端末 / 管理 | 店舗詳細 (`StoreResponse`) |
 | POST | `/stores` | 管理 | 登録 (`StoreCreateRequest`) |
 | PUT | `/stores/{id}` | 管理 | 更新 (`StoreUpdateRequest`) |
@@ -378,7 +379,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | POST | `/customers` | 端末 / 管理 | 登録 (店頭での新規入会も想定) |
 | PUT | `/customers/{id}` | 端末 / 管理 | 更新 |
 | DELETE | `/customers/{id}` | 管理 | 論理削除 |
-| GET | `/customers/{id}/points/history?page&size` | 端末 / 管理 | ポイント履歴 (新しい順、`PointHistoryListResponse`) |
+| GET | `/customers/{id}/points/history?page&size` | 端末 / 管理 | ポイント履歴 (新しい順、`PointHistoryResponse`) |
 | POST | `/customers/{id}/points/adjust` | 管理 | 手動調整 `PointAdjustRequest { points, reason, staffId }`。`Adjust` 履歴を作る |
 | GET | `/customers/{id}/transactions?page&size` | 端末 / 管理 | 購入履歴 (新しい順) |
 
@@ -548,7 +549,7 @@ POST /api/v1/transactions      (TransactionRequest)
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | POST | `/transactions` | 端末 | 取引登録 (`TransactionRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `422` 検証エラー |
-| GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&page&size` | 端末 / 管理 | 取引検索 (`transactedAt` 降順、`TransactionListResponse`) |
+| GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&page&size` | 端末 / 管理 | 取引検索 (`transactedAt` 降順、`TransactionResponse`) |
 | GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionResponse`) |
 | GET | `/transactions/lookup?receiptNo=` | 端末 | 返品時のレシート番号検索 |
 | POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, reason, voidedAt }` → `200` 取引 |
@@ -878,7 +879,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 ## 6. 端末側の同期フロー
 
 API 設計が前提にしている MAUI 側の動き。  
-通信は `HttpService` (HttpClient + System.Text.Json。失敗時は Problem Details を `ApiResult<T>` で返す) + `NetworkOperator` (接続確認・インジケータ・エラー通知) を使う ([D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))。
+通信は `HttpService` (HttpClient + System.Text.Json。失敗時は Problem Details を `ApiResult<T>` で返す) + `NetworkService` (接続確認・インジケータ・エラー通知) を使う ([D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))。
 
 1. **初回**: 設定 QR (`ApiEndPoint` / `StoreId` / `TerminalId`) を読み取り → `GET /sync/masters` (全件) と `GET /inventory?storeId=` をローカル DB (SQLite) に保存。  
    顧客は都度 `lookup` (オンライン) を基本とし、必要なら `GET /customers?updatedSince` でキャッシュ

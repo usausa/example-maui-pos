@@ -28,11 +28,11 @@
     <RowTemplate>
         <MudTd>@context.Code</MudTd>
         <MudTd>@context.Name</MudTd>
-        <MudTd>@DisplayText.Name(context.Type)</MudTd>
-        <MudTd Style="text-align: right;">@(context.Type == DiscountType.Percent ? DisplayText.Percent(context.Value) : DisplayText.Yen(context.Value) + " 円")</MudTd>
-        <MudTd>@DisplayText.Name(context.Scope)</MudTd>
-        <MudTd>@(context.RequiresApproval ? "🔑 承認要" : string.Empty)</MudTd>
-        <MudTd><StatusChip Value="@(context.IsDeleted ? ChipText.Deleted() : ChipText.Active(context.IsActive))" /></MudTd>
+        <MudTd>@context.Type.ToDisplayName()</MudTd>
+        <MudTd Style="text-align: right;">@(context.Type == DiscountType.Percent ? context.Value.ToPercentText() : context.Value.ToYen() + " 円")</MudTd>
+        <MudTd>@context.Scope.ToDisplayName()</MudTd>
+        <MudTd>@ViewHelper.ApprovalMark(context.RequiresApproval)</MudTd>
+        <MudTd><StatusChip Value="@(context.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.IsActive))" /></MudTd>
         <MudTd Style="text-align: right;">@context.SortOrder</MudTd>
         <MudTd Class="no-wrap">
             @if (!context.IsDeleted)

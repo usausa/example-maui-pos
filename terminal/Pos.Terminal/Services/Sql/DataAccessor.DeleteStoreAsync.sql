@@ -1,1 +1,4 @@
-DELETE FROM Stores WHERE Id = /*@ id */''
+DELETE FROM
+    Stores
+WHERE
+    Id = /*@ id */''

@@ -2,21 +2,21 @@ namespace Pos.Terminal.State;
 
 using Pos.Terminal.Models.Entity;
 
-// 選択中スタッフ・開設中シフト・未送信件数 (タイトルバーに表示)
+// 使用者に紐付く状態: 会社設定・店舗・端末・選択中スタッフ・開設中シフト・未送信件数
 #pragma warning disable CA1724
 public sealed partial class Session : ObservableObject
 {
     [ObservableProperty]
     public partial SettingsResponse? CompanySettings { get; set; }
 
-    [ObservableProperty(NotifyAlso = [nameof(HeaderText)])]
-    public partial StoreResponse? Store { get; set; }
+    [ObservableProperty(NotifyAlso = [nameof(HeaderText), nameof(StoreId)])]
+    public partial StoreResponseItem? Store { get; set; }
+
+    [ObservableProperty(NotifyAlso = [nameof(HeaderText), nameof(TerminalId)])]
+    public partial TerminalResponseItem? Terminal { get; set; }
 
     [ObservableProperty(NotifyAlso = [nameof(HeaderText)])]
-    public partial TerminalResponse? Terminal { get; set; }
-
-    [ObservableProperty(NotifyAlso = [nameof(HeaderText)])]
-    public partial StaffResponse? Staff { get; set; }
+    public partial StaffResponseItem? Staff { get; set; }
 
     [ObservableProperty(NotifyAlso = [nameof(IsShiftOpen)])]
     public partial LocalShiftEntity? CurrentShift { get; set; }
@@ -31,7 +31,14 @@ public sealed partial class Session : ObservableObject
     [ObservableProperty]
     public partial DateTime? LastSyncAt { get; set; }
 
-    public bool IsShiftOpen => CurrentShift is { Status: ShiftStatus.Open };
+    public Guid? StoreId => Store?.Id;
+
+    public Guid? TerminalId => Terminal?.Id;
+
+    public bool IsShiftOpen => CurrentShift?.Status.IsOpen() ?? false;
+
+    // 取引・入出金を登録できる状態 (店舗・端末・担当が決まり、シフトが開設中)
+    public bool CanTransact => (Store is not null) && (Terminal is not null) && (Staff is not null) && IsShiftOpen;
 
     public TaxRounding TaxRounding => CompanySettings?.TaxRounding ?? TaxRounding.Floor;
 

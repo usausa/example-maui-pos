@@ -6,9 +6,6 @@ using Microsoft.Maui.Platform;
 
 public static partial class ElementHelper
 {
-    private static partial bool IsPlatformFocusable(VisualElement visual) =>
-        (visual.Handler?.PlatformView is View view) && view.Focusable;
-
     private static partial bool PlatformMoveFocus(VisualElement parent, VisualElement? current, bool forward)
     {
         if (parent.Handler?.MauiContext is null)

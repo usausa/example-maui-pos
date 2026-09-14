@@ -26,10 +26,10 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd>@StoreName(context.StoreId)</MudTd>
-        <MudTd>@context.TerminalNo.ToString("00")</MudTd>
+        <MudTd>@context.TerminalNo.ToTerminalNoText()</MudTd>
         <MudTd>@context.Name</MudTd>
-        <MudTd><StatusChip Value="@(context.IsDeleted ? ChipText.Deleted() : ChipText.Active(context.IsActive))" /></MudTd>
-        <MudTd Class="no-wrap"><StatusChip Value="@ChipText.Online(context.LastSeenAt, UtcNow)" /></MudTd>
+        <MudTd><StatusChip Value="@(context.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.IsActive))" /></MudTd>
+        <MudTd Class="no-wrap"><StatusChip Value="@ViewHelper.OnlineChip(context.LastSeenAt, UtcNow)" /></MudTd>
         <MudTd>@context.AppVersion</MudTd>
         <MudTd Style="text-align: right;">@context.LastReceiptSeq</MudTd>
         <MudTd Class="no-wrap">

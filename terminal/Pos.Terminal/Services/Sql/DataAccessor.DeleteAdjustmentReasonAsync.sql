@@ -1,1 +1,4 @@
-DELETE FROM AdjustmentReasons WHERE Id = /*@ id */''
+DELETE FROM
+    AdjustmentReasons
+WHERE
+    Id = /*@ id */''

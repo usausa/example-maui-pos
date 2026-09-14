@@ -1,11 +1,10 @@
 namespace Pos.Terminal.Services;
 
-using Pos.Terminal.Helpers.Data;
 using Pos.Terminal.Models.Entity;
 
 using Smart.Data.Accessor.Attributes;
 
-// ローカル DB (db-design §6)。マスタは Pos.Shared の Response をそのまま保存する
+// ローカル DB。マスタは Pos.Contract の Response をそのまま保存する。ローカルのエンティティ ([Key] あり) のキーによる取得・削除は組み込みの属性で生成する
 [DataAccessor]
 [ExecuteConfig(typeof(DataProfile))]
 public sealed partial class DataAccessor
@@ -39,92 +38,92 @@ public sealed partial class DataAccessor
     //--------------------------------------------------------------------------------
 
     [QueryFirst]
-    public partial ValueTask<StoreResponse?> QueryStoreAsync(Guid id);
+    public partial ValueTask<StoreResponseItem?> QueryStoreAsync(Guid id);
 
     [Execute]
     public partial ValueTask<int> DeleteStoreAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(StoreResponse), Table = "Stores")]
-    public partial ValueTask<int> InsertStoreAsync(DbTransaction tx, StoreResponse entity);
+    [Insert(typeof(StoreResponseItem), Table = "Stores")]
+    public partial ValueTask<int> InsertStoreAsync(DbTransaction tx, StoreResponseItem entity);
 
     [QueryFirst]
-    public partial ValueTask<TerminalResponse?> QueryTerminalAsync(Guid id);
+    public partial ValueTask<TerminalResponseItem?> QueryTerminalAsync(Guid id);
 
     [Execute]
     public partial ValueTask<int> DeleteTerminalAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(TerminalResponse), Table = "Terminals")]
-    public partial ValueTask<int> InsertTerminalAsync(DbTransaction tx, TerminalResponse entity);
+    [Insert(typeof(TerminalResponseItem), Table = "Terminals")]
+    public partial ValueTask<int> InsertTerminalAsync(DbTransaction tx, TerminalResponseItem entity);
 
     // 所属店舗のスタッフ (全店舗所属も含む)
     [Query]
-    public partial ValueTask<List<StaffResponse>> QueryStaffListAsync(Guid storeId);
+    public partial ValueTask<List<StaffResponseItem>> QueryStaffListAsync(Guid storeId);
 
     [QueryFirst]
-    public partial ValueTask<StaffResponse?> QueryStaffAsync(Guid id);
+    public partial ValueTask<StaffResponseItem?> QueryStaffAsync(Guid id);
 
     [Execute]
     public partial ValueTask<int> DeleteStaffAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(StaffResponse), Table = "Staff")]
-    public partial ValueTask<int> InsertStaffAsync(DbTransaction tx, StaffResponse entity);
+    [Insert(typeof(StaffResponseItem), Table = "Staff")]
+    public partial ValueTask<int> InsertStaffAsync(DbTransaction tx, StaffResponseItem entity);
 
     //--------------------------------------------------------------------------------
     // Categories / TaxRates / Discounts / PaymentMethods / AdjustmentReasons
     //--------------------------------------------------------------------------------
 
     [Query]
-    public partial ValueTask<List<CategoryResponse>> QueryCategoryListAsync();
+    public partial ValueTask<List<CategoryResponseItem>> QueryCategoryListAsync();
 
     [Execute]
     public partial ValueTask<int> DeleteCategoryAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(CategoryResponse), Table = "Categories")]
-    public partial ValueTask<int> InsertCategoryAsync(DbTransaction tx, CategoryResponse entity);
+    [Insert(typeof(CategoryResponseItem), Table = "Categories")]
+    public partial ValueTask<int> InsertCategoryAsync(DbTransaction tx, CategoryResponseItem entity);
 
     [Query]
-    public partial ValueTask<List<TaxRateResponse>> QueryTaxRateListAsync();
+    public partial ValueTask<List<TaxRateResponseItem>> QueryTaxRateListAsync();
 
     [Execute]
     public partial ValueTask<int> DeleteTaxRateAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(TaxRateResponse), Table = "TaxRates")]
-    public partial ValueTask<int> InsertTaxRateAsync(DbTransaction tx, TaxRateResponse entity);
+    [Insert(typeof(TaxRateResponseItem), Table = "TaxRates")]
+    public partial ValueTask<int> InsertTaxRateAsync(DbTransaction tx, TaxRateResponseItem entity);
 
     [Query]
-    public partial ValueTask<List<DiscountResponse>> QueryDiscountListAsync();
+    public partial ValueTask<List<DiscountResponseItem>> QueryDiscountListAsync();
 
     [Execute]
     public partial ValueTask<int> DeleteDiscountAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(DiscountResponse), Table = "Discounts")]
-    public partial ValueTask<int> InsertDiscountAsync(DbTransaction tx, DiscountResponse entity);
+    [Insert(typeof(DiscountResponseItem), Table = "Discounts")]
+    public partial ValueTask<int> InsertDiscountAsync(DbTransaction tx, DiscountResponseItem entity);
 
     [Query]
-    public partial ValueTask<List<PaymentMethodResponse>> QueryPaymentMethodListAsync();
+    public partial ValueTask<List<PaymentMethodResponseItem>> QueryPaymentMethodListAsync();
 
     [Execute]
     public partial ValueTask<int> DeletePaymentMethodAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(PaymentMethodResponse), Table = "PaymentMethods")]
-    public partial ValueTask<int> InsertPaymentMethodAsync(DbTransaction tx, PaymentMethodResponse entity);
+    [Insert(typeof(PaymentMethodResponseItem), Table = "PaymentMethods")]
+    public partial ValueTask<int> InsertPaymentMethodAsync(DbTransaction tx, PaymentMethodResponseItem entity);
 
     [Query]
-    public partial ValueTask<List<AdjustmentReasonResponse>> QueryAdjustmentReasonListAsync();
+    public partial ValueTask<List<AdjustmentReasonResponseItem>> QueryAdjustmentReasonListAsync();
 
     [Execute]
     public partial ValueTask<int> DeleteAdjustmentReasonAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(AdjustmentReasonResponse), Table = "AdjustmentReasons")]
-    public partial ValueTask<int> InsertAdjustmentReasonAsync(DbTransaction tx, AdjustmentReasonResponse entity);
+    [Insert(typeof(AdjustmentReasonResponseItem), Table = "AdjustmentReasons")]
+    public partial ValueTask<int> InsertAdjustmentReasonAsync(DbTransaction tx, AdjustmentReasonResponseItem entity);
 
     //--------------------------------------------------------------------------------
     // Products
@@ -134,31 +133,31 @@ public sealed partial class DataAccessor
     public partial ValueTask<long> CountProductsAsync();
 
     [QueryFirst]
-    public partial ValueTask<ProductResponse?> QueryProductAsync(Guid id);
+    public partial ValueTask<ProductResponseItem?> QueryProductAsync(Guid id);
 
     [QueryFirst]
-    public partial ValueTask<ProductResponse?> QueryProductByBarcodeAsync(string barcode);
+    public partial ValueTask<ProductResponseItem?> QueryProductByBarcodeAsync(string barcode);
 
     [QueryFirst]
-    public partial ValueTask<ProductResponse?> QueryProductByCodeAsync(string code);
+    public partial ValueTask<ProductResponseItem?> QueryProductByCodeAsync(string code);
 
     // keyword は LIKE パターン (コード / JAN / 名称 / かな / 型番)
     [Query]
-    public partial ValueTask<List<ProductResponse>> QueryProductListAsync(Guid[]? categoryIds, string? keyword, int limit);
+    public partial ValueTask<List<ProductResponseItem>> QueryProductListAsync(Guid[]? categoryIds, string? keyword, int limit);
 
     [Execute]
     public partial ValueTask<int> DeleteProductAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(ProductResponse), Table = "Products")]
-    public partial ValueTask<int> InsertProductAsync(DbTransaction tx, ProductResponse entity);
+    [Insert(typeof(ProductResponseItem), Table = "Products")]
+    public partial ValueTask<int> InsertProductAsync(DbTransaction tx, ProductResponseItem entity);
 
     //--------------------------------------------------------------------------------
     // InventoryLevels (自店分)
     //--------------------------------------------------------------------------------
 
     [QueryFirst]
-    public partial ValueTask<InventoryLevelResponse?> QueryInventoryLevelAsync(Guid storeId, Guid productId);
+    public partial ValueTask<InventoryLevelResponseItem?> QueryInventoryLevelAsync(Guid storeId, Guid productId);
 
     // 同期結果の反映 (UPSERT)
     [Execute]
@@ -186,6 +185,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<int> UpdateTransactionStatusAsync(DbTransaction tx, Guid id, TransactionStatus status, string payload);
 
     [QueryFirst]
+    [SelectSingle(typeof(LocalTransactionEntity), Table = "Transactions")]
     public partial ValueTask<LocalTransactionEntity?> QueryTransactionAsync(Guid id);
 
     [QueryFirst]
@@ -205,10 +205,16 @@ public sealed partial class DataAccessor
     [Insert(typeof(LocalShiftEntity), Table = "Shifts")]
     public partial ValueTask<int> InsertShiftAsync(DbTransaction tx, LocalShiftEntity entity);
 
+    // サーバに残っていたシフトの取り込み (Outbox には入れない)
+    [Execute]
+    [Insert(typeof(LocalShiftEntity), Table = "Shifts")]
+    public partial ValueTask<int> ImportShiftAsync(LocalShiftEntity entity);
+
     [Execute]
     public partial ValueTask<int> CloseShiftAsync(DbTransaction tx, Guid id, DateTime closedAt, Guid closedByStaffId, decimal actualCash, decimal expectedCash, decimal difference, string? note);
 
     [QueryFirst]
+    [SelectSingle(typeof(LocalShiftEntity), Table = "Shifts")]
     public partial ValueTask<LocalShiftEntity?> QueryShiftAsync(Guid id);
 
     [QueryFirst]
@@ -233,6 +239,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<int> InsertOutboxAsync(DbTransaction tx, OutboxEntity entity);
 
     [QueryFirst]
+    [SelectSingle(typeof(OutboxEntity), Table = "Outbox")]
     public partial ValueTask<OutboxEntity?> QueryOutboxAsync(Guid id);
 
     // status 指定なしは未送信 (Pending / Failed) を発生順に
@@ -246,6 +253,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<int> UpdateOutboxAsync(Guid id, OutboxStatus status, int attempts, string? lastError, DateTime? sentAt);
 
     [Execute]
+    [Delete(typeof(OutboxEntity), Table = "Outbox")]
     public partial ValueTask<int> DeleteOutboxAsync(Guid id);
 
     [Execute]
@@ -273,8 +281,10 @@ public sealed partial class DataAccessor
     public partial ValueTask<List<HoldCartEntity>> QueryHoldCartListAsync();
 
     [QueryFirst]
+    [SelectSingle(typeof(HoldCartEntity), Table = "HoldCarts")]
     public partial ValueTask<HoldCartEntity?> QueryHoldCartAsync(Guid id);
 
     [Execute]
+    [Delete(typeof(HoldCartEntity), Table = "HoldCarts")]
     public partial ValueTask<int> DeleteHoldCartAsync(Guid id);
 }

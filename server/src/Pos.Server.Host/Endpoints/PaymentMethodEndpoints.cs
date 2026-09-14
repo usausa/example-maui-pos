@@ -1,15 +1,12 @@
 namespace Pos.Server.Host.Endpoints;
 
-using Pos.Domain.Rules;
-using Pos.Server.Accessors;
-using Pos.Server.Host.Application;
-using Pos.Server.Host.Infrastructure.Api;
-using Pos.Server.Host.Mappers;
-using Pos.Shared.PaymentMethods;
+using Pos.Contract.PaymentMethods;
+using Pos.Server.Models.Entity;
+using Pos.Server.Services;
 
-using Smart.Data;
+using Smart.Mapper;
 
-public static class PaymentMethodEndpoints
+public static partial class PaymentMethodEndpoints
 {
     //--------------------------------------------------------------------------------
     // Mapping
@@ -18,7 +15,6 @@ public static class PaymentMethodEndpoints
     public static void MapPaymentMethodEndpoints(this WebApplication app)
     {
         var group = app.MapGroup(ApiRoutes.PaymentMethods);
-
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);
@@ -27,102 +23,74 @@ public static class PaymentMethodEndpoints
     }
 
     //--------------------------------------------------------------------------------
+    // Mapper
+    //--------------------------------------------------------------------------------
+
+    [Mapper]
+    internal static partial PaymentMethodResponseItem ToResponse(PaymentMethodEntity entity);
+
+    [Mapper]
+    private static partial PaymentMethodEntity ToEntity(PaymentMethodCreateRequest request);
+
+    [Mapper]
+    private static partial PaymentMethodEntity ToEntity(PaymentMethodUpdateRequest request);
+
+    //--------------------------------------------------------------------------------
     // Handler
     //--------------------------------------------------------------------------------
 
+    // 少数なのでページングなし
     private static async ValueTask<IResult> HandleListAsync(
-        PaymentMethodAccessor accessor,
+        PaymentMethodService service,
         DateTime? updatedSince,
         CancellationToken cancellationToken,
         bool includeDeleted = false)
     {
-        var items = await accessor.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
-        return TypedResults.Ok(new PaymentMethodListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(MasterMapper.ToPaymentMethodResponse).ToList() });
+        var items = await service.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
+        return TypedResults.Ok(new PaymentMethodResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
-        PaymentMethodAccessor accessor,
+        PaymentMethodService service,
         Guid id,
         CancellationToken cancellationToken)
     {
-        var entity = await accessor.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(MasterMapper.ToPaymentMethodResponse(entity));
+        var entity = await service.QueryAsync(id, cancellationToken);
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
-        PaymentMethodAccessor accessor,
-        IDialect dialect,
-        TimeProvider timeProvider,
+        PaymentMethodService service,
         PaymentMethodCreateRequest request,
         CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        var entity = MasterMapper.ToPaymentMethodEntity(request);
-        entity.Id = Guid.CreateVersion7();
-        entity.CreatedAt = now;
-        entity.UpdatedAt = now;
-        entity.Version = 1;
-
-        if (await IsSecondPointsMethodAsync(accessor, entity.Id, request.Kind, request.IsActive, cancellationToken))
-        {
-            return ApiProblems.Unprocessable(ErrorCode.ValidationError, "ポイントの支払方法は 1 件だけ有効にできます");
-        }
-
-        try
-        {
-            await accessor.InsertAsync(entity, cancellationToken);
-        }
-        catch (DbException ex) when (dialect.IsDuplicate(ex))
-        {
-            return ApiProblems.DuplicateCode();
-        }
-
-        return TypedResults.Created($"{ApiRoutes.PaymentMethods}/{entity.Id}", MasterMapper.ToPaymentMethodResponse(entity));
+        var entity = ToEntity(request);
+        var status = await service.InsertAsync(entity, cancellationToken);
+        return status == DataWriteStatus.Success
+            ? TypedResults.Created($"{ApiRoutes.PaymentMethods}/{entity.Id}", ToResponse(entity))
+            : ApiProblems.FromStatus(status, invalidTitle: "ポイントの支払方法は 1 件だけ有効にできます");
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(
-        PaymentMethodAccessor accessor,
-        IDialect dialect,
-        TimeProvider timeProvider,
+        PaymentMethodService service,
         Guid id,
         PaymentMethodUpdateRequest request,
         CancellationToken cancellationToken)
     {
-        if (await IsSecondPointsMethodAsync(accessor, id, request.Kind, request.IsActive, cancellationToken))
-        {
-            return ApiProblems.Unprocessable(ErrorCode.ValidationError, "ポイントの支払方法は 1 件だけ有効にできます");
-        }
-
-        int rows;
-        try
-        {
-            rows = await accessor.UpdateAsync(id, request.Code, request.Name, request.ShortName, request.Kind, request.AllowsChange, request.RequiresReference, request.IsActive, request.SortOrder, timeProvider.GetUtcNow().UtcDateTime, request.Version, cancellationToken);
-        }
-        catch (DbException ex) when (dialect.IsDuplicate(ex))
-        {
-            return ApiProblems.DuplicateCode();
-        }
-
-        var entity = await accessor.QueryAsync(id, cancellationToken);
-        if ((entity is null) || entity.IsDeleted)
-        {
-            return ApiProblems.NotFound();
-        }
-
-        return rows == 0 ? ApiProblems.VersionMismatch() : TypedResults.Ok(MasterMapper.ToPaymentMethodResponse(entity));
+        var entity = ToEntity(request);
+        entity.Id = id;
+        var status = await service.UpdateAsync(entity, cancellationToken);
+        return status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
+            : ApiProblems.FromStatus(status, invalidTitle: "ポイントの支払方法は 1 件だけ有効にできます");
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(
-        PaymentMethodAccessor accessor,
-        TimeProvider timeProvider,
+        PaymentMethodService service,
         Guid id,
         CancellationToken cancellationToken)
     {
-        var rows = await accessor.DeleteAsync(id, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
-        return rows == 0 ? ApiProblems.NotFound() : TypedResults.NoContent();
+        var status = await service.DeleteAsync(id, cancellationToken);
+        return status == DataWriteStatus.Success ? TypedResults.NoContent() : ApiProblems.FromStatus(status);
     }
-
-    // Kind = Points かつ有効な行はちょうど 1 件 (api-design §3.9)
-    private static async ValueTask<bool> IsSecondPointsMethodAsync(PaymentMethodAccessor accessor, Guid id, PaymentKind kind, bool isActive, CancellationToken cancellationToken) =>
-        (kind == PaymentKind.Points) && isActive && (await accessor.CountActivePointsAsync(id, cancellationToken) > 0);
 }

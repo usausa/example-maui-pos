@@ -1,27 +1,26 @@
 namespace Pos.Terminal.Modules.Sales;
 
-using Pos.Terminal.Models.Sales;
+using Pos.Terminal.Models.Cart;
 
-public sealed record DiscountItem(DiscountResponse Discount, string Name, string ValueText);
+public sealed record DiscountItem(DiscountResponseItem Discount, string Name, string ValueText);
 
-// P-15 取引値引: 定義済みの選択、または任意額・任意率 + 理由
+// 取引値引: 定義済みの選択、または任意額・任意率 + 理由
 public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupInitialize<DiscountParameter>
 {
     private readonly IDialog dialog;
 
     private readonly IPopupNavigator popupNavigator;
 
-    private readonly DataAccessor accessor;
+    private readonly Session session;
 
-    private readonly Settings settings;
+    private readonly DataAccessor accessor;
 
     private decimal baseAmount;
 
     [ObservableProperty]
     public partial string Title { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<DiscountItem> Items { get; set; } = [];
+    public ObservableCollection<DiscountItem> Items { get; } = [];
 
     [ObservableProperty]
     public partial bool IsAmount { get; set; } = true;
@@ -44,13 +43,13 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
     public DiscountViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
-        DataAccessor accessor,
-        Settings settings)
+        Session session,
+        DataAccessor accessor)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
+        this.session = session;
         this.accessor = accessor;
-        this.settings = settings;
 
         SelectCommand = MakeAsyncCommand<DiscountItem>(SelectAsync);
         SelectTypeCommand = MakeDelegateCommand<string>(x => IsAmount = x == "Amount");
@@ -63,22 +62,21 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
     {
         Title = parameter.Title;
         baseAmount = parameter.BaseAmount;
-        Items = parameter.Discounts
+        Items.Replace(parameter.Discounts
             .Where(static x => x.IsActive && !x.IsDeleted)
             .OrderBy(static x => x.SortOrder)
-            .Select(static x => new DiscountItem(x, (x.RequiresApproval ? "🔑 " : string.Empty) + x.Name, DiscountChooser.Describe(x.Type, x.Value)))
-            .ToList();
+            .Select(static x => new DiscountItem(x, (x.RequiresApproval ? "🔑 " : string.Empty) + x.Name, DiscountChooser.Describe(x.Type, x.Value))));
     }
 
     private async Task SelectAsync(DiscountItem item)
     {
         var definition = item.Discount;
-        StaffResponse? approver = null;
+        StaffResponseItem? approver = null;
         if (definition.RequiresApproval)
         {
-            var staff = settings.StoreId is null
+            var staff = session.StoreId is null
                 ? []
-                : (await accessor.QueryStaffListAsync(settings.StoreId.Value)).Where(static x => x.Role is StaffRole.Manager or StaffRole.Admin).ToList();
+                : (await accessor.QueryStaffListAsync(session.StoreId.Value)).Where(static x => x.Role is StaffRole.Manager or StaffRole.Admin).ToList();
             if (staff.Count == 0)
             {
                 await dialog.InformationAsync("承認できるスタッフ (店長・管理者) が登録されていません。");

@@ -17,7 +17,7 @@
                     <MudSelect T="StaffRole" @bind-Value="Form.Role" Label="役割">
                         @foreach (var role in Enum.GetValues<StaffRole>())
                         {
-                            <MudSelectItem T="StaffRole" Value="role">@DisplayText.Name(role)</MudSelectItem>
+                            <MudSelectItem T="StaffRole" Value="role">@role.ToDisplayName()</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>

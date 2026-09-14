@@ -34,7 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\shared\Pos.Domain\Pos.Domain.csproj" />
-    <ProjectReference Include="..\..\..\shared\Pos.Shared\Pos.Shared.csproj" />
+    <ProjectReference Include="..\..\..\shared\Pos.Contract\Pos.Contract.csproj" />
     <ProjectReference Include="..\Pos.Server.Core\Pos.Server.Core.csproj" />
   </ItemGroup>
 

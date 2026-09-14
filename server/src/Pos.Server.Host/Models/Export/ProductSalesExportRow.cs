@@ -2,8 +2,6 @@ namespace Pos.Server.Host.Models.Export;
 
 using CsvHelper.Configuration.Attributes;
 
-using Pos.Server.Models;
-
 // 商品別売上 CSV の 1 行 (GET /reports/sales/products/csv)
 public sealed class ProductSalesExportRow
 {
@@ -39,19 +37,4 @@ public sealed class ProductSalesExportRow
 
     [Name("粗利")]
     public decimal? GrossProfit { get; set; }
-
-    public static ProductSalesExportRow From(ProductSalesRow row) => new()
-    {
-        ProductCode = row.ProductCode,
-        ProductName = row.ProductName,
-        CategoryName = row.CategoryName,
-        QuantitySold = row.QuantitySold,
-        QuantityReturned = row.QuantityReturned,
-        NetQuantity = row.NetQuantity,
-        SalesTotal = row.SalesTotal,
-        ReturnsTotal = row.ReturnsTotal,
-        NetSales = row.NetSales,
-        DiscountTotal = row.DiscountTotal,
-        GrossProfit = row.GrossProfit
-    };
 }

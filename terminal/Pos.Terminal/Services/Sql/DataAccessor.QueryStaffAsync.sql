@@ -1,1 +1,6 @@
-SELECT * FROM Staff WHERE Id = /*@ id */''
+SELECT
+    *
+FROM
+    Staff
+WHERE
+    Id = /*@ id */''

@@ -2,36 +2,34 @@ namespace Pos.Server.Host.Components.Pages;
 
 using Microsoft.AspNetCore.Components;
 
-using Pos.Server.Accessors;
 using Pos.Server.Host.Components.Dialogs;
-using Pos.Server.Host.Infrastructure.Api;
-using Pos.Server.Host.Infrastructure.Components;
-using Pos.Server.Host.Mappers;
 using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
+using Pos.Server.Services;
 
 // S-72 スタッフ
 public sealed partial class StaffPage
 {
     private List<StaffEntity> items = [];
-
     private Dictionary<Guid, string> stores = [];
-
     private bool includeDeleted;
 
     [Inject]
-    public required StaffAccessor StaffAccessor { get; set; }
+    public required StaffService StaffService { get; set; }
 
     [Inject]
-    public required StoreAccessor StoreAccessor { get; set; }
+    public required StoreService StoreService { get; set; }
 
     protected override Task OnInitializedAsync() => LoadAsync();
+
+    // 本部 (StoreId なし) は全店舗
+    private string StoreName(Guid? storeId) => storeId is null ? "全店舗" : stores.GetValueOrDefault(storeId.Value, "-");
 
     private Task LoadAsync() =>
         LoadAsync(async () =>
         {
-            stores = (await StoreAccessor.QueryListAsync(null, true, "Code", ApiHelper.MaxPageSize, 0, CancellationToken)).ToDictionary(static x => x.Id, static x => x.Name);
-            items = await StaffAccessor.QueryListAsync(null, null, includeDeleted, "Code", ApiHelper.MaxPageSize, 0, CancellationToken);
+            stores = (await StoreService.QueryAllAsync(true, CancellationToken)).ToDictionary(static x => x.Id, static x => x.Name);
+            items = await StaffService.QueryAllAsync(includeDeleted, CancellationToken);
         });
 
     private async Task AddAsync()
@@ -42,39 +40,18 @@ public sealed partial class StaffPage
             return;
         }
 
-        await RunAsync(async () =>
-        {
-            var now = UtcNow;
-            var entity = FormMapper.ToStaffEntity(form);
-            entity.Id = Guid.CreateVersion7();
-            entity.CreatedAt = now;
-            entity.UpdatedAt = now;
-            entity.Version = 1;
-            await StaffAccessor.InsertAsync(entity, CancellationToken);
-            Snackbar.AddSuccess("追加しました。");
-        }, LoadAsync);
+        await RunAsync(async () => NotifyResult(await StaffService.InsertAsync(StaffForm.ToEntity(form), CancellationToken), "追加しました。"), LoadAsync);
     }
 
     private async Task EditAsync(StaffEntity entity)
     {
-        var form = await ShowEditDialogAsync<StaffEditDialog, StaffForm>("スタッフ編集", FormMapper.ToStaffForm(entity));
+        var form = await ShowEditDialogAsync<StaffEditDialog, StaffForm>("スタッフ編集", StaffForm.ToForm(entity));
         if (form is null)
         {
             return;
         }
 
-        await RunAsync(async () =>
-        {
-            var rows = await StaffAccessor.UpdateAsync(form.Id, form.Code, form.Name, form.Role, form.StoreId, form.IsActive, UtcNow, form.Version, CancellationToken);
-            if (rows > 0)
-            {
-                Snackbar.AddSuccess("更新しました。");
-            }
-            else
-            {
-                NotifyVersionMismatch();
-            }
-        }, LoadAsync);
+        await RunAsync(async () => NotifyResult(await StaffService.UpdateAsync(StaffForm.ToEntity(form), CancellationToken), "更新しました。"), LoadAsync);
     }
 
     private async Task DeleteAsync(StaffEntity entity)
@@ -84,16 +61,6 @@ public sealed partial class StaffPage
             return;
         }
 
-        await RunAsync(async () =>
-        {
-            if (await StaffAccessor.DeleteAsync(entity.Id, UtcNow, CancellationToken) > 0)
-            {
-                Snackbar.AddSuccess("削除しました。");
-            }
-            else
-            {
-                NotifyNotFound();
-            }
-        }, LoadAsync);
+        await RunAsync(async () => NotifyResult(await StaffService.DeleteAsync(entity.Id, CancellationToken), "削除しました。"), LoadAsync);
     }
 }

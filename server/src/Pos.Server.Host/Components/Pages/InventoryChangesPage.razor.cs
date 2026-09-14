@@ -4,10 +4,9 @@ using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
-using Pos.Server.Accessors;
-using Pos.Server.Host.Infrastructure.Api;
-using Pos.Server.Host.Infrastructure.Components;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
+using Pos.Server.Services;
 
 // S-42 在庫変動履歴
 public sealed partial class InventoryChangesPage
@@ -17,36 +16,30 @@ public sealed partial class InventoryChangesPage
     private MudDataGrid<InventoryChangeEntity> Grid { get; set; } = default!;
 
     private NameLookup names = new();
-
     private Dictionary<Guid, ProductEntity> products = [];
-
     private Dictionary<Guid, string> reasons = [];
-
     private DateRange? period;
-
     private Guid? storeId;
-
     private ProductEntity? product;
-
     private InventoryChangeType? type;
 
     [Inject]
-    public required InventoryAccessor InventoryAccessor { get; set; }
+    public required InventoryService InventoryService { get; set; }
 
     [Inject]
-    public required ProductAccessor ProductAccessor { get; set; }
+    public required ProductService ProductService { get; set; }
 
     [Inject]
-    public required AdjustmentReasonAccessor AdjustmentReasonAccessor { get; set; }
+    public required AdjustmentReasonService AdjustmentReasonService { get; set; }
 
     [Inject]
-    public required StoreAccessor StoreAccessor { get; set; }
+    public required StoreService StoreService { get; set; }
 
     [Inject]
-    public required TerminalAccessor TerminalAccessor { get; set; }
+    public required TerminalService TerminalService { get; set; }
 
     [Inject]
-    public required StaffAccessor StaffAccessor { get; set; }
+    public required StaffService StaffService { get; set; }
 
     [Inject]
     public required StoreFilterState StoreFilter { get; set; }
@@ -60,9 +53,9 @@ public sealed partial class InventoryChangesPage
         storeId = StoreFilter.StoreId;
         return LoadAsync(async () =>
         {
-            names = await NameLookup.LoadAsync(StoreAccessor, TerminalAccessor, StaffAccessor, null, CancellationToken);
-            products = (await ProductAccessor.QueryListAsync(null, null, null, null, true, "Code", ApiHelper.MaxPageSize, 0, CancellationToken)).ToDictionary(static x => x.Id);
-            reasons = (await AdjustmentReasonAccessor.QueryListAsync(null, true, CancellationToken)).ToDictionary(static x => x.Id, static x => x.Name);
+            names = await NameLookup.LoadAsync(StoreService, TerminalService, StaffService, null, CancellationToken);
+            products = (await ProductService.QueryAllAsync(true, CancellationToken)).ToDictionary(static x => x.Id);
+            reasons = (await AdjustmentReasonService.QueryListAsync(null, true, CancellationToken)).ToDictionary(static x => x.Id, static x => x.Name);
             if ((ProductId is not null) && products.TryGetValue(ProductId.Value, out var selected))
             {
                 product = selected;
@@ -70,18 +63,25 @@ public sealed partial class InventoryChangesPage
         });
     }
 
-    private string ProductName(Guid id) => products.TryGetValue(id, out var x) ? $"{x.Code} {x.Name}" : "-";
+    private string ProductName(Guid id) => products.TryGetValue(id, out var x) ? x.ToDisplayText() : "-";
 
     private string ReasonName(Guid? id) => (id is not null) && reasons.TryGetValue(id.Value, out var name) ? name : string.Empty;
 
     private async Task<GridData<InventoryChangeEntity>> LoadServerData(GridState<InventoryChangeEntity> state, CancellationToken cancellationToken)
     {
         // 期間は UTC 日時 (to は翌日 0 時未満)
-        var from = period?.Start?.ToUniversalTime();
-        var to = period?.End?.AddDays(1).ToUniversalTime();
-        var total = await InventoryAccessor.CountChangesAsync(storeId, product?.Id, type, from, to, cancellationToken);
-        var items = await InventoryAccessor.QueryChangeListAsync(storeId, product?.Id, type, from, to, state.PageSize, state.Page * state.PageSize, cancellationToken);
-        return new GridData<InventoryChangeEntity> { TotalItems = (int)total, Items = items };
+        var parameter = new InventoryChangeQueryParameter
+        {
+            StoreId = storeId,
+            ProductId = product?.Id,
+            Type = type,
+            From = period?.Start?.ToUniversalTime(),
+            To = period?.End?.AddDays(1).ToUniversalTime(),
+            Page = state.Page,
+            Size = state.PageSize
+        };
+        var result = await InventoryService.QueryChangePageAsync(parameter, cancellationToken);
+        return new GridData<InventoryChangeEntity> { TotalItems = result.Total, Items = result.Items };
     }
 
     private Task SearchAsync() => Grid.ReloadServerData();

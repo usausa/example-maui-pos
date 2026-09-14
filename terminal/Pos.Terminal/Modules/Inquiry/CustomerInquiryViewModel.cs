@@ -1,21 +1,20 @@
 namespace Pos.Terminal.Modules.Inquiry;
 
-using Pos.Shared.Customers;
+using Pos.Contract.Customers;
 using Pos.Terminal.Modules.Sales;
 
-// T-61 会員照会: 検索 / スキャンで会員を見つけ、基本情報・ポイント履歴・購入履歴 (オンライン) を見せる
+// 会員照会: 検索 / スキャンで会員を見つけ、基本情報・ポイント履歴・購入履歴 (オンライン) を見せる
 public sealed partial class CustomerInquiryViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
-    private readonly NetworkOperator network;
+    private readonly NetworkService network;
 
-    private CustomerResponse? customer;
+    private CustomerResponseItem? customer;
 
     public EntryController Keyword { get; }
 
-    [ObservableProperty]
-    public partial IReadOnlyList<CustomerItem> Items { get; set; } = [];
+    public ObservableCollection<CustomerItem> Items { get; } = [];
 
     [ObservableProperty]
     public partial string EmptyText { get; set; } = "会員番号・電話番号・名前で検索するか、会員証をスキャンしてください。";
@@ -32,8 +31,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string PointsText { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<SummarySection> Sections { get; set; } = [];
+    public ObservableCollection<SummarySection> Sections { get; } = [];
 
     public IObserveCommand SearchCommand { get; }
 
@@ -41,14 +39,14 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
 
     public CustomerInquiryViewModel(
         IDialog dialog,
-        NetworkOperator network)
+        NetworkService network)
     {
         this.dialog = dialog;
         this.network = network;
 
         SearchCommand = MakeAsyncCommand(SearchAsync);
         Keyword = new EntryController(SearchCommand);
-        SelectCommand = MakeAsyncCommand<CustomerItem>(x => ShowAsync(x.Customer));
+        SelectCommand = MakeAsyncCommand<CustomerItem>(x => UpdateCustomerAsync(x.Customer));
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
@@ -57,38 +55,49 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         var edited = context.Parameter.GetCustomer();
         if (edited is not null)
         {
-            await ShowAsync(edited);
+            await Navigator.PostActionAsync(() => UpdateCustomerAsync(edited));
             return;
         }
 
         var id = context.Parameter.GetCustomerId();
         if (id is not null)
         {
-            var result = await network.ExecuteAsync(h => h.GetCustomerAsync(id.Value), notifyNotFound: true);
-            if (result is { IsSuccess: true, Content: not null })
-            {
-                await ShowAsync(result.Content);
-                return;
-            }
+            await Navigator.PostActionAsync(() => LoadAsync(id.Value));
+            return;
         }
 
         var scanned = context.Parameter.GetScanResult();
         if (scanned is not null)
         {
-            var result = await network.ExecuteAsync(h => h.LookupCustomerAsync(scanned));
-            if (result is { IsSuccess: true, Content: not null })
-            {
-                await ShowAsync(result.Content);
-                return;
-            }
-
-            if (result.IsNotFound)
-            {
-                await dialog.InformationAsync($"会員が見つかりません: {scanned}");
-            }
+            await Navigator.PostActionAsync(() => LookupAsync(scanned));
+            return;
         }
 
         Keyword.Focus();
+    }
+
+    private async Task LoadAsync(Guid id)
+    {
+        var result = await network.ExecuteAsync(h => h.GetCustomerAsync(id), notifyNotFound: true);
+        if (result is { IsSuccess: true, Content: not null })
+        {
+            await UpdateCustomerAsync(result.Content);
+        }
+    }
+
+    private async Task LookupAsync(string code)
+    {
+        var result = await network.ExecuteAsync(h => h.LookupCustomerAsync(code));
+        if (result is { IsSuccess: true, Content: not null })
+        {
+            await UpdateCustomerAsync(result.Content);
+            return;
+        }
+
+        if (result.IsNotFound)
+        {
+            await dialog.InformationAsync($"会員が見つかりません: {code}");
+        }
     }
 
     private async Task SearchAsync()
@@ -101,19 +110,19 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
 
         HasCustomer = false;
         customer = null;
+
         var result = await network.ExecuteAsync(h => h.SearchCustomersAsync(keyword));
         if (!result.IsSuccess)
         {
             return;
         }
 
-        Items = result.Content!.Items
-            .Select(static x => new CustomerItem(x, x.Name, DisplayText.Points(x.PointBalance), $"{x.Code}  {x.Phone}".Trim()))
-            .ToList();
+        Items.Replace(result.Content!.Items
+            .Select(static x => new CustomerItem(x, x.Name, DisplayText.Points(x.PointBalance), $"{x.Code}  {x.Phone}".Trim())));
         EmptyText = "該当する会員がいません。";
     }
 
-    private async Task ShowAsync(CustomerResponse value)
+    private async Task UpdateCustomerAsync(CustomerResponseItem value)
     {
         customer = value;
         HasCustomer = true;
@@ -147,12 +156,12 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         if (transactions.IsSuccess)
         {
             sections.Add(new SummarySection("🧾 購入履歴", transactions.Content!.Items
-                .Select(static x => new SummaryRow($"{DisplayText.DateTime(x.TransactedAt)}  {(x.Status == TransactionStatus.Voided ? "取消" : DisplayText.Name(x.Type))}\n{x.ReceiptNo}", DisplayText.Yen(x.Total)))
+                .Select(static x => new SummaryRow($"{DisplayText.DateTime(x.TransactedAt)}  {(x.Status.IsVoided() ? "取消" : DisplayText.Name(x.Type))}\n{x.ReceiptNo}", DisplayText.Yen(x.Total)))
                 .DefaultIfEmpty(new SummaryRow("履歴なし", string.Empty))
                 .ToList()));
         }
 
-        Sections = sections;
+        Sections.Replace(sections);
     }
 
     protected override Task OnNotifyBackAsync()

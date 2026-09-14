@@ -15,6 +15,9 @@ public abstract class AppViewModelBase : ExtendViewModelBase, IValidatable, INav
 
     public INavigator Navigator { get; set; } = default!;
 
+    // false の画面 (ホームなど) では戻るをプラットフォームに任せる
+    public virtual bool HandlesBack => true;
+
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);

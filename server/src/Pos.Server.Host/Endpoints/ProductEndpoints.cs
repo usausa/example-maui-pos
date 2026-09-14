@@ -1,18 +1,18 @@
 namespace Pos.Server.Host.Endpoints;
 
-using Pos.Domain.Rules;
-using Pos.Server.Accessors;
-using Pos.Server.Host.Application;
+using Pos.Contract.Products;
 using Pos.Server.Host.Infrastructure.Api;
-using Pos.Server.Host.Mappers;
 using Pos.Server.Host.Models.Export;
-using Pos.Shared.Products;
+using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
+using Pos.Server.Models.Views;
+using Pos.Server.Services;
 
-using Smart.Data;
+using Smart.Mapper;
 
-public static class ProductEndpoints
+public static partial class ProductEndpoints
 {
-    private static readonly string[] SortColumns = ["Code", "Name", "Price", "UpdatedAt"];
+    private const string DuplicateTitle = "商品コードまたはバーコードが重複しています";
 
     //--------------------------------------------------------------------------------
     // Mapping
@@ -21,7 +21,6 @@ public static class ProductEndpoints
     public static void MapProductEndpoints(this WebApplication app)
     {
         var group = app.MapGroup(ApiRoutes.Products);
-
         group.MapGet("/", HandleListAsync);
         group.MapGet("/lookup", HandleLookupAsync);
         group.MapGet("/csv", HandleExportCsvAsync);
@@ -32,13 +31,28 @@ public static class ProductEndpoints
     }
 
     //--------------------------------------------------------------------------------
+    // Mapper
+    //--------------------------------------------------------------------------------
+
+    [Mapper]
+    internal static partial ProductResponseItem ToResponse(ProductEntity entity);
+
+    [Mapper]
+    private static partial ProductEntity ToEntity(ProductCreateRequest request);
+
+    [Mapper]
+    private static partial ProductEntity ToEntity(ProductUpdateRequest request);
+
+    [Mapper]
+    private static partial ProductExportRow ToExportRow(ProductExportItem item);
+
+    //--------------------------------------------------------------------------------
     // Handler
     //--------------------------------------------------------------------------------
 
     // keyword は code / barcode / name / kana / modelNo の部分一致
     private static async ValueTask<IResult> HandleListAsync(
-        ProductAccessor accessor,
-        IDialect dialect,
+        ProductService service,
         Guid? categoryId,
         string? keyword,
         bool? isActive,
@@ -48,136 +62,92 @@ public static class ProductEndpoints
         bool includeDeleted = false,
         bool desc = false,
         [Range(0, Int32.MaxValue)] int page = 0,
-        [Range(1, ApiHelper.MaxPageSize)] int size = ApiHelper.DefaultPageSize)
+        [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        var pattern = ApiHelper.ToLikePattern(dialect, keyword);
-        var total = await accessor.CountAsync(categoryId, pattern, isActive, updatedSince, includeDeleted, cancellationToken);
-        var items = await accessor.QueryListAsync(categoryId, pattern, isActive, updatedSince, includeDeleted, ApiHelper.ResolveSort(SortColumns, "Code", sort, desc, updatedSince), size, page * size, cancellationToken);
-        return TypedResults.Ok(new ProductListResponse { Total = (int)total, Page = page, Size = size, Items = items.Select(MasterMapper.ToProductResponse).ToList() });
+        var parameter = new ProductQueryParameter
+        {
+            CategoryId = categoryId,
+            Keyword = keyword,
+            IsActive = isActive,
+            UpdatedSince = updatedSince,
+            IncludeDeleted = includeDeleted,
+            Sort = sort,
+            Desc = desc,
+            Page = page,
+            Size = size
+        };
+        var result = await service.QueryPageAsync(parameter, cancellationToken);
+        return TypedResults.Ok(new ProductResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
-    // CSV 出力 (管理画面 S-50。削除済みを除く全件、コード順)
+    // CSV 出力 (削除済みを除く全件、コード順)
     private static async ValueTask<IResult> HandleExportCsvAsync(
-        ProductAccessor accessor,
-        CategoryAccessor categoryAccessor,
-        TaxRateAccessor taxRateAccessor,
+        ProductService service,
         CancellationToken cancellationToken)
     {
-        var categories = (await categoryAccessor.QueryListAsync(null, true, "SortOrder", ApiHelper.MaxPageSize, 0, cancellationToken)).ToDictionary(static x => x.Id);
-        var taxRates = (await taxRateAccessor.QueryListAsync(null, true, cancellationToken)).ToDictionary(static x => x.Id);
-        var products = await accessor.QueryListAsync(null, null, null, null, false, "Code", ApiHelper.MaxPageSize, 0, cancellationToken);
-        return CsvExport.Stream(products.Select(x => ProductExportRow.From(x, categories, taxRates)), "products.csv");
+        var items = await service.QueryExportListAsync(cancellationToken);
+        return CsvExport.Stream(items.Select(ToExportRow), "products.csv");
     }
 
     // スキャン用 1 件取得 (barcode または code)
     private static async ValueTask<IResult> HandleLookupAsync(
-        ProductAccessor accessor,
+        ProductService service,
         string? barcode,
         string? code,
         CancellationToken cancellationToken)
     {
         if (String.IsNullOrEmpty(barcode) && String.IsNullOrEmpty(code))
         {
-            return ApiProblems.Problem(StatusCodes.Status400BadRequest, ErrorCode.ValidationError, "barcode または code を指定してください");
+            return ApiProblems.BadRequest("barcode または code を指定してください");
         }
 
         var entity = !String.IsNullOrEmpty(barcode)
-            ? await accessor.QueryByBarcodeAsync(barcode, cancellationToken)
-            : await accessor.QueryByCodeAsync(code!, cancellationToken);
-        return entity is null ? ApiProblems.NotFound("商品が見つかりません") : TypedResults.Ok(MasterMapper.ToProductResponse(entity));
+            ? await service.QueryByBarcodeAsync(barcode, cancellationToken)
+            : await service.QueryByCodeAsync(code!, cancellationToken);
+        return entity is null ? ApiProblems.NotFound("商品が見つかりません") : TypedResults.Ok(ToResponse(entity));
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
-        ProductAccessor accessor,
+        ProductService service,
         Guid id,
         CancellationToken cancellationToken)
     {
-        var entity = await accessor.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(MasterMapper.ToProductResponse(entity));
+        var entity = await service.QueryAsync(id, cancellationToken);
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
-        ProductAccessor accessor,
-        IDialect dialect,
-        TimeProvider timeProvider,
+        ProductService service,
         ProductCreateRequest request,
         CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        var entity = MasterMapper.ToProductEntity(request);
-        entity.Id = Guid.CreateVersion7();
-        entity.CreatedAt = now;
-        entity.UpdatedAt = now;
-        entity.Version = 1;
-
-        try
-        {
-            await accessor.InsertAsync(entity, cancellationToken);
-        }
-        catch (DbException ex) when (dialect.IsDuplicate(ex))
-        {
-            return ApiProblems.DuplicateCode("商品コードまたはバーコードが重複しています");
-        }
-
-        return TypedResults.Created($"{ApiRoutes.Products}/{entity.Id}", MasterMapper.ToProductResponse(entity));
+        var entity = ToEntity(request);
+        var status = await service.InsertAsync(entity, cancellationToken);
+        return status == DataWriteStatus.Success
+            ? TypedResults.Created($"{ApiRoutes.Products}/{entity.Id}", ToResponse(entity))
+            : ApiProblems.DuplicateCode(DuplicateTitle);
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(
-        ProductAccessor accessor,
-        IDialect dialect,
-        TimeProvider timeProvider,
+        ProductService service,
         Guid id,
         ProductUpdateRequest request,
         CancellationToken cancellationToken)
     {
-        int rows;
-        try
-        {
-            rows = await accessor.UpdateAsync(
-                id,
-                request.Code,
-                request.Barcode,
-                request.Name,
-                request.Kana,
-                request.Brand,
-                request.ModelNo,
-                request.CategoryId,
-                request.Kind,
-                request.Price,
-                request.TaxIncluded,
-                request.TaxRateId,
-                request.Cost,
-                request.PointRate,
-                request.RequiresSerial,
-                request.TrackInventory,
-                request.AllowsPriceOverride,
-                request.Unit,
-                request.IsActive,
-                timeProvider.GetUtcNow().UtcDateTime,
-                request.Version,
-                cancellationToken);
-        }
-        catch (DbException ex) when (dialect.IsDuplicate(ex))
-        {
-            return ApiProblems.DuplicateCode("商品コードまたはバーコードが重複しています");
-        }
-
-        var entity = await accessor.QueryAsync(id, cancellationToken);
-        if ((entity is null) || entity.IsDeleted)
-        {
-            return ApiProblems.NotFound();
-        }
-
-        return rows == 0 ? ApiProblems.VersionMismatch() : TypedResults.Ok(MasterMapper.ToProductResponse(entity));
+        var entity = ToEntity(request);
+        entity.Id = id;
+        var status = await service.UpdateAsync(entity, cancellationToken);
+        return status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
+            : ApiProblems.FromStatus(status, duplicateTitle: DuplicateTitle);
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(
-        ProductAccessor accessor,
-        TimeProvider timeProvider,
+        ProductService service,
         Guid id,
         CancellationToken cancellationToken)
     {
-        var rows = await accessor.DeleteAsync(id, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
-        return rows == 0 ? ApiProblems.NotFound() : TypedResults.NoContent();
+        var status = await service.DeleteAsync(id, cancellationToken);
+        return status == DataWriteStatus.Success ? TypedResults.NoContent() : ApiProblems.FromStatus(status);
     }
 }

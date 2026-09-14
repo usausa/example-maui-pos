@@ -5,8 +5,6 @@ using System.Text.Encodings.Web;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
 
-using Pos.Shared.Common;
-
 // サーバと同じ JSON 契約 (camelCase / null 省略 / 列挙型は文字列 / 日時は UTC) で API を呼ぶ
 internal sealed class ApiClient : IDisposable
 {

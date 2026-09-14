@@ -25,7 +25,7 @@
                 <MudSelect T="TaxRounding" @bind-Value="settings.TaxRounding" Label="税の端数処理">
                     @foreach (var value in Enum.GetValues<TaxRounding>())
                     {
-                        <MudSelectItem T="TaxRounding" Value="value">@DisplayText.Name(value)</MudSelectItem>
+                        <MudSelectItem T="TaxRounding" Value="value">@value.ToDisplayName()</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -33,7 +33,7 @@
                 <MudSelect T="PointBasis" @bind-Value="settings.PointBasis" Label="ポイント付与基準">
                     @foreach (var value in Enum.GetValues<PointBasis>())
                     {
-                        <MudSelectItem T="PointBasis" Value="value">@DisplayText.Name(value)</MudSelectItem>
+                        <MudSelectItem T="PointBasis" Value="value">@value.ToDisplayName()</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>

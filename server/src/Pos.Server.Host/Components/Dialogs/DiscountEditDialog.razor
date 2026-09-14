@@ -17,18 +17,18 @@
                     <MudSelect T="DiscountType" @bind-Value="Form.Type" Label="種別">
                         @foreach (var type in Enum.GetValues<DiscountType>())
                         {
-                            <MudSelectItem T="DiscountType" Value="type">@DisplayText.Name(type)</MudSelectItem>
+                            <MudSelectItem T="DiscountType" Value="type">@type.ToDisplayName()</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudNumericField T="decimal" @bind-Value="Form.Value" For="@(() => Form.Value)" Validation="@Validator.ValidateValue" Label="@(Form.Type == DiscountType.Percent ? "率 (0.05 = 5%)" : "金額")" Min="0" />
+                    <MudNumericField T="decimal" @bind-Value="Form.Value" For="@(() => Form.Value)" Validation="@Validator.ValidateValue" Label="@ViewHelper.DiscountValueLabel(Form.Type)" Min="0" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudSelect T="DiscountScope" @bind-Value="Form.Scope" Label="適用範囲">
                         @foreach (var scope in Enum.GetValues<DiscountScope>())
                         {
-                            <MudSelectItem T="DiscountScope" Value="scope">@DisplayText.Name(scope)</MudSelectItem>
+                            <MudSelectItem T="DiscountScope" Value="scope">@scope.ToDisplayName()</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>

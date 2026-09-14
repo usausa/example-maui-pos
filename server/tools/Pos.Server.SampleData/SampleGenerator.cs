@@ -1,18 +1,18 @@
 namespace Pos.Server.SampleData;
 
-using Pos.Domain.Sales;
-using Pos.Shared.Customers;
-using Pos.Shared.Discounts;
-using Pos.Shared.Inventory;
-using Pos.Shared.PaymentMethods;
-using Pos.Shared.Products;
-using Pos.Shared.Shifts;
-using Pos.Shared.Staff;
-using Pos.Shared.Stores;
-using Pos.Shared.Sync;
-using Pos.Shared.TaxRates;
-using Pos.Shared.Terminals;
-using Pos.Shared.Transactions;
+using Pos.Contract.Customers;
+using Pos.Contract.Discounts;
+using Pos.Contract.Inventory;
+using Pos.Contract.PaymentMethods;
+using Pos.Contract.Products;
+using Pos.Contract.Shifts;
+using Pos.Contract.Staff;
+using Pos.Contract.Stores;
+using Pos.Contract.Sync;
+using Pos.Contract.TaxRates;
+using Pos.Contract.Terminals;
+using Pos.Contract.Transactions;
+using Pos.Domain.Logic;
 
 // 端末と同じ手順 (Pos.Domain で計算 → TransactionRequest → POST) で、過去 N 日分のシフト・販売・返品・入出金・精算を作る
 internal sealed class SampleGenerator
@@ -31,23 +31,23 @@ internal sealed class SampleGenerator
 
     private SyncMastersResponse masters = default!;
 
-    private Dictionary<Guid, TaxRateResponse> taxRates = [];
+    private Dictionary<Guid, TaxRateResponseItem> taxRates = [];
 
-    private List<ProductResponse> products = [];
+    private List<ProductResponseItem> products = [];
 
-    private List<CustomerResponse> customers = [];
+    private List<CustomerResponseItem> customers = [];
 
     private Dictionary<Guid, int> pointBalances = [];
 
-    private List<DiscountResponse> lineDiscounts = [];
+    private List<DiscountResponseItem> lineDiscounts = [];
 
-    private List<DiscountResponse> transactionDiscounts = [];
+    private List<DiscountResponseItem> transactionDiscounts = [];
 
-    private PaymentMethodResponse cash = default!;
+    private PaymentMethodResponseItem cash = default!;
 
-    private PaymentMethodResponse? card;
+    private PaymentMethodResponseItem? card;
 
-    private PaymentMethodResponse? points;
+    private PaymentMethodResponseItem? points;
 
     private TaxRounding taxRounding;
 
@@ -85,14 +85,14 @@ internal sealed class SampleGenerator
 
             foreach (var terminal in terminals)
             {
-                var current = await client.GetOrDefaultAsync<ShiftResponse>($"shifts/current?terminalId={terminal.Id}").ConfigureAwait(false);
+                var current = await client.GetOrDefaultAsync<ShiftResponseItem>($"shifts/current?terminalId={terminal.Id}").ConfigureAwait(false);
                 if (current is { Status: ShiftStatus.Open })
                 {
                     await output.WriteLineAsync($"[{store.Name} {terminal.Name}] 開設中のシフトがあるため省略").ConfigureAwait(false);
                     continue;
                 }
 
-                var latest = await client.GetAsync<TerminalResponse>($"terminals/{terminal.Id}").ConfigureAwait(false);
+                var latest = await client.GetAsync<TerminalResponseItem>($"terminals/{terminal.Id}").ConfigureAwait(false);
                 var receiptSeq = latest.LastReceiptSeq;
                 for (var offset = options.Days - 1; offset >= 0; offset--)
                 {
@@ -114,7 +114,7 @@ internal sealed class SampleGenerator
         products = masters.Products.Where(x => x.IsActive && !x.IsDeleted && taxRates.ContainsKey(x.TaxRateId)).ToList();
         if (masters.ProductsTruncated)
         {
-            var page = await client.GetAsync<ProductListResponse>("products?size=1000").ConfigureAwait(false);
+            var page = await client.GetAsync<ProductResponse>("products?size=1000").ConfigureAwait(false);
             products = page.Items.Where(x => x.IsActive && !x.IsDeleted && taxRates.ContainsKey(x.TaxRateId)).ToList();
         }
 
@@ -130,7 +130,7 @@ internal sealed class SampleGenerator
         taxRounding = masters.Settings?.TaxRounding ?? TaxRounding.Floor;
         pointBasis = masters.Settings?.PointBasis ?? PointBasis.TaxIncluded;
 
-        var customerList = await client.GetAsync<CustomerListResponse>("customers?size=100").ConfigureAwait(false);
+        var customerList = await client.GetAsync<CustomerResponse>("customers?size=100").ConfigureAwait(false);
         customers = customerList.Items.Where(static x => !x.IsDeleted).ToList();
         pointBalances = customers.ToDictionary(static x => x.Id, static x => x.PointBalance);
 
@@ -143,7 +143,7 @@ internal sealed class SampleGenerator
     }
 
     // 初日の開店前に在庫を積む (販売で在庫がマイナスになりすぎないように、在庫調整で入荷扱い)
-    private async Task ReceiveStockAsync(StoreResponse store, StaffResponse staff, DateOnly date)
+    private async Task ReceiveStockAsync(StoreResponseItem store, StaffResponseItem staff, DateOnly date)
     {
         var changes = products
             .Where(static x => x.TrackInventory && (x.Kind == ProductKind.Goods))
@@ -169,7 +169,7 @@ internal sealed class SampleGenerator
     }
 
     // 1 日分: 開設 → 販売 (返品・取消を混ぜる) → 出金 → 精算
-    private async Task GenerateDayAsync(StoreResponse store, TerminalResponse terminal, StaffResponse cashier, StaffResponse manager, DateOnly date, Func<string> nextReceiptNo)
+    private async Task GenerateDayAsync(StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, StaffResponseItem manager, DateOnly date, Func<string> nextReceiptNo)
     {
         var openedAt = ToUtc(date, 9, 0);
         var shift = new ShiftOpenRequest
@@ -182,10 +182,10 @@ internal sealed class SampleGenerator
             OpenedByStaffId = cashier.Id,
             OpeningCash = 30000m
         };
-        await client.PostAsync<ShiftResponse>("shifts", shift).ConfigureAwait(false);
+        await client.PostAsync<ShiftResponseItem>("shifts", shift).ConfigureAwait(false);
 
         var count = Math.Max(1, options.PerDay + random.Next(-2, 3));
-        var sales = new List<TransactionResponse>();
+        var sales = new List<TransactionResponseItem>();
         var cashTotal = 0m;
         for (var i = 0; i < count; i++)
         {
@@ -236,7 +236,7 @@ internal sealed class SampleGenerator
         if (random.Next(100) < 60)
         {
             paidOut = random.Next(1, 4) * 5000m;
-            await client.PostAsync<CashEventResponse>($"shifts/{shift.Id}/cash-events", new CashEventRequest
+            await client.PostAsync<CashEventResponseItem>($"shifts/{shift.Id}/cash-events", new CashEventRequest
             {
                 Id = Guid.NewGuid(),
                 Type = CashEventType.PaidOut,
@@ -250,7 +250,7 @@ internal sealed class SampleGenerator
         // 精算 (過不足はときどき)
         var expected = shift.OpeningCash + cashTotal - paidOut;
         var difference = random.Next(100) < 20 ? random.Next(-3, 3) * 50m : 0m;
-        await client.PostAsync<ShiftResponse>($"shifts/{shift.Id}/close", new ShiftCloseRequest
+        await client.PostAsync<ShiftResponseItem>($"shifts/{shift.Id}/close", new ShiftCloseRequest
         {
             ClosedAt = ToUtc(date, 20, 0),
             ClosedByStaffId = cashier.Id,
@@ -264,12 +264,12 @@ internal sealed class SampleGenerator
     // Sale
     //--------------------------------------------------------------------------------
 
-    private (TransactionRequest Request, decimal CashDelta) BuildSale(StoreResponse store, TerminalResponse terminal, StaffResponse cashier, StaffResponse manager, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
+    private (TransactionRequest Request, decimal CashDelta) BuildSale(StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, StaffResponseItem manager, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
     {
         var customer = (customers.Count > 0) && (random.Next(100) < 35) ? Pick(customers) : null;
         var lineCount = random.Next(1, 4);
         var lines = new List<SalesInputLine>();
-        var lineProducts = new List<ProductResponse>();
+        var lineProducts = new List<ProductResponseItem>();
         var discounts = new List<TransactionRequestDiscount>();
         var inputDiscounts = new List<SalesInputDiscount>();
         var serials = new Dictionary<Guid, List<string>>();
@@ -341,7 +341,7 @@ internal sealed class SampleGenerator
         }
 
         // 支払: 金額を決めるため一度計算してから支払を組む
-        var provisional = SalesCalculator.Calculate(new SalesInput { TaxRounding = taxRounding, PointBasis = pointBasis, Lines = lines, Discounts = inputDiscounts });
+        var provisional = SalesLogic.Calculate(new SalesInput { TaxRounding = taxRounding, PointBasis = pointBasis, Lines = lines, Discounts = inputDiscounts });
         var payments = new List<SalesInputPayment>();
         var requestPayments = new List<TransactionRequestPayment>();
         var remaining = provisional.Total;
@@ -373,7 +373,7 @@ internal sealed class SampleGenerator
         }
 
         var input = new SalesInput { TaxRounding = taxRounding, PointBasis = pointBasis, Lines = lines, Discounts = inputDiscounts, Payments = payments };
-        var result = SalesCalculator.Calculate(input);
+        var result = SalesLogic.Calculate(input);
 
         var request = new TransactionRequest
         {
@@ -416,7 +416,7 @@ internal sealed class SampleGenerator
     // Return
     //--------------------------------------------------------------------------------
 
-    private (TransactionRequest? Request, decimal CashRefund) BuildReturn(TransactionResponse original, StoreResponse store, TerminalResponse terminal, StaffResponse cashier, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
+    private (TransactionRequest? Request, decimal CashRefund) BuildReturn(TransactionResponseItem original, StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
     {
         if (original.Status != TransactionStatus.Completed)
         {
@@ -448,7 +448,7 @@ internal sealed class SampleGenerator
             }).ToList(),
             Lines = [new ReturnInputLine { Id = Guid.NewGuid(), LineNo = 1, OriginalLineId = line.Id, Quantity = 1m }]
         };
-        var provisional = ReturnCalculator.Calculate(input);
+        var provisional = ReturnLogic.Calculate(input);
         if (provisional.Total <= 0)
         {
             return (null, 0m);
@@ -475,7 +475,7 @@ internal sealed class SampleGenerator
         }
 
         input = input with { Payments = payments };
-        var result = ReturnCalculator.Calculate(input);
+        var result = ReturnLogic.Calculate(input);
         var product = products.FirstOrDefault(x => x.Id == line.ProductId);
 
         var request = new TransactionRequest
@@ -539,11 +539,11 @@ internal sealed class SampleGenerator
     // Post
     //--------------------------------------------------------------------------------
 
-    private async Task<TransactionResponse?> PostTransactionAsync(TransactionRequest request)
+    private async Task<TransactionResponseItem?> PostTransactionAsync(TransactionRequest request)
     {
         try
         {
-            var response = await client.PostAsync<TransactionResponse>("transactions", request).ConfigureAwait(false);
+            var response = await client.PostAsync<TransactionResponseItem>("transactions", request).ConfigureAwait(false);
             created++;
             return response;
         }
@@ -554,11 +554,11 @@ internal sealed class SampleGenerator
         }
     }
 
-    private async Task<bool> PostVoidAsync(TransactionResponse target, StaffResponse cashier, DateTime at)
+    private async Task<bool> PostVoidAsync(TransactionResponseItem target, StaffResponseItem cashier, DateTime at)
     {
         try
         {
-            await client.PostAsync<TransactionResponse>($"transactions/{target.Id}/void", new TransactionVoidRequest { StaffId = cashier.Id, Reason = "登録誤り", VoidedAt = at }).ConfigureAwait(false);
+            await client.PostAsync<TransactionResponseItem>($"transactions/{target.Id}/void", new TransactionVoidRequest { StaffId = cashier.Id, Reason = "登録誤り", VoidedAt = at }).ConfigureAwait(false);
             return true;
         }
         catch (ApiException ex) when (ex.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.UnprocessableEntity)
@@ -569,7 +569,7 @@ internal sealed class SampleGenerator
     }
 
     // 会員のポイント残高を追いかける (次の販売で使える額を決めるため)
-    private void Apply(TransactionResponse response, bool revert = false)
+    private void Apply(TransactionResponseItem response, bool revert = false)
     {
         if (response.CustomerId is null)
         {
@@ -584,14 +584,14 @@ internal sealed class SampleGenerator
     // Helper
     //--------------------------------------------------------------------------------
 
-    private static void AddPayment(List<SalesInputPayment> payments, List<TransactionRequestPayment> requestPayments, PaymentMethodResponse method, decimal amount, decimal tendered, string? reference)
+    private static void AddPayment(List<SalesInputPayment> payments, List<TransactionRequestPayment> requestPayments, PaymentMethodResponseItem method, decimal amount, decimal tendered, string? reference)
     {
         var id = Guid.NewGuid();
         payments.Add(new SalesInputPayment { Id = id, Kind = method.Kind, Amount = amount, TenderedAmount = tendered, AllowsChange = method.AllowsChange });
         requestPayments.Add(new TransactionRequestPayment { Id = id, SeqNo = requestPayments.Count + 1, PaymentMethodId = method.Id, Kind = method.Kind, Amount = amount, TenderedAmount = tendered, Reference = reference });
     }
 
-    private static TransactionRequestLine ToRequestLine(SalesInputLine line, ProductResponse product, SalesResultLine calculated, List<string>? serials, Guid? originalLineId) => new()
+    private static TransactionRequestLine ToRequestLine(SalesInputLine line, ProductResponseItem product, SalesResultLine calculated, List<string>? serials, Guid? originalLineId) => new()
     {
         Id = line.Id,
         LineNo = line.LineNo,

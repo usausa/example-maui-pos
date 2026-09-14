@@ -1,35 +1,28 @@
 namespace Pos.Terminal.Modules.Sales;
 
-using Pos.Domain.Rules;
-using Pos.Domain.Sales;
-using Pos.Terminal.Models.Sales;
+using Pos.Domain.Logic;
+using Pos.Terminal.Models.Cart;
 
-using Smart.Data;
-
-public sealed record MethodItem(PaymentMethodResponse Method, string Name);
+public sealed record MethodItem(PaymentMethodResponseItem Method, string Name);
 
 public sealed record PaymentItem(CartPayment Payment, string Text, string AmountText);
 
-// T-20 会計: 埋め込みテンキーで預り金を入れ、支払方法ボタンで支払を積む。確定で Outbox に保存して会計完了へ
+// 会計: 埋め込みテンキーで預り金を入れ、支払方法ボタンで支払を積む。確定は SalesUsecase で登録して会計完了へ
 public sealed partial class PaymentViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
     private readonly IPopupNavigator popupNavigator;
 
-    private readonly IDbProvider provider;
+    private readonly Session session;
+
+    private SalesContext salesContext = new();
 
     private readonly DataAccessor accessor;
 
-    private readonly Settings settings;
+    private readonly SalesUsecase sales;
 
-    private readonly Session session;
-
-    private readonly SalesState sales;
-
-    private readonly SyncWorker syncWorker;
-
-    private PaymentMethodResponse? pointsMethod;
+    private PaymentMethodResponseItem? pointsMethod;
 
     private SalesResult result = default!;
 
@@ -61,11 +54,9 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string RemainingText { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<PaymentItem> Payments { get; set; } = [];
+    public ObservableCollection<PaymentItem> Payments { get; } = [];
 
-    [ObservableProperty]
-    public partial IReadOnlyList<MethodItem> Methods { get; set; } = [];
+    public ObservableCollection<MethodItem> Methods { get; } = [];
 
     [ObservableProperty]
     public partial string InputText { get; set; } = DisplayText.Yen(0);
@@ -88,21 +79,15 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     public PaymentViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
-        IDbProvider provider,
-        DataAccessor accessor,
-        Settings settings,
         Session session,
-        SalesState sales,
-        SyncWorker syncWorker)
+        DataAccessor accessor,
+        SalesUsecase sales)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
-        this.provider = provider;
-        this.accessor = accessor;
-        this.settings = settings;
         this.session = session;
+        this.accessor = accessor;
         this.sales = sales;
-        this.syncWorker = syncWorker;
 
         PushCommand = MakeDelegateCommand<string>(x =>
         {
@@ -119,7 +104,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         AddPaymentCommand = MakeAsyncCommand<MethodItem>(AddPaymentAsync);
         RemovePaymentCommand = MakeDelegateCommand<PaymentItem>(x =>
         {
-            sales.Payments.Remove(x.Payment);
+            salesContext.Payments.Remove(x.Payment);
             Refresh();
         });
     }
@@ -128,19 +113,26 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
-        var methods = (await accessor.QueryPaymentMethodListAsync()).Where(static x => x.IsActive && !x.IsDeleted).OrderBy(static x => x.SortOrder).ToList();
-        pointsMethod = methods.FirstOrDefault(static x => x.Kind == PaymentKind.Points);
-        Methods = methods.Where(static x => x.Kind != PaymentKind.Points).Select(static x => new MethodItem(x, String.IsNullOrEmpty(x.ShortName) ? x.Name : x.ShortName)).ToList();
+        salesContext = context.Parameter.GetContext<SalesContext>() ?? new SalesContext();
 
         // 会員が変わったらポイント支払は無効
-        if ((sales.Cart.Customer is null) && sales.Payments.Any(static x => x.Method.Kind == PaymentKind.Points))
+        if (salesContext.Cart.Customer is null)
         {
-            foreach (var payment in sales.Payments.Where(static x => x.Method.Kind == PaymentKind.Points).ToList())
+            foreach (var payment in salesContext.Payments.Where(static x => x.Method.Kind == PaymentKind.Points).ToList())
             {
-                sales.Payments.Remove(payment);
+                salesContext.Payments.Remove(payment);
             }
         }
 
+        Refresh();
+        await Navigator.PostActionAsync(LoadMethodsAsync);
+    }
+
+    private async Task LoadMethodsAsync()
+    {
+        var methods = (await accessor.QueryPaymentMethodListAsync()).Where(static x => x.IsActive && !x.IsDeleted).OrderBy(static x => x.SortOrder).ToList();
+        pointsMethod = methods.FirstOrDefault(static x => x.Kind == PaymentKind.Points);
+        Methods.Replace(methods.Where(static x => x.Kind != PaymentKind.Points).Select(static x => new MethodItem(x, String.IsNullOrEmpty(x.ShortName) ? x.Name : x.ShortName)));
         Refresh();
     }
 
@@ -152,19 +144,20 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
     private void Refresh()
     {
-        var cart = sales.Cart;
-        result = SalesCalculator.Calculate(TransactionBuilder.ToSalesInput(cart, sales.Payments, session.TaxRounding, session.PointBasis));
+        var cart = salesContext.Cart;
+        var payments = salesContext.Payments;
+        result = sales.Calculate(cart, payments);
 
-        var paid = sales.Payments.Sum(static x => x.Amount);
+        var paid = payments.Sum(static x => x.Amount);
         remaining = result.Total - paid;
 
         TotalText = DisplayText.Yen(result.Total);
         var customer = cart.Customer;
-        var pointsUsed = sales.Payments.Where(static x => x.Method.Kind == PaymentKind.Points).Sum(static x => x.Amount);
+        var pointsUsed = payments.Where(static x => x.Method.Kind == PaymentKind.Points).Sum(static x => x.Amount);
         PointsText = customer is null ? "会員なし" : $"{DisplayText.Yen(pointsUsed)} / 残高 {DisplayText.Points(customer.PointBalance)}";
         PointsEnabled = (customer is not null) && (pointsMethod is not null) && (customer.PointBalance > 0);
         PaidText = DisplayText.Yen(paid);
-        Payments = sales.Payments.Select(static x => new PaymentItem(x, x.Reference is null ? x.Method.Name : $"{x.Method.Name} {x.Reference}", DisplayText.Yen(x.Amount))).ToList();
+        Payments.Replace(payments.Select(static x => new PaymentItem(x, x.Reference is null ? x.Method.Name : $"{x.Method.Name} {x.Reference}", DisplayText.Yen(x.Amount))));
 
         // 支払が済んだら「残り」の行にお釣りを出す
         var change = result.ChangeAmount;
@@ -214,7 +207,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
             reference = input.Trim();
         }
 
-        sales.Payments.Add(new CartPayment
+        salesContext.Payments.Add(new CartPayment
         {
             Id = Guid.NewGuid(),
             Method = method,
@@ -227,20 +220,20 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         Refresh();
     }
 
-    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Sales);
+    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Sales, Parameters.Make().WithContext(salesContext));
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
     // ポイント利用
     protected override async Task OnNotifyFunction2()
     {
-        var customer = sales.Cart.Customer;
+        var customer = salesContext.Cart.Customer;
         if ((customer is null) || (pointsMethod is null))
         {
             return;
         }
 
-        var existing = sales.Payments.FirstOrDefault(static x => x.Method.Kind == PaymentKind.Points);
+        var existing = salesContext.Payments.FirstOrDefault(static x => x.Method.Kind == PaymentKind.Points);
         var max = Math.Min(customer.PointBalance, remaining + (existing?.Amount ?? 0m));
         if (max <= 0)
         {
@@ -262,23 +255,23 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
         if (existing is not null)
         {
-            sales.Payments.Remove(existing);
+            salesContext.Payments.Remove(existing);
         }
 
         if (points > 0)
         {
-            sales.Payments.Insert(0, new CartPayment { Id = Guid.NewGuid(), Method = pointsMethod, Amount = points, TenderedAmount = points });
+            salesContext.Payments.Insert(0, new CartPayment { Id = Guid.NewGuid(), Method = pointsMethod, Amount = points, TenderedAmount = points });
         }
 
         Refresh();
     }
 
     protected override Task OnNotifyFunction3() =>
-        Navigator.ForwardAsync(ViewId.CustomerSelect, Parameters.Make().WithReturnTo(ViewId.Payment));
+        Navigator.ForwardAsync(ViewId.CustomerSelect, Parameters.Make().WithReturnTo(ViewId.Payment).WithContext(salesContext));
 
     protected override async Task OnNotifyFunction4()
     {
-        if ((settings.StoreId is null) || (settings.TerminalId is null) || (session.Staff is null) || (session.CurrentShift is null))
+        if (!session.CanTransact)
         {
             await dialog.InformationAsync("レジが開設されていません。");
             return;
@@ -289,31 +282,14 @@ public sealed partial class PaymentViewModel : AppViewModelBase
             return;
         }
 
-        var cart = sales.Cart;
-        var input = TransactionBuilder.ToSalesInput(cart, sales.Payments, session.TaxRounding, session.PointBasis);
-        var errors = TransactionRules.ValidateInput(input);
+        var errors = sales.Validate(salesContext.Cart, salesContext.Payments);
         if (errors.Count > 0)
         {
-            await dialog.InformationAsync(errors[0].Message);
+            await dialog.InformationAsync(RuleText.Of(errors[0].Reason));
             return;
         }
 
-        var now = DateTime.UtcNow;
-        var receiptNo = await syncWorker.NextReceiptNoAsync();
-        var context = new TransactionContext(settings.StoreId.Value, settings.TerminalId.Value, session.Staff.Id, session.CurrentShift.Id, receiptNo, session.BusinessDate, now);
-        var request = TransactionBuilder.ToRequest(cart, sales.Payments, result, context);
-        var response = TransactionBuilder.ToResponse(request);
-        if (cart.Customer is not null)
-        {
-            response.PointsBalanceAfter = cart.Customer.PointBalance - result.PointsRedeemed + result.PointsEarned;
-        }
-
-        await TransactionWriter.SaveAsync(provider, accessor, request, response);
-        await syncWorker.UpdateCountsAsync();
-        syncWorker.Trigger();
-
-        sales.Completed = response;
-        sales.CompletedResult = result;
-        await Navigator.ForwardAsync(ViewId.Complete);
+        var response = await sales.CompleteAsync(salesContext.Cart, salesContext.Payments);
+        await Navigator.ForwardAsync(ViewId.Complete, Parameters.Make().WithTransactionId(response.Id));
     }
 }

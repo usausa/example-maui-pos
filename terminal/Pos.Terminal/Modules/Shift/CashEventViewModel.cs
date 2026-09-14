@@ -1,40 +1,21 @@
 namespace Pos.Terminal.Modules.Shift;
 
-using Pos.Shared.Shifts;
-using Pos.Terminal.Models.Entity;
-
-using Smart.Data;
-
-// T-50 入出金: 種別・金額・理由を Outbox 経由でサーバへ送る
+// 入出金: 種別・金額・理由を ShiftUsecase で登録する (Outbox 経由でサーバへ)
 public sealed partial class CashEventViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
     private readonly IPopupNavigator popupNavigator;
 
-    private readonly IDbProvider provider;
-
-    private readonly DataAccessor accessor;
-
     private readonly Session session;
 
-    private readonly SyncWorker syncWorker;
-
-    private CashEventType type = CashEventType.PaidIn;
+    private readonly ShiftUsecase shifts;
 
     private decimal amount;
 
+    // 種別ごとの表示 (選択状態・金額の可否) は画面側の Trigger で切り替える
     [ObservableProperty]
-    public partial bool IsPaidIn { get; set; } = true;
-
-    [ObservableProperty]
-    public partial bool IsPaidOut { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsNoSale { get; set; }
-
-    [ObservableProperty]
-    public partial bool AmountEnabled { get; set; } = true;
+    public partial CashEventType Type { get; set; } = CashEventType.PaidIn;
 
     [ObservableProperty]
     public partial string AmountText { get; set; } = DisplayText.Yen(0);
@@ -48,17 +29,13 @@ public sealed partial class CashEventViewModel : AppViewModelBase
     public CashEventViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
-        IDbProvider provider,
-        DataAccessor accessor,
         Session session,
-        SyncWorker syncWorker)
+        ShiftUsecase shifts)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
-        this.provider = provider;
-        this.accessor = accessor;
         this.session = session;
-        this.syncWorker = syncWorker;
+        this.shifts = shifts;
 
         SelectTypeCommand = MakeDelegateCommand<string>(SelectType);
         InputAmountCommand = MakeAsyncCommand(InputAmountAsync);
@@ -66,12 +43,8 @@ public sealed partial class CashEventViewModel : AppViewModelBase
 
     private void SelectType(string value)
     {
-        type = Enum.Parse<CashEventType>(value);
-        IsPaidIn = type == CashEventType.PaidIn;
-        IsPaidOut = type == CashEventType.PaidOut;
-        IsNoSale = type == CashEventType.NoSale;
-        AmountEnabled = type != CashEventType.NoSale;
-        if (type == CashEventType.NoSale)
+        Type = Enum.Parse<CashEventType>(value);
+        if (Type == CashEventType.NoSale)
         {
             amount = 0;
             AmountText = DisplayText.Yen(0);
@@ -94,55 +67,24 @@ public sealed partial class CashEventViewModel : AppViewModelBase
 
     protected override async Task OnNotifyFunction4()
     {
-        var shift = session.CurrentShift;
-        if ((shift is null) || (session.Staff is null))
+        if (!session.CanTransact)
         {
             return;
         }
 
-        if ((type != CashEventType.NoSale) && (amount <= 0))
+        if ((Type != CashEventType.NoSale) && (amount <= 0))
         {
             await dialog.InformationAsync("金額を入力してください。");
             return;
         }
 
-        if (!await dialog.AskAsync($"{DisplayText.Name(type)} {DisplayText.Yen(amount)} を登録しますか？", null, "確定"))
+        if (!await dialog.AskAsync($"{DisplayText.Name(Type)} {DisplayText.Yen(amount)} を登録しますか？", null, "確定"))
         {
             return;
         }
 
-        var now = DateTime.UtcNow;
-        var entity = new LocalCashEventEntity
-        {
-            Id = Guid.NewGuid(),
-            ShiftId = shift.Id,
-            Type = type,
-            Amount = amount,
-            Reason = String.IsNullOrWhiteSpace(Reason.Text) ? null : Reason.Text.Trim(),
-            StaffId = session.Staff.Id,
-            OccurredAt = now
-        };
-        var request = new CashEventRequest
-        {
-            Id = entity.Id,
-            Type = entity.Type,
-            Amount = entity.Amount,
-            Reason = entity.Reason,
-            StaffId = entity.StaffId,
-            OccurredAt = entity.OccurredAt
-        };
-
-        await provider.UsingTxAsync(async (_, tx) =>
-        {
-            await accessor.InsertCashEventAsync(tx, entity);
-            await accessor.InsertOutboxAsync(tx, SyncWorker.CreateEntry(OutboxKind.CashEvent, shift.Id, request, now));
-            await tx.CommitAsync();
-        });
-
-        await syncWorker.UpdateCountsAsync();
-        syncWorker.Trigger();
-
-        await dialog.Toast($"{DisplayText.Name(type)}を登録しました。");
+        await shifts.AddCashEventAsync(Type, amount, Reason.Text.TrimToNull());
+        await dialog.Toast($"{DisplayText.Name(Type)}を登録しました。");
         await Navigator.ForwardAsync(ViewId.Menu);
     }
 }

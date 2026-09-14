@@ -1,6 +1,5 @@
 namespace Pos.Terminal.Modules;
 
-// screen-design §1.4 の T-xx
 public enum ViewId
 {
     Setup,

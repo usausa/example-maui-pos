@@ -1,19 +1,15 @@
 namespace Pos.Terminal.Modules.Returns;
 
-using System.Text.Json;
+using Pos.Contract.Transactions;
 
-using Pos.Shared.Transactions;
-
-// T-40 返品: レシート QR / 番号入力 / 履歴から元取引を呼び出す。オンラインならサーバの最新 (返品済数量) を使う
+// 返品: レシート QR / 番号入力 / 履歴から元取引を呼び出す。オンラインならサーバの最新 (返品済数量) を使う
 public sealed partial class ReturnViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
-    private readonly DataAccessor accessor;
+    private ReturnContext returnContext = new();
 
-    private readonly NetworkOperator network;
-
-    private readonly SalesState sales;
+    private readonly ReturnUsecase returns;
 
     [ObservableProperty]
     public partial string Message { get; set; } = "レシートの QR をスキャンするか、レシート番号を入力してください。";
@@ -30,8 +26,7 @@ public sealed partial class ReturnViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string Detail { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<SummaryRow> Rows { get; set; } = [];
+    public ObservableCollection<SummaryRow> Rows { get; } = [];
 
     [ObservableProperty]
     public partial bool CanProceed { get; set; }
@@ -40,124 +35,81 @@ public sealed partial class ReturnViewModel : AppViewModelBase
 
     public ReturnViewModel(
         IDialog dialog,
-        DataAccessor accessor,
-        NetworkOperator network,
-        SalesState sales)
+        ReturnUsecase returns)
     {
         this.dialog = dialog;
-        this.accessor = accessor;
-        this.network = network;
-        this.sales = sales;
+        this.returns = returns;
 
-        NextCommand = MakeAsyncCommand(() => Navigator.ForwardAsync(ViewId.ReturnLines), () => CanProceed);
+        NextCommand = MakeAsyncCommand(() => Navigator.ForwardAsync(ViewId.ReturnLines, Parameters.Make().WithContext(returnContext)), () => CanProceed);
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
+        returnContext = context.Parameter.GetContext<ReturnContext>() ?? new ReturnContext();
+        if (returnContext.Original is not null)
+        {
+            UpdateOriginal(returnContext.Original);
+        }
+
         var id = context.Parameter.GetTransactionId();
+        var scanned = context.Parameter.GetScanResult();
         if (id is not null)
         {
-            await LoadByIdAsync(id.Value);
+            await Navigator.PostActionAsync(async () => Apply(await returns.FindOriginalAsync(id.Value), id.Value.ToString()));
         }
-
-        var scanned = context.Parameter.GetScanResult();
-        if (scanned is not null)
+        else if (scanned is not null)
         {
-            await LoadByReceiptNoAsync(scanned);
-        }
-
-        if (sales.ReturnOriginal is not null)
-        {
-            Show(sales.ReturnOriginal);
+            await Navigator.PostActionAsync(async () => Apply(await returns.FindOriginalByReceiptNoAsync(scanned), scanned));
         }
     }
 
-    private async ValueTask LoadByIdAsync(Guid id)
-    {
-        TransactionResponse? transaction = null;
-        if (network.IsConnected)
-        {
-            var result = await network.ExecuteAsync(h => h.GetTransactionAsync(id), notify: false);
-            transaction = result.Content;
-        }
-
-        if (transaction is null)
-        {
-            var entity = await accessor.QueryTransactionAsync(id);
-            transaction = entity is null ? null : JsonSerializer.Deserialize<TransactionResponse>(entity.Payload, HttpService.JsonOptions);
-        }
-
-        Apply(transaction, id.ToString());
-    }
-
-    private async ValueTask LoadByReceiptNoAsync(string receiptNo)
-    {
-        TransactionResponse? transaction = null;
-        if (network.IsConnected)
-        {
-            var result = await network.ExecuteAsync(h => h.LookupTransactionAsync(receiptNo), notify: false);
-            transaction = result.Content;
-        }
-
-        if (transaction is null)
-        {
-            var entity = await accessor.QueryTransactionByReceiptNoAsync(receiptNo);
-            transaction = entity is null ? null : JsonSerializer.Deserialize<TransactionResponse>(entity.Payload, HttpService.JsonOptions);
-        }
-
-        Apply(transaction, receiptNo);
-    }
-
-    private void Apply(TransactionResponse? transaction, string key)
+    private void Apply(TransactionResponseItem? transaction, string key)
     {
         if (transaction is null)
         {
-            sales.ReturnOriginal = null;
+            returnContext.Reset();
             HasOriginal = false;
             CanProceed = false;
             Message = $"❌ 取引が見つかりません: {key}";
             return;
         }
 
-        sales.ResetReturn();
-        sales.ReturnOriginal = transaction;
-        Show(transaction);
+        returnContext.Reset();
+        returnContext.Original = transaction;
+        UpdateOriginal(transaction);
     }
 
-    private void Show(TransactionResponse transaction)
+    private void UpdateOriginal(TransactionResponseItem transaction)
     {
         HasOriginal = true;
         ReceiptNo = transaction.ReceiptNo;
         TotalText = DisplayText.Yen(transaction.Total);
         Detail = $"{DisplayText.DateTime(transaction.TransactedAt)}  {DisplayText.Name(transaction.Type)} / {DisplayText.Name(transaction.Status)}";
-        Rows = transaction.Lines.Select(static x => new SummaryRow(
+        Rows.Replace(transaction.Lines.Select(static x => new SummaryRow(
             $"{x.ProductName}\n{DisplayText.Yen(x.UnitPrice)} × {DisplayText.Quantity(x.Quantity)}{(x.ReturnedQuantity > 0 ? $"  返品済 {DisplayText.Quantity(x.ReturnedQuantity)}" : string.Empty)}",
-            DisplayText.Yen(x.NetAmount))).ToList();
+            DisplayText.Yen(x.NetAmount))));
 
-        var returnable = (transaction.Type == TransactionType.Sale) && (transaction.Status == TransactionStatus.Completed) && transaction.Lines.Any(static x => x.Quantity > x.ReturnedQuantity);
+        var returnable = transaction.IsReturnable();
         CanProceed = returnable;
         Message = returnable
             ? "元取引を確認して、返品する明細を選んでください。"
-            : transaction.Type == TransactionType.Return ? "❌ 返品取引は返品できません。" : transaction.Status == TransactionStatus.Voided ? "❌ 取消済みの取引です。" : "❌ すべて返品済みです。";
+            : transaction.Type.IsReturn() ? "❌ 返品取引は返品できません。" : transaction.Status.IsVoided() ? "❌ 取消済みの取引です。" : "❌ すべて返品済みです。";
     }
 
-    protected override Task OnNotifyBackAsync()
-    {
-        sales.ResetReturn();
-        return Navigator.ForwardAsync(ViewId.Menu);
-    }
+    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Menu);
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
     protected override Task OnNotifyFunction2() =>
-        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Receipt, ViewId.Return));
+        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Receipt, ViewId.Return).WithContext(returnContext));
 
     protected override async Task OnNotifyFunction3()
     {
         var result = await dialog.InputAsync("レシート番号", placeHolder: "S001-01-000123");
         if (result.Accepted && !String.IsNullOrWhiteSpace(result.Text))
         {
-            await LoadByReceiptNoAsync(result.Text.Trim());
+            var receiptNo = result.Text.Trim();
+            Apply(await returns.FindOriginalByReceiptNoAsync(receiptNo), receiptNo);
         }
     }
 

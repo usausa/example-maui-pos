@@ -1,6 +1,6 @@
 namespace Pos.Terminal.Modules.Shift;
 
-using Pos.Shared.Shifts;
+using Pos.Contract.Shifts;
 
 public sealed class DenominationItem : NotificationObject
 {
@@ -57,15 +57,14 @@ public sealed class DenominationItem : NotificationObject
 
 public sealed record DenominationsResult(IReadOnlyList<ShiftCloseRequestDenomination> Denominations, decimal Total);
 
-// 金種別入力 (精算 T-51)。枚数から実査金額を求める
+// 金種別入力 (精算)。枚数から実査金額を求める
 public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPopupInitialize<IReadOnlyList<ShiftCloseRequestDenomination>>
 {
     private static readonly int[] Denominations = [10000, 5000, 2000, 1000, 500, 100, 50, 10, 5, 1];
 
     private readonly IPopupNavigator popupNavigator;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<DenominationItem> Items { get; set; } = [];
+    public ObservableCollection<DenominationItem> Items { get; } = [];
 
     [ObservableProperty]
     public partial string TotalText { get; set; } = DisplayText.Yen(0);
@@ -79,6 +78,7 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
     public DenominationsViewModel(IPopupNavigator popupNavigator)
     {
         this.popupNavigator = popupNavigator;
+
         InputCountCommand = MakeAsyncCommand<DenominationItem>(InputCountAsync);
         CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync());
         CommitCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync(new DenominationsResult(
@@ -89,7 +89,7 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
     public void Initialize(IReadOnlyList<ShiftCloseRequestDenomination> parameter)
     {
         var counts = parameter.ToDictionary(static x => x.Denomination, static x => x.Count);
-        Items = Denominations.Select(x => new DenominationItem(x, counts.GetValueOrDefault(x), UpdateTotal)).ToList();
+        Items.Replace(Denominations.Select(x => new DenominationItem(x, counts.GetValueOrDefault(x), UpdateTotal)));
         UpdateTotal();
     }
 

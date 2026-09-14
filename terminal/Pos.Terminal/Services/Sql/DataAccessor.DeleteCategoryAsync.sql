@@ -1,1 +1,4 @@
-DELETE FROM Categories WHERE Id = /*@ id */''
+DELETE FROM
+    Categories
+WHERE
+    Id = /*@ id */''

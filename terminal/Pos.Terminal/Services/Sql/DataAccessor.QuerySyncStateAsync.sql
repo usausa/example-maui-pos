@@ -1,1 +1,6 @@
-SELECT Value FROM SyncState WHERE Key = /*@ key */''
+SELECT
+    Value
+FROM
+    SyncState
+WHERE
+    Key = /*@ key */''

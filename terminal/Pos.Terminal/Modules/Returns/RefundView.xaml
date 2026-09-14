@@ -74,7 +74,7 @@
                         <Label Grid.Column="0"
                                Style="{StaticResource PosCaptionLabel}"
                                TextColor="{StaticResource BlueDarken2}"
-                               Text="{Binding Mark}" />
+                               Text="{Binding IsSelected, Converter={StaticResource SelectedMarkConverter}}" />
                         <Label Grid.Column="1"
                                Style="{StaticResource PosListNameLabel}"
                                Margin="8,0,0,0"

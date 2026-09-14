@@ -28,16 +28,16 @@
             <CellTemplate>@context.Item.Phone</CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.PointBalance" Title="ポイント残高" CellStyle="text-align: right;" HeaderStyle="text-align: right;">
-            <CellTemplate><StatusChip Value="@ChipText.PointBalance(context.Item.PointBalance)" /></CellTemplate>
+            <CellTemplate><StatusChip Value="@ViewHelper.PointBalanceChip(context.Item.PointBalance)" /></CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.CreatedAt" Title="登録日">
-            <CellTemplate>@DisplayText.DateTime(context.Item.CreatedAt)</CellTemplate>
+            <CellTemplate>@context.Item.CreatedAt.ToDateTimeText()</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="状態" Sortable="false">
             <CellTemplate>
                 @if (context.Item.IsDeleted)
                 {
-                    <StatusChip Value="@ChipText.Deleted()" />
+                    <StatusChip Value="@ViewHelper.DeletedChip()" />
                 }
             </CellTemplate>
         </TemplateColumn>

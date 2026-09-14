@@ -1,23 +1,17 @@
 namespace Pos.Terminal.Modules.Sales;
 
-using System.Text.Json;
-
-using Pos.Shared.Transactions;
-
-// T-22 レシート: 32 桁のレシートを画像で表示し、電子レシート QR (レシート番号) と共有 (画像) を提供する
+// レシート: 32 桁のレシートを画像で表示し、電子レシート QR (レシート番号) と共有 (画像) を提供する
 public sealed partial class ReceiptViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
-    private readonly DataAccessor accessor;
-
-    private readonly Session session;
-
-    private readonly SalesState sales;
-
     private ViewId returnTo = ViewId.Complete;
 
-    private Guid? transactionId;
+    private Guid transactionId;
+
+    private readonly TransactionUsecase transactions;
+
+    private readonly ReceiptService receipt;
 
     private byte[] png = [];
 
@@ -32,29 +26,31 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
     public ReceiptViewModel(
         IDialog dialog,
-        DataAccessor accessor,
-        Session session,
-        SalesState sales)
+        TransactionUsecase transactions,
+        ReceiptService receipt)
     {
         this.dialog = dialog;
-        this.accessor = accessor;
-        this.session = session;
-        this.sales = sales;
+        this.transactions = transactions;
+        this.receipt = receipt;
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
         returnTo = context.Parameter.GetReturnTo(ViewId.Complete);
-        transactionId = context.Parameter.GetTransactionId();
-
-        // 会計完了からは直前の取引、履歴からは指定の取引
-        var transaction = sales.Completed;
-        if (transactionId is not null)
+        var id = context.Parameter.GetTransactionId();
+        if (id is null)
         {
-            var entity = await accessor.QueryTransactionAsync(transactionId.Value);
-            transaction = entity is null ? null : JsonSerializer.Deserialize<TransactionResponse>(entity.Payload, HttpService.JsonOptions);
+            await Navigator.PostForwardAsync(ViewId.Menu);
+            return;
         }
 
+        transactionId = id.Value;
+        await Navigator.PostActionAsync(LoadAsync);
+    }
+
+    private async Task LoadAsync()
+    {
+        var transaction = await transactions.QueryAsync(transactionId);
         if (transaction is null)
         {
             await Navigator.ForwardAsync(ViewId.Menu);
@@ -63,17 +59,12 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
         ReceiptNo = transaction.ReceiptNo;
 
-        var staff = await accessor.QueryStaffAsync(transaction.StaffId);
-        var methods = (await accessor.QueryPaymentMethodListAsync()).ToDictionary(static x => x.Id, static x => x.Name);
-        var text = ReceiptFormatter.Format(transaction, session.Store, session.Terminal?.Name ?? string.Empty, staff?.Name ?? string.Empty, methods);
-        png = ReceiptRenderer.RenderPng(text);
+        png = await receipt.BuildAsync(transaction);
         ReceiptImage = ImageSource.FromStream(() => new MemoryStream(png));
     }
 
     protected override Task OnNotifyBackAsync() =>
-        transactionId is null
-            ? Navigator.ForwardAsync(returnTo)
-            : Navigator.ForwardAsync(returnTo, Parameters.Make().WithTransactionId(transactionId.Value));
+        Navigator.ForwardAsync(returnTo, Parameters.Make().WithTransactionId(transactionId));
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 

@@ -1,15 +1,16 @@
 namespace Pos.Terminal.Modules.Inquiry;
 
-using Pos.Shared.Customers;
+using Pos.Contract.Customers;
+using Pos.Terminal.Modules.Sales;
 
-// スキャン画面へ行っている間の入力内容
+// スキャン画面へ行っている間の入力内容 (販売からの登録ならカートのコンテキストも引き継ぐ)
 public sealed class CustomerDraft
 {
-    public CustomerResponse? Original { get; set; }
+    public CustomerResponseItem? Original { get; set; }
 
     public ViewId ReturnTo { get; set; }
 
-    public bool ApplyToCart { get; set; }
+    public SalesContext? Sales { get; set; }
 
     public string? Code { get; set; }
 
@@ -30,22 +31,20 @@ public sealed class CustomerDraft
     public string? Note { get; set; }
 }
 
-// T-62 会員登録・編集 (オンライン限定)。保存後は呼び出し元へ会員を渡す
+// 会員登録・編集 (オンライン限定)。保存後は呼び出し元へ会員を渡す (販売からならカートにも紐付ける)
 public sealed partial class CustomerEditViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
     private readonly IPopupNavigator popupNavigator;
 
-    private readonly NetworkOperator network;
-
-    private readonly SalesState sales;
-
-    private CustomerResponse? original;
+    private CustomerResponseItem? original;
 
     private ViewId returnTo = ViewId.CustomerInquiry;
 
-    private bool applyToCart;
+    private SalesContext? sales;
+
+    private readonly NetworkService network;
 
     [ObservableProperty]
     public partial string Title { get; set; } = "会員登録";
@@ -80,20 +79,18 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
     public CustomerEditViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
-        NetworkOperator network,
-        SalesState sales)
+        NetworkService network)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
         this.network = network;
-        this.sales = sales;
 
         InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputDigitsAsync("電話番号", PhoneText, 13) ?? PhoneText);
         InputPostalCodeCommand = MakeAsyncCommand(async () => PostalCodeText = await popupNavigator.InputDigitsAsync("郵便番号", PostalCodeText, 7) ?? PostalCodeText);
         InputBirthDateCommand = MakeAsyncCommand(InputBirthDateAsync);
     }
 
-    // 生年月日は yyyyMMdd の 8 桁を電卓で入力し、yyyy/MM/dd に整える
+    // 生年月日は yyyyMMdd の 8 桁を電卓で入力し、表示の書式に整える
     private async Task InputBirthDateAsync()
     {
         var digits = new string((BirthDateText ?? string.Empty).Where(Char.IsAsciiDigit).ToArray());
@@ -103,19 +100,19 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
             return;
         }
 
-        BirthDateText = DateOnly.TryParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+        BirthDateText = DateTimeHelper.TryParseCompactDate(text, out var date)
             ? DisplayText.Date(date)
             : text.Length == 0 ? null : text;
     }
 
     public override Task OnNavigatedToAsync(INavigationContext context)
     {
-        var draft = context.Parameter.GetState<CustomerDraft>();
+        var draft = context.Parameter.GetContext<CustomerDraft>();
         if (draft is not null)
         {
             original = draft.Original;
             returnTo = draft.ReturnTo;
-            applyToCart = draft.ApplyToCart;
+            sales = draft.Sales;
             Code.Text = draft.Code;
             Name.Text = draft.Name;
             Kana.Text = draft.Kana;
@@ -130,7 +127,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         {
             original = context.Parameter.GetCustomer();
             returnTo = context.Parameter.GetReturnTo(ViewId.CustomerInquiry);
-            applyToCart = context.Parameter.GetApplyToCart();
+            sales = context.Parameter.GetContext<SalesContext>();
             if (original is not null)
             {
                 Code.Text = original.Code;
@@ -161,7 +158,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
     {
         Original = original,
         ReturnTo = returnTo,
-        ApplyToCart = applyToCart,
+        Sales = sales,
         Code = Code.Text,
         Name = Name.Text,
         Kana = Kana.Text,
@@ -173,15 +170,15 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         Note = Note.Text
     };
 
-    private Task<bool> ReturnAsync(CustomerResponse? customer) =>
-        Navigator.ForwardAsync(returnTo, Parameters.Make().WithCustomer(customer));
+    private Task<bool> ReturnAsync(CustomerResponseItem? customer) =>
+        Navigator.ForwardAsync(returnTo, Parameters.Make().WithCustomer(customer).WithContext(sales));
 
     protected override Task OnNotifyBackAsync() => ReturnAsync(original);
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
     protected override Task OnNotifyFunction2() =>
-        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Customer, ViewId.CustomerEdit).WithState(ToDraft()));
+        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Customer, ViewId.CustomerEdit).WithContext(ToDraft()));
 
     protected override Task OnNotifyFunction3()
     {
@@ -193,7 +190,6 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         PhoneText = null;
         PostalCodeText = null;
         BirthDateText = null;
-
         Code.Focus();
         return Task.CompletedTask;
     }
@@ -219,7 +215,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         DateOnly? birthDate = null;
         if (!String.IsNullOrWhiteSpace(BirthDateText))
         {
-            if (!DateOnly.TryParseExact(BirthDateText.Trim(), ["yyyy/MM/dd", "yyyy-MM-dd", "yyyyMMdd"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            if (!DateTimeHelper.TryParseDate(BirthDateText.Trim(), out var date))
             {
                 await dialog.InformationAsync("生年月日は yyyy/MM/dd で入力してください。");
                 return;
@@ -228,20 +224,20 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
             birthDate = date;
         }
 
-        ApiResult<CustomerResponse> result;
+        ApiResult<CustomerResponseItem> result;
         if (original is null)
         {
             result = await network.ExecuteAsync(h => h.PostCustomerAsync(new CustomerCreateRequest
             {
                 Code = code,
                 Name = name,
-                Kana = Trim(Kana.Text),
-                Phone = Trim(PhoneText),
-                Email = Trim(Email.Text),
-                PostalCode = Trim(PostalCodeText),
-                Address = Trim(Address.Text),
+                Kana = Kana.Text.TrimToNull(),
+                Phone = PhoneText.TrimToNull(),
+                Email = Email.Text.TrimToNull(),
+                PostalCode = PostalCodeText.TrimToNull(),
+                Address = Address.Text.TrimToNull(),
                 BirthDate = birthDate,
-                Note = Trim(Note.Text)
+                Note = Note.Text.TrimToNull()
             }));
         }
         else
@@ -250,13 +246,13 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
             {
                 Code = code,
                 Name = name,
-                Kana = Trim(Kana.Text),
-                Phone = Trim(PhoneText),
-                Email = Trim(Email.Text),
-                PostalCode = Trim(PostalCodeText),
-                Address = Trim(Address.Text),
+                Kana = Kana.Text.TrimToNull(),
+                Phone = PhoneText.TrimToNull(),
+                Email = Email.Text.TrimToNull(),
+                PostalCode = PostalCodeText.TrimToNull(),
+                Address = Address.Text.TrimToNull(),
                 BirthDate = birthDate,
-                Note = Trim(Note.Text),
+                Note = Note.Text.TrimToNull(),
                 Version = original.Version
             }));
         }
@@ -267,14 +263,9 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         }
 
         var saved = result.Content!;
-        if (applyToCart)
-        {
-            sales.Cart.Customer = saved;
-        }
+        sales?.Cart.Customer = saved;
 
         await dialog.Toast(original is null ? "会員を登録しました。" : "会員を更新しました。");
         await ReturnAsync(saved);
     }
-
-    private static string? Trim(string? value) => String.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

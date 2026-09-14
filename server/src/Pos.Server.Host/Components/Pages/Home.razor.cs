@@ -2,12 +2,10 @@ namespace Pos.Server.Host.Components.Pages;
 
 using Microsoft.AspNetCore.Components;
 
-using Pos.Server.Accessors;
-using Pos.Server.Host.Infrastructure.Api;
-using Pos.Server.Host.Infrastructure.Components;
-using Pos.Server.Host.Infrastructure.Reports;
-using Pos.Server.Models;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
+using Pos.Server.Models.Views;
+using Pos.Server.Services;
 
 // S-01 ダッシュボード (本日の KPI、店舗別売上、開設中シフト、端末の通信状態、要確認の在庫・会員)
 public sealed partial class Home
@@ -15,47 +13,40 @@ public sealed partial class Home
     private const int WarningLimit = 10;
 
     private DateOnly today;
-
     private NameLookup names = new();
-
-    private SalesSummaryRow todaySummary = SalesSummaryQuery.Sum([], false);
-
+    private SalesSummaryRow todaySummary = ReportService.Sum([], false);
     private List<SalesSummaryRow> storeRows = [];
-
-    private List<ShiftEntity> openShifts = [];
-
+    private IReadOnlyList<ShiftEntity> openShifts = [];
     private List<TerminalEntity> terminals = [];
-
-    private List<InventoryLevelDetail> negativeInventory = [];
-
-    private long NegativeInventoryCount { get; set; }
-
+    private IReadOnlyList<InventoryLevelDetail> negativeInventory = [];
     private List<CustomerEntity> negativeCustomers = [];
 
-    [Inject]
-    public required ReportAccessor ReportAccessor { get; set; }
+    private int NegativeInventoryCount { get; set; }
 
     [Inject]
-    public required ShiftAccessor ShiftAccessor { get; set; }
+    public required ReportService ReportService { get; set; }
 
     [Inject]
-    public required InventoryAccessor InventoryAccessor { get; set; }
+    public required ShiftService ShiftService { get; set; }
 
     [Inject]
-    public required CustomerAccessor CustomerAccessor { get; set; }
+    public required InventoryService InventoryService { get; set; }
 
     [Inject]
-    public required StoreAccessor StoreAccessor { get; set; }
+    public required CustomerService CustomerService { get; set; }
 
     [Inject]
-    public required TerminalAccessor TerminalAccessor { get; set; }
+    public required StoreService StoreService { get; set; }
 
     [Inject]
-    public required StaffAccessor StaffAccessor { get; set; }
+    public required TerminalService TerminalService { get; set; }
+
+    [Inject]
+    public required StaffService StaffService { get; set; }
 
     private decimal AveragePerCustomer => todaySummary.TransactionCount == 0 ? 0m : Math.Floor(todaySummary.NetSales / todaySummary.TransactionCount);
 
-    private long WarningCount => NegativeInventoryCount + negativeCustomers.Count;
+    private int WarningCount => NegativeInventoryCount + negativeCustomers.Count;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -63,13 +54,14 @@ public sealed partial class Home
         LoadAsync(async () =>
         {
             today = DateOnly.FromDateTime(TimeProvider.GetLocalNow().Date);
-            names = await NameLookup.LoadAsync(StoreAccessor, TerminalAccessor, StaffAccessor, null, CancellationToken);
-            storeRows = await SalesSummaryQuery.QueryAsync(ReportAccessor, StoreAccessor, null, today, today, SalesSummaryGroupBy.Store, CancellationToken);
-            todaySummary = SalesSummaryQuery.Sum(storeRows, false);
-            openShifts = await ShiftAccessor.QueryListAsync(null, null, ShiftStatus.Open, null, null, "OpenedAt", ApiHelper.MaxPageSize, 0, CancellationToken);
+            names = await NameLookup.LoadAsync(StoreService, TerminalService, StaffService, null, CancellationToken);
+            storeRows = await ReportService.QuerySalesSummaryAsync(null, today, today, SalesSummaryGroupBy.Store, CancellationToken);
+            todaySummary = ReportService.Sum(storeRows, false);
+            openShifts = (await ShiftService.QueryPageAsync(new ShiftQueryParameter { Status = ShiftStatus.Open, Sort = "OpenedAt", Size = ListLimit }, CancellationToken)).Items;
             terminals = names.Terminals.Values.Where(static x => !x.IsDeleted && x.IsActive).OrderBy(static x => x.StoreId).ThenBy(static x => x.TerminalNo).ToList();
-            NegativeInventoryCount = await InventoryAccessor.CountLevelDetailsAsync(null, null, null, true, CancellationToken);
-            negativeInventory = await InventoryAccessor.QueryLevelDetailListAsync(null, null, null, true, "Quantity", WarningLimit, 0, CancellationToken);
-            negativeCustomers = await CustomerAccessor.QueryNegativePointListAsync(WarningLimit, CancellationToken);
+            var negative = await InventoryService.QueryLevelDetailPageAsync(new InventoryLevelDetailQueryParameter { NegativeOnly = true, Sort = "Quantity", Size = WarningLimit }, CancellationToken);
+            NegativeInventoryCount = negative.Total;
+            negativeInventory = negative.Items;
+            negativeCustomers = await CustomerService.QueryNegativePointListAsync(WarningLimit, CancellationToken);
         });
 }

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Pos.Contract</RootNamespace>
+    <CodeAnalysisRuleSet>..\..\Analyzers.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pos.Domain\Pos.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

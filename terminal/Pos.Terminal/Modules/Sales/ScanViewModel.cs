@@ -2,7 +2,7 @@ namespace Pos.Terminal.Modules.Sales;
 
 using BarcodeScanning;
 
-// T-11 スキャン: 商品モードは読むたびに明細追加して継続、他のモードは 1 件読んだら呼び出し元へ戻る
+// スキャン: 商品モードは読むたびに明細追加して継続、他のモードは 1 件読んだら呼び出し元へ戻る (コンテキストはそのまま返す)
 public sealed partial class ScanViewModel : AppViewModelBase
 {
     private static readonly TimeSpan SameCodeInterval = TimeSpan.FromSeconds(2);
@@ -11,21 +11,21 @@ public sealed partial class ScanViewModel : AppViewModelBase
 
     private readonly IPopupNavigator popupNavigator;
 
-    private readonly DataAccessor accessor;
-
-    private readonly SalesState sales;
-
-    private readonly Session session;
-
     private ScanMode mode;
 
     private ViewId returnTo;
 
     private ViewId? callerReturnTo;
 
-    private object? state;
+    private object? sharedContext;
 
-    private Dictionary<Guid, TaxRateResponse> taxRates = [];
+    private SalesContext? sales;
+
+    private readonly DataAccessor accessor;
+
+    private readonly SalesUsecase salesUsecase;
+
+    private Dictionary<Guid, TaxRateResponseItem> taxRates = [];
 
     private string lastValue = string.Empty;
 
@@ -50,14 +50,12 @@ public sealed partial class ScanViewModel : AppViewModelBase
         IDialog dialog,
         IPopupNavigator popupNavigator,
         DataAccessor accessor,
-        SalesState sales,
-        Session session)
+        SalesUsecase salesUsecase)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
         this.accessor = accessor;
-        this.sales = sales;
-        this.session = session;
+        this.salesUsecase = salesUsecase;
 
         Controller.TapToFocus = true;
         Controller.VibrationOnDetect = true;
@@ -70,7 +68,8 @@ public sealed partial class ScanViewModel : AppViewModelBase
         mode = context.Parameter.GetScanMode();
         returnTo = context.Parameter.GetReturnTo(ViewId.Sales);
         callerReturnTo = context.Parameter.GetCallerReturnTo();
-        state = context.Parameter.GetState<object>();
+        sharedContext = context.Parameter.GetContext<object>();
+        sales = sharedContext as SalesContext;
 
         Title = mode switch
         {
@@ -82,6 +81,11 @@ public sealed partial class ScanViewModel : AppViewModelBase
         };
         Hint = mode == ScanMode.Product ? "読み取るたびに明細へ追加します。同じ商品は数量 +1" : "1 件読み取ると戻ります";
 
+        await Navigator.PostActionAsync(PrepareAsync);
+    }
+
+    private async Task PrepareAsync()
+    {
         if (mode == ScanMode.Product)
         {
             taxRates = (await accessor.QueryTaxRateListAsync()).ToDictionary(static x => x.Id);
@@ -141,11 +145,16 @@ public sealed partial class ScanViewModel : AppViewModelBase
         // 1 件読んだら呼び出し元へ
         returning = true;
         Controller.Enable = false;
-        await Navigator.ForwardAsync(returnTo, Parameters.Make().WithScanResult(value).WithCallerReturnTo(callerReturnTo).WithState(state));
+        await Navigator.ForwardAsync(returnTo, Parameters.Make().WithScanResult(value).WithCallerReturnTo(callerReturnTo).WithContext(sharedContext));
     }
 
     private async Task AddProductAsync(string value)
     {
+        if (sales is null)
+        {
+            return;
+        }
+
         var product = await accessor.QueryProductByBarcodeAsync(value) ?? await accessor.QueryProductByCodeAsync(value);
         if (product is null)
         {
@@ -166,11 +175,11 @@ public sealed partial class ScanViewModel : AppViewModelBase
         }
 
         var line = sales.Cart.Add(product, taxRate);
-        Message = $"✓ {product.Name} を追加 (×{DisplayText.Quantity(line.Quantity)})  {DisplayText.Yen(SalesViewModel.Calculate(sales.Cart, session).Total)}";
+        Message = $"✓ {product.Name} を追加 (×{DisplayText.Quantity(line.Quantity)})  {DisplayText.Yen(salesUsecase.Calculate(sales.Cart, []).Total)}";
     }
 
     protected override Task OnNotifyBackAsync() =>
-        Navigator.ForwardAsync(returnTo, Parameters.Make().WithCallerReturnTo(callerReturnTo).WithState(state));
+        Navigator.ForwardAsync(returnTo, Parameters.Make().WithCallerReturnTo(callerReturnTo).WithContext(sharedContext));
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 

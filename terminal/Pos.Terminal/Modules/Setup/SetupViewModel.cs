@@ -1,19 +1,13 @@
 namespace Pos.Terminal.Modules.Setup;
 
-using Pos.Shared.Sync;
-
-// T-00 初期設定: 設定 QR または手入力でサーバ・店舗・端末を決め、初回同期する
+// 初期設定: 設定 QR または手入力でサーバ・店舗・端末を決め、SetupUsecase で確認・保存・初回同期する
 public sealed partial class SetupViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
     private readonly Settings settings;
 
-    private readonly ApiContext apiContext;
-
-    private readonly NetworkOperator network;
-
-    private readonly SyncWorker syncWorker;
+    private readonly SetupUsecase setup;
 
     public EntryController ApiEndPoint { get; } = new();
 
@@ -24,18 +18,17 @@ public sealed partial class SetupViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string Message { get; set; } = string.Empty;
 
+    // 根の画面: 戻るはプラットフォームに任せる (タスクを背面へ)
+    public override bool HandlesBack => false;
+
     public SetupViewModel(
         IDialog dialog,
         Settings settings,
-        ApiContext apiContext,
-        NetworkOperator network,
-        SyncWorker syncWorker)
+        SetupUsecase setup)
     {
         this.dialog = dialog;
         this.settings = settings;
-        this.apiContext = apiContext;
-        this.network = network;
-        this.syncWorker = syncWorker;
+        this.setup = setup;
     }
 
     public override Task OnNavigatedToAsync(INavigationContext context)
@@ -56,12 +49,6 @@ public sealed partial class SetupViewModel : AppViewModelBase
             TerminalId.Text = settings.TerminalId?.ToString() ?? string.Empty;
         }
 
-        return Task.CompletedTask;
-    }
-
-    protected override Task OnNotifyBackAsync()
-    {
-        AndroidHelper.MoveTaskToBack();
         return Task.CompletedTask;
     }
 
@@ -98,42 +85,30 @@ public sealed partial class SetupViewModel : AppViewModelBase
         }
 
         // 接続先を切り替えて店舗・端末を確認する
-        var endPoint = uri.ToString().EndsWith('/') ? uri.ToString() : uri + "/";
-        apiContext.BaseAddress = new Uri(endPoint);
+        var endPoint = new Uri(uri.ToString().EndsWith('/') ? uri.ToString() : uri + "/");
+        var (target, error) = await setup.VerifyAsync(endPoint, storeId, terminalId);
+        if (error is not null)
+        {
+            await dialog.InformationAsync(error);
+            return;
+        }
 
-        var store = await network.ExecuteAsync(h => h.GetStoreAsync(storeId), notifyNotFound: true);
-        if (!store.IsSuccess)
+        if (target is null)
         {
             return;
         }
 
-        var terminal = await network.ExecuteAsync(h => h.GetTerminalAsync(terminalId), notifyNotFound: true);
-        if (!terminal.IsSuccess)
+        Message = $"店舗: {target.Store.Name}\n端末: {target.Terminal.Name}";
+        if (!await dialog.AskAsync($"店舗: {target.Store.Name}\n端末: {target.Terminal.Name}\nこの設定で開始しますか？", "接続確認", "開始"))
         {
             return;
         }
 
-        if (terminal.Content!.StoreId != storeId)
-        {
-            await dialog.InformationAsync("端末が店舗に属していません。");
-            return;
-        }
-
-        Message = $"店舗: {store.Content!.Name}\n端末: {terminal.Content.Name}";
-        if (!await dialog.AskAsync($"店舗: {store.Content.Name}\n端末: {terminal.Content.Name}\nこの設定で開始しますか？", "接続確認", "開始"))
-        {
-            return;
-        }
-
-        settings.ApiEndPoint = endPoint;
-        settings.StoreId = storeId;
-        settings.TerminalId = terminalId;
-
-        // 初回同期 (全件)
-        ApiResult<SyncMastersResponse> result;
+        // 設定を保存して初回同期 (全件)
+        ApiResult<Pos.Contract.Sync.SyncMastersResponse> result;
         using (var loading = dialog.Loading("同期しています..."))
         {
-            result = await syncWorker.SyncMastersAsync(true, new Progress<string>(loading.Update), CancellationToken.None);
+            result = await setup.ApplyAsync(endPoint, storeId, terminalId, new Progress<string>(loading.Update));
         }
 
         if (!result.IsSuccess)

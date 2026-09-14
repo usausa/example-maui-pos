@@ -53,17 +53,17 @@ global using Smart.Text;
 
 global using SkiaSharp;
 
-global using Pos.Domain;
-global using Pos.Shared.Categories;
-global using Pos.Shared.Discounts;
-global using Pos.Shared.Inventory;
-global using Pos.Shared.PaymentMethods;
-global using Pos.Shared.Products;
-global using Pos.Shared.Settings;
-global using Pos.Shared.Staff;
-global using Pos.Shared.Stores;
-global using Pos.Shared.TaxRates;
-global using Pos.Shared.Terminals;
+global using Pos.Domain.Enums;
+global using Pos.Contract.Categories;
+global using Pos.Contract.Discounts;
+global using Pos.Contract.Inventory;
+global using Pos.Contract.PaymentMethods;
+global using Pos.Contract.Products;
+global using Pos.Contract.Settings;
+global using Pos.Contract.Staff;
+global using Pos.Contract.Stores;
+global using Pos.Contract.TaxRates;
+global using Pos.Contract.Terminals;
 
 global using Pos.Terminal;
 global using Pos.Terminal.Helpers;

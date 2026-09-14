@@ -1,1 +1,7 @@
-SELECT * FROM Shifts ORDER BY OpenedAt DESC LIMIT /*@ limit */20
+SELECT
+    *
+FROM
+    Shifts
+ORDER BY
+    OpenedAt DESC
+LIMIT /*@ limit */20

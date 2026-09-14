@@ -5,46 +5,38 @@ using Microsoft.AspNetCore.Components.Web;
 
 using MudBlazor;
 
-using Pos.Server.Accessors;
 using Pos.Server.Host.Components.Dialogs;
-using Pos.Server.Host.Infrastructure.Components;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
+using Pos.Server.Services;
 
 // S-20 取引一覧
 public sealed partial class TransactionsPage
 {
-    private static readonly string[] SortColumns = ["TransactedAt", "ReceiptNo", "Total", "BusinessDate"];
-
     private MudDataGrid<TransactionEntity> Grid { get; set; } = default!;
 
     private NameLookup names = new();
-
     private DateRange? period;
-
     private Guid? storeId;
-
     private Guid? terminalId;
-
     private TransactionType? type;
-
     private TransactionStatus? status;
-
     private string? receiptNo;
 
     [Inject]
-    public required TransactionAccessor TransactionAccessor { get; set; }
+    public required TransactionService TransactionService { get; set; }
 
     [Inject]
-    public required StoreAccessor StoreAccessor { get; set; }
+    public required StoreService StoreService { get; set; }
 
     [Inject]
-    public required TerminalAccessor TerminalAccessor { get; set; }
+    public required TerminalService TerminalService { get; set; }
 
     [Inject]
-    public required StaffAccessor StaffAccessor { get; set; }
+    public required StaffService StaffService { get; set; }
 
     [Inject]
-    public required PaymentMethodAccessor PaymentMethodAccessor { get; set; }
+    public required PaymentMethodService PaymentMethodService { get; set; }
 
     [Inject]
     public required StoreFilterState StoreFilter { get; set; }
@@ -65,9 +57,8 @@ public sealed partial class TransactionsPage
         storeId = StoreFilter.StoreId;
         await LoadAsync(async () =>
         {
-            names = await NameLookup.LoadAsync(StoreAccessor, TerminalAccessor, StaffAccessor, PaymentMethodAccessor, CancellationToken);
+            names = await NameLookup.LoadAsync(StoreService, TerminalService, StaffService, PaymentMethodService, CancellationToken);
         });
-
         if (Id is not null)
         {
             await ShowDetailAsync(Id.Value);
@@ -80,21 +71,30 @@ public sealed partial class TransactionsPage
 
     private async Task<GridData<TransactionEntity>> LoadServerData(GridState<TransactionEntity> state, CancellationToken cancellationToken)
     {
-        var sort = state.SortDefinitions.FirstOrDefault();
-        var order = SqlHelper.NormalizeSort(SortColumns, "TransactedAt", sort?.SortBy, sort?.Descending ?? true);
-        var from = ToDateOnly(period?.Start);
-        var to = ToDateOnly(period?.End);
-
         // レシート番号は完全一致で 1 件
         if (!String.IsNullOrWhiteSpace(receiptNo))
         {
-            var entity = await TransactionAccessor.QueryByReceiptNoAsync(receiptNo.Trim(), cancellationToken);
+            var entity = await TransactionService.QueryByReceiptNoAsync(receiptNo.Trim(), cancellationToken);
             return new GridData<TransactionEntity> { TotalItems = entity is null ? 0 : 1, Items = entity is null ? [] : [entity] };
         }
 
-        var total = await TransactionAccessor.CountAsync(storeId, terminalId, null, ShiftId, null, from, to, type, status, cancellationToken);
-        var items = await TransactionAccessor.QueryListAsync(storeId, terminalId, null, ShiftId, null, from, to, type, status, order, state.PageSize, state.Page * state.PageSize, cancellationToken);
-        return new GridData<TransactionEntity> { TotalItems = (int)total, Items = items };
+        var sort = state.SortDefinitions.FirstOrDefault();
+        var parameter = new TransactionQueryParameter
+        {
+            StoreId = storeId,
+            TerminalId = terminalId,
+            ShiftId = ShiftId,
+            From = ToDateOnly(period?.Start),
+            To = ToDateOnly(period?.End),
+            Type = type,
+            Status = status,
+            Sort = sort?.SortBy,
+            Desc = sort?.Descending ?? true,
+            Page = state.Page,
+            Size = state.PageSize
+        };
+        var result = await TransactionService.QueryPageAsync(parameter, cancellationToken);
+        return new GridData<TransactionEntity> { TotalItems = result.Total, Items = result.Items };
     }
 
     private static DateOnly? ToDateOnly(DateTime? value) => value is null ? null : DateOnly.FromDateTime(value.Value);

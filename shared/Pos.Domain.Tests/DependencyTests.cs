@@ -11,7 +11,7 @@ public sealed class DependencyTests
         "Microsoft.Maui",
         "Microsoft.Data.Sqlite",
         "Smart.Data",
-        "Pos.Shared",
+        "Pos.Contract",
         "Pos.Server",
         "Pos.Terminal"
     ];

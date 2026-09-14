@@ -1,1 +1,4 @@
-DELETE FROM Staff WHERE Id = /*@ id */''
+DELETE FROM
+    Staff
+WHERE
+    Id = /*@ id */''

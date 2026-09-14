@@ -1,8 +1,8 @@
 namespace Pos.Terminal.Modules.Sales;
 
-using Pos.Terminal.Models.Sales;
+using Pos.Terminal.Models.Cart;
 
-public sealed record DiscountParameter(string Title, IReadOnlyList<DiscountResponse> Discounts, decimal BaseAmount);
+public sealed record DiscountParameter(string Title, IReadOnlyList<DiscountResponseItem> Discounts, decimal BaseAmount);
 
 // 値引の選択 (定義済み / 任意額 / 任意率 + 理由)。承認が必要な値引は承認者を選ぶ
 public static class DiscountChooser
@@ -11,11 +11,11 @@ public static class DiscountChooser
 
     private const string CustomPercent = "任意率";
 
-    public static async ValueTask<CartDiscount?> ChooseAsync(IDialog dialog, DataAccessor accessor, Settings settings, DiscountParameter parameter)
+    public static async ValueTask<CartDiscount?> ChooseAsync(IDialog dialog, DataAccessor accessor, Session session, DiscountParameter parameter)
     {
         ArgumentNullException.ThrowIfNull(dialog);
         ArgumentNullException.ThrowIfNull(accessor);
-        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(parameter);
 
         var defined = parameter.Discounts.Where(static x => x.IsActive && !x.IsDeleted).OrderBy(static x => x.SortOrder).ToList();
@@ -29,7 +29,7 @@ public static class DiscountChooser
         if (index < defined.Count)
         {
             var definition = defined[index];
-            var approver = definition.RequiresApproval ? await ChooseApproverAsync(dialog, accessor, settings) : null;
+            var approver = definition.RequiresApproval ? await ChooseApproverAsync(dialog, accessor, session) : null;
             if (definition.RequiresApproval && (approver is null))
             {
                 return null;
@@ -79,11 +79,11 @@ public static class DiscountChooser
     public static string Describe(DiscountType type, decimal value) =>
         type == DiscountType.Percent ? DisplayText.Percent(value) : DisplayText.Yen(value);
 
-    private static async ValueTask<StaffResponse?> ChooseApproverAsync(IDialog dialog, DataAccessor accessor, Settings settings)
+    private static async ValueTask<StaffResponseItem?> ChooseApproverAsync(IDialog dialog, DataAccessor accessor, Session session)
     {
-        var staff = settings.StoreId is null
+        var staff = session.StoreId is null
             ? []
-            : (await accessor.QueryStaffListAsync(settings.StoreId.Value)).Where(static x => x.Role is StaffRole.Manager or StaffRole.Admin).ToList();
+            : (await accessor.QueryStaffListAsync(session.StoreId.Value)).Where(static x => x.Role is StaffRole.Manager or StaffRole.Admin).ToList();
         if (staff.Count == 0)
         {
             await dialog.InformationAsync("承認できるスタッフ (店長・管理者) が登録されていません。");

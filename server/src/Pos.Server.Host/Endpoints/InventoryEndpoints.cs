@@ -1,17 +1,15 @@
 namespace Pos.Server.Host.Endpoints;
 
-using Pos.Server.Accessors;
-using Pos.Server.Host.Application;
-using Pos.Server.Host.Infrastructure.Api;
-using Pos.Server.Host.Infrastructure.Data;
-using Pos.Server.Host.Mappers;
+using Pos.Contract.Inventory;
 using Pos.Server.Models.Entity;
-using Pos.Shared.Inventory;
+using Pos.Server.Models.Parameters;
+using Pos.Server.Models.Views;
+using Pos.Server.Services;
 
-using Smart.Data;
+using Smart.Mapper;
 
-// 在庫 (api-design §3.14)。取引による変動はサーバが自動生成し、端末からは棚卸・調整だけを送る
-public static class InventoryEndpoints
+// 在庫。取引による変動はサーバが自動生成し、端末からは棚卸・調整だけを送る
+public static partial class InventoryEndpoints
 {
     //--------------------------------------------------------------------------------
     // Mapping
@@ -20,7 +18,6 @@ public static class InventoryEndpoints
     public static void MapInventoryEndpoints(this WebApplication app)
     {
         var group = app.MapGroup(ApiRoutes.Inventory);
-
         group.MapGet("/", HandleLevelListAsync);
         group.MapPost("/changes", HandleChangesAsync);
         group.MapGet("/changes", HandleChangeListAsync);
@@ -33,11 +30,36 @@ public static class InventoryEndpoints
     }
 
     //--------------------------------------------------------------------------------
+    // Mapper
+    //--------------------------------------------------------------------------------
+
+    [Mapper]
+    private static partial InventoryLevelResponseItem ToResponse(InventoryLevelEntity entity);
+
+    [Mapper]
+    private static partial ProductInventoryResponseLevel ToResponse(ProductInventoryLevel level);
+
+    [Mapper]
+    private static partial InventoryChangeResponseItem ToResponse(InventoryChangeEntity entity);
+
+    [Mapper]
+    private static partial InventoryChangeParameter ToParameter(InventoryChangeRequestChange change);
+
+    [Mapper]
+    internal static partial AdjustmentReasonResponseItem ToResponse(AdjustmentReasonEntity entity);
+
+    [Mapper]
+    private static partial AdjustmentReasonEntity ToEntity(AdjustmentReasonCreateRequest request);
+
+    [Mapper]
+    private static partial AdjustmentReasonEntity ToEntity(AdjustmentReasonUpdateRequest request);
+
+    //--------------------------------------------------------------------------------
     // Level
     //--------------------------------------------------------------------------------
 
     private static async ValueTask<IResult> HandleLevelListAsync(
-        InventoryAccessor accessor,
+        InventoryService service,
         Guid? storeId,
         Guid? productId,
         Guid? categoryId,
@@ -45,29 +67,32 @@ public static class InventoryEndpoints
         CancellationToken cancellationToken,
         bool negativeOnly = false,
         [Range(0, Int32.MaxValue)] int page = 0,
-        [Range(1, ApiHelper.MaxPageSize)] int size = ApiHelper.DefaultPageSize)
+        [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        // 差分同期は updatedAt 順、通常は商品コード順
-        var order = updatedSince is not null ? "i.UpdatedAt, i.StoreId, i.ProductId" : "p.Code, i.StoreId";
-        var total = await accessor.CountLevelsAsync(storeId, productId, categoryId, negativeOnly, updatedSince, cancellationToken);
-        var items = await accessor.QueryLevelListAsync(storeId, productId, categoryId, negativeOnly, updatedSince, order, size, page * size, cancellationToken);
-        return TypedResults.Ok(new InventoryLevelListResponse { Total = (int)total, Page = page, Size = size, Items = items.Select(InventoryMapper.ToLevelResponse).ToList() });
+        var parameter = new InventoryLevelQueryParameter
+        {
+            StoreId = storeId,
+            ProductId = productId,
+            CategoryId = categoryId,
+            NegativeOnly = negativeOnly,
+            UpdatedSince = updatedSince,
+            Page = page,
+            Size = size
+        };
+        var result = await service.QueryLevelPageAsync(parameter, cancellationToken);
+        return TypedResults.Ok(new InventoryLevelResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     // 商品の全店舗在庫 (他店在庫照会)
     private static async ValueTask<IResult> HandleProductLevelsAsync(
-        InventoryAccessor accessor,
-        ProductAccessor productAccessor,
+        InventoryService service,
         Guid productId,
         CancellationToken cancellationToken)
     {
-        if (await productAccessor.QueryAsync(productId, cancellationToken) is null)
-        {
-            return ApiProblems.NotFound("商品が見つかりません");
-        }
-
-        var levels = await accessor.QueryLevelsByProductAsync(productId, cancellationToken);
-        return TypedResults.Ok(new ProductInventoryResponse { ProductId = productId, Levels = levels.Select(InventoryMapper.ToProductLevel).ToList() });
+        var levels = await service.QueryProductLevelsAsync(productId, cancellationToken);
+        return levels is null
+            ? ApiProblems.NotFound("商品が見つかりません")
+            : TypedResults.Ok(new ProductInventoryResponse { ProductId = productId, Levels = levels.Select(ToResponse).ToList() });
     }
 
     //--------------------------------------------------------------------------------
@@ -76,51 +101,26 @@ public static class InventoryEndpoints
 
     // 棚卸 (絶対数量) と調整 (増減) の一括登録。同じ id は Duplicate として既存の結果を返す
     private static async ValueTask<IResult> HandleChangesAsync(
-        InventoryAccessor accessor,
-        IDbProvider provider,
-        TimeProvider timeProvider,
+        InventoryService service,
         InventoryChangeRequest request,
         CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        var results = new List<InventoryChangeResultResponseResult>(request.Changes.Count);
-
-        foreach (var change in request.Changes)
+        var results = await service.ApplyChangesAsync(request.Changes.Select(ToParameter).ToList(), cancellationToken);
+        return TypedResults.Ok(new InventoryChangeResultResponse
         {
-            var existing = await accessor.QueryChangeAsync(change.Id, cancellationToken);
-            if (existing is not null)
+            Results = results.Select(static x => new InventoryChangeResultResponseResult
             {
-                results.Add(new InventoryChangeResultResponseResult { Id = change.Id, Status = InventoryChangeResultStatus.Duplicate, QuantityDelta = existing.QuantityDelta, QuantityAfter = existing.QuantityAfter });
-                continue;
-            }
-
-            var entity = await InventoryChangeApplier.ApplyAsync(
-                accessor,
-                provider,
-                new InventoryChangeEntity
-                {
-                    Id = change.Id,
-                    StoreId = change.StoreId,
-                    ProductId = change.ProductId,
-                    Type = change.Type,
-                    ReasonId = change.ReasonId,
-                    Reason = change.Reason,
-                    StaffId = change.StaffId,
-                    OccurredAt = change.OccurredAt
-                },
-                change.Quantity,
-                now,
-                cancellationToken);
-
-            results.Add(new InventoryChangeResultResponseResult { Id = entity.Id, Status = InventoryChangeResultStatus.Created, QuantityDelta = entity.QuantityDelta, QuantityAfter = entity.QuantityAfter });
-        }
-
-        return TypedResults.Ok(new InventoryChangeResultResponse { Results = results });
+                Id = x.Change.Id,
+                Status = x.Duplicate ? InventoryChangeResultStatus.Duplicate : InventoryChangeResultStatus.Created,
+                QuantityDelta = x.Change.QuantityDelta,
+                QuantityAfter = x.Change.QuantityAfter
+            }).ToList()
+        });
     }
 
     // from / to は営業日ではなく UTC 日時 (to は含まない)
     private static async ValueTask<IResult> HandleChangeListAsync(
-        InventoryAccessor accessor,
+        InventoryService service,
         Guid? storeId,
         Guid? productId,
         InventoryChangeType? type,
@@ -128,96 +128,69 @@ public static class InventoryEndpoints
         DateTime? to,
         CancellationToken cancellationToken,
         [Range(0, Int32.MaxValue)] int page = 0,
-        [Range(1, ApiHelper.MaxPageSize)] int size = ApiHelper.DefaultPageSize)
+        [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        var total = await accessor.CountChangesAsync(storeId, productId, type, from, to, cancellationToken);
-        var items = await accessor.QueryChangeListAsync(storeId, productId, type, from, to, size, page * size, cancellationToken);
-        return TypedResults.Ok(new InventoryChangeListResponse { Total = (int)total, Page = page, Size = size, Items = items.Select(InventoryMapper.ToChangeResponse).ToList() });
+        var parameter = new InventoryChangeQueryParameter { StoreId = storeId, ProductId = productId, Type = type, From = from, To = to, Page = page, Size = size };
+        var result = await service.QueryChangePageAsync(parameter, cancellationToken);
+        return TypedResults.Ok(new InventoryChangeResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     //--------------------------------------------------------------------------------
     // AdjustmentReason
     //--------------------------------------------------------------------------------
 
+    // 少数なのでページングなし
     private static async ValueTask<IResult> HandleReasonListAsync(
-        AdjustmentReasonAccessor accessor,
+        AdjustmentReasonService service,
         DateTime? updatedSince,
         CancellationToken cancellationToken,
         bool includeDeleted = false)
     {
-        var items = await accessor.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
-        return TypedResults.Ok(new AdjustmentReasonListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(MasterMapper.ToAdjustmentReasonResponse).ToList() });
+        var items = await service.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
+        return TypedResults.Ok(new AdjustmentReasonResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleReasonGetAsync(
-        AdjustmentReasonAccessor accessor,
+        AdjustmentReasonService service,
         Guid id,
         CancellationToken cancellationToken)
     {
-        var entity = await accessor.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(MasterMapper.ToAdjustmentReasonResponse(entity));
+        var entity = await service.QueryAsync(id, cancellationToken);
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
     }
 
     private static async ValueTask<IResult> HandleReasonCreateAsync(
-        AdjustmentReasonAccessor accessor,
-        IDialect dialect,
-        TimeProvider timeProvider,
+        AdjustmentReasonService service,
         AdjustmentReasonCreateRequest request,
         CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        var entity = MasterMapper.ToAdjustmentReasonEntity(request);
-        entity.Id = Guid.CreateVersion7();
-        entity.CreatedAt = now;
-        entity.UpdatedAt = now;
-        entity.Version = 1;
-
-        try
-        {
-            await accessor.InsertAsync(entity, cancellationToken);
-        }
-        catch (DbException ex) when (dialect.IsDuplicate(ex))
-        {
-            return ApiProblems.DuplicateCode();
-        }
-
-        return TypedResults.Created($"{ApiRoutes.Inventory}/adjustment-reasons/{entity.Id}", MasterMapper.ToAdjustmentReasonResponse(entity));
+        var entity = ToEntity(request);
+        var status = await service.InsertAsync(entity, cancellationToken);
+        return status == DataWriteStatus.Success
+            ? TypedResults.Created($"{ApiRoutes.Inventory}/adjustment-reasons/{entity.Id}", ToResponse(entity))
+            : ApiProblems.DuplicateCode();
     }
 
     private static async ValueTask<IResult> HandleReasonUpdateAsync(
-        AdjustmentReasonAccessor accessor,
-        IDialect dialect,
-        TimeProvider timeProvider,
+        AdjustmentReasonService service,
         Guid id,
         AdjustmentReasonUpdateRequest request,
         CancellationToken cancellationToken)
     {
-        int rows;
-        try
-        {
-            rows = await accessor.UpdateAsync(id, request.Code, request.Name, request.SortOrder, request.IsActive, timeProvider.GetUtcNow().UtcDateTime, request.Version, cancellationToken);
-        }
-        catch (DbException ex) when (dialect.IsDuplicate(ex))
-        {
-            return ApiProblems.DuplicateCode();
-        }
-
-        var entity = await accessor.QueryAsync(id, cancellationToken);
-        if ((entity is null) || entity.IsDeleted)
-        {
-            return ApiProblems.NotFound();
-        }
-
-        return rows == 0 ? ApiProblems.VersionMismatch() : TypedResults.Ok(MasterMapper.ToAdjustmentReasonResponse(entity));
+        var entity = ToEntity(request);
+        entity.Id = id;
+        var status = await service.UpdateAsync(entity, cancellationToken);
+        return status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
+            : ApiProblems.FromStatus(status);
     }
 
     private static async ValueTask<IResult> HandleReasonDeleteAsync(
-        AdjustmentReasonAccessor accessor,
-        TimeProvider timeProvider,
+        AdjustmentReasonService service,
         Guid id,
         CancellationToken cancellationToken)
     {
-        var rows = await accessor.DeleteAsync(id, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
-        return rows == 0 ? ApiProblems.NotFound() : TypedResults.NoContent();
+        var status = await service.DeleteAsync(id, cancellationToken);
+        return status == DataWriteStatus.Success ? TypedResults.NoContent() : ApiProblems.FromStatus(status);
     }
 }

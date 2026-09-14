@@ -6,10 +6,6 @@ using Pos.Terminal.Shell;
 [ObservableGeneratorOption(Reactive = true, ViewModel = true)]
 public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellControl, IAppLifecycle
 {
-    private static readonly Color UnsentColor = Color.FromArgb("#FB8C00");
-
-    private static readonly Color FailedColor = Color.FromArgb("#E53935");
-
     private readonly IScreen screen;
 
     private readonly StartupState startup;
@@ -18,7 +14,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
 
     private readonly Session session;
 
-    private readonly SyncWorker syncWorker;
+    private readonly SyncService syncService;
 
     private bool destroying;
 
@@ -51,7 +47,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
     [ObservableProperty]
     public partial bool Function4Enabled { get; set; }
 
-    // タイトルバー右側: 店舗-端末 担当 と未送信バッジ (screen-design §1.5)
+    // タイトルバー右側: 店舗-端末 担当 と未送信バッジ
     [ObservableProperty]
     public partial string HeaderText { get; set; } = string.Empty;
 
@@ -61,8 +57,9 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
     [ObservableProperty]
     public partial bool BadgeVisible { get; set; }
 
+    // 要確認があれば赤 (色は画面側の Converter で付ける)
     [ObservableProperty]
-    public partial Color BadgeColor { get; set; } = UnsentColor;
+    public partial bool HasFailed { get; set; }
 
     public IObserveCommand Function1Command { get; }
     public IObserveCommand Function2Command { get; }
@@ -80,14 +77,14 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
         StartupState startup,
         Settings settings,
         Session session,
-        SyncWorker syncWorker)
+        SyncService syncService)
     {
         Navigator = navigator;
         this.screen = screen;
         this.startup = startup;
         this.settings = settings;
         this.session = session;
-        this.syncWorker = syncWorker;
+        this.syncService = syncService;
 
         Function1Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function1), () => Function1Enabled);
         Function2Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function2), () => Function2Enabled);
@@ -103,7 +100,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
             log.DebugScreenStateChanged(x.ScreenOn);
             if (x.ScreenOn)
             {
-                syncWorker.Trigger();
+                syncService.Trigger();
             }
         }));
     }
@@ -113,7 +110,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
         HeaderText = session.HeaderText;
         UnsentCount = session.UnsentCount;
         BadgeVisible = session.UnsentCount > 0;
-        BadgeColor = session.FailedCount > 0 ? FailedColor : UnsentColor;
+        HasFailed = session.FailedCount > 0;
     }
 
     //--------------------------------------------------------------------------------
@@ -151,7 +148,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
 
     public void OnResumed()
     {
-        syncWorker.Trigger();
+        syncService.Trigger();
     }
 
     public void OnDestroying()

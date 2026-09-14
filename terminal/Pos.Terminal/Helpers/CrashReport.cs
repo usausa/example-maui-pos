@@ -18,7 +18,7 @@ public static partial class CrashReport
             var path = ResolveCrashLogPath();
 
             var log = new StringBuilder();
-            log.AppendLine($"Time: {DateTime.Now:yyyy/MM/dd HH:mm:ss}");
+            log.AppendLine($"Time: {DateTimeHelper.FormatTimestamp(DateTime.Now)}");
             log.AppendLine("Exception:");
             log.AppendLine(e.ToString());
 

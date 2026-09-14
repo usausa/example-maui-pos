@@ -1,6 +1,10 @@
 namespace Pos.Server.Host.Models.Forms;
 
-public sealed class CategoryForm
+using Pos.Server.Models.Entity;
+
+using Smart.Mapper;
+
+public sealed partial class CategoryForm
 {
     public Guid Id { get; set; }
 
@@ -14,4 +18,11 @@ public sealed class CategoryForm
     public int SortOrder { get; set; }
 
     public int Version { get; set; }
+
+    // Entity ↔ フォーム (サーバ付与項目はサービスが設定する)
+    [Mapper]
+    public static partial CategoryForm ToForm(CategoryEntity entity);
+
+    [Mapper]
+    public static partial CategoryEntity ToEntity(CategoryForm form);
 }

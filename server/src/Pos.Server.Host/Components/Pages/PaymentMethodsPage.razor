@@ -31,10 +31,10 @@
         <MudTd>@context.Code</MudTd>
         <MudTd>@context.Name</MudTd>
         <MudTd>@context.ShortName</MudTd>
-        <MudTd>@DisplayText.Name(context.Kind)</MudTd>
-        <MudTd>@(context.AllowsChange ? "💴 あり" : string.Empty)</MudTd>
-        <MudTd>@(context.RequiresReference ? "🔢 必須" : string.Empty)</MudTd>
-        <MudTd><StatusChip Value="@(context.IsDeleted ? ChipText.Deleted() : ChipText.Active(context.IsActive))" /></MudTd>
+        <MudTd>@context.Kind.ToDisplayName()</MudTd>
+        <MudTd>@ViewHelper.ChangeMark(context.AllowsChange)</MudTd>
+        <MudTd>@ViewHelper.ReferenceMark(context.RequiresReference)</MudTd>
+        <MudTd><StatusChip Value="@(context.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.IsActive))" /></MudTd>
         <MudTd Style="text-align: right;">@context.SortOrder</MudTd>
         <MudTd Class="no-wrap">
             @if (!context.IsDeleted)

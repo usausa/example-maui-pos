@@ -209,16 +209,10 @@ public static partial class MauiProgram
         services.AddComponentsDialog(static c =>
         {
             ConfigureDialogDesign(c);
-#if DEVICE_HAS_KEYPAD
-            c.DismissKeys = new[] { Keycode.Escape, Keycode.Del };
-            c.IgnorePromptDismissKeys = new[] { Keycode.Del };
-            c.EnableDialogButtonFocus = true;
-#endif
             c.EnablePromptEnterAction = true;
             c.EnablePromptSelectAll = true;
         });
         services.AddComponentsPopup(static c => c.AutoRegister(DialogSource()));
-        services.AddComponentsPopupPlugin<PopupFocusPlugin>();
         services.AddComponentsScreen();
         services.AddComponentsLocation();
         services.AddComponentsSpeech();
@@ -232,8 +226,6 @@ public static partial class MauiProgram
         {
             config.UseMauiNavigationProvider();
             config.AddHierarchyEffectPlugin();
-            // NavigationFocusPlugin (遷移先の最初の入力欄に自動でフォーカス) はキーボード端末向けのため使わない
-            // (入力はスキャンと電卓ボタンが基本。キーボードは文字入力欄をタップしたときだけ出す)
             config.AddPlugin<NavigationFeedbackPlugin>();
             config.UseIdViewMapper(static m => m.AutoRegister(ViewSource()));
         });
@@ -250,8 +242,6 @@ public static partial class MauiProgram
         services.AddSingleton<DeviceState>();
         services.AddSingleton<Settings>();
         services.AddSingleton<Session>();
-        services.AddSingleton<SalesState>();
-        services.AddSingleton<StockState>();
 
         // HttpClient
         services
@@ -267,9 +257,19 @@ public static partial class MauiProgram
             return new DelegateDbProvider(() => new SqliteConnection($"Data Source={path};Default Timeout=10"));
         });
         services.AddDataAccessors();
+        services.AddSingleton<DatabaseService>();
         services.AddSingleton<HttpService>();
-        services.AddSingleton<NetworkOperator>();
-        services.AddSingleton<SyncWorker>();
+        services.AddSingleton<NetworkService>();
+        services.AddSingleton<SyncService>();
+        services.AddSingleton<ReceiptService>();
+
+        // Usecase
+        services.AddSingleton<TransactionUsecase>();
+        services.AddSingleton<SalesUsecase>();
+        services.AddSingleton<ReturnUsecase>();
+        services.AddSingleton<ShiftUsecase>();
+        services.AddSingleton<StockUsecase>();
+        services.AddSingleton<SetupUsecase>();
     }
 
     // ------------------------------------------------------------

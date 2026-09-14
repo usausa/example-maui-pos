@@ -43,7 +43,7 @@
 <MudDataGrid @ref="Grid" T="TransactionEntity" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
     <Columns>
         <PropertyColumn Property="x => x.TransactedAt" Title="日時" InitialDirection="SortDirection.Descending">
-            <CellTemplate>@DisplayText.DateTime(context.Item.TransactedAt)</CellTemplate>
+            <CellTemplate>@context.Item.TransactedAt.ToDateTimeText()</CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.ReceiptNo" Title="レシート番号" />
         <TemplateColumn Title="店舗 / 端末" Sortable="false">
@@ -53,24 +53,24 @@
             <CellTemplate>@names.StaffName(context.Item.StaffId)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="種別" Sortable="false">
-            <CellTemplate><StatusChip Value="@ChipText.Type(context.Item.Type)" /></CellTemplate>
+            <CellTemplate><StatusChip Value="@ViewHelper.TypeChip(context.Item.Type)" /></CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="状態" Sortable="false">
-            <CellTemplate><StatusChip Value="@ChipText.Status(context.Item.Status)" /></CellTemplate>
+            <CellTemplate><StatusChip Value="@ViewHelper.StatusChip(context.Item.Status)" /></CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.Total" Title="合計" CellStyle="text-align: right;" HeaderStyle="text-align: right;">
-            <CellTemplate>@DisplayText.Yen(context.Item.Total)</CellTemplate>
+            <CellTemplate>@context.Item.Total.ToYen()</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="ポイント" Sortable="false" CellStyle="text-align: right;">
             <CellTemplate>
                 @if (context.Item.PointsEarned != 0 || context.Item.PointsRedeemed != 0)
                 {
-                    <span title="付与 / 利用">@DisplayText.Delta(context.Item.PointsEarned) / @DisplayText.Delta(-context.Item.PointsRedeemed)</span>
+                    <span title="付与 / 利用">@context.Item.PointsEarned.ToDeltaText() / @((-context.Item.PointsRedeemed).ToDeltaText())</span>
                 }
             </CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="会員" Sortable="false">
-            <CellTemplate>@(context.Item.CustomerId is null ? string.Empty : "👤")</CellTemplate>
+            <CellTemplate>@ViewHelper.CustomerMark(context.Item.CustomerId is not null)</CellTemplate>
         </TemplateColumn>
     </Columns>
     <NoRecordsContent>

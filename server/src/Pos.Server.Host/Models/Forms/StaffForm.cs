@@ -1,6 +1,10 @@
 namespace Pos.Server.Host.Models.Forms;
 
-public sealed class StaffForm
+using Pos.Server.Models.Entity;
+
+using Smart.Mapper;
+
+public sealed partial class StaffForm
 {
     public Guid Id { get; set; }
 
@@ -16,4 +20,11 @@ public sealed class StaffForm
     public bool IsActive { get; set; } = true;
 
     public int Version { get; set; }
+
+    // Entity ↔ フォーム (サーバ付与項目はサービスが設定する)
+    [Mapper]
+    public static partial StaffForm ToForm(StaffEntity entity);
+
+    [Mapper]
+    public static partial StaffEntity ToEntity(StaffForm form);
 }

@@ -80,7 +80,7 @@
                        Text="過不足" />
                 <Label Grid.Column="1"
                        Style="{StaticResource PosLargeValueLabel}"
-                       TextColor="{Binding DifferenceColor}"
+                       TextColor="{Binding HasDifference, Converter={StaticResource DifferenceColorConverter}}"
                        Text="{Binding DifferenceText}" />
             </Grid>
             <BoxView Style="{StaticResource PosSeparatorBoxView}" />

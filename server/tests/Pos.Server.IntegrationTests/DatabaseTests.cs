@@ -2,14 +2,13 @@ namespace Pos.Server;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using Pos.Domain;
 using Pos.Server.Accessors;
-using Pos.Server.Host.Infrastructure.Data;
 using Pos.Server.Models.Entity;
+using Pos.Server.Services;
 
 using Smart.Data;
 
-// 起動時のスキーマ作成・初期データと、SQLite の型変換 (architecture §9-2 / §9-3)
+// 起動時のスキーマ作成・初期データと、SQLite の型変換
 public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
 {
     private readonly TestApplicationFactory factory;
@@ -25,29 +24,30 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    // 初期データ (architecture §8) が入る
+    // 初期データ が入る
     [Fact]
     public async Task InitialDataIsSeeded()
     {
-        var settings = await Resolve<SettingsAccessor>().QueryAsync(Token);
+        var settings = await Resolve<MasterAccessor>().QuerySettingsAsync(Token);
         Assert.NotNull(settings);
         Assert.Equal(TaxRounding.Floor, settings.TaxRounding);
         Assert.Equal(PointBasis.TaxIncluded, settings.PointBasis);
 
-        Assert.NotNull(await Resolve<StoreAccessor>().QueryAsync(InitialData.MainStoreId, Token));
-        Assert.NotNull(await Resolve<StoreAccessor>().QueryAsync(InitialData.BranchStoreId, Token));
-        Assert.Equal(3, await Resolve<TerminalAccessor>().CountAsync(null, null, false, Token));
-        Assert.Equal(4, await Resolve<StaffAccessor>().CountAsync(null, null, false, Token));
-        Assert.Equal(13, await Resolve<CategoryAccessor>().CountAsync(null, false, Token));
-        Assert.Equal(3, (await Resolve<TaxRateAccessor>().QueryListAsync(null, false, Token)).Count);
-        Assert.Equal(6, (await Resolve<PaymentMethodAccessor>().QueryListAsync(null, false, Token)).Count);
+        var masters = Resolve<MasterAccessor>();
+        Assert.NotNull(await masters.QueryStoreAsync(InitialData.MainStoreId, Token));
+        Assert.NotNull(await masters.QueryStoreAsync(InitialData.BranchStoreId, Token));
+        Assert.Equal(3, await masters.CountTerminalsAsync(null, null, false, Token));
+        Assert.Equal(4, await masters.CountStaffAsync(null, null, false, Token));
+        Assert.Equal(13, await masters.CountCategoriesAsync(null, false, Token));
+        Assert.Equal(3, (await masters.QueryTaxRateListAsync(null, false, Token)).Count);
+        Assert.Equal(6, (await masters.QueryPaymentMethodListAsync(null, false, Token)).Count);
         Assert.Equal(33, await Resolve<ProductAccessor>().CountAsync(null, null, null, null, false, Token));
-        Assert.Equal(3, (await Resolve<DiscountAccessor>().QueryListAsync(null, false, Token)).Count);
-        Assert.Equal(5, (await Resolve<AdjustmentReasonAccessor>().QueryListAsync(null, false, Token)).Count);
+        Assert.Equal(3, (await masters.QueryDiscountListAsync(null, false, Token)).Count);
+        Assert.Equal(5, (await masters.QueryAdjustmentReasonListAsync(null, false, Token)).Count);
         Assert.Equal(5, await Resolve<CustomerAccessor>().CountAsync(null, null, null, null, false, Token));
         Assert.Equal(60, await Resolve<InventoryAccessor>().CountLevelsAsync(null, null, null, false, null, Token));
 
-        // api-design §4.6 の商品 (JAN で引ける)
+        // 販売例の商品 (JAN で引ける)
         var camera = await Resolve<ProductAccessor>().QueryByBarcodeAsync("4901234567894", Token);
         Assert.NotNull(camera);
         Assert.Equal(InitialData.CameraProductId, camera.Id);
@@ -121,8 +121,8 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task DateTimeRoundTripsAsUtc()
     {
-        var accessor = Resolve<StoreAccessor>();
-        var store = await accessor.QueryAsync(InitialData.MainStoreId, Token);
+        var accessor = Resolve<MasterAccessor>();
+        var store = await accessor.QueryStoreAsync(InitialData.MainStoreId, Token);
 
         Assert.NotNull(store);
         Assert.Equal(DateTimeKind.Utc, store.CreatedAt.Kind);
@@ -138,8 +138,8 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
             UpdatedAt = new DateTime(2026, 9, 11, 3, 15, 0, DateTimeKind.Utc).AddTicks(1234567),
             Version = 1
         };
-        await accessor.InsertAsync(entity, Token);
-        var restored = await accessor.QueryAsync(entity.Id, Token);
+        await accessor.InsertStoreAsync(entity, Token);
+        var restored = await accessor.QueryStoreAsync(entity.Id, Token);
 
         Assert.NotNull(restored);
         Assert.Equal(entity.CreatedAt, restored.CreatedAt);

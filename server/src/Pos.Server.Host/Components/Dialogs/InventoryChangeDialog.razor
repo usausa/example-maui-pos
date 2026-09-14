@@ -20,7 +20,7 @@
                     <MudAutocomplete T="ProductEntity" @bind-Value="Form.Product" For="@(() => Form.Product)" Validation="@Validator.ValidateValue" Label="商品" SearchFunc="SearchProductsAsync" ToStringFunc="@(x => x is null ? string.Empty : $"{x.Code} {x.Name}")" ResetValueOnEmptyText="true" Clearable="true" MinCharacters="1" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudNumericField T="decimal" @bind-Value="Form.Quantity" For="@(() => Form.Quantity)" Validation="@Validator.ValidateValue" Label="@(Form.Type == InventoryChangeType.PhysicalCount ? "実数" : "増減")" />
+                    <MudNumericField T="decimal" @bind-Value="Form.Quantity" For="@(() => Form.Quantity)" Validation="@Validator.ValidateValue" Label="@ViewHelper.InventoryQuantityLabel(Form.Type)" />
                 </MudItem>
                 <MudItem xs="12" sm="8">
                     <MudSelect T="Guid?" @bind-Value="Form.ReasonId" Label="理由">

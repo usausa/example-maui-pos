@@ -1,1 +1,6 @@
-SELECT * FROM Products WHERE Id = /*@ id */''
+SELECT
+    *
+FROM
+    Products
+WHERE
+    Id = /*@ id */''

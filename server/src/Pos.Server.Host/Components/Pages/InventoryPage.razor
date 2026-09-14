@@ -16,7 +16,7 @@
             <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
             @foreach (var category in categories)
             {
-                <MudSelectItem T="Guid?" Value="category.Id">@(category.ParentId is null ? string.Empty : "　")@category.Name</MudSelectItem>
+                <MudSelectItem T="Guid?" Value="category.Id">@category.ToIndentedName()</MudSelectItem>
             }
         </MudSelect>
         <MudTextField @bind-Value="keyword" Label="商品 (コード / JAN / 名称 / かな)" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 280px;" />
@@ -34,13 +34,13 @@
         <PropertyColumn Property="x => x.CategoryName" Title="部門" Sortable="false" />
         <PropertyColumn Property="x => x.StoreName" Title="店舗" />
         <PropertyColumn Property="x => x.Quantity" Title="数量" CellStyle="text-align: right;" HeaderStyle="text-align: right;">
-            <CellTemplate>@DisplayText.Quantity(context.Item.Quantity)</CellTemplate>
+            <CellTemplate>@context.Item.Quantity.ToQuantityText()</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="状態" Sortable="false">
-            <CellTemplate><StatusChip Value="@ChipText.Quantity(context.Item.Quantity)" /></CellTemplate>
+            <CellTemplate><StatusChip Value="@ViewHelper.QuantityChip(context.Item.Quantity)" /></CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.UpdatedAt" Title="更新日時">
-            <CellTemplate>@DisplayText.DateTime(context.Item.UpdatedAt)</CellTemplate>
+            <CellTemplate>@context.Item.UpdatedAt.ToDateTimeText()</CellTemplate>
         </PropertyColumn>
     </Columns>
     <NoRecordsContent>

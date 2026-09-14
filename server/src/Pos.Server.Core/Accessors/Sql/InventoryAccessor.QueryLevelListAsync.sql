@@ -16,5 +16,9 @@ WHERE 1 = 1
 /*% if (updatedSince != null) { */
   AND i.UpdatedAt > /*@ updatedSince */''
 /*% } */
-ORDER BY /*# sort */Id
+/*% if (updatedSince != null) { */
+ORDER BY i.UpdatedAt, i.StoreId, i.ProductId
+/*% } else { */
+ORDER BY p.Code, i.StoreId
+/*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

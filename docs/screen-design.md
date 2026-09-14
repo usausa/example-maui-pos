@@ -25,7 +25,7 @@ API は [api-design.md](api-design.md)、設計判断は [decisions.md](decision
 | スキャン | `BarcodeScanning.Native.Maui` (`BarcodeController` + `CameraView`)。1D (JAN/EAN) と 2D (QR) を連続読み取り。用途: 商品 JAN、会員証 (QR / バーコード)、レシート QR (返品時の取引呼び出し)、設定 QR |
 | QR 表示 | `QRCoder` で電子レシートの QR を表示 |
 | 設定 | `IPreferences` (`Settings`) にサーバ URL・店舗 ID・端末 ID を保存。管理画面の設定 QR (`Key=Value` 行、`SettingParser` 互換) で投入 ([D-24](decisions.md#d-24-端末セットアップ-qr-テンプレート互換フォーマット)) |
-| 通信 | `HttpService` (HttpClient + System.Text.Json、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) + `NetworkOperator` (接続確認・インジケータ・エラー通知)。`XxxRequest` / `XxxResponse` は `Pos.Shared` を参照 |
+| 通信 | `HttpService` (HttpClient + System.Text.Json、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) + `NetworkService` (接続確認・インジケータ・エラー通知)。`XxxRequest` / `XxxResponse` は `Pos.Contract` を参照 |
 | ローカル DB | Smart.Data.Accessor + SQLite (マスタキャッシュ・取引・Outbox、[db-design.md §6](db-design.md#6-端末ローカル-db-sqlite-の概要)) |
 | レシート | **画面表示 + 電子レシート** (レシート番号を QR 化)。レシート画像と精算レポートのテキストは共有できる |
 | オフライン | 未送信件数をタイトルバーにバッジ表示。オンライン限定機能 (会員照会・他店在庫・レシート番号検索) は通信不可時にその旨を表示 |
@@ -252,7 +252,7 @@ F1〜F4 はシェル下部のファンクションキー。
 | ホスティング | Blazor Web App (Interactive Server)。API と同じ ASP.NET Core に同居 (ポート 8080) |
 | UI ライブラリ | **MudBlazor**。一覧は `MudDataGrid` (`ServerData` でサーバ側ページング・ソート。Accessor の件数 + ページ取得結果をそのまま渡す)、フォームは `MudForm` + FluentValidation (`Models/Forms/{Xxx}Form` + `{Xxx}FormValidator`)、通知は `ISnackbar`、確認は `DialogService.ShowConfirm` |
 | ナビ | `MudNavMenu` + `MudNavGroup` でグループ化。展開状態はページ側で保持 |
-| データアクセス | ページは Accessor と `Pos.Domain` を `[Inject]` して直接呼ぶ (Service / Usecase は置かない、[D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠))。HTTP API は経由しない |
+| データアクセス | ページは `Services/` の Service を `[Inject]` して呼ぶ (Accessor はページから使わない、[D-45](decisions.md#d-45-サーバの-service-層))。HTTP API は経由しない |
 | 認証 | なし ([D-09](decisions.md#d-09-認証端末登録-後回し)) |
 | 帳票 | CSV は CsvHelper (`PushStreamHttpResult`)、PDF は OysterReport ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
 
@@ -320,7 +320,7 @@ F1〜F4 はシェル下部のファンクションキー。
 | パターン | 内容 |
 | --- | --- |
 | 一覧 | 上部に検索・フィルタ (`MudTextField` / `MudSelect` / `MudDateRangePicker`)、`MudDataGrid` (`ServerData` + `MudDataGridPager`、列ソートはサーバ側)。検索条件はページ内で保持し、他画面からのリンクだけクエリで受ける (`transactions?id=` / `?shiftId=`、`inventory/changes?productId=`) |
-| 絵文字・チップ・バッジ | ページ見出しは §2.2 のナビと同じ絵文字。状態は `StatusChip` (`ChipText` の文言 + 色: ✅ 完了 / ❌ 取消 / 🛒 販売 / ↩️ 返品 / 🟢 開設中 / 🔒 精算済み / ✅ 有効 / ⏸ 停止 / 🗑 削除済み / 🔴 マイナス / ⚠️ 欠品 / 🟢 通信中 ...)。件数は `MudBadge` とタブの `BadgeData`。KPI は `MudPaper` + `MudIcon` のカード ([D-39](decisions.md#d-39-管理画面の表現-絵文字チップバッジ)) |
+| 絵文字・チップ・バッジ | ページ見出しは §2.2 のナビと同じ絵文字。状態は `StatusChip` (`ViewHelper` の文言 + 色: ✅ 完了 / ❌ 取消 / 🛒 販売 / ↩️ 返品 / 🟢 開設中 / 🔒 精算済み / ✅ 有効 / ⏸ 停止 / 🗑 削除済み / 🔴 マイナス / ⚠️ 欠品 / 🟢 通信中 ...)。件数は `MudBadge` とタブの `BadgeData`。KPI は `MudPaper` + `MudIcon` のカード ([D-39](decisions.md#d-39-管理画面の表現-絵文字チップバッジ)) |
 | 編集ダイアログ | 新規と編集で同じダイアログ (`{Xxx}EditDialog` + `{Xxx}Form` + FluentValidation)。保存時に `Version` を送り、`VERSION_MISMATCH` なら「他で更新されています。再読み込みしてください」 |
 | 削除 | `DialogService.ShowConfirm` → 論理削除。一覧に「削除済みを表示」トグル。使用中 (`IN_USE`) は Snackbar でメッセージ表示 |
 | 店舗フィルタ | 売上・取引・精算・在庫の各一覧は店舗セレクタを持つ (「全店舗」可)。選択はページ間で共有するスコープドサービスに保持 |

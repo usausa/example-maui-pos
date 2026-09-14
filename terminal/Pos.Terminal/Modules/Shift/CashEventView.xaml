@@ -34,8 +34,8 @@
                         Text="⬇ 入金">
                     <Button.Triggers>
                         <DataTrigger TargetType="Button"
-                                     Binding="{Binding IsPaidIn}"
-                                     Value="True">
+                                     Binding="{Binding Type}"
+                                     Value="PaidIn">
                             <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
                             <Setter Property="TextColor" Value="White" />
                         </DataTrigger>
@@ -49,8 +49,8 @@
                         Text="⬆ 出金">
                     <Button.Triggers>
                         <DataTrigger TargetType="Button"
-                                     Binding="{Binding IsPaidOut}"
-                                     Value="True">
+                                     Binding="{Binding Type}"
+                                     Value="PaidOut">
                             <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
                             <Setter Property="TextColor" Value="White" />
                         </DataTrigger>
@@ -64,8 +64,8 @@
                         Text="🗄 ドロワ開">
                     <Button.Triggers>
                         <DataTrigger TargetType="Button"
-                                     Binding="{Binding IsNoSale}"
-                                     Value="True">
+                                     Binding="{Binding Type}"
+                                     Value="NoSale">
                             <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
                             <Setter Property="TextColor" Value="White" />
                         </DataTrigger>
@@ -83,9 +83,16 @@
                         Style="{StaticResource PosFieldValueButton}"
                         Margin="0"
                         WidthRequest="160"
-                        IsEnabled="{Binding AmountEnabled}"
                         Command="{Binding InputAmountCommand}"
-                        Text="{Binding AmountText}" />
+                        Text="{Binding AmountText}">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding Type}"
+                                     Value="NoSale">
+                            <Setter Property="IsEnabled" Value="False" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
             </Grid>
             <BoxView Style="{StaticResource PosSeparatorBoxView}" />
 

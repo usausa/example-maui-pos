@@ -2,10 +2,9 @@ namespace Pos.Server.Host.Components.Dialogs;
 
 using Microsoft.AspNetCore.Components;
 
-using Pos.Server.Accessors;
-using Pos.Server.Host.Infrastructure.Api;
 using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
+using Pos.Server.Services;
 
 public sealed partial class TerminalEditDialog
 {
@@ -14,10 +13,10 @@ public sealed partial class TerminalEditDialog
     private List<StoreEntity> stores = [];
 
     [Inject]
-    public required StoreAccessor StoreAccessor { get; set; }
+    public required StoreService StoreService { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        stores = await StoreAccessor.QueryListAsync(null, false, "Code", ApiHelper.MaxPageSize, 0, CancellationToken.None);
+        stores = await StoreService.QueryAllAsync(false, CancellationToken.None);
     }
 }

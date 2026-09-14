@@ -3,7 +3,10 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                     xmlns:s="http://smart/maui"
                     xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
-                    xmlns:converters="clr-namespace:Pos.Terminal.Converters">
+                    xmlns:converters="clr-namespace:Pos.Terminal.Converters"
+                    xmlns:enums="clr-namespace:Pos.Domain.Enums;assembly=Pos.Domain"
+                    xmlns:entity="clr-namespace:Pos.Terminal.Models.Entity"
+                    xmlns:inventory="clr-namespace:Pos.Terminal.Modules.Inventory">
 
     <!-- ================================================================================ -->
     <!-- Value -->
@@ -38,7 +41,80 @@
 
     <s:ColorToBrushConverter x:Key="ColorToBrushConverter" />
 
+    <s:IntToBoolConverter x:Key="IntToBoolConverter" />
+
     <converters:EmptyTextConverter x:Key="EmptyTextConverter" />
+
+    <!-- Enum → 文言 -->
+
+    <converters:DisplayNameConverter x:Key="DisplayNameConverter" />
+
+    <!-- 選択マーク -->
+
+    <s:BoolToTextConverter x:Key="SelectedMarkConverter"
+                           TrueValue="◉"
+                           FalseValue="○" />
+
+    <!-- 状態 → 色 -->
+
+    <s:BoolToColorConverter x:Key="ShiftOpenColorConverter"
+                            TrueValue="{StaticResource GreenDarken1}"
+                            FalseValue="{StaticResource GrayDefault}" />
+
+    <s:BoolToColorConverter x:Key="FailedBadgeColorConverter"
+                            TrueValue="{StaticResource RedDarken1}"
+                            FalseValue="{StaticResource OrangeDarken1}" />
+
+    <s:BoolToColorConverter x:Key="DifferenceColorConverter"
+                            TrueValue="{StaticResource RedDarken1}"
+                            FalseValue="{StaticResource BlueDarken2}" />
+
+    <s:MapToColorConverter x:Key="TransactionTypeColorConverter"
+                           DefaultValue="{StaticResource GrayDefault}">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static enums:TransactionType.Sale}" Value="{StaticResource BlueDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:TransactionType.Return}" Value="{StaticResource OrangeDarken1}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <s:MapToColorConverter x:Key="OutboxStatusColorConverter"
+                           DefaultValue="{StaticResource GrayDefault}">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Pending}" Value="{StaticResource OrangeDarken1}" />
+            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Failed}" Value="{StaticResource RedDarken1}" />
+            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Sent}" Value="{StaticResource GreenDarken1}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <s:MapToColorConverter x:Key="StaffRoleColorConverter"
+                           DefaultValue="{StaticResource BlueGrayLighten1}">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static enums:StaffRole.Manager}" Value="{StaticResource BlueDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:StaffRole.Admin}" Value="{StaticResource PurpleDarken1}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <!-- 画面固有 (ホーム) -->
+
+    <s:BoolToTextConverter x:Key="ShiftStateTextConverter"
+                           TrueValue="開設中"
+                           FalseValue="未開設" />
+
+    <s:BoolToTextConverter x:Key="ShiftButtonTextConverter"
+                           TrueValue="🔒 精算"
+                           FalseValue="🔓 レジ開設" />
+
+    <!-- 画面固有 (棚卸・在庫調整) -->
+
+    <s:BoolToTextConverter x:Key="StockTitleConverter"
+                           TrueValue="在庫調整"
+                           FalseValue="棚卸" />
+
+    <s:BoolToTextConverter x:Key="StockModeTextConverter"
+                           TrueValue="🔧 調整モード: 増減数と理由を入力します。F3 で棚卸に切替"
+                           FalseValue="📋 棚卸モード: 実際の在庫数を入力します。F3 で調整に切替" />
+
+    <inventory:StockSendTextConverter x:Key="StockSendTextConverter" />
 
     <!-- ================================================================================ -->
     <!-- Main -->

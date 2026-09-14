@@ -1,0 +1,40 @@
+namespace Pos.Domain.Enums;
+
+// 業務ルール違反の理由 (文言はサーバ・端末が持つ)
+public enum RuleReason
+{
+    CalculationMismatch,
+    CustomerRequiredForPoints,
+    CustomerRequiredForPointRefund,
+    DuplicateReceiptNo,
+    HasReturns,
+    TransactionNotFound,
+    OriginalNotFound,
+    OriginalNotReturnable,
+    PointRefundMismatch,
+    PaymentTotalMismatch,
+    PaymentAmountInvalid,
+    RefundTenderedMismatch,
+    RefundTotalMismatch,
+    RefundAmountInvalid,
+    ChangeNotAllowed,
+    TenderedShort,
+    TenderedLessThanAmount,
+    PriceOverrideNotAllowed,
+    ProductNotFound,
+    ReturnQuantityExceeded,
+    ShiftClosed,
+    ShiftClosedForVoid,
+    ShiftNotFound,
+    ShiftTerminalMismatch,
+    DiscountValueInvalid,
+    DiscountLineNotFound,
+    LineNotInOriginal,
+    UnitPriceNegative,
+    TransactionDiscountExceeds,
+    AlreadyVoided,
+    QuantityNotPositive,
+    DuplicateLineId,
+    NoLines,
+    LineDiscountExceeds
+}

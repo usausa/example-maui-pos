@@ -4,10 +4,8 @@ using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
-using Pos.Server.Accessors;
-using Pos.Server.Host.Infrastructure.Components;
-using Pos.Server.Host.Mappers;
 using Pos.Server.Host.Models.Forms;
+using Pos.Server.Services;
 
 // S-80 会社設定
 public sealed partial class SettingsPage
@@ -19,15 +17,15 @@ public sealed partial class SettingsPage
     private SettingsForm settings = new();
 
     [Inject]
-    public required SettingsAccessor SettingsAccessor { get; set; }
+    public required SettingsService SettingsService { get; set; }
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
     private Task LoadAsync() =>
         LoadAsync(async () =>
         {
-            var entity = await SettingsAccessor.QueryAsync(CancellationToken);
-            settings = entity is null ? new SettingsForm() : FormMapper.ToSettingsForm(entity);
+            var entity = await SettingsService.QueryAsync(CancellationToken);
+            settings = entity is null ? new SettingsForm() : SettingsForm.ToForm(entity);
         });
 
     private async Task SaveAsync()
@@ -38,17 +36,6 @@ public sealed partial class SettingsPage
             return;
         }
 
-        await RunAsync(async () =>
-        {
-            var rows = await SettingsAccessor.UpdateAsync(settings.CompanyName, settings.Currency, settings.TaxRounding, settings.PointBasis, settings.BusinessDayStartTime, UtcNow, settings.Version, CancellationToken);
-            if (rows > 0)
-            {
-                Snackbar.AddSuccess("保存しました。");
-            }
-            else
-            {
-                NotifyVersionMismatch();
-            }
-        }, LoadAsync);
+        await RunAsync(async () => NotifyResult(await SettingsService.UpdateAsync(SettingsForm.ToEntity(settings), CancellationToken), "保存しました。"), LoadAsync);
     }
 }

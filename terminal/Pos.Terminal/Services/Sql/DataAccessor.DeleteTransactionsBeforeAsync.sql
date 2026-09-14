@@ -1,1 +1,4 @@
-DELETE FROM Transactions WHERE BusinessDate < /*@ businessDate */''
+DELETE FROM
+    Transactions
+WHERE
+    BusinessDate < /*@ businessDate */''

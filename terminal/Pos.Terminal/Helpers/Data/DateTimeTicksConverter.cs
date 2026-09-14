@@ -2,7 +2,7 @@ namespace Pos.Terminal.Helpers.Data;
 
 using Smart.Data.Accessor.Converters;
 
-// 日時は INTEGER (UTC ticks) で保存する (db-design §6、D-25)
+// 日時は INTEGER (UTC ticks) で保存する
 public sealed class DateTimeTicksConverter : IValueConverter<long, DateTime>
 {
     public static DateTime FromDb(long dbValue) => new(dbValue, DateTimeKind.Utc);
