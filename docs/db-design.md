@@ -1,6 +1,7 @@
-# POS サーバ DB 設計 (v0.3)
+# POS サーバ DB 設計
 
-[api-design.md](api-design.md) に対応するサーバ側データベース (SQLite) の設計。判断の経緯は [decisions.md](decisions.md)、プロジェクト構成は [architecture.md](architecture.md)。
+[api-design.md](api-design.md) に対応するサーバ側データベース (SQLite) の設計。  
+設計判断は [decisions.md](decisions.md)、プロジェクト構成は [architecture.md](architecture.md)。
 
 - [1. 前提](#1-前提)
 - [2. ER 図](#2-er-図)
@@ -8,7 +9,6 @@
 - [4. DDL 例](#4-ddl-例)
 - [5. 整合性と更新の単位](#5-整合性と更新の単位)
 - [6. 端末ローカル DB (SQLite) の概要](#6-端末ローカル-db-sqlite-の概要)
-- [7. Phase 2 のテーブル](#7-phase-2-のテーブル)
 
 ---
 
@@ -16,9 +16,9 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| RDBMS | **SQLite** (`Microsoft.Data.Sqlite`)。接続文字列は `Data Source=pos.db;Cache=Shared;Pooling=True` (テンプレートと同じ)。WAL と `busy_timeout` を起動時の PRAGMA で設定する |
+| RDBMS | **SQLite** (`Microsoft.Data.Sqlite`)。接続文字列は `Data Source=pos.db;Cache=Shared;Pooling=True`。WAL と `busy_timeout` を起動時の PRAGMA で設定する |
 | データアクセス | `Usa.Smart.Data.Accessor` の `[DataAccessor]` + 2-way SQL ファイル (`Accessors/Sql/{Accessor}.{Method}.sql`)。ORM は使わない。Endpoints / Blazor ページが Accessor を直接使い、Service / Usecase の層は置かない ([D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠)) |
-| スキーマ作成 | 起動時に `{Accessor}.Create.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を実行 (テンプレートの `InitializeApplicationAsync` → `CreateTable()`)。マイグレーションは持たず、スキーマ変更時は DB を作り直す (サンプルのため) |
+| スキーマ作成 | 起動時に `{Accessor}.Create.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を実行する。後から増えた列は `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確認して `ALTER TABLE ADD COLUMN`) で既存の DB に足す |
 | 命名 | テーブル = 複数形 PascalCase (`Transactions`)、列 = PascalCase。FK は `〜Id`。エンティティクラスは `{Table 単数}Entity` (`TransactionEntity`) |
 | 主キー | `guid` を **TEXT (36 文字。`Microsoft.Data.Sqlite` の既定で大文字)** で保存。端末発のデータは端末が GUID v7 を採番 ([D-10](decisions.md#d-10-冪等性-クライアント採番-id)) |
 | 列挙型 | TEXT (列挙名)。汎用 `EnumTextConverter<T>` を `DataProfile` (`[AccessorProfile]`) に列挙型ごとに宣言し、各 Accessor が `[ExecuteConfig(typeof(DataProfile))]` で参照する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。値は API の enum と同じ |
@@ -216,8 +216,8 @@ erDiagram
 
 ## 3. テーブル定義
 
-「共通列」= `CreatedAt datetime`, `UpdatedAt datetime`。マスタ系はさらに `IsDeleted bool`, `Version int`。
-テンプレートの `Account` テーブル (管理画面ログイン用) はそのまま残す。
+「共通列」= `CreatedAt datetime`, `UpdatedAt datetime`。  
+マスタ系はさらに `IsDeleted bool`, `Version int`。
 
 ### 3.1 マスタ
 
@@ -277,7 +277,7 @@ erDiagram
 | Name | string(50) | | |
 | Role | enum | | `Cashier` / `Manager` / `Admin` |
 | StoreId | guid | ○ | FK → Stores。NULL = 本部 |
-| PinHash | BLOB | ○ | Phase 2 (認証)。テンプレートの `Account.Password` と同じ `IPasswordProvider` でハッシュ化 |
+| PinHash | BLOB | ○ | 未使用 (スタッフ PIN のハッシュ用) |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
@@ -548,7 +548,7 @@ erDiagram
 | TransactionLineId | guid | | PK, FK → TransactionLines |
 | SerialNumber | string(50) | | PK |
 
-索引: `IX(SerialNumber)` (シリアルからの取引検索、Phase 2)
+索引: `IX(SerialNumber)` (シリアルからの取引検索用)
 
 #### TransactionDiscounts
 
@@ -564,7 +564,7 @@ erDiagram
 | Value | decimal | | |
 | Amount | money | | |
 | Reason | string(200) | ○ | |
-| ApprovedByStaffId | guid | ○ | FK → Staff (Phase 2) |
+| ApprovedByStaffId | guid | ○ | FK → Staff。承認が必要な値引の承認者 |
 
 索引: `IX(TransactionId)`
 
@@ -646,7 +646,8 @@ erDiagram
 
 ## 4. DDL 例
 
-`Accessors/Sql/{Accessor}.Create.sql` に置く SQLite の DDL。他のテーブルも同じ規則 (guid = TEXT、money = INTEGER、enum = TEXT、datetime = TEXT) で書く。
+`Accessors/Sql/{Accessor}.Create.sql` に置く SQLite の DDL。  
+他のテーブルも同じ規則 (guid = TEXT、money = INTEGER、enum = TEXT、datetime = TEXT) で書く。
 
 ```sql
 -- TransactionAccessor.Create.sql
@@ -763,8 +764,10 @@ public sealed partial class TransactionAccessor
 }
 ```
 
-- 2-way SQL の POCO 引数 (`/*@ entity.Prop */`) にはコンバータが効かないので、列挙型・日付を渡す UPDATE はスカラー引数で書く (`UpdateAsync(id, code, ..., kind, updatedAt, version)`)。INSERT は Builder (`[Insert]`) を使う
-- 生 SQL (`/*# sort */Id`) のプレースホルダは 1 トークン。並び替えは呼び出し側が `SqlHelper.NormalizeSort` で検証した `"Column DESC"` を渡す
+- 2-way SQL の POCO 引数 (`/*@ entity.Prop */`) にはコンバータが効かないので、列挙型・日付を渡す UPDATE はスカラー引数で書く (`UpdateAsync(id, code, ..., kind, updatedAt, version)`)。  
+  INSERT は Builder (`[Insert]`) を使う
+- 生 SQL (`/*# sort */Id`) のプレースホルダは 1 トークン。  
+  並び替えは呼び出し側が `SqlHelper.NormalizeSort` で検証した `"Column DESC"` を渡す
 - 集計は `Models/` の record (`ShiftTotals` / `SalesSummaryRow` など) に列名で写す
 
 起動時の PRAGMA (`DatabaseAccessor.ExecutePragmaAsync.sql`。WAL は DB ファイルに永続化される):
@@ -779,7 +782,8 @@ PRAGMA foreign_keys = ON
 
 ## 5. 整合性と更新の単位
 
-SQLite は書き込みが直列化される (単一ライター) ため、サーバ内の同時更新は DB トランザクションで十分に守れる。トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、エンドポイント (または Blazor ページ) が Accessor の `DbTransaction` 付きメソッドを束ねる (Service / Usecase は置かない、[D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠))。
+SQLite は書き込みが直列化される (単一ライター) ため、サーバ内の同時更新は DB トランザクションで十分に守れる。  
+トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、エンドポイント (または Blazor ページ) が Accessor の `DbTransaction` 付きメソッドを束ねる (Service / Usecase は置かない、[D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠))。
 
 ### 5.1 取引登録 (`POST /transactions`) は 1 つの DB トランザクション
 
@@ -795,22 +799,27 @@ SQLite は書き込みが直列化される (単一ライター) ため、サー
 
 ### 5.2 取消 (`POST /transactions/{id}/void`)
 
-`Transactions.Status = Voided` + Void 列を更新し、在庫は逆方向の `InventoryChanges (Type = Void)`、ポイントは `PointHistories (Type = Void)` を追加。元の履歴行は変更しない。
+`Transactions.Status = Voided` + Void 列を更新し、在庫は逆方向の `InventoryChanges (Type = Void)`、ポイントは `PointHistories (Type = Void)` を追加。  
+元の履歴行は変更しない。
 
 ### 5.3 精算 (`POST /shifts/{id}/close`)
 
-シフト内の `Completed` 取引と `CashEvents` から集計列を確定して `Shifts` を更新し、`Status = Closed`。以降、そのシフトへの取引・入出金・取消は拒否。
+シフト内の `Completed` 取引と `CashEvents` から集計列を確定して `Shifts` を更新し、`Status = Closed`。  
+以降、そのシフトへの取引・入出金・取消は拒否。
 
 ### 5.4 集計の考え方
 
-- 取引の集計は常に `Status = 'Completed'` を対象にし、`Type = 'Return'` を負として扱う。金額列は NUMERIC 親和性で数値として保存されるので `SUM` をそのまま使える
-- `Shifts` の集計列と `Customers.PointBalance`、`InventoryLevels.Quantity` は非正規化した値。履歴から再計算できることを整合性チェック (管理画面のメンテナンス機能) の前提にする
+- 取引の集計は常に `Status = 'Completed'` を対象にし、`Type = 'Return'` を負として扱う。  
+  金額列は NUMERIC 親和性で数値として保存されるので `SUM` をそのまま使える
+- `Shifts` の集計列と `Customers.PointBalance`、`InventoryLevels.Quantity` は非正規化した値。  
+  履歴から再計算できることを整合性チェック (管理画面のメンテナンス機能) の前提にする
 
 ---
 
 ## 6. 端末ローカル DB (SQLite) の概要
 
-MAUI 側のローカル DB。`template-maui` 系テンプレートと同じく `Microsoft.Data.Sqlite` + Smart.Data.Accessor (`DataAccessor` + `Services/Sql/*.sql`) で扱い、日時は INTEGER (UTC ticks) + `DateTimeTicksConverter` で保存する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。
+MAUI 側のローカル DB。  
+`Microsoft.Data.Sqlite` + Smart.Data.Accessor (`DataAccessor` + `Services/Sql/*.sql`) で扱い、日時は INTEGER (UTC ticks) + `DateTimeTicksConverter` で保存する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。
 
 | テーブル | 内容 |
 | --- | --- |
@@ -819,20 +828,5 @@ MAUI 側のローカル DB。`template-maui` 系テンプレートと同じく `
 | `Shifts` / `CashEvents` | 端末で開設したシフトと入出金 (精算の予想現金の計算に使う) |
 | `Transactions` | 検索用の列 (種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引) + `Payload` (`TransactionResponse` の JSON。送信後はサーバの応答で置き換える)。取引履歴・再印字・返品の元取引参照に使う |
 | `Outbox` | `Id` (guid)、`Kind` (ShiftOpen / Transaction / TransactionVoid / CashEvent / ShiftClose / InventoryChanges)、`TargetId` (取引 ID やシフト ID)、`Payload` (JSON、`XxxRequest` をそのまま直列化)、`CreatedAt`、`Status` (Pending / Sent / Failed)、`Attempts`、`LastError`、`SentAt`。Sent は 7 日で削除 |
-| `SyncState` | `Key` / `Value` (最終 `ServerTime`、在庫の同期時刻、レシート番号の連番)。端末設定 (サーバ URL・店舗 ID・端末 ID) はテンプレートどおり `IPreferences` (`Settings`) に置く |
+| `SyncState` | `Key` / `Value` (最終 `ServerTime`、在庫の同期時刻、レシート番号の連番)。端末設定 (サーバ URL・店舗 ID・端末 ID) は `IPreferences` (`Settings`) に置く |
 | `HoldCarts` | 会計途中の保留 (端末ローカルのみ、T-17)。`Summary` / `Total` と `Cart` の JSON |
-
----
-
-## 7. Phase 2 のテーブル
-
-設計だけ先に置く。MVP の `Create.sql` には含めない。実装は [implementation-plan.md の Phase 8 以降](implementation-plan.md#phase-8-以降-後回し項目の計画) で、着手時に §3 へ定義を移す。
-
-| テーブル | 内容 |
-| --- | --- |
-| `DailyClosings` | 店舗 × 営業日の日次締め: `StoreId`, `BusinessDate` (UQ), `ClosedAt`, `ClosedByStaffId`, 取引件数・売上・返品・税・値引・ポイント集計 |
-| `DailyClosingPayments` / `DailyClosingTaxes` | 支払方法別 / 税率別の内訳 |
-| `Orders` / `OrderLines` | 受注 (取り寄せ・取り置き・配送): 状態 (`Ordered` → `Arrived` → `Completed` / `Cancelled`)、会計時に `TransactionId` で紐付け |
-| `TerminalTokens` | 端末ペアリング: `TerminalId`, `TokenHash`, `PairingCode`, `ExpiresAt`, `PairedAt` |
-| `Staff.PinHash` | スタッフ PIN (列は MVP から用意、値は未使用) |
-| `Account` | テンプレート既存の管理画面ログイン用 (MVP から存在) |

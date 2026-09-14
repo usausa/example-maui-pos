@@ -1,7 +1,7 @@
-# POS サーバ API 設計 (v0.4)
+# POS サーバ API 設計
 
-MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (ASP.NET Core) の API 設計。
-判断の経緯は [decisions.md](decisions.md)、DB は [db-design.md](db-design.md)、プロジェクト構成は [architecture.md](architecture.md) を参照。
+MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (ASP.NET Core) の API 設計。  
+設計判断は [decisions.md](decisions.md)、DB は [db-design.md](db-design.md)、プロジェクト構成は [architecture.md](architecture.md) を参照。
 
 - [1. 前提](#1-前提)
 - [2. 共通仕様](#2-共通仕様)
@@ -9,7 +9,6 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 - [4. 金額・税・ポイント計算仕様 (共有ライブラリ)](#4-金額税ポイント計算仕様-共有ライブラリ)
 - [5. エラーコード](#5-エラーコード)
 - [6. 端末側の同期フロー](#6-端末側の同期フロー)
-- [7. Phase 2 以降 (後回し)](#7-phase-2-以降-後回し)
 
 ---
 
@@ -19,10 +18,10 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 | --- | --- |
 | 業種 | 家電・カメラ・ホームセンター (物販) |
 | 利用者 | **端末** (MAUI レジアプリ) と **管理** (Blazor 管理画面)。表中の「用途」列で区別する。管理画面は HTTP を経由せず Accessor と Domain を直接呼ぶが、機能は API と 1 対 1 に対応させる |
-| 実装基盤 | `Service-CloudManager` (Minimal API + Blazor Server + SQLite) をベースに、Aspire と OpenAPI を `template-blazor-server` から加える ([D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠))。層は Endpoints → Accessor (SQL) + Domain (ロジック) の 2 段で、Service / Usecase は置かない |
+| 実装基盤 | Minimal API + Blazor Server (MudBlazor) + SQLite、Aspire、OpenAPI ([D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠)) |
 | 取引モデル | 一体型。会計完了後に取引を 1 回で送信 ([D-01](decisions.md#d-01-取引モデル-一体型-vs-分離型)) |
 | 金額計算 | 端末が計算し、サーバは同じ `Pos.Domain` で再計算して検証 ([D-02](decisions.md#d-02-金額計算の主体-端末計算--サーバ検証-vs-サーバ計算のみ)) |
-| 認証 | **後回し** ([D-09](decisions.md#d-09-認証端末登録-後回し))。端末発の要求は `storeId` / `terminalId` / `staffId` を本文またはクエリで明示する。認証導入後はトークンのクレームとの一致をサーバが検証する |
+| 認証 | なし ([D-09](decisions.md#d-09-認証端末登録-後回し))。端末発の要求は `storeId` / `terminalId` / `staffId` を本文またはクエリで明示する |
 | テナント | 単一 ([D-06](decisions.md#d-06-テナント構成)) |
 
 ---
@@ -33,31 +32,38 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 
 | 項目 | 仕様 |
 | --- | --- |
-| ベースパス | `/api/v1` (URL パスでバージョニング)。ルート定数はテンプレートの `ApiRoutes` にまとめる |
+| ベースパス | `/api/v1` (URL パスでバージョニング)。ルート定数は `ApiRoutes` にまとめる |
 | JSON | **camelCase** ([D-20](decisions.md#d-20-json-契約-camelcase))。`null` プロパティは省略。列挙型は文字列 (`"Sale"`) |
 | クエリパラメータ | camelCase (`?storeId=&updatedSince=`) |
-| 日時 | `yyyy-MM-ddTHH:mm:ss.fffZ` (UTC、テンプレートの `DateTimeConverter`)。営業日などの日付は `yyyy-MM-dd` |
+| 日時 | `yyyy-MM-ddTHH:mm:ss.fffZ` (UTC)。営業日などの日付は `yyyy-MM-dd` |
 | 金額 (`money`) | `decimal`。通貨は会社設定 (`JPY`)。JPY では整数値のみ ([D-13](decisions.md#d-13-金額数量率の表現-decimal)) |
 | 率 (`rate`) | `decimal`、`0.10` = 10% |
 | 数量 (`qty`) | `decimal(9,2)` 相当。ホームセンターの切り売り (m 単位) を想定 |
 | ポイント | 整数 (`int`)。1 pt = 1 円 |
 | ID | GUID。端末発の書き込みは端末が GUID v7 を採番 ([D-10](decisions.md#d-10-冪等性-クライアント採番-id)) |
 | 通信データ | `XxxRequest` / `XxxResponse` (一覧は `XxxListResponse`) を `Pos.Shared` に置き、サーバと端末の両方で使う ([D-22](decisions.md#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト), [D-27](decisions.md#d-27-用語-dto-は使わない))。端末は HttpClient + System.Text.Json の `HttpService` (手書き、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) |
-| OpenAPI | `Microsoft.AspNetCore.OpenApi` + 開発時 NSwag UI (`/swagger`, `/redoc`) — テンプレートのまま |
+| OpenAPI | `Microsoft.AspNetCore.OpenApi` + 開発時 NSwag UI (`/swagger`, `/redoc`) |
 
-本書のフィールド名は JSON (camelCase) で書く。C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
+本書のフィールド名は JSON (camelCase) で書く。  
+C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
 
 ### 2.2 一覧取得 (ページング・フィルタ)
 
-- 一覧は `page` (0 始まり) / `size` (既定 20、最大 1000) のページ方式 ([D-21](decisions.md#d-21-ページング-page--size--総件数))。応答は `XxxListResponse`。ページングしない一覧 (税率など) も同じ形で返す (`page` = 0、`size` = 件数)
+- 一覧は `page` (0 始まり) / `size` (既定 20、最大 1000) のページ方式 ([D-21](decisions.md#d-21-ページング-page--size--総件数))。  
+  応答は `XxxListResponse`。  
+  ページングしない一覧 (税率など) も同じ形で返す (`page` = 0、`size` = 件数)
 
 ```jsonc
 { "total": 1234, "page": 0, "size": 20, "items": [ /* XxxResponse */ ] }
 ```
 
-- 並び替えは `sort` (列名) / `desc` (bool)。許可する列はリソースごとに決め、`SqlHelper.NormalizeSort` で検証する (テンプレートどおり)
-- マスタ系一覧は **差分同期**用に `updatedSince` (datetime) と `includeDeleted` (bool) を受け付ける。`updatedSince` 指定時は `updatedAt > updatedSince` のレコードを `updatedAt, id` 昇順で返し、論理削除済みも `isDeleted: true` で含める
-- 日付範囲は営業日 `from` / `to` (両端含む)。レポートは指定がなければ `to` は当日、`from` は `to` の 30 日前。一覧 (取引・シフト・在庫変動) は指定がなければ絞らない
+- 並び替えは `sort` (列名) / `desc` (bool)。  
+  許可する列はリソースごとに決め、`SqlHelper.NormalizeSort` で検証する
+- マスタ系一覧は **差分同期**用に `updatedSince` (datetime) と `includeDeleted` (bool) を受け付ける。  
+  `updatedSince` 指定時は `updatedAt > updatedSince` のレコードを `updatedAt, id` 昇順で返し、論理削除済みも `isDeleted: true` で含める
+- 日付範囲は営業日 `from` / `to` (両端含む)。  
+  レポートは指定がなければ `to` は当日、`from` は `to` の 30 日前。  
+  一覧 (取引・シフト・在庫変動) は指定がなければ絞らない
 
 ### 2.3 書き込み
 
@@ -66,12 +72,13 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 | 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxResponse`。端末発 (取引・シフト・入出金・在庫変動) は本文の `id` を必須とし、**同じ `id` が既に存在すれば `200 OK` で既存を返す**。本文が既存と一致しない場合は `409 Conflict` (`DUPLICATE_ID_MISMATCH`) |
 | 更新 | 管理系は `PUT /resources/{id}` (`XxxUpdateRequest`、全体置換)。本文の `version` で楽観ロック。不一致なら `409 Conflict` (`VERSION_MISMATCH`) |
 | 削除 | 管理系は `DELETE /resources/{id}` で論理削除 (`isDeleted = true`)。取引など履歴は削除しない。削除後も `GET /resources/{id}` は `isDeleted: true` で返し、更新・再削除は `404` |
-| 検証 | 入力エラーは `400` (テンプレートの `AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422` |
-| 重複 | コード・バーコード等の一意制約違反は `409` (`DUPLICATE_CODE`)。テンプレートの `IDialect.IsDuplicate` で SQLite の制約違反を判定する |
+| 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422` |
+| 重複 | コード・バーコード等の一意制約違反は `409` (`DUPLICATE_CODE`)。`IDialect.IsDuplicate` で SQLite の制約違反を判定する |
 
 ### 2.4 エラー応答
 
-RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 拡張付き) に `errorCode` を追加する。コードは [§5](#5-エラーコード)。
+RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `errorCode` を追加する。  
+コードは [§5](#5-エラーコード)。
 
 ```jsonc
 {
@@ -99,13 +106,14 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 
 ## 3. リソース別 API
 
-各表の「用途」: **端末** = MAUI レジアプリが使う / **管理** = Blazor 管理画面が使う。
-優先度: ★ MVP / ◎ Phase 2。
-フィールド表は `XxxResponse` の項目。`XxxCreateRequest` / `XxxUpdateRequest` はそこからサーバ付与項目 (`id`, `createdAt`, `updatedAt`) を除いたもの (`version` は Update のみ)。
+各表の「用途」: **端末** = MAUI レジアプリが使う / **管理** = Blazor 管理画面が使う。  
+フィールド表は `XxxResponse` の項目。  
+`XxxCreateRequest` / `XxxUpdateRequest` はそこからサーバ付与項目 (`id`, `createdAt`, `updatedAt`) を除いたもの (`version` は Update のみ)。
 
 ### 3.1 会社設定 (Settings)
 
-単一レコード。計算ルールを持つので端末も同期する。
+単一レコード。  
+計算ルールを持つので端末も同期する。
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
@@ -116,10 +124,10 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `businessDayStartTime` | string | `"05:00"`。この時刻より前は前営業日として扱う |
 | `updatedAt`, `version` | | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/settings` | 端末 / 管理 | 会社設定取得 (`SettingsResponse`) |
-| ★ | PUT | `/settings` | 管理 | 会社設定更新 (`SettingsUpdateRequest`) |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/settings` | 端末 / 管理 | 会社設定取得 (`SettingsResponse`) |
+| PUT | `/settings` | 管理 | 会社設定更新 (`SettingsUpdateRequest`) |
 
 ### 3.2 店舗 (Stores)
 
@@ -134,13 +142,13 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `timeZone` | string(50) | `Asia/Tokyo` |
 | `isActive`, `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/stores?updatedSince&includeDeleted&page&size` | 端末 / 管理 | 店舗一覧 (`StoreListResponse`) |
-| ★ | GET | `/stores/{id}` | 端末 / 管理 | 店舗詳細 (`StoreResponse`) |
-| ★ | POST | `/stores` | 管理 | 登録 (`StoreCreateRequest`) |
-| ★ | PUT | `/stores/{id}` | 管理 | 更新 (`StoreUpdateRequest`) |
-| ★ | DELETE | `/stores/{id}` | 管理 | 論理削除 (端末・在庫が残っていれば 422) |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/stores?updatedSince&includeDeleted&page&size` | 端末 / 管理 | 店舗一覧 (`StoreListResponse`) |
+| GET | `/stores/{id}` | 端末 / 管理 | 店舗詳細 (`StoreResponse`) |
+| POST | `/stores` | 管理 | 登録 (`StoreCreateRequest`) |
+| PUT | `/stores/{id}` | 管理 | 更新 (`StoreUpdateRequest`) |
+| DELETE | `/stores/{id}` | 管理 | 論理削除 (端末・在庫が残っていれば 422) |
 
 ### 3.3 レジ端末 (Terminals)
 
@@ -155,17 +163,18 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `appVersion` | string(20)? | 端末アプリのバージョン (端末が送信) |
 | `isActive`, `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/terminals?storeId&updatedSince&includeDeleted&page&size` | 端末 / 管理 | 端末一覧 |
-| ★ | GET | `/terminals/{id}` | 端末 / 管理 | 端末詳細 |
-| ★ | POST | `/terminals` | 管理 | 登録 |
-| ★ | PUT | `/terminals/{id}` | 管理 | 更新 |
-| ★ | DELETE | `/terminals/{id}` | 管理 | 論理削除 (開設中シフトがあれば 422) |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/terminals?storeId&updatedSince&includeDeleted&page&size` | 端末 / 管理 | 端末一覧 |
+| GET | `/terminals/{id}` | 端末 / 管理 | 端末詳細 |
+| POST | `/terminals` | 管理 | 登録 |
+| PUT | `/terminals/{id}` | 管理 | 更新 |
+| DELETE | `/terminals/{id}` | 管理 | 論理削除 (開設中シフトがあれば 422) |
 
-`TerminalCreateRequest` / `TerminalUpdateRequest` は `storeId` / `terminalNo` / `name` / `isActive` (+ `version`)。`lastReceiptSeq` は取引登録で、`lastSeenAt` / `appVersion` は端末の通信でサーバが更新する。
+`TerminalCreateRequest` / `TerminalUpdateRequest` は `storeId` / `terminalNo` / `name` / `isActive` (+ `version`)。  
+`lastReceiptSeq` は取引登録で、`lastSeenAt` / `appVersion` は端末の通信でサーバが更新する。
 
-> 端末登録 (ペアリング) と稼働報告 (heartbeat) は認証と合わせて Phase 2 ([§7](#7-phase-2-以降-後回し))。MVP の端末セットアップは管理画面が表示する **設定 QR** (`ApiEndPoint` / `StoreId` / `TerminalId`、[D-24](decisions.md#d-24-端末セットアップ-qr-テンプレート互換フォーマット)) を端末で読み取る。
+端末のセットアップは管理画面が表示する **設定 QR** (`ApiEndPoint` / `StoreId` / `TerminalId`、[D-24](decisions.md#d-24-端末セットアップ-qr-テンプレート互換フォーマット)) を端末で読み取る。
 
 ### 3.4 スタッフ (Staff)
 
@@ -174,17 +183,17 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `id` | guid | |
 | `code` | string(20) | スタッフコード (一意)。ログイン・レシート印字用 |
 | `name` | string(50) | |
-| `role` | enum | `Cashier` / `Manager` / `Admin`。MVP では表示のみ、認可は Phase 2 |
+| `role` | enum | `Cashier` / `Manager` / `Admin`。表示と承認者の選択に使う (サーバは認可に使わない) |
 | `storeId` | guid? | 所属店舗。`null` = 本部 (全店) |
 | `isActive`, `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/staff?storeId&updatedSince&includeDeleted&page&size` | 端末 / 管理 | スタッフ一覧 (端末のログイン画面用。PIN は含めない) |
-| ★ | GET | `/staff/{id}` | 端末 / 管理 | スタッフ詳細 |
-| ★ | POST | `/staff` | 管理 | 登録 |
-| ★ | PUT | `/staff/{id}` | 管理 | 更新 |
-| ★ | DELETE | `/staff/{id}` | 管理 | 論理削除 |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/staff?storeId&updatedSince&includeDeleted&page&size` | 端末 / 管理 | スタッフ一覧 (端末のログイン画面用。PIN は含めない) |
+| GET | `/staff/{id}` | 端末 / 管理 | スタッフ詳細 |
+| POST | `/staff` | 管理 | 登録 |
+| PUT | `/staff/{id}` | 管理 | 更新 |
+| DELETE | `/staff/{id}` | 管理 | 論理削除 |
 
 ### 3.5 部門 (Categories)
 
@@ -199,13 +208,13 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `sortOrder` | int | |
 | `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/categories?updatedSince&includeDeleted&page&size` | 端末 / 管理 | 部門一覧 (階層は `parentId` で組み立てる) |
-| ★ | GET | `/categories/{id}` | 管理 | 部門詳細 |
-| ★ | POST | `/categories` | 管理 | 登録 |
-| ★ | PUT | `/categories/{id}` | 管理 | 更新 |
-| ★ | DELETE | `/categories/{id}` | 管理 | 論理削除 (所属商品があれば 422) |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/categories?updatedSince&includeDeleted&page&size` | 端末 / 管理 | 部門一覧 (階層は `parentId` で組み立てる) |
+| GET | `/categories/{id}` | 管理 | 部門詳細 |
+| POST | `/categories` | 管理 | 登録 |
+| PUT | `/categories/{id}` | 管理 | 更新 |
+| DELETE | `/categories/{id}` | 管理 | 論理削除 (所属商品があれば 422) |
 
 ### 3.6 税率 (TaxRates)
 
@@ -219,16 +228,17 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `isDefault` | bool | 商品登録時の既定 |
 | `sortOrder`, `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/tax-rates?updatedSince&includeDeleted` | 端末 / 管理 | 税率一覧 (少数なのでページングなし) |
-| ★ | POST | `/tax-rates` | 管理 | 登録 |
-| ★ | PUT | `/tax-rates/{id}` | 管理 | 更新 (取引には税率のスナップショットが残るので過去取引は影響しない) |
-| ★ | DELETE | `/tax-rates/{id}` | 管理 | 論理削除 (使用中商品があれば 422) |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/tax-rates?updatedSince&includeDeleted` | 端末 / 管理 | 税率一覧 (少数なのでページングなし) |
+| POST | `/tax-rates` | 管理 | 登録 |
+| PUT | `/tax-rates/{id}` | 管理 | 更新 (取引には税率のスナップショットが残るので過去取引は影響しない) |
+| DELETE | `/tax-rates/{id}` | 管理 | 論理削除 (使用中商品があれば 422) |
 
 ### 3.7 商品 (Products)
 
-1 商品 = 1 SKU = 1 JAN。バリエーション (色・サイズの親子) は持たない ([D-00](decisions.md#d-00-業種前提))。
+1 商品 = 1 SKU = 1 JAN。  
+バリエーション (色・サイズの親子) は持たない ([D-00](decisions.md#d-00-業種前提))。
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
@@ -250,25 +260,24 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `trackInventory` | bool | 在庫管理対象 (`Service` は false) |
 | `allowsPriceOverride` | bool | 売価変更可 (オープン価格・配送料など) |
 | `unit` | string(10)? | 単位 (個 / 本 / m) |
-| `imageUrl` | string? | 画像 URL (Phase 2。`ProductCreateRequest` / `ProductUpdateRequest` には含めず、画像 API で更新する) |
+| `imageUrl` | string? | 画像 URL (未使用。`ProductCreateRequest` / `ProductUpdateRequest` には含めない) |
 | `isActive` | bool | 販売可否 (false = 販売停止だがマスタは残す) |
 | `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/products?categoryId&keyword&isActive&updatedSince&includeDeleted&sort&desc&page&size` | 端末 / 管理 | 商品一覧。`keyword` は code / barcode / name / kana / modelNo の部分一致。`sort` は code / name / price / updatedAt |
-| ★ | GET | `/products/{id}` | 端末 / 管理 | 商品詳細 |
-| ★ | GET | `/products/lookup?barcode=` または `?code=` | 端末 | スキャン用 1 件取得。見つからなければ 404 |
-| ★ | POST | `/products` | 管理 | 登録 |
-| ★ | PUT | `/products/{id}` | 管理 | 更新 |
-| ★ | DELETE | `/products/{id}` | 管理 | 論理削除 |
-| ◎ | PUT / DELETE | `/products/{id}/image` | 管理 | 画像アップロード (multipart) / 削除 |
-| ◎ | POST | `/products/import` | 管理 | CSV 一括取込 (テンプレートの CsvHelper) |
-| ★ | GET | `/products/csv` | 管理 | CSV 出力 (BOM 付き UTF-8、削除済みを除く全件) |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/products?categoryId&keyword&isActive&updatedSince&includeDeleted&sort&desc&page&size` | 端末 / 管理 | 商品一覧。`keyword` は code / barcode / name / kana / modelNo の部分一致。`sort` は code / name / price / updatedAt |
+| GET | `/products/{id}` | 端末 / 管理 | 商品詳細 |
+| GET | `/products/lookup?barcode=` または `?code=` | 端末 | スキャン用 1 件取得。見つからなければ 404 |
+| POST | `/products` | 管理 | 登録 |
+| PUT | `/products/{id}` | 管理 | 更新 |
+| DELETE | `/products/{id}` | 管理 | 論理削除 |
+| GET | `/products/csv` | 管理 | CSV 出力 (BOM 付き UTF-8、削除済みを除く全件) |
 
 ### 3.8 値引 (Discounts)
 
-定義済み値引。任意額の値引 (家電の値引き交渉) は取引側で `discountId = null` として登録できる。
+定義済み値引。  
+任意額の値引 (家電の値引き交渉) は取引側で `discountId = null` として登録できる。
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
@@ -278,13 +287,13 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `type` | enum | `Amount` (定額) / `Percent` (定率) |
 | `value` | decimal | 金額 (円) または率 (`0.10`) |
 | `scope` | enum | `Line` (明細) / `Transaction` (取引全体) |
-| `requiresApproval` | bool | 承認要 (MVP では表示のみ、認可は Phase 2) |
+| `requiresApproval` | bool | 承認要 (端末が承認者を選んで `approvedByStaffId` に入れる。サーバは検証しない) |
 | `isActive`, `sortOrder`, `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/discounts?updatedSince&includeDeleted` | 端末 / 管理 | 値引一覧 |
-| ★ | POST / PUT / DELETE | `/discounts`, `/discounts/{id}` | 管理 | 登録 / 更新 / 論理削除 |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/discounts?updatedSince&includeDeleted` | 端末 / 管理 | 値引一覧 |
+| POST / PUT / DELETE | `/discounts`, `/discounts/{id}` | 管理 | 登録 / 更新 / 論理削除 |
 
 ### 3.9 支払方法 (PaymentMethods)
 
@@ -301,18 +310,19 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 
 `kind = Points` の支払方法をちょうど 1 件持つ (ポイント充当用、[D-07](decisions.md#d-07-ポイント制度))。
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/payment-methods?updatedSince&includeDeleted` | 端末 / 管理 | 支払方法一覧 |
-| ★ | POST / PUT / DELETE | `/payment-methods`, `/payment-methods/{id}` | 管理 | 登録 / 更新 / 論理削除 |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/payment-methods?updatedSince&includeDeleted` | 端末 / 管理 | 支払方法一覧 |
+| POST / PUT / DELETE | `/payment-methods`, `/payment-methods/{id}` | 管理 | 登録 / 更新 / 論理削除 |
 
 ### 3.10 マスタ同期 (Sync)
 
-端末が起動時・定期的に呼ぶ。個別の一覧 API でも同じことはできるが、往復を 1 回にする。
+端末が起動時・定期的に呼ぶ。  
+個別の一覧 API でも同じことはできるが、往復を 1 回にする。
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/sync/masters?since=` | 端末 | `since` 以降に更新されたマスタをまとめて返す (`SyncMastersResponse`)。省略時は全件 |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/sync/masters?since=` | 端末 | `since` 以降に更新されたマスタをまとめて返す (`SyncMastersResponse`)。省略時は全件 |
 
 ```jsonc
 {
@@ -360,21 +370,22 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `staffId` | guid? | |
 | `occurredAt` | datetime | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/customers?keyword&code&phone&updatedSince&sort&desc&page&size` | 端末 / 管理 | 顧客検索。`keyword` は code / name / kana / phone の部分一致 |
-| ★ | GET | `/customers/lookup?code=` | 端末 | 会員証スキャン用 1 件取得 |
-| ★ | GET | `/customers/{id}` | 端末 / 管理 | 顧客詳細 (残高含む) |
-| ★ | POST | `/customers` | 端末 / 管理 | 登録 (店頭での新規入会も想定) |
-| ★ | PUT | `/customers/{id}` | 端末 / 管理 | 更新 |
-| ★ | DELETE | `/customers/{id}` | 管理 | 論理削除 |
-| ★ | GET | `/customers/{id}/points/history?page&size` | 端末 / 管理 | ポイント履歴 (新しい順、`PointHistoryListResponse`) |
-| ★ | POST | `/customers/{id}/points/adjust` | 管理 | 手動調整 `PointAdjustRequest { points, reason, staffId }`。`Adjust` 履歴を作る |
-| ★ | GET | `/customers/{id}/transactions?page&size` | 端末 / 管理 | 購入履歴 (新しい順) |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/customers?keyword&code&phone&updatedSince&sort&desc&page&size` | 端末 / 管理 | 顧客検索。`keyword` は code / name / kana / phone の部分一致 |
+| GET | `/customers/lookup?code=` | 端末 | 会員証スキャン用 1 件取得 |
+| GET | `/customers/{id}` | 端末 / 管理 | 顧客詳細 (残高含む) |
+| POST | `/customers` | 端末 / 管理 | 登録 (店頭での新規入会も想定) |
+| PUT | `/customers/{id}` | 端末 / 管理 | 更新 |
+| DELETE | `/customers/{id}` | 管理 | 論理削除 |
+| GET | `/customers/{id}/points/history?page&size` | 端末 / 管理 | ポイント履歴 (新しい順、`PointHistoryListResponse`) |
+| POST | `/customers/{id}/points/adjust` | 管理 | 手動調整 `PointAdjustRequest { points, reason, staffId }`。`Adjust` 履歴を作る |
+| GET | `/customers/{id}/transactions?page&size` | 端末 / 管理 | 購入履歴 (新しい順) |
 
 ### 3.12 取引 (Transactions)
 
-販売 (`Sale`) と返品 (`Return`) を同じ形で扱う。端末が計算した結果をそのまま送り (`TransactionRequest`)、サーバは [§4](#4-金額税ポイント計算仕様-共有ライブラリ) の仕様で再計算して検証し、`TransactionResponse` を返す。
+販売 (`Sale`) と返品 (`Return`) を同じ形で扱う。  
+端末が計算した結果をそのまま送り (`TransactionRequest`)、サーバは [§4](#4-金額税ポイント計算仕様-共有ライブラリ) の仕様で再計算して検証し、`TransactionResponse` を返す。
 
 #### 取引の項目
 
@@ -430,7 +441,7 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `netAmount` | money | 計算 | `amount − discountAmount − allocatedDiscountAmount` |
 | `pointsRedeemed` | int | 計算 | 利用ポイントの按分 (付与計算の控除用) |
 | `pointsEarned` | int | 計算 | 付与ポイント |
-| `serialNumbers[]` | string[] | 入力 | シリアル番号 (MVP では任意) |
+| `serialNumbers[]` | string[] | 入力 | シリアル番号 (`requiresSerial` の商品では端末が入力を求める) |
 | `originalLineId` | guid? | 入力 | `Return` のとき必須。元取引の明細 |
 | `returnedQuantity` | qty | サーバ | 返品済み数量 (元取引側で更新) |
 | `note` | string? | 入力 | |
@@ -447,7 +458,7 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `value` | decimal | 入力 | |
 | `amount` | money | 計算 | 値引額 |
 | `reason` | string? | 入力 | 任意値引の理由 |
-| `approvedByStaffId` | guid? | 入力 | 承認者 (Phase 2) |
+| `approvedByStaffId` | guid? | 入力 | 承認者 (`requiresApproval` の値引のとき端末が設定する) |
 
 `taxSummaries[]` (キー: `taxRateId` + `taxIncluded`):
 
@@ -480,7 +491,11 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 
 #### 例: 販売取引
 
-会員 (残高 6,000 pt) に、デジカメ 80,000 円 (還元 10%、5% 値引) + SD カード 2,000 円 × 2 (還元 1%) + 配送料 1,100 円。取引値引 1,000 円。5,000 pt 利用、クレジット 50,000 円、残りを現金 30,000 円で。すべて内税 10%、税は切り捨て。計算過程は [§4.6](#46-計算例)。
+会員 (残高 6,000 pt) に、デジカメ 80,000 円 (還元 10%、5% 値引) + SD カード 2,000 円 × 2 (還元 1%) + 配送料 1,100 円。  
+取引値引 1,000 円。  
+5,000 pt 利用、クレジット 50,000 円、残りを現金 30,000 円で。  
+すべて内税 10%、税は切り捨て。  
+計算過程は [§4.6](#46-計算例)。
 
 ```jsonc
 POST /api/v1/transactions      (TransactionRequest)
@@ -530,16 +545,14 @@ POST /api/v1/transactions      (TransactionRequest)
 
 #### エンドポイント
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | POST | `/transactions` | 端末 | 取引登録 (`TransactionRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `422` 検証エラー |
-| ★ | GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&page&size` | 端末 / 管理 | 取引検索 (`transactedAt` 降順、`TransactionListResponse`) |
-| ★ | GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionResponse`) |
-| ★ | GET | `/transactions/lookup?receiptNo=` | 端末 | 返品時のレシート番号検索 |
-| ★ | POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, reason, voidedAt }` → `200` 取引 |
-| ★ | POST | `/transactions/calculate` | 端末 / 管理 | 入力項目 (`type`, `originalTransactionId`, `lines[]`, `discounts[]`, `payments[]`) を送り (`TransactionCalculateRequest`)、計算項目 (`TransactionCalculationResponse`) を返す (登録しない)。共有ライブラリの検証用 |
-| ◎ | GET | `/transactions/{id}/receipt/pdf` | 管理 | レシート (再発行) の PDF ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
-| ◎ | POST | `/transactions/batch` | 端末 | 複数取引の一括送信。要素ごとに結果を返す |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| POST | `/transactions` | 端末 | 取引登録 (`TransactionRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `422` 検証エラー |
+| GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&page&size` | 端末 / 管理 | 取引検索 (`transactedAt` 降順、`TransactionListResponse`) |
+| GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionResponse`) |
+| GET | `/transactions/lookup?receiptNo=` | 端末 | 返品時のレシート番号検索 |
+| POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, reason, voidedAt }` → `200` 取引 |
+| POST | `/transactions/calculate` | 端末 / 管理 | 入力項目 (`type`, `originalTransactionId`, `lines[]`, `discounts[]`, `payments[]`) を送り (`TransactionCalculateRequest`)、計算項目 (`TransactionCalculationResponse`) を返す (登録しない)。共有ライブラリの検証用 |
 
 #### 業務ルール
 
@@ -547,12 +560,14 @@ POST /api/v1/transactions      (TransactionRequest)
 
 1. `shiftId` のシフトが存在し、`Open` で、`terminalId` が一致すること (`SHIFT_NOT_FOUND` / `SHIFT_CLOSED` / `SHIFT_TERMINAL_MISMATCH`)
 2. `receiptNo` が一意であること (`DUPLICATE_RECEIPT_NO`)
-3. 各明細の `productId` が存在すること (`PRODUCT_NOT_FOUND`)。`isActive = false` はオフライン同期の遅れがあり得るので受理する
+3. 各明細の `productId` が存在すること (`PRODUCT_NOT_FOUND`)。  
+   `isActive = false` はオフライン同期の遅れがあり得るので受理する
 4. `allowsPriceOverride = false` の商品は `unitPrice = listPrice` であること (`PRICE_OVERRIDE_NOT_ALLOWED`)
 5. [§4](#4-金額税ポイント計算仕様-共有ライブラリ) で再計算した結果と、送信された計算項目が一致すること (`CALCULATION_MISMATCH`。応答の `expected` にサーバ計算結果)
 6. Σ `payments.amount = total`、`changeAmount = tenderedTotal − total ≥ 0`、釣銭が出るのは `allowsChange` の支払方法のみ (`PAYMENT_MISMATCH`)
 7. `pointsEarned > 0` または `pointsRedeemed > 0` のとき `customerId` が必須 (`CUSTOMER_REQUIRED`)
-8. ポイント残高不足は**受理して警告**にとどめる (取引は店頭で成立済み)。残高は負になり得るので管理画面で確認できるようにする
+8. ポイント残高不足は**受理して警告**にとどめる (取引は店頭で成立済み)。  
+   残高は負になり得るので管理画面で確認できるようにする
 9. 登録時の副作用: `trackInventory` の明細ごとに在庫変動 (`Sale`, −数量)、ポイント履歴 (`Redeem` → `Earn` の順)、`terminals.lastReceiptSeq` 更新
 
 **返品 (`type = Return`)**
@@ -560,18 +575,20 @@ POST /api/v1/transactions      (TransactionRequest)
 1. `originalTransactionId` の取引が `Sale` かつ `Completed` であること (`ORIGINAL_NOT_FOUND` / `ORIGINAL_NOT_RETURNABLE`)
 2. 各明細の `originalLineId` が元取引の明細であり、`quantity ≤ 元数量 − returnedQuantity` (`RETURN_QUANTITY_EXCEEDED`)
 3. 明細金額・値引・ポイントは元明細から [§4.5](#45-返品) の式で導出した値と一致すること
-4. `payments` は返金方法。Σ `amount = total`、`tenderedAmount = amount`、`changeAmount = 0`
+4. `payments` は返金方法。  
+   Σ `amount = total`、`tenderedAmount = amount`、`changeAmount = 0`
 5. 副作用: 在庫変動 (`Return`, +数量)、ポイント履歴 (`Revoke` / `Refund`)、元明細の `returnedQuantity` 加算
 
 **取消 (`POST /transactions/{id}/void`)**
 
 1. 対象が `Completed` で、そのシフトが `Open` であること (精算後は取消不可、返品で対応) (`SHIFT_CLOSED`)
 2. `Sale` に返品が紐付いていれば取消不可 (`HAS_RETURNS`)
-3. 副作用: 在庫変動 (`Void`, 逆方向)、ポイント履歴 (`Void`)、`Return` の取消なら元明細の `returnedQuantity` を戻す。取消済み取引は集計から除外
+3. 副作用: 在庫変動 (`Void`, 逆方向)、ポイント履歴 (`Void`)、`Return` の取消なら元明細の `returnedQuantity` を戻す。  
+   取消済み取引は集計から除外
 
 ### 3.13 レジ開閉・現金管理 (Shifts)
 
-端末ごとの「開設 → 販売 → 入出金 → 精算」の単位。Loyverse / Square の Shift、スマレジの精算に相当。
+端末ごとの「開設 → 販売 → 入出金 → 精算」の単位。
 
 #### シフトの項目 (`ShiftResponse`)
 
@@ -606,17 +623,17 @@ POST /api/v1/transactions      (TransactionRequest)
 
 #### エンドポイント
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | POST | `/shifts` | 端末 | 開設 (`ShiftOpenRequest`)。端末に `Open` のシフトがあれば `409` (`TERMINAL_HAS_OPEN_SHIFT`) |
-| ★ | GET | `/shifts/current?terminalId=` | 端末 | 端末の開設中シフト (なければ 404) |
-| ★ | GET | `/shifts?storeId&terminalId&status&from&to&page&size` | 管理 | シフト一覧 |
-| ★ | GET | `/shifts/{id}` | 端末 / 管理 | シフト詳細 (集計付き) |
-| ★ | POST | `/shifts/{id}/cash-events` | 端末 | 入出金登録 (`CashEventRequest`、`Open` のみ) |
-| ★ | GET | `/shifts/{id}/cash-events` | 端末 / 管理 | 入出金一覧 |
-| ★ | POST | `/shifts/{id}/close` | 端末 | 精算 `ShiftCloseRequest { closedAt, closedByStaffId, actualCash, denominations, note }` → `200` シフト (`expectedCash` / `difference` 確定) |
-| ★ | GET | `/shifts/{id}/summary` | 端末 / 管理 | 精算レポート (`ShiftSummaryResponse`、下記) |
-| ★ | GET | `/shifts/{id}/summary/pdf` | 管理 | 精算レポートの PDF ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| POST | `/shifts` | 端末 | 開設 (`ShiftOpenRequest`)。端末に `Open` のシフトがあれば `409` (`TERMINAL_HAS_OPEN_SHIFT`) |
+| GET | `/shifts/current?terminalId=` | 端末 | 端末の開設中シフト (なければ 404) |
+| GET | `/shifts?storeId&terminalId&status&from&to&page&size` | 管理 | シフト一覧 |
+| GET | `/shifts/{id}` | 端末 / 管理 | シフト詳細 (集計付き) |
+| POST | `/shifts/{id}/cash-events` | 端末 | 入出金登録 (`CashEventRequest`、`Open` のみ) |
+| GET | `/shifts/{id}/cash-events` | 端末 / 管理 | 入出金一覧 |
+| POST | `/shifts/{id}/close` | 端末 | 精算 `ShiftCloseRequest { closedAt, closedByStaffId, actualCash, denominations, note }` → `200` シフト (`expectedCash` / `difference` 確定) |
+| GET | `/shifts/{id}/summary` | 端末 / 管理 | 精算レポート (`ShiftSummaryResponse`、下記) |
+| GET | `/shifts/{id}/summary/pdf` | 管理 | 精算レポートの PDF ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
 
 `ShiftSummaryResponse` (精算レポート):
 
@@ -636,12 +653,15 @@ POST /api/v1/transactions      (TransactionRequest)
 #### 業務ルール
 
 - 端末につき `Open` のシフトは同時に 1 つ
-- 取引・入出金は `Open` のシフトにのみ登録できる。**端末は精算要求の前に、そのシフトの取引・入出金をすべて送信し終えていること** ([§6](#6-端末側の同期フロー))
-- 精算後の再開はしない (翌営業日は新しいシフト)。精算後の訂正は返品または手動調整で行う
+- 取引・入出金は `Open` のシフトにのみ登録できる。  
+  **端末は精算要求の前に、そのシフトの取引・入出金をすべて送信し終えていること** ([§6](#6-端末側の同期フロー))
+- 精算後の再開はしない (翌営業日は新しいシフト)。  
+  精算後の訂正は返品または手動調整で行う
 
 ### 3.14 在庫 (Inventory)
 
-現在庫 (`InventoryLevelResponse`) と変動履歴 (`InventoryChangeResponse`)。取引による変動はサーバが自動生成し、端末からは棚卸・調整だけを送る ([D-12](decisions.md#d-12-在庫-変動履歴ベース))。
+現在庫 (`InventoryLevelResponse`) と変動履歴 (`InventoryChangeResponse`)。  
+取引による変動はサーバが自動生成し、端末からは棚卸・調整だけを送る ([D-12](decisions.md#d-12-在庫-変動履歴ベース))。
 
 | `InventoryLevelResponse` | 型 | 説明 |
 | --- | --- | --- |
@@ -662,14 +682,14 @@ POST /api/v1/transactions      (TransactionRequest)
 | `staffId` | guid? | |
 | `occurredAt`, `createdAt` | datetime | |
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/inventory?storeId&productId&categoryId&negativeOnly&updatedSince&page&size` | 端末 / 管理 | 現在庫一覧 (端末は自店分を差分同期) |
-| ★ | GET | `/inventory/{productId}` | 端末 / 管理 | 商品の**全店舗**在庫 (他店在庫照会) `{ productId, levels: [{ storeId, storeName, quantity, updatedAt }] }` |
-| ★ | POST | `/inventory/changes` | 端末 / 管理 | 棚卸・調整の一括登録 (`InventoryChangeRequest`、下記) |
-| ★ | GET | `/inventory/changes?storeId&productId&type&from&to&page&size` | 端末 / 管理 | 変動履歴 |
-| ★ | GET | `/inventory/adjustment-reasons?updatedSince&includeDeleted` | 端末 / 管理 | 調整理由一覧 (破損 / 廃棄 / 万引き / 自家消費 / 棚卸差異 ...) |
-| ★ | POST / PUT / DELETE | `/inventory/adjustment-reasons`, `.../{id}` | 管理 | 登録 / 更新 / 論理削除 |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/inventory?storeId&productId&categoryId&negativeOnly&updatedSince&page&size` | 端末 / 管理 | 現在庫一覧 (端末は自店分を差分同期) |
+| GET | `/inventory/{productId}` | 端末 / 管理 | 商品の**全店舗**在庫 (他店在庫照会) `{ productId, levels: [{ storeId, storeName, quantity, updatedAt }] }` |
+| POST | `/inventory/changes` | 端末 / 管理 | 棚卸・調整の一括登録 (`InventoryChangeRequest`、下記) |
+| GET | `/inventory/changes?storeId&productId&type&from&to&page&size` | 端末 / 管理 | 変動履歴 |
+| GET | `/inventory/adjustment-reasons?updatedSince&includeDeleted` | 端末 / 管理 | 調整理由一覧 (破損 / 廃棄 / 万引き / 自家消費 / 棚卸差異 ...) |
+| POST / PUT / DELETE | `/inventory/adjustment-reasons`, `.../{id}` | 管理 | 登録 / 更新 / 論理削除 |
 
 `POST /inventory/changes`:
 
@@ -685,19 +705,22 @@ POST /api/v1/transactions      (TransactionRequest)
                { "id": "...", "status": "Duplicate", "quantityDelta": -1, "quantityAfter": 11 } ] }
 ```
 
-- `PhysicalCount` は絶対数量。`quantityDelta = quantity − 現在庫` をサーバが計算する
+- `PhysicalCount` は絶対数量。  
+  `quantityDelta = quantity − 現在庫` をサーバが計算する
 - 同じ `id` は `Duplicate` として既存の結果を返す
 
 ### 3.15 レポート (Reports)
 
-取引テーブルからの集計。取消済みは除外し、返品は負として扱う。管理画面用だが端末の売上照会にも使える。
+取引テーブルからの集計。  
+取消済みは除外し、返品は負として扱う。  
+管理画面用だが端末の売上照会にも使える。
 
-| 優先 | Method | Path | 用途 | 概要 |
-| --- | --- | --- | --- | --- |
-| ★ | GET | `/reports/sales/summary?storeId&from&to&groupBy=` | 管理 / 端末 | 売上集計 (`SalesSummaryResponse`)。`groupBy` = `day` / `store` / `hour` / `terminal` / `staff` / `paymentMethod` / `taxRate` / `category` (不正なら 400) |
-| ★ | GET | `/reports/sales/products?storeId&from&to&categoryId&sort=netSales\|quantity&size` | 管理 | 商品別売上 (`ProductSalesResponse`) |
-| ★ | GET | `/reports/sales/summary/csv`, `/reports/sales/products/csv` | 管理 | CSV 出力 (同じクエリ、CsvHelper、BOM 付き UTF-8。summary は合計行付き) |
-| ★ | GET | `/reports/sales/daily/pdf?storeId&date` | 管理 | 売上日報の PDF (店舗 × 営業日、[D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/reports/sales/summary?storeId&from&to&groupBy=` | 管理 / 端末 | 売上集計 (`SalesSummaryResponse`)。`groupBy` = `day` / `store` / `hour` / `terminal` / `staff` / `paymentMethod` / `taxRate` / `category` (不正なら 400) |
+| GET | `/reports/sales/products?storeId&from&to&categoryId&sort=netSales\|quantity&size` | 管理 | 商品別売上 (`ProductSalesResponse`) |
+| GET | `/reports/sales/summary/csv`, `/reports/sales/products/csv` | 管理 | CSV 出力 (同じクエリ、CsvHelper、BOM 付き UTF-8。summary は合計行付き) |
+| GET | `/reports/sales/daily/pdf?storeId&date` | 管理 | 売上日報の PDF (店舗 × 営業日、[D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
 
 ```jsonc
 // GET /reports/sales/summary?storeId=...&from=2026-09-01&to=2026-09-11&groupBy=day
@@ -722,7 +745,9 @@ POST /api/v1/transactions      (TransactionRequest)
 
 ## 4. 金額・税・ポイント計算仕様 (共有ライブラリ)
 
-端末とサーバが共有する `Pos.Domain` の計算仕様。入力 (単価・数量・値引・支払) から計算項目を決定的に導出する。すべて `decimal` で計算し、丸めは以下で明示した箇所のみ行う。
+端末とサーバが共有する `Pos.Domain` の計算仕様。  
+入力 (単価・数量・値引・支払) から計算項目を決定的に導出する。  
+すべて `decimal` で計算し、丸めは以下で明示した箇所のみ行う。
 
 ### 4.1 明細
 
@@ -734,7 +759,8 @@ discountAmount_i  = Σ 明細値引 (Amount: value / Percent: Floor(amount_i × 
 
 ### 4.2 取引値引の按分
 
-取引値引 (`lineId = null`) の合計 `D` を、明細値引後の金額 `base_i = amount_i − discountAmount_i` に比例して各明細へ按分する。**最大剰余法** (Largest remainder) で端数を配る。
+取引値引 (`lineId = null`) の合計 `D` を、明細値引後の金額 `base_i = amount_i − discountAmount_i` に比例して各明細へ按分する。  
+**最大剰余法** (Largest remainder) で端数を配る。
 
 ```
 D                 = Σ 取引値引 (Amount: value / Percent: Floor(Σ base_i × value))
@@ -749,7 +775,8 @@ netAmount_i       = base_i − alloc_i
 
 ### 4.3 税
 
-税率 × 内税/外税 のグループごとに合計してから税額を計算する ([D-11](decisions.md#d-11-税計算-税率ごと一括計算))。丸めは会社設定 `taxRounding` (既定 `Floor`)。
+税率 × 内税/外税 のグループごとに合計してから税額を計算する ([D-11](decisions.md#d-11-税計算-税率ごと一括計算))。  
+丸めは会社設定 `taxRounding` (既定 `Floor`)。
 
 ```
 グループ g = (taxRateId, taxIncluded)
@@ -767,7 +794,9 @@ total             = netSubtotal + Σ taxAmount_g (外税グループのみ)
 
 ### 4.4 ポイント
 
-1 pt = 1 円。利用ポイント `R` = `kind = Points` の支払額合計。充当分にはポイントを付けない ([D-07](decisions.md#d-07-ポイント制度))。
+1 pt = 1 円。  
+利用ポイント `R` = `kind = Points` の支払額合計。  
+充当分にはポイントを付けない ([D-07](decisions.md#d-07-ポイント制度))。
 
 ```
 pointsRedeemed_i  = R を netAmount_i 比で最大剰余法により按分
@@ -793,7 +822,10 @@ pointsEarned              = −Floor(o.pointsEarned × q / o.quantity)        (�
 pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (利用分返還)
 ```
 
-税は返品明細から §4.3 と同じ方法で再計算する。返品取引の `discounts[]` は持たず (元取引から導出済み)、`payments[]` は返金方法。`kind = Points` の返金額 = −`pointsRedeemed`。全数量返品なら元取引と同額になる。
+税は返品明細から §4.3 と同じ方法で再計算する。  
+返品取引の `discounts[]` は持たず (元取引から導出済み)、`payments[]` は返金方法。  
+`kind = Points` の返金額 = −`pointsRedeemed`。  
+全数量返品なら元取引と同額になる。
 
 ### 4.6 計算例
 
@@ -806,7 +838,8 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 配送料 | 1,100 | 0 | 1,100 | 14 (raw 13.56 + 剰余 1) | 1,086 |
 | 合計 | 85,100 | 4,000 | 81,100 | 1,000 | **80,100** |
 
-- 税 (内税 10%): `Floor(80,100 × 10 / 110)` = **7,281**。`total` = 80,100
+- 税 (内税 10%): `Floor(80,100 × 10 / 110)` = **7,281**。  
+  `total` = 80,100
 - ポイント利用 5,000 の按分: 4,685 (raw 4,685.58) / 247 (raw 246.63 + 1) / 68 (raw 67.79 + 1)
 - 付与: デジカメ `Floor((75,063 − 4,685) × 0.10)` = 7,037、SD `Floor((3,951 − 247) × 0.01)` = 37、配送料 0 → **7,074**
 - 支払: ポイント 5,000 + カード 50,000 + 現金 25,100 (預り 30,000) → `tenderedTotal` 85,000、`changeAmount` **4,900**
@@ -844,30 +877,17 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 
 ## 6. 端末側の同期フロー
 
-API 設計が前提にしている MAUI 側の動き。通信は `HttpService` (HttpClient + System.Text.Json。失敗時は Problem Details を `ApiResult<T>` で返す) + `NetworkOperator` (接続確認・インジケータ・エラー通知) を使う ([D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))。
+API 設計が前提にしている MAUI 側の動き。  
+通信は `HttpService` (HttpClient + System.Text.Json。失敗時は Problem Details を `ApiResult<T>` で返す) + `NetworkOperator` (接続確認・インジケータ・エラー通知) を使う ([D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))。
 
-1. **初回**: 設定 QR (`ApiEndPoint` / `StoreId` / `TerminalId`) を読み取り → `GET /sync/masters` (全件) と `GET /inventory?storeId=` をローカル DB (SQLite) に保存。顧客は都度 `lookup` (オンライン) を基本とし、必要なら `GET /customers?updatedSince` でキャッシュ
+1. **初回**: 設定 QR (`ApiEndPoint` / `StoreId` / `TerminalId`) を読み取り → `GET /sync/masters` (全件) と `GET /inventory?storeId=` をローカル DB (SQLite) に保存。  
+   顧客は都度 `lookup` (オンライン) を基本とし、必要なら `GET /customers?updatedSince` でキャッシュ
 2. **定期**: `GET /sync/masters?since={前回の serverTime}` で差分適用
 3. **書き込みは Outbox**: 端末で発生した書き込み (`XxxRequest`) を発生順にローカル DB の `Outbox` テーブルへ JSON で保存し、バックグラウンドで順に送信する
    - 順序: シフト開設 → 取引 / 入出金 (発生順) → 精算
-   - `200` / `201` で完了。`409` / `422` は「要確認」として止め、後続を送らない (シフトの整合のため)。5xx / 通信エラーは指数バックオフで再送
+   - `200` / `201` で完了。  
+     `409` / `422` は「要確認」として止め、後続を送らない (シフトの整合のため)。  
+     5xx / 通信エラーは指数バックオフで再送
    - `id` を端末が採番しているので、応答を受け取る前に切断しても再送で重複しない
-4. **オンライン限定の操作**: 会員照会、他店在庫照会、レシート番号検索 (返品)。ローカルにある取引の返品はオフラインでも可
-
----
-
-## 7. Phase 2 以降 (後回し)
-
-実装の順序と各項目のチェックリストは [implementation-plan.md の Phase 8 以降](implementation-plan.md#phase-8-以降-後回し項目の計画) ([D-42](decisions.md#d-42-後回し項目の実装順序-phase-8-以降))。各フェーズの着手時に本書へ節を追加する。シリアル入力 UI と帳票 PDF (精算レポート・売上日報) は MVP で実装済み。
-
-| 領域 | 内容 | 参考 |
-| --- | --- | --- |
-| 認証・端末登録 | テンプレートの JWT (`/api/account/login` / `TokenService`) を土台に、管理画面でワンタイムコード発行 → `POST /terminals/pair` で端末トークン取得。`POST /auth/login` (スタッフコード + PIN) → JWT。役割による認可 (取消 / 値引承認 / 精算 / マスタ編集)。`POST /terminals/me/heartbeat`。管理画面ログイン (Cookie) はテンプレートのまま | Square Devices API / スマレジ 役割 |
-| 日次締め | `POST /daily-closings`、`GET /daily-closings` (店舗 × 営業日) | スマレジ 日次締め ([D-16](decisions.md#d-16-日次締めは-phase-2)) |
-| 受注 | 取り寄せ・取り置き: `POST /orders` → 入荷 → 会計時に取引へ変換 | スマレジ 受注管理 |
-| シリアル入力 UI | `requiresSerial` 商品の必須チェック、シリアルによる取引検索 `GET /transactions?serialNumber=` | |
-| 商品画像・CSV 取込 | `PUT /products/{id}/image`、`POST /products/import` | |
-| レシート再発行・一括送信 | `GET /transactions/{id}/receipt`、`POST /transactions/batch` | |
-| 帳票 PDF | 精算レポート・日計表の PDF (`template-blazor-server` の OysterReport) | |
-| 通知 | SignalR `/hubs/terminal` (マスタ更新通知)、外部向け Webhook | スマレジ 端末通知 / Square Webhooks |
-| 在庫移動・入荷 | `POST /inventory/transfers`、仕入先・発注 | Lightspeed Consignments |
+4. **オンライン限定の操作**: 会員照会、他店在庫照会、レシート番号検索 (返品)。  
+   ローカルにある取引の返品はオフラインでも可

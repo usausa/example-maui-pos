@@ -5,7 +5,6 @@
 - **Warnings:** Ensure there are no build warnings
 - **Suppress warnings:** If warning suppression is needed, ask before applying the fix
 - **Line endings:** Never change existing line endings, use CRLF for newly created text files
-- **Document:** Do not save the background information in the document
 
 # Project Rules
 
@@ -16,3 +15,10 @@
 - **Database:** SQLite with `Usa.Smart.Data.Accessor` (2-way SQL files), no ORM. Design in `docs/db-design.md`
 - **UI language:** Japanese only, no localization resources
 - **Design docs:** Record decisions in `docs/decisions.md` and update the affected design document before closing a phase (`docs/implementation-plan.md`)
+
+# Documents
+
+- **Line breaks:** In Markdown, end each sentence at `。` with two spaces so that it renders as a line break (not inside tables, headings or code)
+- **Background:** Keep background and decision history only in `docs/decisions.md`, without dates. Design documents describe the current state only; deferred items go to `docs/implementation-plan.md`
+- **README:** The root `README.md` has only the main screens and links to the documents (no screen IDs, no setup instructions)
+- **References:** Do not link to external reference materials

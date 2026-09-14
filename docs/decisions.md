@@ -1,6 +1,7 @@
 # 設計判断の記録 (Decision Log)
 
-POS サーバ API / DB 設計にあたって行った判断の記録。各項目は次の形式で残す。
+POS サーバ API / DB 設計にあたって行った判断の記録。  
+各項目は次の形式で残す。
 
 - **背景**: 何を決める必要があったか
 - **選択肢**: 検討した案と長所・短所
@@ -8,7 +9,33 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 - **意図**: なぜその案にしたか
 - **反映**: API / DB 設計への影響
 
-「利用者と確認済み」の判断は §1、設計者が慣例から判断し利用者に確認をとっていないものは §2、参考プロジェクト (既存テンプレート) を確認して合わせた判断は §3、実装前に確認した事項は §4、実装中の判断は §5 に分ける。§2 / §3 / §5 は異論があれば変更してよい。
+「利用者と確認済み」の判断は §1、設計者が慣例から判断し利用者に確認をとっていないものは §2、参考プロジェクト (既存テンプレート) を確認して合わせた判断は §3、実装前に確認した事項は §4、実装中の判断は §5 に分ける。  
+§2 / §3 / §5 は異論があれば変更してよい。
+
+---
+
+## 0. 前提の要約
+
+| 項目 | 決定 | 参照 |
+| --- | --- | --- |
+| 業種 | 家電・カメラ・ホームセンター (物販) | [D-00](#d-00-業種前提) |
+| 技術スタック | 既存テンプレート準拠: SQLite + Smart.Data.Accessor、Minimal API + Blazor Server (MudBlazor) + Aspire、MAUI (Android) + Smart.Navigation。Service / Usecase の層は置かない | [D-19](#d-19-技術スタックプロジェクト構成-テンプレート準拠) |
+| プロジェクト名 | `Pos.Server.*` (Core / Host / AppHost) / `Pos.Terminal` / `Pos.Shared` (通信データ) / `Pos.Domain` (ドメインロジック) | [D-22](#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト), [D-26](#d-26-命名-posserver--posterminal--posshared--posdomain) |
+| 取引モデル | 一体型 (会計完了後に 1 回で送信)。受注は将来 | [D-01](#d-01-取引モデル-一体型-vs-分離型) |
+| 金額計算 | 端末計算 + サーバ検証 (`Pos.Domain`) | [D-02](#d-02-金額計算の主体-端末計算--サーバ検証-vs-サーバ計算のみ) |
+| MVP | 販売・レジ開閉精算 + 顧客ポイント・在庫・返品交換・売上レポート | [D-03](#d-03-mvp-の範囲) |
+| ポイント | 商品別還元率 + 1pt = 1 円充当 (支払方法として扱う) | [D-07](#d-07-ポイント制度) |
+| シリアル番号 | モデルに含める。入力 UI は Phase 2 | [D-04](#d-04-シリアル番号-製造番号) |
+| 配送 | 取引に `delivery` を任意で持つ | [D-08](#d-08-配送情報) |
+| 管理系 | サーバ同居の Blazor 管理画面 (MudBlazor) + 管理 API | [D-05](#d-05-管理系-crud-の置き場所), [D-18](#d-18-管理画面の構成) |
+| テナント | 単一 | [D-06](#d-06-テナント構成) |
+| JSON / ページング | camelCase、`page` / `size` + 総件数 | [D-20](#d-20-json-契約-camelcase), [D-21](#d-21-ページング-page--size--総件数) |
+| 金額・数量・率 | `decimal` (SQLite は NUMERIC 列)、ID は端末採番の GUID | [D-13](#d-13-金額数量率の表現-decimal), [D-10](#d-10-冪等性-クライアント採番-id) |
+| 用語 | 通信データは `XxxRequest` / `XxxResponse`。「DTO」は使わない | [D-27](#d-27-用語-dto-は使わない) |
+| 端末 UI | スマートフォン縦持ち、カメラスキャン、メニュー型、テンプレートのシェル (タイトル + F1〜F4) | [D-17](#d-17-端末のナビゲーション構成), [D-23](#d-23-端末の画面骨格-template-maui-のシェル準拠) |
+| 認証・端末登録 | 後回し (MVP は認証なし。Phase 2 で template-maui-server を参考に追加) | [D-09](#d-09-認証端末登録-後回し) |
+| リポジトリ | モノレポ。`server/Pos.Server.slnx` と `terminal/Pos.Terminal.slnx` を VS で個別に開く。共有は `shared/` | [D-32](#d-32-リポジトリ構成-モノレポ--2-ソリューション) |
+| 進め方 | フェーズ単位のチェックリスト (implementation-plan.md) | [D-33](#d-33-実装の進め方-フェーズ単位のチェックリスト) |
 
 ---
 
@@ -34,7 +61,8 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 ### D-01. 取引モデル: 一体型 vs 分離型
 
-**背景**: 「デジカメ 80,000 円を現金 50,000 円 + クレジット 30,000 円で購入」のような会計をサーバへどう伝えるか。API の本数・状態遷移・オフライン対応のしやすさが大きく変わる。
+**背景**: 「デジカメ 80,000 円を現金 50,000 円 + クレジット 30,000 円で購入」のような会計をサーバへどう伝えるか。  
+API の本数・状態遷移・オフライン対応のしやすさが大きく変わる。
 
 **選択肢**:
 
@@ -44,17 +72,23 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | B. 分離型 (Square / Clover) | `POST /orders` → `POST /payments` → `POST /orders/{id}/complete` の 3 段階。会計途中の状態をサーバが持つ | 決済端末連携や保留の共有、テーブル会計、EC 注文の店頭受取に自然に拡張できる | API と状態遷移が増える。オフライン時は結局端末で溜めて送るので二重管理になる |
 | C. 一体型 + 受注 API を最初から | 取引は A のまま、取り寄せ / 取り置き / 配送用の「受注」リソースも MVP に含める | 家電店の取り寄せ業務を最初から見せられる | MVP が大きくなる |
 
-**決定**: ✅ **A. 一体型**。受注 (取り寄せ / 取り置き) は将来、取引とは別の「受注」リソースとして追加する (スマレジも受注管理を別 API にしている)。
+**決定**: ✅ **A. 一体型**。  
+受注 (取り寄せ / 取り置き) は将来、取引とは別の「受注」リソースとして追加する (スマレジも受注管理を別 API にしている)。
 
-**意図**: レジ端末で会計が完結する物販 POS なので、会計途中をサーバが持つ必要がない。オフライン運用を前提にすると、完了した取引を送るだけの A が最も単純で堅い。
+**意図**: レジ端末で会計が完結する物販 POS なので、会計途中をサーバが持つ必要がない。  
+オフライン運用を前提にすると、完了した取引を送るだけの A が最も単純で堅い。
 
-**反映**: `POST /transactions` が唯一の取引登録 API。返品も `type = Return` の取引として同じ API で送る。取消は `POST /transactions/{id}/void`。会計途中の「保留」は端末ローカル機能。
+**反映**: `POST /transactions` が唯一の取引登録 API。  
+返品も `type = Return` の取引として同じ API で送る。  
+取消は `POST /transactions/{id}/void`。  
+会計途中の「保留」は端末ローカル機能。
 
 ---
 
 ### D-02. 金額計算の主体: 端末計算 + サーバ検証 vs サーバ計算のみ
 
-**背景**: 小計・値引・税・ポイント・合計を誰が計算するか。オフライン可否と、計算ロジックの置き場所が決まる。
+**背景**: 小計・値引・税・ポイント・合計を誰が計算するか。  
+オフライン可否と、計算ロジックの置き場所が決まる。
 
 **選択肢**:
 
@@ -65,9 +99,11 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 **決定**: ✅ **A. 端末計算 + サーバ検証**。
 
-**意図**: オフライン前提 (D-00) と矛盾しないのは A だけ。共有ライブラリにすれば「ロジックが二箇所」にはならない。
+**意図**: オフライン前提 (D-00) と矛盾しないのは A だけ。  
+共有ライブラリにすれば「ロジックが二箇所」にはならない。
 
-**反映**: 計算仕様を [api-design.md §4](api-design.md#4-金額税ポイント計算仕様-共有ライブラリ) に明文化し、`Pos.Domain` ([D-22](#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト)) に実装する。`POST /transactions/calculate` は検証・テスト用に残す。
+**反映**: 計算仕様を [api-design.md §4](api-design.md#4-金額税ポイント計算仕様-共有ライブラリ) に明文化し、`Pos.Domain` ([D-22](#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト)) に実装する。  
+`POST /transactions/calculate` は検証・テスト用に残す。
 
 ---
 
@@ -86,15 +122,19 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 **決定**: ✅ **すべて MVP に含める**。
 
-**意図**: 家電・カメラ店のサンプルとして「ポイント」「他店在庫」「初期不良の返品」は外せない。レポートは Blazor 管理画面 (D-05) の主なコンテンツになる。
+**意図**: 家電・カメラ店のサンプルとして「ポイント」「他店在庫」「初期不良の返品」は外せない。  
+レポートは Blazor 管理画面 (D-05) の主なコンテンツになる。
 
-**反映**: `Customers` / `PointHistories` / `InventoryLevels` / `InventoryChanges` を MVP のテーブルに含める。`POST /transactions` は `type = Return` を受け付ける。`GET /reports/sales/*` を MVP に含める。
+**反映**: `Customers` / `PointHistories` / `InventoryLevels` / `InventoryChanges` を MVP のテーブルに含める。  
+`POST /transactions` は `type = Return` を受け付ける。  
+`GET /reports/sales/*` を MVP に含める。
 
 ---
 
 ### D-04. シリアル番号 (製造番号)
 
-**背景**: カメラ・家電はレシート / 保証書に製造番号を印字することが多い。どこまで扱うか。
+**背景**: カメラ・家電はレシート / 保証書に製造番号を印字することが多い。  
+どこまで扱うか。
 
 **選択肢**:
 
@@ -107,15 +147,18 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 **決定**: ✅ **A**。
 
-**意図**: データモデルは最初から持っておかないと後で取引テーブルの移行が必要になる。一方で UI は MVP の範囲を広げないため後回しにする。
+**意図**: データモデルは最初から持っておかないと後で取引テーブルの移行が必要になる。  
+一方で UI は MVP の範囲を広げないため後回しにする。
 
-**反映**: `Products.RequiresSerial`、`TransactionLineSerials` テーブル、`line.serialNumbers[]`。MVP ではサーバは受け取って保存するだけで、必須チェックはしない。
+**反映**: `Products.RequiresSerial`、`TransactionLineSerials` テーブル、`line.serialNumbers[]`。  
+MVP ではサーバは受け取って保存するだけで、必須チェックはしない。
 
 ---
 
 ### D-05. 管理系 CRUD の置き場所
 
-**背景**: 商品・スタッフ・店舗などマスタの登録・更新をどこで行うか。管理 API の要否と優先度が決まる。
+**背景**: 商品・スタッフ・店舗などマスタの登録・更新をどこで行うか。  
+管理 API の要否と優先度が決まる。
 
 **選択肢**:
 
@@ -125,17 +168,23 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | ✅ **B. サーバ同居の Web 管理画面 (Blazor)** | ASP.NET Core サーバに API と Blazor 管理画面を同居させ、マスタ管理・レポート閲覧を行う | 「本部 (管理画面) → 店舗 (レジ)」の構成をサンプルで示せる | 管理 API と画面の実装量が増える |
 | C. MAUI 内に管理モード | タブレット 1 台で商品登録まで完結 | 小規模店向けに現実的 | チェーン想定 (D-00) と合わない |
 
-**決定**: ✅ **B**。利用者の当初想定 (サーバは API + Blazor で作る) に一致。基盤は `template-maui-server` (Minimal API + Blazor Server + MudBlazor) を流用する ([D-19](#d-19-技術スタックプロジェクト構成-テンプレート準拠))。
+**決定**: ✅ **B**。  
+利用者の当初想定 (サーバは API + Blazor で作る) に一致。  
+基盤は `template-maui-server` (Minimal API + Blazor Server + MudBlazor) を流用する ([D-19](#d-19-技術スタックプロジェクト構成-テンプレート準拠))。
 
-**意図**: 家電量販店・ホームセンターはチェーンなので、マスタは本部で管理して店舗へ配信する構成が自然。Blazor 管理画面から使う CRUD を API として定義しておけば、Blazor 側は HTTP 経由でもアプリケーションサービス直呼びでも実装できる。
+**意図**: 家電量販店・ホームセンターはチェーンなので、マスタは本部で管理して店舗へ配信する構成が自然。  
+Blazor 管理画面から使う CRUD を API として定義しておけば、Blazor 側は HTTP 経由でもアプリケーションサービス直呼びでも実装できる。
 
-**反映**: 各マスタに登録 (`POST`) / 更新 (`PUT`) / 論理削除 (`DELETE`) を定義し、「管理系」として区別する。端末が使うのは参照と差分同期のみ。Blazor ページは Accessor と Domain を直接呼ぶ (HTTP を経由しない、[D-19](#d-19-技術スタックプロジェクト構成-テンプレート準拠))。
+**反映**: 各マスタに登録 (`POST`) / 更新 (`PUT`) / 論理削除 (`DELETE`) を定義し、「管理系」として区別する。  
+端末が使うのは参照と差分同期のみ。  
+Blazor ページは Accessor と Domain を直接呼ぶ (HTTP を経由しない、[D-19](#d-19-技術スタックプロジェクト構成-テンプレート準拠))。
 
 ---
 
 ### D-06. テナント構成
 
-**背景**: 1 社専用か、複数社が使う SaaS 型か。後から変えると全テーブル・全クエリに手が入る。
+**背景**: 1 社専用か、複数社が使う SaaS 型か。  
+後から変えると全テーブル・全クエリに手が入る。
 
 **選択肢**:
 
@@ -148,13 +197,15 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 **意図**: 「自社チェーンの POS」を示すサンプルなので、テナント分離はノイズになる。
 
-**反映**: TenantId 列なし。店舗 (`Stores`) が最上位の組織単位。
+**反映**: TenantId 列なし。  
+店舗 (`Stores`) が最上位の組織単位。
 
 ---
 
 ### D-07. ポイント制度
 
-**背景**: 家電量販店ではポイントが購買体験の中心。計算方法で商品マスタ・取引・支払の構造が変わる。
+**背景**: 家電量販店ではポイントが購買体験の中心。  
+計算方法で商品マスタ・取引・支払の構造が変わる。
 
 **選択肢**:
 
@@ -164,17 +215,20 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | B. 取引合計に一律率 | 例: 合計の 1% を付与 | 単純 | 商品別の還元率が表現できない |
 | C. 付与のみ (利用なし) | 残高を積み上げるだけ | 最小 | ポイント払いがない |
 
-**決定**: ✅ **A**。付与基準 (税込 / 税抜) と端数処理は会社設定にする。
+**決定**: ✅ **A**。  
+付与基準 (税込 / 税抜) と端数処理は会社設定にする。
 
 **意図**: 「デジカメは 10%、SD カードは 1%」のような商品別還元と、ポイント払いの両方があって初めて家電店のレジらしくなる。
 
-**反映**: `Products.PointRate`、`PaymentMethods.Kind = Points`、`Transactions.PointsEarned / PointsRedeemed / PointsBalanceAfter`、`TransactionLines.PointsEarned`、`Customers.PointBalance`、`PointHistories`。計算式は [api-design.md §4.4](api-design.md#44-ポイント)。
+**反映**: `Products.PointRate`、`PaymentMethods.Kind = Points`、`Transactions.PointsEarned / PointsRedeemed / PointsBalanceAfter`、`TransactionLines.PointsEarned`、`Customers.PointBalance`、`PointHistories`。  
+計算式は [api-design.md §4.4](api-design.md#44-ポイント)。
 
 ---
 
 ### D-08. 配送情報
 
-**背景**: 大型家電や資材は配送、在庫切れは取り寄せが日常。レジ会計時の配送情報をどう扱うか。
+**背景**: 大型家電や資材は配送、在庫切れは取り寄せが日常。  
+レジ会計時の配送情報をどう扱うか。
 
 **選択肢**:
 
@@ -184,9 +238,11 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | B. 受注 (orders) で扱う | 配送・取り寄せ・取り置きをまとめて受注リソースで管理 (Phase 2)。取引はレジ会計のみ | 取り寄せまで一貫して扱える | D-01 の「受注は将来」と同じく MVP 外になる |
 | C. 扱わない | 配送関連はスコープ外 | 最小 | 家電店らしさが減る |
 
-**決定**: ✅ **A**。取り寄せ・取り置きは将来の受注リソースで扱う。
+**決定**: ✅ **A**。  
+取り寄せ・取り置きは将来の受注リソースで扱う。
 
-**意図**: レシートに配送先を印字できれば家電店のレジとして十分。進捗管理まで踏み込むと別システムの領域になる。
+**意図**: レシートに配送先を印字できれば家電店のレジとして十分。  
+進捗管理まで踏み込むと別システムの領域になる。
 
 **反映**: `TransactionDeliveries` テーブル (取引 1 : 0..1)、`Products.Kind = Service` (配送料・延長保証・設置工事など、在庫を持たない商品)。
 
@@ -196,14 +252,19 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 **背景**: 端末とスタッフの認証・認可をどう行うか。
 
-**決定**: ✅ **後回し**。まず API と DB の設計・実装を進める。
+**決定**: ✅ **後回し**。  
+まず API と DB の設計・実装を進める。
 
-**当面の扱い**: 端末発の要求は本文 / クエリで `storeId` / `terminalId` / `staffId` を明示的に渡す。認証導入後はトークンのクレームと本文の一致をサーバが検証する形にすれば、API の形を変えずに済む。ベースにした `Service-CloudManager` には認証がないため MVP は認証なし。Phase 2 で `template-maui-server` の管理画面 Cookie ログインと API の JWT (`/api/account/login`) を参考に追加する ([D-34](#d-34-参考プロジェクトの差し替え-phase-0))。
+**当面の扱い**: 端末発の要求は本文 / クエリで `storeId` / `terminalId` / `staffId` を明示的に渡す。  
+認証導入後はトークンのクレームと本文の一致をサーバが検証する形にすれば、API の形を変えずに済む。  
+ベースにした `Service-CloudManager` には認証がないため MVP は認証なし。  
+Phase 2 で `template-maui-server` の管理画面 Cookie ログインと API の JWT (`/api/account/login`) を参考に追加する ([D-34](#d-34-参考プロジェクトの差し替え-phase-0))。
 
 **将来の方針案** (未決定):
 
 - 端末登録: 管理画面でワンタイムコード発行 → 端末がコードを送って端末トークン取得 (Square Devices API のデバイスコード方式)
-- スタッフ認証: スタッフコード + PIN → JWT (storeId / terminalId / staffId / role)。テンプレートの `TokenService` を流用
+- スタッフ認証: スタッフコード + PIN → JWT (storeId / terminalId / staffId / role)。  
+  テンプレートの `TokenService` を流用
 - 認可: 役割 (Cashier / Manager / Admin) で取消・値引承認・精算・マスタ編集を制御
 
 **反映**: `Staff.Role` 列と `TransactionDiscounts.ApprovedByStaffId` 列は先に用意しておく (値は MVP では未使用)。
@@ -212,7 +273,8 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 ### D-17. 端末のナビゲーション構成
 
-**背景**: 端末は通常のスマートフォン (縦持ち・片手) で、カメラによる JAN / QR スキャンを使う。機能をどう並べるか。
+**背景**: 端末は通常のスマートフォン (縦持ち・片手) で、カメラによる JAN / QR スキャンを使う。  
+機能をどう並べるか。
 
 **選択肢**:
 
@@ -222,11 +284,16 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | B. 販売起点 + ドロワー (Square / Loyverse 型) | ログイン後すぐ販売画面。他機能は左上のハンバーガーメニュー | レジ担当の操作の 9 割が販売なので最短 | 販売以外が隠れる。ドロワーは片手で開きにくい |
 | C. ボトムタブ | 下部に 販売 / 取引 / 照会 / メニュー の 4 タブ | 頻出機能を常時表示 | タブ数を増やせない。縦画面で販売画面の高さが減る |
 
-**決定**: ✅ **A. メニュー型** (利用者指定)。折衷として「販売タイルを最上段に大きく」「設定でログイン後に販売画面を直接開ける」を提案 ([screen-design.md §1.2](screen-design.md#12-ナビゲーション構成))。
+**決定**: ✅ **A. メニュー型** (利用者指定)。  
+折衷として「販売タイルを最上段に大きく」「設定でログイン後に販売画面を直接開ける」を提案 ([screen-design.md §1.2](screen-design.md#12-ナビゲーション構成))。
 
-**意図**: サンプルとして機能の一覧性を優先する。B の利点 (最短で販売に入る) は設定で補える。`template-maui` のメニュー画面 (大きなボタンのグリッド) と同じ作りになる。
+**意図**: サンプルとして機能の一覧性を優先する。  
+B の利点 (最短で販売に入る) は設定で補える。  
+`template-maui` のメニュー画面 (大きなボタンのグリッド) と同じ作りになる。
 
-**反映**: 画面 T-02 ホーム。レシートは画面表示 + 電子レシート QR を基本にし、Bluetooth 印刷は Phase 2。画面の骨格 (タイトル + F1〜F4) は [D-23](#d-23-端末の画面骨格-template-maui-のシェル準拠)。
+**反映**: 画面 T-02 ホーム。  
+レシートは画面表示 + 電子レシート QR を基本にし、Bluetooth 印刷は Phase 2。  
+画面の骨格 (タイトル + F1〜F4) は [D-23](#d-23-端末の画面骨格-template-maui-のシェル準拠)。
 
 ---
 
@@ -234,11 +301,14 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 **背景**: サーバ側 (Blazor) の画面構成。
 
-**決定**: ✅ **左ナビゲーション + 右コンテンツ (一覧ページ + 詳細 / 編集ダイアログ)** の Blazor によくある構成 (利用者指定)。Blazor Web App (Interactive Server) で API と同じ ASP.NET Core に同居させる。
+**決定**: ✅ **左ナビゲーション + 右コンテンツ (一覧ページ + 詳細 / 編集ダイアログ)** の Blazor によくある構成 (利用者指定)。  
+Blazor Web App (Interactive Server) で API と同じ ASP.NET Core に同居させる。
 
-**UI ライブラリ**: ✅ **MudBlazor** (`template-maui-server` / `template-blazor-server` / `CloudManager` がいずれも MudBlazor のため)。`MudNavMenu` + `MudNavGroup` のグループ化ナビ、`MudDataGrid` の `ServerData` によるサーバ側ページング、`IDialogService` によるダイアログ、FluentValidation によるフォーム検証、Snackbar 通知をテンプレートのまま使う。
+**UI ライブラリ**: ✅ **MudBlazor** (`template-maui-server` / `template-blazor-server` / `CloudManager` がいずれも MudBlazor のため)。  
+`MudNavMenu` + `MudNavGroup` のグループ化ナビ、`MudDataGrid` の `ServerData` によるサーバ側ページング、`IDialogService` によるダイアログ、FluentValidation によるフォーム検証、Snackbar 通知をテンプレートのまま使う。
 
-**反映**: [screen-design.md §2](screen-design.md#2-サーバ管理画面-blazor)。管理画面の機能は API の「管理」用途と 1 対 1 に対応させる。
+**反映**: [screen-design.md §2](screen-design.md#2-サーバ管理画面-blazor)。  
+管理画面の機能は API の「管理」用途と 1 対 1 に対応させる。
 
 ---
 
@@ -251,9 +321,12 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | ✅ **A. クライアント採番 GUID (v7)** | 取引・シフト・入出金・在庫変動など端末発の書き込みは端末が ID を採番して送る。同じ ID が既にあれば 200 で既存を返す (本文が異なれば 409) |
 | B. `Idempotency-Key` ヘッダ | Square 方式。サーバがキーと応答を保存する専用テーブルが必要 |
 
-**意図**: オフライン再送を扱うには ID をクライアントが持つのが最も単純。`Guid.CreateVersion7()` (.NET 9) で時系列順にもなる。
+**意図**: オフライン再送を扱うには ID をクライアントが持つのが最も単純。  
+`Guid.CreateVersion7()` (.NET 9) で時系列順にもなる。
 
-**補足 (SQLite)**: テンプレートは `INTEGER PRIMARY KEY AUTOINCREMENT` の `long` ID だが、端末採番のために GUID を採る。SQLite では **TEXT (36 文字、小文字ハイフン区切り)** で保存する (`Microsoft.Data.Sqlite` の既定。v7 は文字列順 = 時系列順になる)。サーバだけが採番するもの (取引由来の在庫変動・ポイント履歴) も同じ GUID にそろえる。
+**補足 (SQLite)**: テンプレートは `INTEGER PRIMARY KEY AUTOINCREMENT` の `long` ID だが、端末採番のために GUID を採る。  
+SQLite では **TEXT (36 文字、小文字ハイフン区切り)** で保存する (`Microsoft.Data.Sqlite` の既定。v7 は文字列順 = 時系列順になる)。  
+サーバだけが採番するもの (取引由来の在庫変動・ポイント履歴) も同じ GUID にそろえる。
 
 ### D-11. 税計算: 税率ごと一括計算
 
@@ -262,7 +335,8 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | ✅ **A. 税率ごとに合計してから税額計算** | 同じ税率の明細の合計に対して税額を計算し、税率ごとに端数処理。インボイス対応レシートの「税率ごとの区分記載」と一致する |
 | B. 明細ごとに税額計算して合計 | 明細ごとに端数処理するため、合計で誤差が出やすい |
 
-**意図**: 日本のレシートの標準的な方式。取引値引は明細へ按分してから税計算する。
+**意図**: 日本のレシートの標準的な方式。  
+取引値引は明細へ按分してから税計算する。
 
 ### D-12. 在庫: 変動履歴ベース
 
@@ -271,7 +345,8 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | ✅ **A. 変動履歴 (`InventoryChanges`) + 現在庫 (`InventoryLevels`)** | Square Inventory API と同じ。販売 / 返品 / 取消 / 棚卸 / 調整をすべて履歴として残し、現在庫はその集計 (非正規化して保持) |
 | B. 現在庫数量を直接更新 | Clover item stocks 方式。単純だが監査できない |
 
-**意図**: 棚卸差異や返品の追跡ができる。取引による自動減算と手動調整を同じ仕組みで扱える。
+**意図**: 棚卸差異や返品の追跡ができる。  
+取引による自動減算と手動調整を同じ仕組みで扱える。
 
 ### D-13. 金額・数量・率の表現: `decimal`
 
@@ -282,7 +357,9 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 **決定**: ✅ **A** (利用者確認済み。SQLite 採用時に一度 B に変えたが、`decimal` でよいとの指示で A に戻した)。
 
-**SQLite での扱い**: `Microsoft.Data.Sqlite` は `decimal` パラメータを TEXT で書き込むため、金額・数量・率の列は **`NUMERIC` 親和性**で宣言する。数値として正しい文字列は INTEGER / REAL に変換されて保存されるので、`SUM` などの集計がそのまま使える。読み出しは `GetDecimal` が INTEGER / REAL / TEXT のいずれからも変換する ([db-design.md §1](db-design.md#1-前提))。
+**SQLite での扱い**: `Microsoft.Data.Sqlite` は `decimal` パラメータを TEXT で書き込むため、金額・数量・率の列は **`NUMERIC` 親和性**で宣言する。  
+数値として正しい文字列は INTEGER / REAL に変換されて保存されるので、`SUM` などの集計がそのまま使える。  
+読み出しは `GetDecimal` が INTEGER / REAL / TEXT のいずれからも変換する ([db-design.md §1](db-design.md#1-前提))。
 
 ### D-14. 返品の表現: `type = Return` の取引
 
@@ -291,7 +368,8 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | ✅ **A. 返品を「取引」として登録** (`type = Return`、`originalTransactionId` で元取引に紐付け) | Loyverse の receipt_type = REFUND と同じ。オフラインでも端末が返品取引を作って送れる |
 | B. `POST /transactions/{id}/refunds` で元取引に返金を追加 | Square 方式。サーバ側で元取引を更新する必要があり、オフライン時に扱いにくい |
 
-**意図**: 一体型 (D-01) と D-02 を貫くと、返品も「端末で完結した取引」として同じ経路で送るのが一貫する。交換は「返品取引 + 販売取引」の 2 件で表す。
+**意図**: 一体型 (D-01) と D-02 を貫くと、返品も「端末で完結した取引」として同じ経路で送るのが一貫する。  
+交換は「返品取引 + 販売取引」の 2 件で表す。
 
 ### D-15. レシート番号: 端末採番
 
@@ -302,21 +380,22 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 ### D-16. 日次締めは Phase 2
 
-店舗 × 営業日の締め (`DailyClosings`) は精算 (シフト) が揃ってからの集計であり、MVP のレポート API で代替できるため Phase 2 とする。テーブル定義だけ DB 設計に載せる。
+店舗 × 営業日の締め (`DailyClosings`) は精算 (シフト) が揃ってからの集計であり、MVP のレポート API で代替できるため Phase 2 とする。  
+テーブル定義だけ DB 設計に載せる。
 
 ---
 
 ## 3. 参考プロジェクトを確認して合わせた判断
 
-利用者指定の参考プロジェクトを確認し、その流儀に合わせた判断。詳細は [architecture.md](architecture.md)。
+利用者指定の参考プロジェクトを確認し、その流儀に合わせた判断。
 
-| 参考プロジェクト | 役割 |
-| --- | --- |
-| `D:\GitHubTemplate\template-maui` (`Template.MobileApp`) | MAUI 端末アプリの基盤 (シェル・ナビゲーション・SQLite・通信・スキャン) |
-| `D:\GitHubTemplate\template-web-api` (`Template.ApiServer`) | Minimal API + Smart.Data.Accessor + SQLite の API サーバ構成 |
-| `D:\GitHubTemplate\template-blazor-server` (`Template.BlazorServer`) | Blazor Server + MudBlazor の管理画面構成 (CSV 出力・PDF 帳票あり) |
-| `D:\GitHubTemplate\template-maui-server` (`Template.MobileServer`) | **上 2 つを合わせた「MAUI の対向サーバ」。本サンプルのサーバはこれをベースにする** |
-| `D:\GitHubUser\Study-AWS\CloudManager` | MudBlazor の多画面管理 UI の実例 (`MudNavGroup` によるグループ化ナビ、ダイアログ多数) |
+| 本サンプル | ベースにしたプロジェクト | 流用したもの |
+| --- | --- | --- |
+| サーバ (`Pos.Server.*`) | `D:\GitHubService\Service-CloudManager` (`CloudManager.Core` / `CloudManager.Host`) | ソリューション構成 (Core / Host / UnitTests / IntegrationTests)、`Program.cs` と `ApplicationExtensions` (Serilog / ヘルスチェック / ProblemDetails / 圧縮 / エラーページ)、MudBlazor レイアウト・ダイアログ・Snackbar・FluentValidation、`NavMenu` のグループ化、`SqlHelper`、テスト基盤 (`TestApplicationFactory`、`MudBlazorTestBase`) |
+| | `D:\GitHubTemplate\template-blazor-server` (`Template.BlazorServer.*`) | Aspire AppHost、OpenAPI (`Microsoft.AspNetCore.OpenApi` + NSwag の Swagger UI / ReDoc)。CSV 出力 (CsvHelper) と PDF 帳票 (OysterReport) は Phase 2 以降で参考にする |
+| | `D:\GitHubTemplate\template-maui-server` | Phase 2 の認証 (管理画面 Cookie ログイン、API JWT)、設定 QR (`QrPage`) の参考 |
+| 端末 (`Pos.Terminal`) | `D:\GitHubTemplate\template-maui-keyboard` (`Template.MobileApp`) | `MauiProgram` の構成 (BunnyTail DI、`[ComponentRegistration]`)、シェル (`MainPage` + `ShellProperty` + F1〜F4)、`AppViewModelBase`、`InputNumber` ポップアップ、Input (物理キー・ショートカット)、Behaviors、`Colors.xaml` / `Styles.xaml` |
+| | `D:\GitHubTemplate\template-maui` (`Template.MobileApp`) | 販売・会計画面のデザイン (`UIPosView`)。QR スキャン / 表示、`Settings` / `SettingParser`、`NetworkOperator`、SQLite `DataAccessor` を Phase 6 で取り込んだ (`HttpService` は HttpClient で書き直し、[D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient)) |
 
 ### D-19. 技術スタック・プロジェクト構成 (テンプレート準拠)
 
@@ -325,14 +404,21 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | A. EF Core + 任意の RDBMS | 当初案 (DB 設計 v0.1) |
 | ✅ **B. テンプレートと同じ構成: SQLite + `Usa.Smart.Data.Accessor` (SQL ファイル) + Minimal API + Blazor Server (MudBlazor) + Aspire AppHost** | 利用者のテンプレート群と同じ書き方になり、流用・比較がしやすい |
 
-**決定**: ✅ **B**。DB は利用者指定で SQLite。
+**決定**: ✅ **B**。  
+DB は利用者指定で SQLite。
 
 **反映**:
 
-- ORM ではなく `[DataAccessor]` + 2-way SQL ファイル。テーブルは起動時に `CREATE TABLE IF NOT EXISTS` (テンプレートの `InitializeApplicationAsync` → `CreateTable()`) で作る。マイグレーションは持たない
-- **Service / Usecase の層は置かない** (利用者指示)。サーバは Endpoints (API) / Blazor ページ → **Accessor (SQL) + Domain (ロジック)** の 2 段。複数テーブルの更新は呼び出し側が `IDbProvider.UsingTxAsync` で Accessor の `DbTransaction` 付きメソッドを束ねる。プロジェクトは `Core` (Accessors / Sql / Models.Entity / Infrastructure) と `Web` (Endpoints / Models / Mappers / Components / Settings)
+- ORM ではなく `[DataAccessor]` + 2-way SQL ファイル。  
+  テーブルは起動時に `CREATE TABLE IF NOT EXISTS` (テンプレートの `InitializeApplicationAsync` → `CreateTable()`) で作る。  
+  マイグレーションは持たない
+- **Service / Usecase の層は置かない** (利用者指示)。  
+  サーバは Endpoints (API) / Blazor ページ → **Accessor (SQL) + Domain (ロジック)** の 2 段。  
+  複数テーブルの更新は呼び出し側が `IDbProvider.UsingTxAsync` で Accessor の `DbTransaction` 付きメソッドを束ねる。  
+  プロジェクトは `Core` (Accessors / Sql / Models.Entity / Infrastructure) と `Web` (Endpoints / Models / Mappers / Components / Settings)
 - Serilog / OpenTelemetry / FeatureManagement / ヘルスチェック / OpenAPI (NSwag UI) はテンプレートのまま
-- MAUI 側は `template-maui` 系テンプレートの構成 (Smart.Navigation + 独自シェル、Smart.Mvvm、BarcodeScanning.Native.Maui、Smart.Data.Accessor + SQLite、BunnyTail DI) をそのまま使う (通信は Rester ではなく HttpClient、[D-40](#d-40-端末の通信-rester-ではなく-httpclient)) (Phase 0 でベースを `template-maui-keyboard` に変更、[D-34](#d-34-参考プロジェクトの差し替え-phase-0))。**Android 専用** (テンプレートが `net10.0-android` のみ)
+- MAUI 側は `template-maui` 系テンプレートの構成 (Smart.Navigation + 独自シェル、Smart.Mvvm、BarcodeScanning.Native.Maui、Smart.Data.Accessor + SQLite、BunnyTail DI) をそのまま使う (通信は Rester ではなく HttpClient、[D-40](#d-40-端末の通信-rester-ではなく-httpclient)) (Phase 0 でベースを `template-maui-keyboard` に変更、[D-34](#d-34-参考プロジェクトの差し替え-phase-0))。  
+  **Android 専用** (テンプレートが `net10.0-android` のみ)
 
 ### D-20. JSON 契約: camelCase
 
@@ -341,7 +427,8 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | ✅ **A. camelCase** (Minimal API の既定 `JsonNamingPolicy.CamelCase`) | 利用者指示。MAUI 側は `HttpService.JsonOptions` (System.Text.Json の Web 既定) で camelCase にする (Rester から HttpClient に変更、[D-40](#d-40-端末の通信-rester-ではなく-httpclient)) |
 | B. PascalCase (`PropertyNamingPolicy = null`) | `template-maui-server` の現状 (Rester 既定との契約)。テンプレート側を camelCase に変更予定とのことなので、実装時にテンプレートを再確認する |
 
-**決定**: ✅ **A**。日時は `yyyy-MM-ddTHH:mm:ss.fffZ` (UTC) のテンプレート `DateTimeConverter`、`null` プロパティは省略、クエリパラメータも camelCase (`?storeId=`)。
+**決定**: ✅ **A**。  
+日時は `yyyy-MM-ddTHH:mm:ss.fffZ` (UTC) のテンプレート `DateTimeConverter`、`null` プロパティは省略、クエリパラメータも camelCase (`?storeId=`)。
 
 ### D-21. ページング: `page` / `size` + 総件数
 
@@ -350,7 +437,9 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | A. カーソル方式 (`cursor` / `nextCursor`) | 当初案。Square 流 |
 | ✅ **B. `page` (0 始まり) / `size` + 一覧応答 `xxxListResponse { total, page, size, items }`** | テンプレートの `DataListResponse` と `MudDataGrid` の `ServerData` (総件数が必要) に一致する |
 
-**決定**: ✅ **B**。並び替えは `sort` / `desc` を `SqlHelper.NormalizeSort` の許可リストで検証する (テンプレートどおり)。差分同期は `updatedSince` で絞った一覧を `UpdatedAt, Id` 順にページングする。
+**決定**: ✅ **B**。  
+並び替えは `sort` / `desc` を `SqlHelper.NormalizeSort` の許可リストで検証する (テンプレートどおり)。  
+差分同期は `updatedSince` で絞った一覧を `UpdatedAt, Id` 順にページングする。
 
 ### D-22. 共有プロジェクト: 通信データとドメインロジックは別プロジェクト
 
@@ -364,8 +453,11 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 
 **決定**: ✅ **B**。
 
-- `Pos.Domain`: 列挙型、計算ロジック (税・値引按分・ポイント・返品導出)、業務ルールの検証。UI・DB・HTTP に依存しない
-- `Pos.Shared`: `XxxRequest` / `XxxResponse`。`Pos.Domain` の列挙型を参照する。サーバ (`Web`) と端末の両方から参照する
+- `Pos.Domain`: 列挙型、計算ロジック (税・値引按分・ポイント・返品導出)、業務ルールの検証。  
+  UI・DB・HTTP に依存しない
+- `Pos.Shared`: `XxxRequest` / `XxxResponse`。  
+  `Pos.Domain` の列挙型を参照する。  
+  サーバ (`Web`) と端末の両方から参照する
 - エンティティ (DB) はサーバ `Core` に、端末のローカルエンティティは MAUI 側に、それぞれテンプレートどおり残す
 
 ### D-26. 命名: `Pos.Server.*` / `Pos.Terminal` / `Pos.Shared` / `Pos.Domain`
@@ -380,11 +472,13 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | `Pos.Domain` | ドメインロジック |
 | `Pos.Domain.Tests` / `Pos.Server.UnitTests` / `Pos.Server.IntegrationTests` | テスト |
 
-名前空間も同じ。`Pos.Terminal` の名称 (端末) は `Pos.Register` などに変えてもよい。
+名前空間も同じ。  
+`Pos.Terminal` の名称 (端末) は `Pos.Register` などに変えてもよい。
 
 ### D-27. 用語: DTO は使わない
 
-通信データは `XxxRequest` / `XxxResponse` と呼び、「DTO」という語は文書・アセンブリ名・名前空間・クラス名のいずれにも使わない (利用者指示)。一覧は `XxxListResponse`、入れ子の要素はテンプレートの `DataListResponseEntry` に倣い `XxxResponseLine` / `XxxRequestLine` のように親の名前に要素名を続ける。
+通信データは `XxxRequest` / `XxxResponse` と呼び、「DTO」という語は文書・アセンブリ名・名前空間・クラス名のいずれにも使わない (利用者指示)。  
+一覧は `XxxListResponse`、入れ子の要素はテンプレートの `DataListResponseEntry` に倣い `XxxResponseLine` / `XxxRequestLine` のように親の名前に要素名を続ける。
 
 ### D-23. 端末の画面骨格: `template-maui` のシェル準拠
 
@@ -393,7 +487,10 @@ POS サーバ API / DB 設計にあたって行った判断の記録。各項目
 | A. 一般的なスマホ UI (ハンバーガー、ボトムシート、FAB) | 当初の画面設計 v0.1 |
 | ✅ **B. `template-maui` の独自シェル: 上部タイトル + 下部 F1〜F4 ファンクションキー、`ContentView` を `ViewId` で遷移、ダイアログは MauiComponents のポップアップ** | テンプレートの資産 (シェル、`AppViewModelBase`、`InputNumber` テンキー、`IDialog`) をそのまま使える。業務用ハンディ端末に近い操作体系で POS に向く |
 
-**決定**: ✅ **B**。各画面は F1〜F4 の割り当てを持つ (画面一覧に列を追加)。ボトムシートは使わず、明細編集・値引・数量入力はポップアップ。数値入力はテンプレートの `InputNumber` ポップアップ (テンキー) を金額・数量に流用する。
+**決定**: ✅ **B**。  
+各画面は F1〜F4 の割り当てを持つ (画面一覧に列を追加)。  
+ボトムシートは使わず、明細編集・値引・数量入力はポップアップ。  
+数値入力はテンプレートの `InputNumber` ポップアップ (テンキー) を金額・数量に流用する。
 
 ### D-24. 端末セットアップ QR: テンプレート互換フォーマット
 
@@ -414,7 +511,8 @@ TerminalId=0192...-guid
 | 列挙型 | TEXT (列挙名) + 汎用 `[TypeHandler]` コンバータ (`EnumTextConverter<T>`)。DB を直接見たときに読める | 同左 |
 | 真偽値 | INTEGER (0 / 1) | 同左 |
 
-**意図**: それぞれのテンプレートの流儀に合わせる。JSON 契約は両者とも ISO 8601 (UTC) なので、境界での変換はテンプレートのコンバータで済む。
+**意図**: それぞれのテンプレートの流儀に合わせる。  
+JSON 契約は両者とも ISO 8601 (UTC) なので、境界での変換はテンプレートのコンバータで済む。
 
 ---
 
@@ -422,23 +520,29 @@ TerminalId=0192...-guid
 
 ### D-28. UI の言語: 日本語固定
 
-端末・管理画面とも日本語固定 (利用者確認済み)。多言語化 (resx) はしない。テンプレートの MAUI は英語ラベルだが、POS 画面はすべて日本語で作る。
+端末・管理画面とも日本語固定 (利用者確認済み)。  
+多言語化 (resx) はしない。  
+テンプレートの MAUI は英語ラベルだが、POS 画面はすべて日本語で作る。
 
 ### D-29. 実装順序
 
-[architecture.md §7](architecture.md#7-実装計画) の順 (土台 → `Pos.Domain` → `Pos.Shared` → サーバ DB → サーバ API → 管理画面 → 端末) で進める (利用者確認済み)。サーバを先に通してから端末に入る。
+[implementation-plan.md](implementation-plan.md) の順 (土台 → `Pos.Domain` → `Pos.Shared` → サーバ DB → サーバ API → 管理画面 → 端末) で進める (利用者確認済み)。  
+サーバを先に通してから端末に入る。
 
 ### D-30. 初期データの規模
 
-[architecture.md §8](architecture.md#8-初期データ) のとおり (商品は大分類ごとに 10 件程度、利用者確認済み)。他店在庫照会を見せるため店舗は 2 つにする (設計者判断)。
+[architecture.md §6](architecture.md#6-初期データ) のとおり (商品は大分類ごとに 10 件程度、利用者確認済み)。  
+他店在庫照会を見せるため店舗は 2 つにする (設計者判断)。
 
 ### D-31. 設計ドキュメントの扱い
 
-設計は `docs/` に置き、このブランチにコミットする (利用者確認済み)。実装中に判断が変わった場合は本書 (decisions.md) に追記し、該当文書を更新する。
+設計は `docs/` に置き、このブランチにコミットする (利用者確認済み)。  
+実装中に判断が変わった場合は本書 (decisions.md) に追記し、該当文書を更新する。
 
 ### D-32. リポジトリ構成: モノレポ + 2 ソリューション
 
-**背景**: 参考テンプレートは端末 (`template-maui`) とサーバ (`template-maui-server`) が別リポジトリだが、本サンプルは 1 つのリポジトリに端末とサーバを同居させる (利用者指示)。一方で端末とサーバは Visual Studio で個別に動かしたい。
+**背景**: 参考テンプレートは端末 (`template-maui`) とサーバ (`template-maui-server`) が別リポジトリだが、本サンプルは 1 つのリポジトリに端末とサーバを同居させる (利用者指示)。  
+一方で端末とサーバは Visual Studio で個別に動かしたい。
 
 | 案 | 内容 |
 | --- | --- |
@@ -446,11 +550,15 @@ TerminalId=0192...-guid
 | B. 1 リポジトリ・1 ソリューション | 全部を 1 つの `.slnx` に入れる。VS で端末とサーバを別々に扱いにくい |
 | ✅ **C. 1 リポジトリ・2 ソリューション** (`server/Pos.Server.slnx`、`terminal/Pos.Terminal.slnx`、共有は `shared/` を両方に含める) | 利用者指示 (モノレポ、個別起動) を両方満たす。各フォルダはテンプレートと同じ形になる |
 
-**決定**: ✅ **C**。共通のビルド設定 (`.editorconfig` / `Directory.Build.props` / `Analyzers.ruleset` / `.gitattributes`) はテンプレート間で同一なのでルートに 1 セット置く。設計ドキュメントは本リポジトリの `docs/` に置く。詳細は [architecture.md §2](architecture.md#2-プロジェクト構成)。
+**決定**: ✅ **C**。  
+共通のビルド設定 (`.editorconfig` / `Directory.Build.props` / `Analyzers.ruleset` / `.gitattributes`) はテンプレート間で同一なのでルートに 1 セット置く。  
+設計ドキュメントは本リポジトリの `docs/` に置く。  
+詳細は [architecture.md §2](architecture.md#2-プロジェクト構成)。
 
 ### D-33. 実装の進め方: フェーズ単位のチェックリスト
 
-[implementation-plan.md](implementation-plan.md) にフェーズごとの `- [ ]` チェックリストと完了条件を置き、フェーズ単位で着手・完了報告する (利用者指示)。完了した項目はチェックを付け、設計の変更があれば本書と該当文書を更新してからフェーズを閉じる。
+[implementation-plan.md](implementation-plan.md) にフェーズごとの `- [ ]` チェックリストと完了条件を置き、フェーズ単位で着手・完了報告する (利用者指示)。  
+完了した項目はチェックを付け、設計の変更があれば本書と該当文書を更新してからフェーズを閉じる。
 
 ---
 
@@ -467,9 +575,13 @@ TerminalId=0192...-guid
 
 **反映**:
 
-- サーバのホストプロジェクト名は `Pos.Server.Web` ではなく **`Pos.Server.Host`** (`CloudManager.Host` / `Template.BlazorServer.Host` に倣う)。D-26 の表は読み替える
-- `Service-CloudManager` には認証・OpenTelemetry・FeatureManagement・レート制限がない。MVP はそのまま (認証なし、[D-09](#d-09-認証端末登録-後回し))。JSON は最初から camelCase (`NamingPolicy`)
-- `template-maui-keyboard` の Input (物理キー・ショートカット) と Behaviors は残す。Bluetooth バーコードスキャナ (HID キーボード) の入力にも使える
+- サーバのホストプロジェクト名は `Pos.Server.Web` ではなく **`Pos.Server.Host`** (`CloudManager.Host` / `Template.BlazorServer.Host` に倣う)。  
+  D-26 の表は読み替える
+- `Service-CloudManager` には認証・OpenTelemetry・FeatureManagement・レート制限がない。  
+  MVP はそのまま (認証なし、[D-09](#d-09-認証端末登録-後回し))。  
+  JSON は最初から camelCase (`NamingPolicy`)
+- `template-maui-keyboard` の Input (物理キー・ショートカット) と Behaviors は残す。  
+  Bluetooth バーコードスキャナ (HID キーボード) の入力にも使える
 - 端末の POS 用スタイルは `Resources/Styles/Styles.xaml` の「POS」節に `Pos` 接頭辞で追加した (背景・行・区切り線・名称 / 金額ラベル・オプションボタン・実行ボタン)
 
 ### D-35. テストの実行方法
@@ -488,7 +600,8 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 
 ### D-36. 端末の画面遷移アニメーション
 
-**背景**: 端末の画面遷移 (`ContentView` の差し替え) にアニメーションがなく、進む / 戻るの感覚がつかみにくい。Smart.Navigation.Maui には効果 (`MauiEffect.Forward` = 右からスライド、`MauiEffect.Back` = 左からスライド、`Push` / `Pop` / `Fade`) が用意されている。
+**背景**: 端末の画面遷移 (`ContentView` の差し替え) にアニメーションがなく、進む / 戻るの感覚がつかみにくい。  
+Smart.Navigation.Maui には効果 (`MauiEffect.Forward` = 右からスライド、`MauiEffect.Back` = 左からスライド、`Push` / `Pop` / `Fade`) が用意されている。
 
 | 選択肢 | 内容 | 評価 |
 | --- | --- | --- |
@@ -497,8 +610,10 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 
 **反映**:
 
-- 階層は screen-design §1.3 の遷移図の深さ: T-00 = 0、T-01 = 1、ホーム T-02 = 2、ホーム直下 = 3、その下 = 4 …。親が複数ある画面は最も深い親 + 1
-- 同じ階層への遷移と起動時の最初の遷移は効果なし。別の効果にしたい遷移は `NavigationParameter` の `WithFadeEffect()` などで明示する (明示した効果が優先)
+- 階層は screen-design §1.3 の遷移図の深さ: T-00 = 0、T-01 = 1、ホーム T-02 = 2、ホーム直下 = 3、その下 = 4 …。  
+  親が複数ある画面は最も深い親 + 1
+- 同じ階層への遷移と起動時の最初の遷移は効果なし。  
+  別の効果にしたい遷移は `NavigationParameter` の `WithFadeEffect()` などで明示する (明示した効果が優先)
 - Debug ビルドの `Navigated` ログに `effect=[...]` を出して確認できるようにした
 
 ### D-37. 帳票出力 (PDF): OysterReport
@@ -521,14 +636,19 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 | 売上日報 | 店舗 × 営業日: 売上・返品・値引・税・客数・客単価、支払方法別・税率別・部門別・時間帯別、シフト一覧 (端末・担当・過不足) | `GET /reports/sales/daily/pdf?storeId&date` | S-10 | ★ |
 | レシート (再発行) | 取引 1 件の控え: 明細・値引・税率別・支払・ポイント・配送先 | `GET /transactions/{id}/receipt/pdf` | S-21 | ◎ |
 
-- `Pos.Server.Host`: パッケージ `OysterReport`、`Assets/Fonts/ipaexg.ttf`、`Assets/Reports/*.xlsx` (`CopyToOutputDirectory`)、`Infrastructure/Reports/` にフォントリゾルバと帳票ごとの `XxxReportBuilder` (シングルトン、`byte[] Build(...)`)。エンドポイントは各リソースのグループに置き、`TypedResults.File(bytes, "application/pdf", ファイル名)` を返す。データがなければ 404 / 400
+- `Pos.Server.Host`: パッケージ `OysterReport`、`Assets/Fonts/ipaexg.ttf`、`Assets/Reports/*.xlsx` (`CopyToOutputDirectory`)、`Infrastructure/Reports/` にフォントリゾルバと帳票ごとの `XxxReportBuilder` (シングルトン、`byte[] Build(...)`)。  
+  エンドポイントは各リソースのグループに置き、`TypedResults.File(bytes, "application/pdf", ファイル名)` を返す。  
+  データがなければ 404 / 400
 - 管理画面のボタンは `MudButton Href="api/v1/.../pdf"` (認証は後回しなので直接リンク)
-- テンプレートは Excel で作る。1 シート = 1 ページを基本にし、明細行はプレースホルダの行から順に埋める。複数ページ (複数シフトなど) はシートのコピーで作る (`GadgetFood` の給与明細と同じ)
+- テンプレートは Excel で作る。  
+  1 シート = 1 ページを基本にし、明細行はプレースホルダの行から順に埋める。  
+  複数ページ (複数シフトなど) はシートのコピーで作る (`GadgetFood` の給与明細と同じ)
 - 端末のレシート (T-22) は画面表示 + 電子レシート QR + 画像共有のままで、サーバの PDF は使わない (オフラインでも出せるように)
 
 ### D-38. 警告の抑止
 
-`Pos.Shared` に型を置くと、名前空間の `Shared` が VB の予約語のため CA1716 が全ファイルで出る。`ProductResponse.ImageUrl` (string) には CA1056 が出る。
+`Pos.Shared` に型を置くと、名前空間の `Shared` が VB の予約語のため CA1716 が全ファイルで出る。  
+`ProductResponse.ImageUrl` (string) には CA1056 が出る。
 
 | 案 | 内容 |
 | --- | --- |
@@ -542,7 +662,8 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 
 ### D-39. 管理画面の表現 (絵文字・チップ・バッジ)
 
-管理画面は文字だけの表では状態が読み取りにくい。ナビ (screen-design §2.2) には絵文字を割り当ててある。
+管理画面は文字だけの表では状態が読み取りにくい。  
+ナビ (screen-design §2.2) には絵文字を割り当ててある。
 
 | 案 | 内容 |
 | --- | --- |
@@ -552,12 +673,15 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 
 **決定**: ✅ **B** (利用者指示)。
 
-- 文言と色は `Application/ChipText.cs` に集約し、`Controls/StatusChip` で表示する。列挙型の日本語名・金額・日時の書式は `Application/DisplayText.cs`
-- 端末側 (MAUI) は対象外。レシートや帳票 (PDF) にも絵文字は使わない (フォントに依存するため)
+- 文言と色は `Application/ChipText.cs` に集約し、`Controls/StatusChip` で表示する。  
+  列挙型の日本語名・金額・日時の書式は `Application/DisplayText.cs`
+- 端末側 (MAUI) は対象外。  
+  レシートや帳票 (PDF) にも絵文字は使わない (フォントに依存するため)
 
 ### D-40. 端末の通信: Rester ではなく HttpClient
 
-テンプレート (`template-maui`) の `HttpService` は Rester を使うが、Rester は 4xx / 5xx の応答本文 (Problem Details) を呼び出し側に返さない。端末は `409` / `422` の `errorCode` で Outbox の「要確認」を判定し、利用者に理由 (`PRICE_OVERRIDE_NOT_ALLOWED` など) を見せる必要がある。
+テンプレート (`template-maui`) の `HttpService` は Rester を使うが、Rester は 4xx / 5xx の応答本文 (Problem Details) を呼び出し側に返さない。  
+端末は `409` / `422` の `errorCode` で Outbox の「要確認」を判定し、利用者に理由 (`PRICE_OVERRIDE_NOT_ALLOWED` など) を見せる必要がある。
 
 | 案 | 内容 |
 | --- | --- |
@@ -567,13 +691,15 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 
 **決定**: ✅ **B**。
 
-- `ApiResult<T>` は `Status` (Success / HttpError / Unavailable / Canceled)、`StatusCode`、`Content`、`Problem`、`ErrorCode` を持つ。`IsRejected` (4xx) を Outbox の Failed 判定に使う
+- `ApiResult<T>` は `Status` (Success / HttpError / Unavailable / Canceled)、`StatusCode`、`Content`、`Problem`、`ErrorCode` を持つ。  
+  `IsRejected` (4xx) を Outbox の Failed 判定に使う
 - 接続確認・インジケータ・エラー通知は `NetworkOperator.ExecuteAsync` に集約する (オンライン限定の操作で使う)
 - 端末の JSON 設定はサーバ (`ConfigureHttpJsonOptions`) と同じ (architecture §4.2)
 
 ### D-41. サンプル取引の生成: API 経由のコンソールツール
 
-レポートやダッシュボードの確認には数日分の取引・シフトが要るが、端末から手で作るのは時間がかかる。初期データ (architecture §8) には入れない方針 ([D-30](#d-30-初期データの規模)) なので、別の手段が要る。
+レポートやダッシュボードの確認には数日分の取引・シフトが要るが、端末から手で作るのは時間がかかる。  
+初期データ (architecture §6) には入れない方針 ([D-30](#d-30-初期データの規模)) なので、別の手段が要る。
 
 | 案 | 内容 |
 | --- | --- |
@@ -583,14 +709,18 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 
 **決定**: ✅ **C**。
 
-- 対象は起動中のサーバ (`--base`、既定 `http://localhost:8080/`)。有効な店舗 × 端末ごとに直近 `--days` 日分 (既定 7) を、開設 → 販売 → 返品 → 取消 → 出金 → 精算の順に登録する。開設中のシフトがある端末は省略する
+- 対象は起動中のサーバ (`--base`、既定 `http://localhost:8080/`)。  
+  有効な店舗 × 端末ごとに直近 `--days` 日分 (既定 7) を、開設 → 販売 → 返品 → 取消 → 出金 → 精算の順に登録する。  
+  開設中のシフトがある端末は省略する
 - 初日の開店前に物品の在庫を調整 (`POST /inventory/changes`、`Adjustment`「サンプル入荷」) で積み、販売で在庫がマイナスになりすぎないようにする (少数のマイナス在庫は残り、要確認の表示確認に使える)
-- 乱数は `--seed` で固定し、同じ引数なら同じ内容になる (ID と時刻は除く)。サーバに拒否された取引 (409 / 422) は省略して続行する
-- `Pos.Server.slnx` の `/Tools/` に含める。`Pos.Domain` / `Pos.Shared` だけを参照し、`Pos.Server.Core` / `Host` には依存しない
+- 乱数は `--seed` で固定し、同じ引数なら同じ内容になる (ID と時刻は除く)。  
+  サーバに拒否された取引 (409 / 422) は省略して続行する
+- `Pos.Server.slnx` の `/Tools/` に含める。  
+  `Pos.Domain` / `Pos.Shared` だけを参照し、`Pos.Server.Core` / `Host` には依存しない
 
 ### D-42. 後回し項目の実装順序 (Phase 8 以降)
 
-MVP (Phase 0〜7) の完了後、後回しにしていた項目 ([api-design.md §7](api-design.md#7-phase-2-以降-後回し)、screen-design の ◎、db-design §7) をどの順で進めるか。
+MVP (Phase 0〜7) の完了後、後回しにしていた項目 (認証・端末登録、日次締め、受注、商品画像・CSV 取込、レシート・帳票・検索、通知、在庫移動・入荷) をどの順で進めるか。
 
 | 案 | 内容 |
 | --- | --- |
@@ -600,15 +730,19 @@ MVP (Phase 0〜7) の完了後、後回しにしていた項目 ([api-design.md 
 
 **決定**: ✅ **A** (利用者指示で再計画)。
 
-- 認証は以降のすべての API 追加に認可が絡むため最初にする。テストと SampleData ツールの認証対応もここで済ませる
-- 日次締めは管理画面だけで規模が小さく、精算 (完了済み) の上に乗る。受注は端末と管理画面の両方に跨るので次
+- 認証は以降のすべての API 追加に認可が絡むため最初にする。  
+  テストと SampleData ツールの認証対応もここで済ませる
+- 日次締めは管理画面だけで規模が小さく、精算 (完了済み) の上に乗る。  
+  受注は端末と管理画面の両方に跨るので次
 - 通知 (SignalR) と在庫移動・入荷は他の機能に依存されないので後ろに置く
-- 各フェーズの詳細設計 (api / db / screen の該当節と `D-4x`) はフェーズ着手時に行う。計画は [implementation-plan.md](implementation-plan.md#phase-8-以降-後回し項目の計画)
+- 各フェーズの詳細設計 (api / db / screen の該当節と `D-4x`) はフェーズ着手時に行う。  
+  計画は [implementation-plan.md](implementation-plan.md#phase-8-以降-後回し項目の計画)
 - 引き続き対象外: 外部向け Webhook、Bluetooth レシートプリンタ、受注の前受金、発注、管理画面の MFA / パスキー
 
 ### D-43. 端末シェルのデザイン: POS 画面に合わせる
 
-テンプレート (`template-maui-keyboard`) のシェルは、タイトルを中央寄せの大きな文字で出し、F キーは赤 / 藍 / 緑 / 橙のアクセント色、ホームは青いタイルだった。販売・会計画面 (紺のヘッダ、白い行、青い金額) と並べると浮いて見える (利用者指摘)。
+テンプレート (`template-maui-keyboard`) のシェルは、タイトルを中央寄せの大きな文字で出し、F キーは赤 / 藍 / 緑 / 橙のアクセント色、ホームは青いタイルだった。  
+販売・会計画面 (紺のヘッダ、白い行、青い金額) と並べると浮いて見える (利用者指摘)。
 
 | 案 | 内容 |
 | --- | --- |
@@ -618,13 +752,16 @@ MVP (Phase 0〜7) の完了後、後回しにしていた項目 ([api-design.md 
 
 **決定**: ✅ **B** (利用者指示)。
 
-- `Styles.xaml` の `HeaderTitleLabel` / `FunctionGrid` / `FunctionButton1〜4` / `MenuGrid` / `MenuButton` / `MenuPrimaryButton` / `InputCancelButton` / `InputConfirmButton` / `InputDeleteButton`。F1 = 戻る・メニュー、F4 = 会計・確定・開設・精算 という割り当てに色を合わせる
-- 会計画面の支払方法ボタンは横に長くなる名称 (クレジットカード) があるため、支払方法マスタに `shortName` (ボタン名、10 文字まで) を足し、端末はそれを表示する (省略時は `name`)。既存 DB には起動時に列を足し、初期データ相当のボタン名を入れる (`SchemaHelper.EnsureColumnAsync`)
+- `Styles.xaml` の `HeaderTitleLabel` / `FunctionGrid` / `FunctionButton1〜4` / `MenuGrid` / `MenuButton` / `MenuPrimaryButton` / `InputCancelButton` / `InputConfirmButton` / `InputDeleteButton`。  
+  F1 = 戻る・メニュー、F4 = 会計・確定・開設・精算 という割り当てに色を合わせる
+- 会計画面の支払方法ボタンは横に長くなる名称 (クレジットカード) があるため、支払方法マスタに `shortName` (ボタン名、10 文字まで) を足し、端末はそれを表示する (省略時は `name`)。  
+  既存 DB には起動時に列を足し、初期データ相当のボタン名を入れる (`SchemaHelper.EnsureColumnAsync`)
 - 画面を離れるときに入力欄のフォーカスを外し、ソフトキーボードが次の画面に残らないようにする (`ShellUpdateBehavior`)
 
 ### D-44. 入力はキーボードに依存しない (数値・番号は電卓ボタン)
 
-端末はスマートフォンだが、レジ操作の入力はほぼ数値 (数量・金額・枚数) と番号 (会員番号・電話・郵便番号・商品コード・伝票番号) である。OS のソフトキーボードは画面の半分を隠し、機種やキーボードアプリで見た目と挙動が変わり、F キーも隠れる (利用者指摘)。
+端末はスマートフォンだが、レジ操作の入力はほぼ数値 (数量・金額・枚数) と番号 (会員番号・電話・郵便番号・商品コード・伝票番号) である。  
+OS のソフトキーボードは画面の半分を隠し、機種やキーボードアプリで見た目と挙動が変わり、F キーも隠れる (利用者指摘)。
 
 | 案 | 内容 |
 | --- | --- |
@@ -636,4 +773,5 @@ MVP (Phase 0〜7) の完了後、後回しにしていた項目 ([api-design.md 
 
 - `NumberInputModel.KeepLeadingZeros` / `NumberInputParameter.Digits` / `IPopupNavigator.InputDigitsAsync` を足し、番号 (先頭が 0 の電話番号など) も電卓で入力できるようにした
 - 適用: P-13 数量・単価、P-15 値引の値、金種別入力の枚数、T-16 / T-62 の電話・郵便番号・生年月日、T-11 の手入力コード、T-20 の伝票番号、T-12 / T-14 の 🔢
-- テンプレートの `NavigationFocusPlugin` (遷移先の最初の入力欄に自動フォーカス。キーボード端末向け) は使わない。画面を離れるときはフォーカスを外し、キーボードを残さない (`ShellUpdateBehavior`)
+- テンプレートの `NavigationFocusPlugin` (遷移先の最初の入力欄に自動フォーカス。キーボード端末向け) は使わない。  
+  画面を離れるときはフォーカスを外し、キーボードを残さない (`ShellUpdateBehavior`)
