@@ -107,7 +107,7 @@ public static partial class TransactionMapper
         Payments = ToPayments(request.Payments, paymentMethods)
     };
 
-    public static ReturnInput ToReturnInput(TransactionCalculateRequest request, TaxRounding taxRounding, IReadOnlyList<TransactionLineEntity> originalLines, IReadOnlyDictionary<Guid, PaymentMethodEntity> paymentMethods) => new()
+    public static ReturnInput ToReturnInput(TransactionCalculateRequest request, TaxRounding taxRounding, IEnumerable<TransactionLineEntity> originalLines, IReadOnlyDictionary<Guid, PaymentMethodEntity> paymentMethods) => new()
     {
         TaxRounding = taxRounding,
         OriginalLines = originalLines.Select(static x => new ReturnOriginalLine

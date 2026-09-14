@@ -2,6 +2,8 @@ namespace Pos.Domain.Rules;
 
 using Pos.Domain.Sales;
 
+// 各項目はサーバ (Problem Details) と端末 (要確認の表示) が読む
+// ReSharper disable NotAccessedPositionalProperty.Global
 public sealed record RuleError(ErrorCode Code, string Message, Guid? LineId = null);
 
 public sealed record RuleWarning(WarningCode Code, string Message, Guid? LineId = null);

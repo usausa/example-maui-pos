@@ -1,5 +1,7 @@
 namespace Pos.Server.Models;
 
+// 各項目は Host の Mapper (ソース生成) が読む
+// ReSharper disable NotAccessedPositionalProperty.Global
 // シフトの集計 (取消済みを除く)。Open 中は取引から都度集計し、精算時に Shifts へ確定する
 public sealed record ShiftTotals(
     decimal CashSales,

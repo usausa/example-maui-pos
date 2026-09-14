@@ -4,6 +4,7 @@ public sealed partial class PlatformService
 {
     // TODO update
 #pragma warning disable CS0618
+    // ReSharper disable once UnusedParameterInPartialMethod
     public static partial int ResolveSelectedPosition(ListView element)
     {
         // TODO

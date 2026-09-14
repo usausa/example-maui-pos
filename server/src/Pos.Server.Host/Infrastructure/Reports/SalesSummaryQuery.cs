@@ -71,7 +71,7 @@ public static class SalesSummaryQuery
         };
 
     // 合計行は各行の合算 (CustomerCount は延べ人数)。TaxableAmount / TaxAmount は税率別のときだけ
-    public static SalesSummaryRow Sum(IReadOnlyList<SalesSummaryRow> rows, bool withTax)
+    public static SalesSummaryRow Sum(IEnumerable<SalesSummaryRow> rows, bool withTax)
     {
         var transactionCount = 0;
         var returnCount = 0;
