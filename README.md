@@ -97,7 +97,7 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 | 文書 | 内容 |
 | --- | --- |
 | [docs/README.md](docs/README.md) | 設計ドキュメントの索引と前提の要約 |
-| [docs/decisions.md](docs/decisions.md) | 設計判断の記録 (D-00 〜 D-42) |
+| [docs/decisions.md](docs/decisions.md) | 設計判断の記録 (D-00 〜 D-44) |
 | [docs/architecture.md](docs/architecture.md) | ソリューション構成、プロジェクト・層・パッケージ、実行・開発、初期データ |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | 実装プラン (Phase 0〜7 は完了。Phase 8〜14 は後回し項目の計画) |
 | [docs/api-design.md](docs/api-design.md) / [docs/db-design.md](docs/db-design.md) / [docs/screen-design.md](docs/screen-design.md) | API / DB / 画面の設計 |

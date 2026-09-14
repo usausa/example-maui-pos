@@ -11,6 +11,9 @@ public sealed class NumberInputModel : NotificationObject
 
     public bool AllowEmpty { get; set; }
 
+    // 番号 (電話・郵便番号・コード) は先頭の 0 を残す
+    public bool KeepLeadingZeros { get; set; }
+
     private int IntegerLength => Scale > 0 ? MaxLength - Scale - 1 : MaxLength;
 
     public string Text
@@ -61,7 +64,7 @@ public sealed class NumberInputModel : NotificationObject
             }
             else
             {
-                if (text == "0")
+                if ((text == "0") && !KeepLeadingZeros)
                 {
                     Text = key;
                 }

@@ -53,11 +53,11 @@
               Style="{StaticResource FunctionGrid}"
               ColumnDefinitions="*,*">
             <Button Grid.Column="0"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputCancelButton}"
                     Command="{Binding CloseCommand}"
-                    Text="❌" />
+                    Text="✕" />
             <Button Grid.Column="1"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputConfirmButton}"
                     IsEnabled="{Binding AllowCustom}"
                     Command="{Binding CommitCommand}"
                     Text="✔" />

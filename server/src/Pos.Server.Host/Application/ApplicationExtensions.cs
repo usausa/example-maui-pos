@@ -423,7 +423,14 @@ public static class ApplicationExtensions
         services.GetRequiredService<TransactionAccessor>().Create();
         services.GetRequiredService<InventoryAccessor>().Create();
 
-        await InitialData.SeedAsync(services, services.GetRequiredService<TimeProvider>().GetUtcNow().UtcDateTime, CancellationToken.None);
+        // 後から増えた列 (既存の DB に足す。足したときは初期データ相当の値を入れる)
+        var now = services.GetRequiredService<TimeProvider>().GetUtcNow().UtcDateTime;
+        if (await provider.UsingAsync(con => SchemaHelper.EnsureColumnAsync(con, "PaymentMethods", "ShortName", "TEXT", CancellationToken.None)))
+        {
+            await InitialData.BackfillPaymentMethodShortNamesAsync(services, now, CancellationToken.None);
+        }
+
+        await InitialData.SeedAsync(services, now, CancellationToken.None);
     }
 
     //--------------------------------------------------------------------------------

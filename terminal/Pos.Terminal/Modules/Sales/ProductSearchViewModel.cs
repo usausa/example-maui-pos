@@ -32,6 +32,8 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
     private readonly Session session;
 
+    private readonly IPopupNavigator popupNavigator;
+
     private ViewId returnTo = ViewId.Sales;
 
     private IReadOnlyList<CategoryResponse> categories = [];
@@ -64,6 +66,8 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
     public IObserveCommand SearchCommand { get; }
 
+    public IObserveCommand InputNumberCommand { get; }
+
     public IObserveCommand SelectParentCommand { get; }
 
     public IObserveCommand SelectChildCommand { get; }
@@ -72,16 +76,19 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
     public ProductSearchViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
         DataAccessor accessor,
         SalesState sales,
         Session session)
     {
         this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
         this.accessor = accessor;
         this.sales = sales;
         this.session = session;
 
         SearchCommand = MakeAsyncCommand(SearchAsync);
+        InputNumberCommand = MakeAsyncCommand(InputNumberAsync);
         Keyword = new EntryController(SearchCommand);
         SelectParentCommand = MakeAsyncCommand<CategoryItem>(SelectParentAsync);
         SelectChildCommand = MakeAsyncCommand<CategoryItem>(SelectChildAsync);
@@ -94,7 +101,17 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
         categories = await accessor.QueryCategoryListAsync();
         taxRates = (await accessor.QueryTaxRateListAsync()).ToDictionary(static x => x.Id);
         Parents = new[] { new CategoryItem(null, "すべて") }.Concat(categories.Where(static x => x.ParentId is null).Select(static x => new CategoryItem(x.Id, x.Name))).ToList();
-        Keyword.Focus();
+    }
+
+    // 番号は電卓で入力する (キーボードに依存しない)
+    private async Task InputNumberAsync()
+    {
+        var text = await popupNavigator.InputDigitsAsync("コード / JAN", string.Empty, 13);
+        if (!String.IsNullOrEmpty(text))
+        {
+            Keyword.Text = text;
+            await SearchAsync();
+        }
     }
 
     private async Task SearchAsync()
@@ -178,7 +195,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
         return Task.CompletedTask;
     }
 
-    protected override async Task OnNotifyFunction3()
+    protected override Task OnNotifyFunction3()
     {
         Keyword.Text = string.Empty;
         selectedParent = null;
@@ -190,7 +207,6 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
         Children = [];
         ChildrenVisible = false;
-        await SearchAsync();
-        Keyword.Focus();
+        return SearchAsync();
     }
 }

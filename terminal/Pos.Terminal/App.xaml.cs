@@ -2,6 +2,8 @@ namespace Pos.Terminal;
 
 using Microsoft.Extensions.DependencyInjection;
 
+using Pos.Terminal.Helpers.Data;
+
 using Smart.Data;
 
 #pragma warning disable CA1724
@@ -40,6 +42,9 @@ public sealed partial class App
         {
             await accessor.ExecutePragmaAsync(con);
             await accessor.CreateTablesAsync(con);
+
+            // 後から増えた列 (マスタは次の同期で埋まる)
+            await SchemaHelper.EnsureColumnAsync(con, "PaymentMethods", "ShortName", "TEXT");
         });
 
         var syncWorker = serviceProvider.GetRequiredService<SyncWorker>();

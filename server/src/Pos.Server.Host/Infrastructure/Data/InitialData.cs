@@ -100,15 +100,32 @@ public static class InitialData
         await accessor.InsertAsync(new TaxRateEntity { Id = ExemptTaxRateId, Code = "EXEMPT", Name = "非課税", Rate = 0m, Kind = TaxKind.Exempt, IsDefault = false, SortOrder = 3, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
     }
 
+    // ShortName 列を後から足した DB に、初期データと同じボタン名を入れる (更新なので端末は差分同期で受け取る)
+    public static async ValueTask BackfillPaymentMethodShortNamesAsync(IServiceProvider services, DateTime now, CancellationToken cancellationToken)
+    {
+        var accessor = services.GetRequiredService<PaymentMethodAccessor>();
+        var shortNames = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["CASH"] = "現金", ["CARD"] = "クレカ", ["QR"] = "QR", ["EMONEY"] = "電子マネー", ["VOUCHER"] = "商品券", ["POINT"] = "ポイント"
+        };
+        foreach (var entity in await accessor.QueryListAsync(null, false, cancellationToken))
+        {
+            if (String.IsNullOrEmpty(entity.ShortName) && shortNames.TryGetValue(entity.Code, out var shortName))
+            {
+                await accessor.UpdateAsync(entity.Id, entity.Code, entity.Name, shortName, entity.Kind, entity.AllowsChange, entity.RequiresReference, entity.IsActive, entity.SortOrder, now, entity.Version, cancellationToken);
+            }
+        }
+    }
+
     private static async ValueTask SeedPaymentMethodsAsync(IServiceProvider services, DateTime now, CancellationToken cancellationToken)
     {
         var accessor = services.GetRequiredService<PaymentMethodAccessor>();
-        await accessor.InsertAsync(new PaymentMethodEntity { Id = CashPaymentMethodId, Code = "CASH", Name = "現金", Kind = PaymentKind.Cash, AllowsChange = true, RequiresReference = false, IsActive = true, SortOrder = 1, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
-        await accessor.InsertAsync(new PaymentMethodEntity { Id = CardPaymentMethodId, Code = "CARD", Name = "クレジットカード", Kind = PaymentKind.Card, AllowsChange = false, RequiresReference = true, IsActive = true, SortOrder = 2, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
-        await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 3), Code = "QR", Name = "QR 決済", Kind = PaymentKind.Qr, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 3, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
-        await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 4), Code = "EMONEY", Name = "電子マネー", Kind = PaymentKind.EMoney, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 4, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
-        await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 5), Code = "VOUCHER", Name = "商品券", Kind = PaymentKind.Voucher, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 5, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
-        await accessor.InsertAsync(new PaymentMethodEntity { Id = PointsPaymentMethodId, Code = "POINT", Name = "ポイント", Kind = PaymentKind.Points, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 6, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
+        await accessor.InsertAsync(new PaymentMethodEntity { Id = CashPaymentMethodId, Code = "CASH", Name = "現金", ShortName = "現金", Kind = PaymentKind.Cash, AllowsChange = true, RequiresReference = false, IsActive = true, SortOrder = 1, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
+        await accessor.InsertAsync(new PaymentMethodEntity { Id = CardPaymentMethodId, Code = "CARD", Name = "クレジットカード", ShortName = "クレカ", Kind = PaymentKind.Card, AllowsChange = false, RequiresReference = true, IsActive = true, SortOrder = 2, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
+        await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 3), Code = "QR", Name = "QR 決済", ShortName = "QR", Kind = PaymentKind.Qr, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 3, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
+        await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 4), Code = "EMONEY", Name = "電子マネー", ShortName = "電子マネー", Kind = PaymentKind.EMoney, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 4, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
+        await accessor.InsertAsync(new PaymentMethodEntity { Id = Id(8, 5), Code = "VOUCHER", Name = "商品券", ShortName = "商品券", Kind = PaymentKind.Voucher, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 5, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
+        await accessor.InsertAsync(new PaymentMethodEntity { Id = PointsPaymentMethodId, Code = "POINT", Name = "ポイント", ShortName = "ポイント", Kind = PaymentKind.Points, AllowsChange = false, RequiresReference = false, IsActive = true, SortOrder = 6, CreatedAt = now, UpdatedAt = now, Version = 1 }, cancellationToken);
     }
 
     private static async ValueTask SeedCategoriesAsync(IServiceProvider services, DateTime now, CancellationToken cancellationToken)

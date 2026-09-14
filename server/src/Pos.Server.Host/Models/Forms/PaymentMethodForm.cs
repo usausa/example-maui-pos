@@ -8,6 +8,8 @@ public sealed class PaymentMethodForm
 
     public string Name { get; set; } = string.Empty;
 
+    public string? ShortName { get; set; }
+
     public PaymentKind Kind { get; set; } = PaymentKind.Cash;
 
     public bool AllowsChange { get; set; }

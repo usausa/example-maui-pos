@@ -66,7 +66,6 @@ global using Pos.Shared.TaxRates;
 global using Pos.Shared.Terminals;
 
 global using Pos.Terminal;
-global using Pos.Terminal.Domain;
 global using Pos.Terminal.Helpers;
 global using Pos.Terminal.Messaging;
 global using Pos.Terminal.Models;

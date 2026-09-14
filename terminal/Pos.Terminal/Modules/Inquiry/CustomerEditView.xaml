@@ -38,9 +38,9 @@
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="電話" />
-            <Entry Style="{StaticResource PosFieldEntry}"
-                   Keyboard="Telephone"
-                   behaviors:EntryBind.Controller="{Binding Phone}" />
+            <Button Style="{StaticResource PosFieldInputButton}"
+                    Command="{Binding InputPhoneCommand}"
+                    Text="{Binding PhoneText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして入力'}" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="メール" />
@@ -50,9 +50,9 @@
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="郵便番号" />
-            <Entry Style="{StaticResource PosFieldEntry}"
-                   Keyboard="Numeric"
-                   behaviors:EntryBind.Controller="{Binding PostalCode}" />
+            <Button Style="{StaticResource PosFieldInputButton}"
+                    Command="{Binding InputPostalCodeCommand}"
+                    Text="{Binding PostalCodeText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして入力'}" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="住所" />
@@ -61,10 +61,9 @@
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="生年月日 (yyyy/MM/dd)" />
-            <Entry Style="{StaticResource PosFieldEntry}"
-                   Keyboard="Numeric"
-                   behaviors:EntryBind.Controller="{Binding BirthDate}"
-                   Placeholder="1990/01/01" />
+            <Button Style="{StaticResource PosFieldInputButton}"
+                    Command="{Binding InputBirthDateCommand}"
+                    Text="{Binding BirthDateText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして入力'}" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="備考" />

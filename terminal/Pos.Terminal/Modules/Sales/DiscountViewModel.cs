@@ -26,13 +26,16 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
     [ObservableProperty]
     public partial bool IsAmount { get; set; } = true;
 
-    public EntryController Value { get; } = new();
+    [ObservableProperty]
+    public partial string? ValueText { get; set; }
 
     public EntryController Reason { get; } = new();
 
     public IObserveCommand SelectCommand { get; }
 
     public IObserveCommand SelectTypeCommand { get; }
+
+    public IObserveCommand InputValueCommand { get; }
 
     public IObserveCommand CloseCommand { get; }
 
@@ -51,6 +54,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
 
         SelectCommand = MakeAsyncCommand<DiscountItem>(SelectAsync);
         SelectTypeCommand = MakeDelegateCommand<string>(x => IsAmount = x == "Amount");
+        InputValueCommand = MakeAsyncCommand(async () => ValueText = await popupNavigator.InputNumberAsync(IsAmount ? "値引額 (¥)" : "値引率 (%)", ValueText ?? "0", 7) ?? ValueText);
         CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync());
         CommitCommand = MakeAsyncCommand(CommitAsync);
     }
@@ -101,10 +105,9 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
 
     private async Task CommitAsync()
     {
-        if (!Decimal.TryParse(Value.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) || (value <= 0))
+        if (!Decimal.TryParse(ValueText, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) || (value <= 0))
         {
             await dialog.InformationAsync("値を入力してください。");
-            Value.Focus();
             return;
         }
 

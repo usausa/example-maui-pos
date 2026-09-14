@@ -232,7 +232,8 @@ public static partial class MauiProgram
         {
             config.UseMauiNavigationProvider();
             config.AddHierarchyEffectPlugin();
-            config.AddPlugin<NavigationFocusPlugin>();
+            // NavigationFocusPlugin (遷移先の最初の入力欄に自動でフォーカス) はキーボード端末向けのため使わない
+            // (入力はスキャンと電卓ボタンが基本。キーボードは文字入力欄をタップしたときだけ出す)
             config.AddPlugin<NavigationFeedbackPlugin>();
             config.UseIdViewMapper(static m => m.AutoRegister(ViewSource()));
         });
@@ -286,7 +287,9 @@ public static partial class MauiProgram
         new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            // サーバに届かないときは 30 秒待たずに諦める (全体のタイムアウトは大きい同期のために残す)
+            ConnectTimeout = TimeSpan.FromSeconds(5)
         };
 
     // ------------------------------------------------------------

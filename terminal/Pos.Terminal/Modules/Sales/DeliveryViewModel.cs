@@ -13,9 +13,11 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
 
     public EntryController RecipientName { get; } = new();
 
-    public EntryController Phone { get; } = new();
+    [ObservableProperty]
+    public partial string? PhoneText { get; set; }
 
-    public EntryController PostalCode { get; } = new();
+    [ObservableProperty]
+    public partial string? PostalCodeText { get; set; }
 
     public EntryController Address { get; } = new();
 
@@ -39,12 +41,20 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
 
     public IObserveCommand SelectTimeSlotCommand { get; }
 
+    public IObserveCommand InputPhoneCommand { get; }
+
+    public IObserveCommand InputPostalCodeCommand { get; }
+
     public DeliveryViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
         SalesState sales)
     {
         this.dialog = dialog;
         this.sales = sales;
+
+        InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputDigitsAsync("電話番号", PhoneText, 13) ?? PhoneText);
+        InputPostalCodeCommand = MakeAsyncCommand(async () => PostalCodeText = await popupNavigator.InputDigitsAsync("郵便番号", PostalCodeText, 7) ?? PostalCodeText);
 
         SetDateCommand = MakeDelegateCommand(() =>
         {
@@ -70,8 +80,8 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
         if (delivery is not null)
         {
             RecipientName.Text = delivery.RecipientName;
-            Phone.Text = delivery.Phone;
-            PostalCode.Text = delivery.PostalCode;
+            PhoneText = delivery.Phone;
+            PostalCodeText = delivery.PostalCode;
             Address.Text = delivery.Address;
             HasRequestedDate = delivery.RequestedDate is not null;
             RequestedDate = delivery.RequestedDate?.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today;
@@ -93,8 +103,8 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
         if (customer is not null)
         {
             RecipientName.Text = customer.Name;
-            Phone.Text = customer.Phone;
-            PostalCode.Text = customer.PostalCode;
+            PhoneText = customer.Phone;
+            PostalCodeText = customer.PostalCode;
             Address.Text = customer.Address;
         }
 
@@ -129,8 +139,8 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
         sales.Cart.Delivery = new CartDelivery
         {
             RecipientName = RecipientName.Text.Trim(),
-            Phone = Trim(Phone.Text),
-            PostalCode = Trim(PostalCode.Text),
+            Phone = Trim(PhoneText),
+            PostalCode = Trim(PostalCodeText),
             Address = Address.Text.Trim(),
             RequestedDate = HasRequestedDate ? DateOnly.FromDateTime(RequestedDate) : null,
             TimeSlot = TimeSlotText == TimeSlots[0] ? null : TimeSlotText,

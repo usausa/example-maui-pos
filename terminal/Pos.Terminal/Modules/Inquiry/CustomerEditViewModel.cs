@@ -35,6 +35,8 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
+    private readonly IPopupNavigator popupNavigator;
+
     private readonly NetworkOperator network;
 
     private readonly SalesState sales;
@@ -54,26 +56,56 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
 
     public EntryController Kana { get; } = new();
 
-    public EntryController Phone { get; } = new();
+    [ObservableProperty]
+    public partial string? PhoneText { get; set; }
 
     public EntryController Email { get; } = new();
 
-    public EntryController PostalCode { get; } = new();
+    [ObservableProperty]
+    public partial string? PostalCodeText { get; set; }
 
     public EntryController Address { get; } = new();
 
-    public EntryController BirthDate { get; } = new();
+    [ObservableProperty]
+    public partial string? BirthDateText { get; set; }
 
     public EntryController Note { get; } = new();
 
+    public IObserveCommand InputPhoneCommand { get; }
+
+    public IObserveCommand InputPostalCodeCommand { get; }
+
+    public IObserveCommand InputBirthDateCommand { get; }
+
     public CustomerEditViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
         NetworkOperator network,
         SalesState sales)
     {
         this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
         this.network = network;
         this.sales = sales;
+
+        InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputDigitsAsync("電話番号", PhoneText, 13) ?? PhoneText);
+        InputPostalCodeCommand = MakeAsyncCommand(async () => PostalCodeText = await popupNavigator.InputDigitsAsync("郵便番号", PostalCodeText, 7) ?? PostalCodeText);
+        InputBirthDateCommand = MakeAsyncCommand(InputBirthDateAsync);
+    }
+
+    // 生年月日は yyyyMMdd の 8 桁を電卓で入力し、yyyy/MM/dd に整える
+    private async Task InputBirthDateAsync()
+    {
+        var digits = new string((BirthDateText ?? string.Empty).Where(Char.IsAsciiDigit).ToArray());
+        var text = await popupNavigator.InputDigitsAsync("生年月日 (yyyyMMdd)", digits, 8);
+        if (text is null)
+        {
+            return;
+        }
+
+        BirthDateText = DateOnly.TryParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+            ? DisplayText.Date(date)
+            : text.Length == 0 ? null : text;
     }
 
     public override Task OnNavigatedToAsync(INavigationContext context)
@@ -87,11 +119,11 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
             Code.Text = draft.Code;
             Name.Text = draft.Name;
             Kana.Text = draft.Kana;
-            Phone.Text = draft.Phone;
+            PhoneText = draft.Phone;
             Email.Text = draft.Email;
-            PostalCode.Text = draft.PostalCode;
+            PostalCodeText = draft.PostalCode;
             Address.Text = draft.Address;
-            BirthDate.Text = draft.BirthDate;
+            BirthDateText = draft.BirthDate;
             Note.Text = draft.Note;
         }
         else
@@ -104,11 +136,11 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
                 Code.Text = original.Code;
                 Name.Text = original.Name;
                 Kana.Text = original.Kana;
-                Phone.Text = original.Phone;
+                PhoneText = original.Phone;
                 Email.Text = original.Email;
-                PostalCode.Text = original.PostalCode;
+                PostalCodeText = original.PostalCode;
                 Address.Text = original.Address;
-                BirthDate.Text = original.BirthDate is null ? null : DisplayText.Date(original.BirthDate.Value);
+                BirthDateText = original.BirthDate is null ? null : DisplayText.Date(original.BirthDate.Value);
                 Note.Text = original.Note;
             }
         }
@@ -133,11 +165,11 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         Code = Code.Text,
         Name = Name.Text,
         Kana = Kana.Text,
-        Phone = Phone.Text,
+        Phone = PhoneText,
         Email = Email.Text,
-        PostalCode = PostalCode.Text,
+        PostalCode = PostalCodeText,
         Address = Address.Text,
-        BirthDate = BirthDate.Text,
+        BirthDate = BirthDateText,
         Note = Note.Text
     };
 
@@ -153,10 +185,14 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
 
     protected override Task OnNotifyFunction3()
     {
-        foreach (var entry in new[] { Code, Name, Kana, Phone, Email, PostalCode, Address, BirthDate, Note })
+        foreach (var entry in new[] { Code, Name, Kana, Email, Address, Note })
         {
             entry.Text = null;
         }
+
+        PhoneText = null;
+        PostalCodeText = null;
+        BirthDateText = null;
 
         Code.Focus();
         return Task.CompletedTask;
@@ -181,12 +217,11 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         }
 
         DateOnly? birthDate = null;
-        if (!String.IsNullOrWhiteSpace(BirthDate.Text))
+        if (!String.IsNullOrWhiteSpace(BirthDateText))
         {
-            if (!DateOnly.TryParseExact(BirthDate.Text.Trim(), ["yyyy/MM/dd", "yyyy-MM-dd", "yyyyMMdd"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            if (!DateOnly.TryParseExact(BirthDateText.Trim(), ["yyyy/MM/dd", "yyyy-MM-dd", "yyyyMMdd"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
                 await dialog.InformationAsync("生年月日は yyyy/MM/dd で入力してください。");
-                BirthDate.Focus();
                 return;
             }
 
@@ -201,9 +236,9 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
                 Code = code,
                 Name = name,
                 Kana = Trim(Kana.Text),
-                Phone = Trim(Phone.Text),
+                Phone = Trim(PhoneText),
                 Email = Trim(Email.Text),
-                PostalCode = Trim(PostalCode.Text),
+                PostalCode = Trim(PostalCodeText),
                 Address = Trim(Address.Text),
                 BirthDate = birthDate,
                 Note = Trim(Note.Text)
@@ -216,9 +251,9 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
                 Code = code,
                 Name = name,
                 Kana = Trim(Kana.Text),
-                Phone = Trim(Phone.Text),
+                Phone = Trim(PhoneText),
                 Email = Trim(Email.Text),
-                PostalCode = Trim(PostalCode.Text),
+                PostalCode = Trim(PostalCodeText),
                 Address = Trim(Address.Text),
                 BirthDate = birthDate,
                 Note = Trim(Note.Text),

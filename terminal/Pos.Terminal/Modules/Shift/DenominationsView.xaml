@@ -34,12 +34,13 @@
                                 FontFamily=""
                                 Command="{Binding DecrementCommand}"
                                 Text="-" />
-                        <Entry Grid.Column="2"
-                               Style="{StaticResource PosFieldEntry}"
-                               Margin="4,0"
-                               Keyboard="Numeric"
-                               HorizontalTextAlignment="Center"
-                               Text="{Binding CountText}" />
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Button Grid.Column="2"
+                                Style="{StaticResource PosCountButton}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type module:DenominationsViewModel}}, Path=InputCountCommand, x:DataType={x:Type module:DenominationsViewModel}}"
+                                CommandParameter="{Binding .}"
+                                Text="{Binding CountText}" />
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
                         <Button Grid.Column="3"
                                 Style="{StaticResource PosQuantityButton}"
                                 FontFamily=""
@@ -69,11 +70,11 @@
               Style="{StaticResource FunctionGrid}"
               ColumnDefinitions="*,*">
             <Button Grid.Column="0"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputCancelButton}"
                     Command="{Binding CloseCommand}"
-                    Text="❌" />
+                    Text="✕" />
             <Button Grid.Column="1"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputConfirmButton}"
                     Command="{Binding CommitCommand}"
                     Text="✔" />
         </Grid>

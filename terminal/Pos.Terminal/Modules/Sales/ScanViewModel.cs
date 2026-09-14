@@ -9,6 +9,8 @@ public sealed partial class ScanViewModel : AppViewModelBase
 
     private readonly IDialog dialog;
 
+    private readonly IPopupNavigator popupNavigator;
+
     private readonly DataAccessor accessor;
 
     private readonly SalesState sales;
@@ -46,11 +48,13 @@ public sealed partial class ScanViewModel : AppViewModelBase
 
     public ScanViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
         DataAccessor accessor,
         SalesState sales,
         Session session)
     {
         this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
         this.accessor = accessor;
         this.sales = sales;
         this.session = session;
@@ -178,10 +182,22 @@ public sealed partial class ScanViewModel : AppViewModelBase
 
     protected override async Task OnNotifyFunction3()
     {
-        var result = await dialog.InputAsync(mode == ScanMode.Setup ? "設定 (Key=Value)" : "コード");
-        if (result.Accepted && !String.IsNullOrWhiteSpace(result.Text))
+        if (mode == ScanMode.Setup)
         {
-            await HandleAsync(result.Text.Trim());
+            var result = await dialog.InputAsync("設定 (Key=Value)");
+            if (result.Accepted && !String.IsNullOrWhiteSpace(result.Text))
+            {
+                await HandleAsync(result.Text.Trim());
+            }
+
+            return;
+        }
+
+        // 数字のコードは電卓で入力する (キーボードに依存しない)
+        var text = await popupNavigator.InputDigitsAsync("コード", string.Empty, 13);
+        if (!String.IsNullOrWhiteSpace(text))
+        {
+            await HandleAsync(text.Trim());
         }
     }
 

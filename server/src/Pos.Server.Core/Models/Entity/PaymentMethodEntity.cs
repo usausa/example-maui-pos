@@ -9,6 +9,8 @@ public sealed class PaymentMethodEntity
 
     public string Name { get; set; } = default!;
 
+    public string? ShortName { get; set; }
+
     public PaymentKind Kind { get; set; }
 
     public bool AllowsChange { get; set; }

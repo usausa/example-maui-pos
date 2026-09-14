@@ -136,6 +136,7 @@ CREATE TABLE IF NOT EXISTS PaymentMethods (
     Id TEXT NOT NULL,
     Code TEXT NOT NULL,
     Name TEXT NOT NULL,
+    ShortName TEXT,
     Kind TEXT NOT NULL,
     AllowsChange INTEGER NOT NULL,
     RequiresReference INTEGER NOT NULL,

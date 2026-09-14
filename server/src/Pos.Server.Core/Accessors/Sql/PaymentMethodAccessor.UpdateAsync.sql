@@ -1,6 +1,7 @@
 UPDATE PaymentMethods
 SET Code = /*@ code */'',
     Name = /*@ name */'',
+    ShortName = /*@ shortName */'',
     Kind = /*@ kind */'',
     AllowsChange = /*@ allowsChange */1,
     RequiresReference = /*@ requiresReference */1,

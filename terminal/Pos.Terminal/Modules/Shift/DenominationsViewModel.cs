@@ -62,6 +62,8 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
 {
     private static readonly int[] Denominations = [10000, 5000, 2000, 1000, 500, 100, 50, 10, 5, 1];
 
+    private readonly IPopupNavigator popupNavigator;
+
     [ObservableProperty]
     public partial IReadOnlyList<DenominationItem> Items { get; set; } = [];
 
@@ -72,8 +74,12 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
 
     public IObserveCommand CommitCommand { get; }
 
+    public IObserveCommand InputCountCommand { get; }
+
     public DenominationsViewModel(IPopupNavigator popupNavigator)
     {
+        this.popupNavigator = popupNavigator;
+        InputCountCommand = MakeAsyncCommand<DenominationItem>(InputCountAsync);
         CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync());
         CommitCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync(new DenominationsResult(
             Items.Where(static x => x.Count > 0).Select(static x => new ShiftCloseRequestDenomination { Denomination = x.Denomination, Count = x.Count }).ToList(),
@@ -85,6 +91,16 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
         var counts = parameter.ToDictionary(static x => x.Denomination, static x => x.Count);
         Items = Denominations.Select(x => new DenominationItem(x, counts.GetValueOrDefault(x), UpdateTotal)).ToList();
         UpdateTotal();
+    }
+
+    // 枚数は電卓で入力する (キーボードに依存しない)
+    private async Task InputCountAsync(DenominationItem item)
+    {
+        var text = await popupNavigator.InputNumberAsync($"{item.Label} の枚数", item.CountText, 4);
+        if (Int32.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var count) && (count >= 0))
+        {
+            item.Count = count;
+        }
     }
 
     private decimal Total() => Items.Sum(static x => (decimal)x.Denomination * x.Count);

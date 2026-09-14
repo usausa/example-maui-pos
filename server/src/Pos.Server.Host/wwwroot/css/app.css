@@ -11,6 +11,11 @@ body {
     padding: 2px 8px;
 }
 
+/* Data grid: 列を折り返さず横スクロールにする */
+.grid-nowrap .mud-table-cell {
+    white-space: nowrap;
+}
+
 
 /* Page layout */
 .page-card {

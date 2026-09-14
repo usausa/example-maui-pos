@@ -30,7 +30,7 @@
 
 <ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
 
-<MudDataGrid @ref="Grid" T="ShiftRow" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer">
+<MudDataGrid @ref="Grid" T="ShiftRow" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
     <Columns>
         <PropertyColumn Property="x => x.Shift.BusinessDate" Title="営業日" InitialDirection="SortDirection.Descending">
             <CellTemplate>@DisplayText.Date(context.Item.Shift.BusinessDate)</CellTemplate>
@@ -72,6 +72,6 @@
         <MudText>シフトがありません。</MudText>
     </NoRecordsContent>
     <PagerContent>
-        <MudDataGridPager T="ShiftRow" />
+        <MudDataGridPager T="ShiftRow" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
     </PagerContent>
 </MudDataGrid>

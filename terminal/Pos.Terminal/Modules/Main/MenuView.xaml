@@ -34,7 +34,7 @@
               RowDefinitions="*,*,*,*,*,*"
               ColumnDefinitions="*,*">
             <Button Grid.Row="0" Grid.ColumnSpan="2"
-                    Style="{StaticResource MenuButton}"
+                    Style="{StaticResource MenuPrimaryButton}"
                     Command="{Binding ForwardCommand}"
                     CommandParameter="{x:Static modules:ViewId.Sales}"
                     Text="🛒 販売" />

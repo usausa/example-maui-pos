@@ -96,7 +96,7 @@ public static class PaymentMethodEndpoints
         int rows;
         try
         {
-            rows = await accessor.UpdateAsync(id, request.Code, request.Name, request.Kind, request.AllowsChange, request.RequiresReference, request.IsActive, request.SortOrder, timeProvider.GetUtcNow().UtcDateTime, request.Version, cancellationToken);
+            rows = await accessor.UpdateAsync(id, request.Code, request.Name, request.ShortName, request.Kind, request.AllowsChange, request.RequiresReference, request.IsActive, request.SortOrder, timeProvider.GetUtcNow().UtcDateTime, request.Version, cancellationToken);
         }
         catch (DbException ex) when (dialect.IsDuplicate(ex))
         {

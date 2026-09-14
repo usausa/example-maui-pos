@@ -26,7 +26,7 @@
 
 <ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
 
-<MudDataGrid @ref="Grid" T="InventoryChangeEntity" ServerData="LoadServerData" SortMode="SortMode.None" Dense="true" Hover="true" Bordered="true" Striped="true">
+<MudDataGrid @ref="Grid" T="InventoryChangeEntity" ServerData="LoadServerData" SortMode="SortMode.None" Dense="true" Hover="true" Bordered="true" Striped="true" HorizontalScrollbar="true" Class="grid-nowrap">
     <Columns>
         <TemplateColumn Title="日時">
             <CellTemplate>@DisplayText.DateTime(context.Item.OccurredAt)</CellTemplate>
@@ -65,6 +65,6 @@
         <MudText>変動履歴がありません。</MudText>
     </NoRecordsContent>
     <PagerContent>
-        <MudDataGridPager T="InventoryChangeEntity" />
+        <MudDataGridPager T="InventoryChangeEntity" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
     </PagerContent>
 </MudDataGrid>

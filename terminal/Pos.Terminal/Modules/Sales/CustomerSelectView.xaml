@@ -22,7 +22,7 @@
           RowDefinitions="Auto,Auto,*">
         <Grid Grid.Row="0"
               Padding="8"
-              ColumnDefinitions="*,Auto"
+              ColumnDefinitions="*,Auto,Auto"
               ColumnSpacing="8">
             <Entry Grid.Column="0"
                    Style="{StaticResource PosFieldEntry}"
@@ -30,7 +30,13 @@
                    behaviors:EntryBind.Controller="{Binding Keyword}"
                    ReturnType="Search"
                    Placeholder="会員番号 / 電話 / 名前" />
+            <!-- 番号は電卓で入力する (キーボードに依存しない) -->
             <Button Grid.Column="1"
+                    Style="{StaticResource PosMethodButton}"
+                    Margin="0"
+                    Command="{Binding InputNumberCommand}"
+                    Text="🔢" />
+            <Button Grid.Column="2"
                     Style="{StaticResource PosMethodButton}"
                     Margin="0"
                     Command="{Binding SearchCommand}"

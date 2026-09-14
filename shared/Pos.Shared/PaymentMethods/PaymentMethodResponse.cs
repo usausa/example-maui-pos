@@ -10,6 +10,9 @@ public sealed class PaymentMethodResponse
 
     public string Name { get; set; } = default!;
 
+    // 端末の支払ボタンに出す短い名前 (省略時は name)
+    public string? ShortName { get; set; }
+
     public PaymentKind Kind { get; set; }
 
     // 釣銭あり (預り金 > 充当額 を許可)

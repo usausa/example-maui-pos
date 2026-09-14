@@ -130,7 +130,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     {
         var methods = (await accessor.QueryPaymentMethodListAsync()).Where(static x => x.IsActive && !x.IsDeleted).OrderBy(static x => x.SortOrder).ToList();
         pointsMethod = methods.FirstOrDefault(static x => x.Kind == PaymentKind.Points);
-        Methods = methods.Where(static x => x.Kind != PaymentKind.Points).Select(static x => new MethodItem(x, x.Name)).ToList();
+        Methods = methods.Where(static x => x.Kind != PaymentKind.Points).Select(static x => new MethodItem(x, String.IsNullOrEmpty(x.ShortName) ? x.Name : x.ShortName)).ToList();
 
         // 会員が変わったらポイント支払は無効
         if ((sales.Cart.Customer is null) && sales.Payments.Any(static x => x.Method.Kind == PaymentKind.Points))
@@ -205,13 +205,13 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         string? reference = null;
         if (method.RequiresReference)
         {
-            var input = await dialog.InputAsync($"{method.Name} の伝票番号");
-            if (!input.Accepted || String.IsNullOrWhiteSpace(input.Text))
+            var input = await popupNavigator.InputDigitsAsync($"{method.Name} の伝票番号", string.Empty, 12);
+            if (String.IsNullOrWhiteSpace(input))
             {
                 return;
             }
 
-            reference = input.Text.Trim();
+            reference = input.Trim();
         }
 
         sales.Payments.Add(new CartPayment

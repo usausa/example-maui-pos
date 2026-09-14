@@ -144,8 +144,8 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
     private async Task InputQuantityAsync()
     {
-        var result = await dialog.InputAsync("数量", DisplayText.Quantity(quantity), parameter: new PromptParameter { PromptType = PromptType.Number, MaxLength = 4 });
-        if (result.Accepted && Decimal.TryParse(result.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) && (value > 0))
+        var text = await popupNavigator.InputNumberAsync("数量", DisplayText.Quantity(quantity), 4);
+        if (Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) && (value > 0))
         {
             SetQuantity(value);
         }
@@ -153,8 +153,8 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
     private async Task InputPriceAsync()
     {
-        var result = await dialog.InputAsync("単価", unitPrice.ToString("0", CultureInfo.InvariantCulture), parameter: new PromptParameter { PromptType = PromptType.Number, MaxLength = 8 });
-        if (result.Accepted && Decimal.TryParse(result.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) && (value >= 0))
+        var text = await popupNavigator.InputNumberAsync("単価", unitPrice.ToString("0", CultureInfo.InvariantCulture), 8);
+        if (Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) && (value >= 0))
         {
             SetUnitPrice(value);
         }

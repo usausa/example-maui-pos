@@ -27,7 +27,7 @@
 
 <ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
 
-<MudDataGrid @ref="Grid" T="InventoryLevelDetail" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer">
+<MudDataGrid @ref="Grid" T="InventoryLevelDetail" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
     <Columns>
         <PropertyColumn Property="x => x.ProductCode" Title="コード" />
         <PropertyColumn Property="x => x.ProductName" Title="商品名" />
@@ -47,6 +47,6 @@
         <MudText>在庫がありません。</MudText>
     </NoRecordsContent>
     <PagerContent>
-        <MudDataGridPager T="InventoryLevelDetail" />
+        <MudDataGridPager T="InventoryLevelDetail" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
     </PagerContent>
 </MudDataGrid>

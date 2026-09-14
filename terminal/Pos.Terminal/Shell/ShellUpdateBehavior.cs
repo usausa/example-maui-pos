@@ -57,6 +57,12 @@ public sealed class ShellUpdateBehavior : BehaviorBase<ContentPage>
         if (e.FromView is BindableObject from)
         {
             ShellProperty.SetActive(from, false);
+
+            // 入力欄にフォーカスが残っているとソフトキーボードが次の画面に残るため、離れる前に外す
+            if (from is IVisualTreeElement tree)
+            {
+                UnfocusDescendants(tree);
+            }
         }
 
         if (e.ToView is BindableObject to)
@@ -65,6 +71,19 @@ public sealed class ShellUpdateBehavior : BehaviorBase<ContentPage>
         }
 
         UpdateShell(e.ToView as Element);
+    }
+
+    private static void UnfocusDescendants(IVisualTreeElement element)
+    {
+        foreach (var child in element.GetVisualChildren())
+        {
+            if (child is VisualElement { IsFocused: true } visual)
+            {
+                visual.Unfocus();
+            }
+
+            UnfocusDescendants(child);
+        }
     }
 
     private void NavigatorOnExited(object? sender, EventArgs e)

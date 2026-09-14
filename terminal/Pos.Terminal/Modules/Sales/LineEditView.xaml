@@ -111,16 +111,16 @@
               Style="{StaticResource FunctionGrid}"
               ColumnDefinitions="*,*,*">
             <Button Grid.Column="0"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputDeleteButton}"
                     BackgroundColor="{StaticResource RedDefault}"
                     Command="{Binding DeleteCommand}"
                     Text="🗑" />
             <Button Grid.Column="1"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputCancelButton}"
                     Command="{Binding CloseCommand}"
-                    Text="❌" />
+                    Text="✕" />
             <Button Grid.Column="2"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputConfirmButton}"
                     Command="{Binding CommitCommand}"
                     Text="✔" />
         </Grid>

@@ -19,6 +19,7 @@
     <HeaderContent>
         <MudTh>コード</MudTh>
         <MudTh>名称</MudTh>
+        <MudTh>ボタン名</MudTh>
         <MudTh>種別</MudTh>
         <MudTh>釣銭</MudTh>
         <MudTh>参照要</MudTh>
@@ -29,6 +30,7 @@
     <RowTemplate>
         <MudTd>@context.Code</MudTd>
         <MudTd>@context.Name</MudTd>
+        <MudTd>@context.ShortName</MudTd>
         <MudTd>@DisplayText.Name(context.Kind)</MudTd>
         <MudTd>@(context.AllowsChange ? "💴 あり" : string.Empty)</MudTd>
         <MudTd>@(context.RequiresReference ? "🔢 必須" : string.Empty)</MudTd>

@@ -26,6 +26,7 @@ public sealed partial class PaymentMethodAccessor
         Guid id,
         string code,
         string name,
+        string? shortName,
         PaymentKind kind,
         bool allowsChange,
         bool requiresReference,

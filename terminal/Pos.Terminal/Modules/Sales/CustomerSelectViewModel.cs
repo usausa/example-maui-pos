@@ -13,6 +13,8 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
 
     private readonly SalesState sales;
 
+    private readonly IPopupNavigator popupNavigator;
+
     private ViewId returnTo = ViewId.Sales;
 
     public EntryController Keyword { get; }
@@ -31,18 +33,23 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
 
     public IObserveCommand SearchCommand { get; }
 
+    public IObserveCommand InputNumberCommand { get; }
+
     public IObserveCommand SelectCommand { get; }
 
     public CustomerSelectViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
         NetworkOperator network,
         SalesState sales)
     {
         this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
         this.network = network;
         this.sales = sales;
 
         SearchCommand = MakeAsyncCommand(SearchAsync);
+        InputNumberCommand = MakeAsyncCommand(InputNumberAsync);
         Keyword = new EntryController(SearchCommand);
         SelectCommand = MakeAsyncCommand<CustomerItem>(x => ApplyAsync(x.Customer));
     }
@@ -70,8 +77,17 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
                 await dialog.InformationAsync($"会員が見つかりません: {scanned}");
             }
         }
+    }
 
-        Keyword.Focus();
+    // 番号は電卓で入力する (キーボードに依存しない)
+    private async Task InputNumberAsync()
+    {
+        var text = await popupNavigator.InputDigitsAsync("会員番号 / 電話番号", string.Empty, 13);
+        if (!String.IsNullOrEmpty(text))
+        {
+            Keyword.Text = text;
+            await SearchAsync();
+        }
     }
 
     private async Task SearchAsync()

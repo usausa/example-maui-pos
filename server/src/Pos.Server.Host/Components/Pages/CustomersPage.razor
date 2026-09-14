@@ -19,7 +19,7 @@
 
 <ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
 
-<MudDataGrid @ref="Grid" T="CustomerEntity" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer">
+<MudDataGrid @ref="Grid" T="CustomerEntity" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
     <Columns>
         <PropertyColumn Property="x => x.Code" Title="会員番号" />
         <PropertyColumn Property="x => x.Name" Title="名前" />
@@ -46,6 +46,6 @@
         <MudText>顧客がいません。</MudText>
     </NoRecordsContent>
     <PagerContent>
-        <MudDataGridPager T="CustomerEntity" />
+        <MudDataGridPager T="CustomerEntity" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
     </PagerContent>
 </MudDataGrid>

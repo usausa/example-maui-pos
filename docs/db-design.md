@@ -359,6 +359,7 @@ erDiagram
 | Id | guid | | PK |
 | Code | string(20) | | UQ |
 | Name | string(50) | | |
+| ShortName | string(10) | ○ | 端末の支払ボタンに出す短い名前 (省略時は Name) |
 | Kind | enum | | `Cash` / `Card` / `Qr` / `EMoney` / `Voucher` / `Points` / `Credit` / `Other` |
 | AllowsChange | bool | | |
 | RequiresReference | bool | | |

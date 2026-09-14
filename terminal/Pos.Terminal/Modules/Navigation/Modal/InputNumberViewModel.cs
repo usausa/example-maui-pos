@@ -29,7 +29,9 @@ public sealed partial class InputNumberViewModel : AppDialogViewModelBase, IPopu
     public void Initialize(NumberInputParameter parameter)
     {
         Title = parameter.Title;
-        Input.Text = parameter.Value;
+        Input.AllowEmpty = parameter.Digits;
+        Input.KeepLeadingZeros = parameter.Digits;
         Input.MaxLength = parameter.MaxLength;
+        Input.Text = parameter.Value;
     }
 }

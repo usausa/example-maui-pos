@@ -103,12 +103,12 @@
         <Grid Style="{StaticResource FunctionGrid}"
               ColumnDefinitions="*,*">
             <Button Grid.Column="0"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputCancelButton}"
                     Command="{Binding CloseCommand}"
                     input:Shortcut.Key="Function1"
-                    Text="❌" />
+                    Text="✕" />
             <Button Grid.Column="1"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputConfirmButton}"
                     Command="{Binding CommitCommand}"
                     behaviors:Focus.Default="True"
                     input:Shortcut.Key="Function4"

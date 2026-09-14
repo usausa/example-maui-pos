@@ -28,15 +28,15 @@
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="電話" />
-            <Entry Style="{StaticResource PosFieldEntry}"
-                   Keyboard="Telephone"
-                   behaviors:EntryBind.Controller="{Binding Phone}" />
+            <Button Style="{StaticResource PosFieldInputButton}"
+                    Command="{Binding InputPhoneCommand}"
+                    Text="{Binding PhoneText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして入力'}" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="郵便番号" />
-            <Entry Style="{StaticResource PosFieldEntry}"
-                   Keyboard="Numeric"
-                   behaviors:EntryBind.Controller="{Binding PostalCode}" />
+            <Button Style="{StaticResource PosFieldInputButton}"
+                    Command="{Binding InputPostalCodeCommand}"
+                    Text="{Binding PostalCodeText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして入力'}" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="住所 (必須)" />

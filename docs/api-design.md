@@ -293,6 +293,7 @@ RFC 9457 Problem Details (テンプレートの `AddProblemDetails`。`traceId` 
 | `id` | guid | |
 | `code` | string(20) | 一意 |
 | `name` | string(50) | |
+| `shortName` | string(10)? | 端末の支払ボタンに出す短い名前 (「クレカ」など。省略時は `name`) |
 | `kind` | enum | `Cash` / `Card` / `Qr` / `EMoney` / `Voucher` (商品券) / `Points` / `Credit` (掛売) / `Other` |
 | `allowsChange` | bool | 釣銭あり (預り金 > 充当額 を許可)。通常 `Cash` のみ true |
 | `requiresReference` | bool | 伝票番号など参照の入力を求める (カードなど) |

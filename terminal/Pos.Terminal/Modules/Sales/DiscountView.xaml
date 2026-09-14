@@ -83,12 +83,11 @@
                 </Button.Triggers>
             </Button>
         </Grid>
-        <Entry Grid.Row="4"
-               Style="{StaticResource PosFieldEntry}"
-               Margin="16,8,16,0"
-               Keyboard="Numeric"
-               behaviors:EntryBind.Controller="{Binding Value}"
-               Placeholder="値" />
+        <Button Grid.Row="4"
+                Style="{StaticResource PosFieldInputButton}"
+                Margin="16,8,16,0"
+                Command="{Binding InputValueCommand}"
+                Text="{Binding ValueText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='値 (タップして入力)'}" />
         <Entry Grid.Row="5"
                Style="{StaticResource PosFieldEntry}"
                Margin="16,8,16,8"
@@ -99,11 +98,11 @@
               Style="{StaticResource FunctionGrid}"
               ColumnDefinitions="*,*">
             <Button Grid.Column="0"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputCancelButton}"
                     Command="{Binding CloseCommand}"
-                    Text="❌" />
+                    Text="✕" />
             <Button Grid.Column="1"
-                    Style="{StaticResource InputFunctionButton}"
+                    Style="{StaticResource InputConfirmButton}"
                     Command="{Binding CommitCommand}"
                     Text="✔" />
         </Grid>

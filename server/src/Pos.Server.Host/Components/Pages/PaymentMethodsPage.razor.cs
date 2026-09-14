@@ -68,7 +68,7 @@ public sealed partial class PaymentMethodsPage
                 return;
             }
 
-            var rows = await PaymentMethodAccessor.UpdateAsync(form.Id, form.Code, form.Name, form.Kind, form.AllowsChange, form.RequiresReference, form.IsActive, form.SortOrder, UtcNow, form.Version, CancellationToken);
+            var rows = await PaymentMethodAccessor.UpdateAsync(form.Id, form.Code, form.Name, form.ShortName, form.Kind, form.AllowsChange, form.RequiresReference, form.IsActive, form.SortOrder, UtcNow, form.Version, CancellationToken);
             if (rows > 0)
             {
                 Snackbar.AddSuccess("更新しました。");
