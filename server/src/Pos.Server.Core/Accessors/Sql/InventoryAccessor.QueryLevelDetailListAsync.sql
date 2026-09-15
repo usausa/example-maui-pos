@@ -29,8 +29,8 @@ WHERE
 /*% } */
 ORDER BY
 /*% if (desc) { */
-    /*# sort.ToString() */ProductCode DESC
+    /*# sort */ProductCode DESC
 /*% } else { */
-    /*# sort.ToString() */ProductCode
+    /*# sort */ProductCode
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

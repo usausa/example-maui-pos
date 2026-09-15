@@ -33,9 +33,9 @@ public sealed partial class ShiftAccessor
     [Insert(typeof(ShiftEntity))]
     public partial ValueTask<int> InsertAsync(ShiftEntity entity, CancellationToken cancellationToken);
 
-    // 精算: 集計を確定して Closed にする。戻り値 0 = 既に精算済み
+    // 集計を確定して Closed にする。戻り値 0 = 既に精算済み
     [Execute]
-    public partial ValueTask<int> CloseAsync(
+    public partial ValueTask<int> UpdateClosedAsync(
         DbTransaction tx,
         Guid id,
         DateTime closedAt,

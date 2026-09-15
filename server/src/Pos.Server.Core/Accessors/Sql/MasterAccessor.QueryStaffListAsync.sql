@@ -18,8 +18,8 @@ ORDER BY
     UpdatedAt,
     Id
 /*% } else if (desc) { */
-    /*# sort.ToString() */Code DESC
+    /*# sort */Code DESC
 /*% } else { */
-    /*# sort.ToString() */Code
+    /*# sort */Code
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

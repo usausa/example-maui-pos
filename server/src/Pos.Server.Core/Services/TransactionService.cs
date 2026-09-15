@@ -463,7 +463,7 @@ public sealed class TransactionService
         {
             await provider.UsingTxAsync(async (_, tx) =>
             {
-                if (await transactionAccessor.VoidAsync(tx, id, voidedAt, staffId, reason, now, cancellationToken) == 0)
+                if (await transactionAccessor.UpdateVoidedAsync(tx, id, voidedAt, staffId, reason, now, cancellationToken) == 0)
                 {
                     throw new RuleViolationException(ErrorCode.ValidationError, RuleReason.AlreadyVoided);
                 }

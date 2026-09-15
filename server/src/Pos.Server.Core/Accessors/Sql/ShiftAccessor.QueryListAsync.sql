@@ -21,8 +21,8 @@ WHERE
 /*% } */
 ORDER BY
 /*% if (desc) { */
-    /*# sort.ToString() */OpenedAt DESC
+    /*# sort */OpenedAt DESC
 /*% } else { */
-    /*# sort.ToString() */OpenedAt
+    /*# sort */OpenedAt
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

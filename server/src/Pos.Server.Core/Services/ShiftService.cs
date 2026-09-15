@@ -188,7 +188,7 @@ public sealed class ShiftService
         var expectedCash = ExpectedCash(shift.OpeningCash, totals);
         await provider.UsingTxAsync(async (_, tx) =>
         {
-            await shiftAccessor.CloseAsync(tx, id, parameter.ClosedAt, parameter.ClosedByStaffId, parameter.ActualCash, expectedCash, parameter.ActualCash - expectedCash, totals, parameter.Note, now, cancellationToken);
+            await shiftAccessor.UpdateClosedAsync(tx, id, parameter.ClosedAt, parameter.ClosedByStaffId, parameter.ActualCash, expectedCash, parameter.ActualCash - expectedCash, totals, parameter.Note, now, cancellationToken);
             foreach (var denomination in parameter.Denominations)
             {
                 await shiftAccessor.InsertDenominationAsync(tx, new ShiftDenominationEntity { ShiftId = id, Denomination = denomination.Denomination, Count = denomination.Count }, cancellationToken);

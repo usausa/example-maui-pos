@@ -41,7 +41,7 @@ public sealed class ShiftUsecase
     // Open / Close
     //--------------------------------------------------------------------------------
 
-    // サーバに開設中のシフトが残っていれば引き継ぐ (再インストール時など)
+    // サーバに開設中のシフトが残っていれば引き継ぐ (再インストール時など。Outbox には入れない)
     public async ValueTask<LocalShiftEntity?> AdoptServerShiftAsync()
     {
         if ((session.Terminal is null) || !network.IsConnected)
@@ -67,7 +67,7 @@ public sealed class ShiftUsecase
             OpeningCash = shift.OpeningCash,
             Note = shift.Note
         };
-        await accessor.ImportShiftAsync(entity);
+        await accessor.InsertServerShiftAsync(entity);
         session.CurrentShift = entity;
         return entity;
     }
@@ -123,7 +123,7 @@ public sealed class ShiftUsecase
         };
         await provider.UsingTxAsync(async (_, tx) =>
         {
-            await accessor.CloseShiftAsync(tx, shift.Id, now, staffId, actualCash, expectedCash, actualCash - expectedCash, null);
+            await accessor.UpdateShiftClosedAsync(tx, shift.Id, now, staffId, actualCash, expectedCash, actualCash - expectedCash, null);
             await accessor.InsertOutboxAsync(tx, SyncService.CreateEntry(OutboxKind.ShiftClose, shift.Id, request, now));
             await tx.CommitAsync();
         });

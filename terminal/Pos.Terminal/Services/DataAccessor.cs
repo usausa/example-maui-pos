@@ -205,13 +205,14 @@ public sealed partial class DataAccessor
     [Insert(typeof(LocalShiftEntity))]
     public partial ValueTask<int> InsertShiftAsync(DbTransaction tx, LocalShiftEntity entity);
 
-    // サーバに残っていたシフトの取り込み (Outbox には入れない)
+    // サーバにある開設中のシフトの行をそのまま登録する (1 文なのでトランザクションなし。Builder は同名のオーバーロードにできない)
     [Execute]
     [Insert(typeof(LocalShiftEntity))]
-    public partial ValueTask<int> ImportShiftAsync(LocalShiftEntity entity);
+    public partial ValueTask<int> InsertServerShiftAsync(LocalShiftEntity entity);
 
+    // 精算の内容を書いて Closed にする
     [Execute]
-    public partial ValueTask<int> CloseShiftAsync(DbTransaction tx, Guid id, DateTime closedAt, Guid closedByStaffId, decimal actualCash, decimal expectedCash, decimal difference, string? note);
+    public partial ValueTask<int> UpdateShiftClosedAsync(DbTransaction tx, Guid id, DateTime closedAt, Guid closedByStaffId, decimal actualCash, decimal expectedCash, decimal difference, string? note);
 
     [QueryFirst]
     [SelectSingle(typeof(LocalShiftEntity))]

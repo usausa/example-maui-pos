@@ -36,7 +36,8 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(2, all.Stores.Count);
         Assert.Equal(3, all.Terminals.Count);
         Assert.Equal(4, all.Staff.Count);
-        Assert.Equal(13, all.Categories.Count);
+        // 全件同期は削除済みも返す。同じ DB を使う CategoryCrudAndConflicts が登録して論理削除した部門は除いて数える
+        Assert.Equal(13, all.Categories.Count(x => !x.IsDeleted));
         Assert.Equal(3, all.TaxRates.Count);
         Assert.Equal(33, all.Products.Count);
         Assert.Equal(3, all.Discounts.Count);

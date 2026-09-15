@@ -113,9 +113,9 @@ public sealed partial class TransactionAccessor
     // Update
     //--------------------------------------------------------------------------------
 
-    // 取消。戻り値 0 = 既に取消済み
+    // 取消済みにする。戻り値 0 = 既に取消済み
     [Execute]
-    public partial ValueTask<int> VoidAsync(DbTransaction tx, Guid id, DateTime voidedAt, Guid voidedByStaffId, string reason, DateTime updatedAt, CancellationToken cancellationToken);
+    public partial ValueTask<int> UpdateVoidedAsync(DbTransaction tx, Guid id, DateTime voidedAt, Guid voidedByStaffId, string reason, DateTime updatedAt, CancellationToken cancellationToken);
 
     // 処理後残高 (ポイント更新後に確定)
     [Execute]

@@ -33,8 +33,8 @@ WHERE
 /*% } */
 ORDER BY
 /*% if (desc) { */
-    /*# sort.ToString() */TransactedAt DESC
+    /*# sort */TransactedAt DESC
 /*% } else { */
-    /*# sort.ToString() */TransactedAt
+    /*# sort */TransactedAt
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

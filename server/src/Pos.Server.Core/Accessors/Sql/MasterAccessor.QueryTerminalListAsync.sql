@@ -18,8 +18,8 @@ ORDER BY
     UpdatedAt,
     Id
 /*% } else if (desc) { */
-    /*# sort.ToString() */TerminalNo DESC
+    /*# sort */TerminalNo DESC
 /*% } else { */
-    /*# sort.ToString() */TerminalNo
+    /*# sort */TerminalNo
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

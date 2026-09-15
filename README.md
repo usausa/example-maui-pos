@@ -34,4 +34,5 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | [docs/screen-design.md](docs/screen-design.md) | 画面設計。端末と管理画面の画面一覧・遷移・レイアウト |
 | [docs/decisions.md](docs/decisions.md) | 前提の要約と設計判断の記録 |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | 実装プラン。フェーズごとのチェックリストと完了条件、後回し項目の計画 |
+| [docs/guidelines.md](docs/guidelines.md) | 実装の指針。レビューの指摘を「どうあるべきか」の形でまとめた規約 |
 | [AGENTS.md](AGENTS.md) | コーディング規約とプロジェクトのルール |

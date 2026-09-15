@@ -6,7 +6,7 @@
 - [1. 方針](#1-方針)
 - [2. プロジェクト構成](#2-プロジェクト構成)
 - [3. サーバ (`Pos.Server.*`)](#3-サーバ-posserver)
-- [4. 共有プロジェクト (`Pos.Domain` / `Pos.Contract`)](#4-共有プロジェクト-posdomain--posshared)
+- [4. 共有プロジェクト (`Pos.Domain` / `Pos.Contract`)](#4-共有プロジェクト-posdomain--poscontract)
 - [5. 端末 (`Pos.Terminal`)](#5-端末-posterminal)
 - [6. 初期データ](#6-初期データ)
 
@@ -118,12 +118,14 @@ ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistrati
 - SQL は Accessor だけが持つ。  
   Service が Accessor を束ね、複数テーブルにまたがる書き込み (取引登録・取消・精算) は Service の中で `IDbProvider.UsingTxAsync` を使う ([db-design.md §5](db-design.md#5-整合性と更新の単位))
 - 業務ルールは `Pos.Domain`、LIKE のエスケープと既定値は Service が行う。  
-  並び替えは `Models/Enums` の列挙型で受け取り、2-way SQL の中で `/*# sort.ToString() */` と `/*% if (desc) */` で列に展開する (差分同期の `UpdatedAt, Id` 順も SQL 側)
+  並び替えは `Models/Enums` の列挙型で受け取り、2-way SQL の中で `/*# sort */` と `/*% if (desc) */` で列に展開する (差分同期の `UpdatedAt, Id` 順も SQL 側)
 - 重複 (`IDialect.IsDuplicate`)、楽観ロック (`UPDATE ... RETURNING *` で更新後の行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す (API と管理画面で同じ規則)。  
   更新の応答は `RETURNING` で返った行から作る (更新後に読み直さない)
 - Accessor の DI 登録は Host の `AddDataAccessors(typeof(DataProfile).Assembly)`、Service は `AddCoreServices()`
 - 更新の引数は列ごとに渡す (2-way SQL の `/*@ entity.Prop */` にはコンバータが効かないため)
 - 引数の null チェック (`ArgumentNullException.ThrowIfNull`) は書かない (CA1062 は無効)
+- Accessor のメソッド名は DB の操作 (`Query` / `Count` / `Insert` / `Update` / `Delete`) で付ける。  
+  取消や精算のような業務の動詞は Service の名前にし、Accessor は状態を変える UPDATE として `UpdateVoidedAsync` / `UpdateClosedAsync` と呼ぶ
 
 ### 3.2 `Pos.Server.Host`
 
