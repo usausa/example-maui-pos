@@ -27,11 +27,14 @@ public sealed class ReportService
         this.timeProvider = timeProvider;
     }
 
+    // 今日 (サーバのローカル日付)。期間の既定に使う (ページは時計を持たずこれを使う)
+    public DateOnly Today => DateOnly.FromDateTime(timeProvider.GetLocalNow().Date);
+
     // 営業日の範囲 (両端含む)。指定がなければ to は当日、from は to の 30 日前
     // 省略時の既定: to は今日 (from が未来ならその日)、from は to の 30 日前
     public (DateOnly Start, DateOnly End) ResolvePeriod(DateOnly? from, DateOnly? to)
     {
-        var today = DateOnly.FromDateTime(timeProvider.GetLocalNow().Date);
+        var today = Today;
         var end = to ?? ((from > today) ? from.Value : today);
         return (from ?? end.AddDays(-DefaultPeriodDays), end);
     }

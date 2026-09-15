@@ -23,7 +23,7 @@ public sealed partial class InventoryChangeForm
 
     public Guid? StaffId { get; set; }
 
-    // フォーム → 登録内容 (Id / OccurredAt は呼び出し側が付ける)
+    // フォーム → 登録内容 (Id は呼び出し側が採番する。OccurredAt は省略して登録時刻にする)
     [Mapper]
     [MapUsing(nameof(InventoryChangeParameter.StoreId), nameof(ResolveStoreId))]
     [MapUsing(nameof(InventoryChangeParameter.ProductId), nameof(ResolveProductId))]

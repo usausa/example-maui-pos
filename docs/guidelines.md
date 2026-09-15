@@ -113,6 +113,8 @@
   「読んでから更新」で判定しない
 - LIKE のエスケープや既定値の補完は Service で行う。  
   複数テーブルにまたがる書き込みは Service の中で `IDbProvider.UsingTxAsync` を使う
+- 現在時刻 (`TimeProvider`) を扱うのは Service と帳票だけ。  
+  「今日」「既定の期間」「通信中とみなす条件」「登録時刻」は業務の規則なので Service が持ち、ページとエンドポイントは時計を持たない
 - Host だけが使う部品でも、アプリに依存しない基盤 (`JsonDateTimeConverter` など) は Core の `Infrastructure/` に置く
 - Service は `AddCoreServices()` に一括登録する
 
@@ -155,6 +157,8 @@
 - 描画モードは対話型 (プリレンダリングなし)。  
   エラーと 404 のページは再実行で描画されるため静的 SSR のままにし、常に対話型にはしない
 - フォームの検証の長さは `Length` の定数を使う
+- ページは `TimeProvider` を注入しない。  
+  期間の既定は `ReportService.Today` / `ResolvePeriod`、通信中の表示は `TerminalService.IsOnline`、登録時刻は Service に任せる
 
 ## 5. 端末
 

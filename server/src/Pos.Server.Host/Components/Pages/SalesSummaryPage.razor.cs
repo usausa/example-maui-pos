@@ -43,9 +43,9 @@ public sealed partial class SalesSummaryPage
     {
         storeId = StoreFilter.StoreId;
         reportStoreId = storeId;
-        var today = TimeProvider.GetLocalNow().Date;
-        period = new DateRange(today.AddDays(-30), today);
-        reportDate = today;
+        var (start, end) = ReportService.ResolvePeriod(null, null);
+        period = new DateRange(start.ToDateTime(TimeOnly.MinValue), end.ToDateTime(TimeOnly.MinValue));
+        reportDate = end.ToDateTime(TimeOnly.MinValue);
         return LoadAsync();
     }
 

@@ -54,7 +54,7 @@ public sealed partial class Home
     private Task LoadAsync() =>
         LoadAsync(async () =>
         {
-            today = DateOnly.FromDateTime(TimeProvider.GetLocalNow().Date);
+            today = ReportService.Today;
             names = await NameLookup.LoadAsync(StoreService, TerminalService, StaffService, null, CancellationToken);
             storeRows = await ReportService.QuerySalesSummaryAsync(null, today, today, SalesSummaryGroupBy.Store, CancellationToken);
             todaySummary = ReportService.Sum(storeRows, false);

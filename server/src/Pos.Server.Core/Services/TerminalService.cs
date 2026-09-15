@@ -6,6 +6,9 @@ using Pos.Server.Models.Entity;
 
 public sealed class TerminalService
 {
+    // 最終通信からこの時間内なら通信中とみなす
+    private static readonly TimeSpan OnlineThreshold = TimeSpan.FromMinutes(5);
+
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
     private readonly TimeProvider timeProvider;
@@ -33,6 +36,9 @@ public sealed class TerminalService
 
     public ValueTask<TerminalEntity?> QueryAsync(Guid id, CancellationToken cancellationToken) =>
         masterAccessor.QueryTerminalAsync(id, cancellationToken);
+
+    public bool IsOnline(DateTime? lastSeenAt) =>
+        (lastSeenAt is not null) && (timeProvider.GetUtcNow().UtcDateTime - lastSeenAt.Value < OnlineThreshold);
 
     public ValueTask<DataWriteStatus> InsertAsync(TerminalEntity entity, CancellationToken cancellationToken)
     {

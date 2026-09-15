@@ -119,7 +119,7 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@names.Store(context.StoreId) / @context.Name</MudTd>
-                    <MudTd><StatusChip Value="@ViewHelper.OnlineChip(context.LastSeenAt, UtcNow)" /></MudTd>
+                    <MudTd><StatusChip Value="@ViewHelper.OnlineChip(context.LastSeenAt, TerminalService.IsOnline(context.LastSeenAt))" /></MudTd>
                     <MudTd>@context.AppVersion</MudTd>
                 </RowTemplate>
             </MudTable>

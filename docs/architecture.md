@@ -117,6 +117,8 @@ ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistrati
 - 特定の Service だけが返す結果 (TransactionResult / ShiftResult / CashEventResult / InventoryChangeResult) は、その Service のファイルの先頭で定義する
 - SQL は Accessor だけが持つ。  
   Service が Accessor を束ね、複数テーブルにまたがる書き込み (取引登録・取消・精算) は Service の中で `IDbProvider.UsingTxAsync` を使う ([db-design.md §5](db-design.md#5-整合性と更新の単位))
+- 現在時刻 (`TimeProvider`) を扱うのは Service と帳票 (`Reports/`) だけ。  
+  ページとエンドポイントは時計を持たず、今日と既定の期間は `ReportService.Today` / `ResolvePeriod`、端末の通信中の判定は `TerminalService.IsOnline`、登録時刻は Service が付ける (省略された `OccurredAt` など)
 - 業務ルールは `Pos.Domain`、LIKE のエスケープと既定値は Service が行う。  
   並び替えは `Models/Enums` の列挙型で受け取り、2-way SQL の中で `/*# sort */` と `/*% if (desc) */` で列に展開する (差分同期の `UpdatedAt, Id` 順も SQL 側)
 - 重複 (`IDialect.IsDuplicate`)、楽観ロック (`UPDATE ... RETURNING *` で更新後の行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す (API と管理画面で同じ規則)。  

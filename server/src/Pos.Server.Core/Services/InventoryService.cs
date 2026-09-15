@@ -114,7 +114,7 @@ public sealed class InventoryService
                 ReasonId = change.ReasonId,
                 Reason = change.Reason,
                 StaffId = change.StaffId,
-                OccurredAt = change.OccurredAt,
+                OccurredAt = change.OccurredAt ?? now,
                 CreatedAt = now
             };
             await inventoryAccessor.InsertChangeAsync(tx, entity, cancellationToken);

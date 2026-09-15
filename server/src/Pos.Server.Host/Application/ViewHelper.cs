@@ -86,10 +86,11 @@ public static class ViewHelper
     };
 
     // 端末の最終通信: 5 分以内なら通信中
-    public static (string Text, Color Color) OnlineChip(DateTime? lastSeenAt, DateTime utcNow) => lastSeenAt switch
+    // 通信中かどうかは TerminalService.IsOnline で判定する (表示側は時計を持たない)
+    public static (string Text, Color Color) OnlineChip(DateTime? lastSeenAt, bool online) => lastSeenAt switch
     {
         null => ("⚪ 未接続", Color.Default),
-        _ when utcNow - lastSeenAt.Value < TimeSpan.FromMinutes(5) => ("🟢 通信中", Color.Success),
+        _ when online => ("🟢 通信中", Color.Success),
         _ => ("⚪ " + lastSeenAt.ToDateTimeText(), Color.Default)
     };
 

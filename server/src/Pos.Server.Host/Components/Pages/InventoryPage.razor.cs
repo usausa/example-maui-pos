@@ -107,7 +107,6 @@ public sealed partial class InventoryPage
         {
             var parameter = InventoryChangeForm.ToParameter(form);
             parameter.Id = Guid.CreateVersion7();
-            parameter.OccurredAt = UtcNow;
             var change = await InventoryService.ApplyChangeAsync(parameter, CancellationToken);
             Snackbar.AddSuccess($"登録しました。{form.Product!.Name}: {change.QuantityDelta.ToQuantityText()} → 在庫 {change.QuantityAfter.ToQuantityText()}");
         }, SearchAsync);

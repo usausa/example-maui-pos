@@ -20,5 +20,6 @@ public sealed class InventoryChangeParameter
 
     public Guid? StaffId { get; set; }
 
-    public DateTime OccurredAt { get; set; }
+    // 実施時刻 (端末は棚卸・調整を行った時刻を送る)。省略時は登録時刻 (管理画面からの登録)
+    public DateTime? OccurredAt { get; set; }
 }

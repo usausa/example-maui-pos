@@ -39,8 +39,8 @@ public sealed partial class ProductSalesPage
     protected override async Task OnInitializedAsync()
     {
         storeId = StoreFilter.StoreId;
-        var today = TimeProvider.GetLocalNow().Date;
-        period = new DateRange(today.AddDays(-30), today);
+        var (start, end) = ReportService.ResolvePeriod(null, null);
+        period = new DateRange(start.ToDateTime(TimeOnly.MinValue), end.ToDateTime(TimeOnly.MinValue));
         await LoadAsync(async () =>
         {
             categories = await CategoryService.QueryAllAsync(false, CancellationToken);

@@ -488,7 +488,7 @@ DB は利用者指定で SQLite。
 
 **決定**: ✅ **B**。  
 各画面は F1〜F4 の割り当てを持つ (画面一覧に列を追加)。  
-ボトムシートは使わず、明細編集・値引・数量入力はポップアップ。  
+ボトムシートは使わず、明細編集・値引・数量入力はポップアップ (→ [D-50](#d-50-端末のポップアップは下端に寄せたシート) で下端に寄せたシートに変更)。  
 数値入力はテンプレートの `InputNumber` ポップアップ (テンキー) を金額・数量に流用する。
 
 ### D-24. 端末セットアップ QR: テンプレート互換フォーマット
@@ -893,3 +893,15 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
   `Select` だけは外側のタップでも閉じる (電卓などは誤操作を防ぐため閉じない)
 - `PopupOptions.Shape` は要素なので、`PopupNavigatorConfig.OptionFactory` で表示のたびに作る
 - 理由の任意入力はキーボードの Enter でも確定する (キーボードが出ている間はシートの下段ボタンが隠れるため)
+
+### D-51. 現在時刻を扱うのは Service だけ
+
+管理画面のページが `TimeProvider` を注入し、期間の既定 (今日から 30 日)、端末の通信中の判定 (5 分以内)、在庫調整の実施時刻を自分で計算していた (利用者指摘)。  
+これらは業務の規則であり、`ReportService.ResolvePeriod` と同じ規則がページにも重複していた。
+
+**決定**: `TimeProvider` を扱うのは Service と帳票 (`Reports/`) だけにし、ページとエンドポイントは時計を持たない。
+
+- 今日と既定の期間は `ReportService.Today` / `ResolvePeriod`
+- 端末の通信中は `TerminalService.IsOnline(lastSeenAt)` で判定し、`ViewHelper.OnlineChip` は結果を受け取るだけ
+- 在庫調整の `OccurredAt` は省略可にし、省略時は Service が登録時刻を入れる (端末は実施時刻を送る)
+- `PageComponentBase` の `TimeProvider` / `UtcNow` は削除

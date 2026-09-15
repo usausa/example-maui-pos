@@ -21,9 +21,6 @@ public abstract class PageComponentBase : AppComponentBase
     [Inject]
     public required IDialogService DialogService { get; set; }
 
-    [Inject]
-    public required TimeProvider TimeProvider { get; set; }
-
     protected bool IsLoading { get; private set; }
 
     protected bool IsRunning { get; private set; }
@@ -31,8 +28,6 @@ public abstract class PageComponentBase : AppComponentBase
     protected bool IsBusy => IsLoading || IsRunning;
 
     protected string? ErrorMessage { get; set; }
-
-    protected DateTime UtcNow => TimeProvider.GetUtcNow().UtcDateTime;
 
     // 回線が切れたら実行中の処理を止める
     protected CancellationToken CancellationToken => (cancellation ??= new CancellationTokenSource()).Token;
