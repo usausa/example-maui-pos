@@ -269,7 +269,7 @@ Helpers/                             アプリに依存しない処理だけ: Da
 Permissions.cs                       カメラ権限
 Modules/
   ViewId.cs, DialogId.cs, Parameters.cs (遷移パラメータ: スキャンモード / 戻り先 / 取引 ID / 会員), AppViewModelBase.cs, AppDialogViewModelBase.cs
-  PopupNavigatorExtensions.cs        入力の種類ごとの電卓 (電話番号 / 郵便番号 / 生年月日 / コード / 伝票番号 / 数量 / 金額 / ポイント / 枚数 / 在庫 / 値引。桁数は Pos.Domain.Length)
+  PopupNavigatorExtensions.cs        入力の種類ごとの電卓 (電話番号 / 郵便番号 / 生年月日 / コード / 伝票番号 / 数量 / 金額 / ポイント / 枚数 / 在庫 / 値引。桁数は Pos.Domain.Length) と一覧からの選択 (ChooseAsync)
   Helpers/ViewHelper.cs              金額・数量・日時・列挙型・業務ルールの文言 (XAML からは DisplayNameConverter で使う)
   Setup/      SetupView (T-00), StaffSelectView (T-01)
   Main/       MenuView (T-02)
@@ -283,7 +283,7 @@ Modules/
   Inventory/  StockContext (入力リスト)、StockCountView (T-70)
   Report/     SalesReportView (T-80)
   Setting/    SettingView (T-90)
-  Dialogs/    InputNumberView (電卓)、ReasonSelectView (理由の選択)
+  Dialogs/    InputNumberView (電卓)、ReasonSelectView (理由の選択)、SelectView (一覧からの選択)
 Models/
   Cart/       SalesCart, CartLine, CartDiscount, CartPayment, CartDelivery
   Entity/     ローカル DB のエンティティ (LocalTransaction / LocalShift / LocalCashEvent / Outbox / SyncState / HoldCart。マスタは Pos.Contract の Response をそのまま使う)
@@ -329,12 +329,11 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CA
 - 一覧は `ObservableCollection<T>`、列挙型の文言・色・選択マークなどの表示の切り替えは ViewModel ではなく Converter (Smart.Maui の部品 + `DisplayNameConverter`) と Trigger で行う
 - 数値・番号は `PopupNavigatorExtensions` の入力の種類ごとの電卓 (`InputPhoneAsync` / `InputQuantityAsync` など) で入力する。  
   理由 (取消・入出金・値引) は定型の選択 (`ReasonSelect`) で、キーボードは会員・配送先の文字項目、検索、設定に限る
-- 数値・番号は `PopupNavigatorExtensions` の入力の種類ごとの電卓 (`InputPhoneAsync` / `InputQuantityAsync` など) で入力する。  
-  理由 (取消・入出金・値引) は定型の選択 (`ReasonSelect`) で、キーボードは会員・配送先の文字項目、検索、設定に限る
 - 物理キーボードは前提にしない (物理キー向けの `Input` 名前空間は持たない)。  
   数値・番号は電卓ボタン ([D-44](decisions.md#d-44-入力はキーボードに依存しない-数値番号は電卓ボタン))
 - 販売・会計画面は `Styles.xaml` の POS 節 (白い行 + 区切り線、名称は太字、金額は青、[D-43](decisions.md#d-43-端末シェルのデザイン-pos-画面に合わせる)) を使う。  
-  ポップアップの中では別のポップアップを重ねず、数量などの入力は電卓 (`InputNumber`) を使う
+  ポップアップは画面の下端に寄せたシート (CommunityToolkit の Popup を `VerticalOptions=End` / 幅いっぱいで表示し、`PopupOptions.Shape` で上角を丸める。下段の ✕ / ✔ は F キーと同じ位置と配色)。  
+  ポップアップの中から開くのは電卓 (`InputNumber`)・理由 (`ReasonSelect`)・一覧からの選択 (`Select`) のシートだけにし、一覧からの選択に OS のダイアログ (`IDialog.SelectAsync`) は使わない
 
 ---
 

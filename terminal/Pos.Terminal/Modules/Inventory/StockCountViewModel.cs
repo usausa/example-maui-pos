@@ -111,7 +111,7 @@ public sealed partial class StockCountViewModel : AppViewModelBase
                 return;
             }
 
-            var direction = await dialog.ChooseAsync(["増やす (+)", "減らす (-)"], "増減");
+            var direction = await popupNavigator.ChooseAsync(["増やす (+)", "減らす (-)"], "増減");
             if (direction < 0)
             {
                 return;

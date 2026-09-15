@@ -20,7 +20,7 @@ API は [api-design.md](api-design.md)、設計判断は [decisions.md](decision
 | 画面の骨格 | シェル: **上部タイトルバー + コンテンツ + 下部 F1〜F4 ファンクションキー**。各画面は `ContentView` で、`ShellProperty` でタイトルと F キーの文言・有効を宣言する。ハードウェアの戻るは `OnNotifyBackAsync` で処理 |
 | シェルのデザイン | タイトルバーは紺 (`BlueDarken4`)。機能名は左寄せ、右に「店舗-端末 担当」と未送信バッジ。F キーはヘッダと同じ紺のバーに F1 = 戻る系 (灰青) / F2・F3 = 操作 (青) / F4 = 主操作 (橙)、無効は灰。ホームは白の平らなキーを罫線で区切り、「販売」だけ青。ポップアップの下段ボタンも同じ配色 (キャンセル = 灰青 / 確定 = 橙 / 削除 = 赤) ([D-43](decisions.md#d-43-端末シェルのデザイン-pos-画面に合わせる)) |
 | ナビゲーション | Smart.Navigation の `ViewId` 列挙で遷移 (`Navigator.ForwardAsync(ViewId.Xxx)`)。パラメータは `NavigationParameter`。各画面に `[Hierarchy(n)]` を付け、階層が深くなる遷移は右から (Forward)、浅くなる遷移は左から (Back) スライドする ([D-36](decisions.md#d-36-端末の画面遷移アニメーション)) |
-| ダイアログ | MauiComponents の `IDialog` (確認 / 情報 / 選択 / トースト / ローディング) と `IPopupNavigator` のポップアップ (`DialogId`)。**ボトムシートは使わない** |
+| ダイアログ | MauiComponents の `IDialog` (確認 / 情報 / トースト / ローディング) と `IPopupNavigator` のポップアップ (`DialogId`)。ポップアップは画面の下端に寄せたシート (幅いっぱい、上角が丸い。CommunityToolkit の Popup なので重ねて開ける)。一覧からの選択 (操作メニュー・絞り込み・承認者) も OS のダイアログではなく `Select` シートで行う ([D-50](decisions.md#d-50-端末のポップアップは下端に寄せたシート)) |
 | 数値入力 | **OS のソフトキーボードに依存しない** ([D-44](decisions.md#d-44-入力はキーボードに依存しない-数値番号は電卓ボタン))。数量・金額・枚数・番号 (電話・郵便番号・コード・伝票番号・生年月日) はすべて `InputNumber` ポップアップ (電卓、`NumberInputModel`) で入力し、入力欄はタップで電卓を開くボタンにする。会計画面だけはテンキーを画面に埋め込む。検索欄にも 🔢 (番号入力) を置く。文字 (名前・住所・備考・検索キーワード) だけ `Entry` で、キーボードは欄をタップしたときだけ出す (遷移時の自動フォーカスはしない) |
 | スキャン | `BarcodeScanning.Native.Maui` (`BarcodeController` + `CameraView`)。1D (JAN/EAN) と 2D (QR) を連続読み取り。用途: 商品 JAN、会員証 (QR / バーコード)、レシート QR (返品時の取引呼び出し)、設定 QR |
 | QR 表示 | `QRCoder` で電子レシートの QR を表示 |
@@ -121,17 +121,17 @@ F1〜F4 はシェル下部のファンクションキー。
 | T-80 | 売上照会 | 本日の状況 | 自端末 / 自店の本日売上、件数、支払方法別 | 戻る | 期間 | 範囲 | 更新 | `GET /reports/sales/summary` |
 | T-90 | 設定・同期 | 端末管理 | 端末情報、最終同期時刻、未送信一覧 (要確認エラーの詳細・再送・破棄)、サーバ URL、スタッフ切替、「ログイン後に販売画面を開く」設定 | 戻る | QR 読取 | 未送信 | 同期 | `GET /sync/masters` |
 
-`DialogId` (ポップアップ) 一覧: `InputNumber` / `LineEdit` (P-13) / `Discount` (P-15) / `ReasonSelect` (在庫調整理由・返品理由・取消理由・入出金と値引の理由) / `Denominations` (金種別入力)。  
-確認・選択・トーストは `IDialog` を使う。
+`DialogId` (ポップアップ) 一覧: `InputNumber` / `LineEdit` (P-13) / `Discount` (P-15) / `ReasonSelect` (在庫調整理由・返品理由・取消理由・入出金と値引の理由) / `Select` (一覧からの選択。操作メニュー・絞り込み・時間帯・増減・承認者・未送信の操作) / `Denominations` (金種別入力)。  
+確認・情報・トーストは `IDialog` を使う。
 
 補足:
 
 | 画面 | 内容 |
 | --- | --- |
-| 共通 | 画面遷移は `ForwardAsync` のみ。複数の画面から使う画面 (T-11 / T-12 / T-14 / T-22 / T-40 / T-62) は `Parameters.WithReturnTo` で戻り先を受け取る。タイトル・F キーの文言や有効状態は `shell:ShellProperty.*="{Binding ...}"` で動的に変えられる。ポップアップの中から開くのは電卓 (`InputNumber`) だけにし、数量・単価・値引の値・金種の枚数はそれで入力する。選択は `IDialog.SelectAsync` を使う |
+| 共通 | 画面遷移は `ForwardAsync` のみ。複数の画面から使う画面 (T-11 / T-12 / T-14 / T-22 / T-40 / T-62) は `Parameters.WithReturnTo` で戻り先を受け取る。タイトル・F キーの文言や有効状態は `shell:ShellProperty.*="{Binding ...}"` で動的に変えられる。ポップアップの中から開くのは電卓 (`InputNumber`)・理由 (`ReasonSelect`)・一覧からの選択 (`Select`) のシートだけにし、数量・単価・値引の値・金種の枚数は電卓で入力する。一覧からの選択は `IPopupNavigator.ChooseAsync` (`Select` シート) を使う |
 | T-02 | シフト未開設で販売 / 返品 / 入出金を選ぶと開設へ誘導し、開設後は元の画面へ。「レジ開設・精算」はシフト状態で文言が変わる |
 | T-03 | サーバに開設中のシフトが残っていれば (再インストール時など) 引き継ぐ |
-| T-10 | [⋯] は `IDialog.SelectAsync` (取引値引 / 解除 / 配送先 / 保留する / 保留を呼び出す / クリア) |
+| T-10 | [⋯] は `Select` シート (取引値引 / 解除 / 配送先 / 保留する / 保留を呼び出す / クリア) |
 | T-11 | 同一コードは 2 秒間抑制。検出フラッシュは省き、バイブレーションで知らせる。手入力は電卓 (`InputNumber`) |
 | P-13 | 数量・単価は電卓 (`InputNumber`)、明細値引は取引値引と同じ P-15 (定義済み / 任意額 / 任意率 + 理由)。承認が必要な値引は店長 / 管理者を承認者に選ぶ |
 | T-20 | 金額ショートカットは預り金に加算、[ちょうど] は残り全額。支払が済むと「残り」の行がお釣りになる |

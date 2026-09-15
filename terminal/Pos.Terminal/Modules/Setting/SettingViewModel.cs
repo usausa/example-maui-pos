@@ -10,6 +10,8 @@ public sealed partial class SettingViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
+    private readonly IPopupNavigator popupNavigator;
+
     private readonly IAppInfo appInfo;
 
     private readonly Settings settings;
@@ -50,6 +52,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
 
     public SettingViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
         IAppInfo appInfo,
         Settings settings,
         Session session,
@@ -57,6 +60,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
         SyncService sync)
     {
         this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
         this.appInfo = appInfo;
         this.settings = settings;
         this.session = session;
@@ -120,7 +124,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
             return;
         }
 
-        var index = await dialog.ChooseAsync(["🔁 再送する", "🗑 破棄する (サーバには送らない)", "ℹ 詳細"], kind);
+        var index = await popupNavigator.ChooseAsync(["🔁 再送する", "🗑 破棄する (サーバには送らない)", "ℹ 詳細"], kind);
         switch (index)
         {
             case 0:

@@ -5,11 +5,9 @@
            xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
            xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
            xmlns:module="clr-namespace:Pos.Terminal.Modules.Dialogs"
-           xmlns:modules="clr-namespace:Pos.Terminal.Modules"
            x:Class="Pos.Terminal.Modules.Dialogs.ReasonSelectView"
            x:DataType="{x:Type module:ReasonSelectViewModel}"
-           s:BindingContextResolver.Type="{x:Type module:ReasonSelectViewModel}"
-           WidthRequest="{x:Static modules:ScreenSize.LargeDialogWidth}">
+           s:BindingContextResolver.Type="{x:Type module:ReasonSelectViewModel}">
 
     <Grid Style="{StaticResource FillGrid}"
           RowDefinitions="Auto,Auto,Auto,Auto"
@@ -46,7 +44,8 @@
                    Text="その他 (入力)" />
             <Entry Style="{StaticResource PosFieldEntry}"
                    Margin="16,0,16,12"
-                   behaviors:EntryBind.Controller="{Binding Custom}" />
+                   behaviors:EntryBind.Controller="{Binding Custom}"
+                   ReturnType="Done" />
         </VerticalStackLayout>
 
         <Grid Grid.Row="3"

@@ -150,7 +150,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
             actions.Insert(1, ("取引値引を解除", MoreAction.ClearDiscount));
         }
 
-        var index = await dialog.ChooseAsync(actions.Select(static x => x.Label).ToArray(), "操作");
+        var index = await popupNavigator.ChooseAsync(actions.Select(static x => x.Label).ToArray(), "操作");
         if (index < 0)
         {
             return;

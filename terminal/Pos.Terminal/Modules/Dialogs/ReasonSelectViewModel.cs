@@ -19,7 +19,7 @@ public sealed partial class ReasonSelectViewModel : AppDialogViewModelBase, IPop
     [ObservableProperty]
     public partial bool AllowCustom { get; set; }
 
-    public EntryController Custom { get; } = new();
+    public EntryController Custom { get; }
 
     public IObserveCommand SelectCommand { get; }
 
@@ -34,6 +34,8 @@ public sealed partial class ReasonSelectViewModel : AppDialogViewModelBase, IPop
         SelectCommand = MakeAsyncCommand<ReasonItem>(async x => await popupNavigator.CloseAsync(new ReasonSelectResult(x.Id, x.Name)));
         CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync());
         CommitCommand = MakeAsyncCommand(CommitAsync);
+        // キーボードの Enter でも確定する (キーボードが出ている間はシートの下段ボタンが隠れる)
+        Custom = new EntryController(CommitCommand);
     }
 
     public void Initialize(ReasonSelectParameter parameter)

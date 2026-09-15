@@ -131,10 +131,14 @@ public static partial class MauiProgram
 
     private static void ConfigureMauiCommunityToolkit(Options options)
     {
+        // ポップアップは画面の下端に寄せたシート (幅いっぱい)。上角の丸みは表示のたびに CreatePopupOptions で付ける
         options.SetPopupDefaults(new DefaultPopupSettings
         {
             CanBeDismissedByTappingOutsideOfPopup = false,
-            Padding = 0
+            Padding = 0,
+            Margin = 0,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.End
         });
         options.SetPopupOptionsDefaults(new DefaultPopupOptionsSettings
         {
@@ -189,6 +193,14 @@ public static partial class MauiProgram
         config.ProgressBackgroundColor = Colors.Transparent;
     }
 
+    // シートの上角を丸める (Shape は要素なので表示のたびに作る)。一覧からの選択だけは外側のタップでも閉じる
+    private static PopupOptions CreatePopupOptions(bool dismissByTappingOutside) => new()
+    {
+        CanBeDismissedByTappingOutsideOfPopup = dismissByTappingOutside,
+        // Shapes 名前空間は Path が System.IO.Path と衝突するので完全修飾する
+        Shape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(16, 16, 0, 0), StrokeThickness = 0 }
+    };
+
     // ------------------------------------------------------------
     // Components
     // ------------------------------------------------------------
@@ -216,7 +228,11 @@ public static partial class MauiProgram
             c.EnablePromptEnterAction = true;
             c.EnablePromptSelectAll = true;
         });
-        services.AddComponentsPopup(static c => c.AutoRegister(DialogSource()));
+        services.AddComponentsPopup(static c =>
+        {
+            c.AutoRegister(DialogSource());
+            c.OptionFactory = static (_, id) => CreatePopupOptions(id is DialogId.Select);
+        });
         services.AddComponentsScreen();
         services.AddComponentsLocation();
         services.AddComponentsSpeech();

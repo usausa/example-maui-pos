@@ -4,11 +4,9 @@
            xmlns:s="http://smart/maui"
            xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
            xmlns:module="clr-namespace:Pos.Terminal.Modules.Shift"
-           xmlns:modules="clr-namespace:Pos.Terminal.Modules"
            x:Class="Pos.Terminal.Modules.Shift.DenominationsView"
            x:DataType="{x:Type module:DenominationsViewModel}"
-           s:BindingContextResolver.Type="{x:Type module:DenominationsViewModel}"
-           WidthRequest="{x:Static modules:ScreenSize.LargeDialogWidth}">
+           s:BindingContextResolver.Type="{x:Type module:DenominationsViewModel}">
 
     <Grid Style="{StaticResource FillGrid}"
           RowDefinitions="Auto,*,Auto,Auto"

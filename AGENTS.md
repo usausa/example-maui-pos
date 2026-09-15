@@ -17,7 +17,7 @@
 - **SQL format:** `SELECT` / `FROM` / `WHERE` / `ORDER BY` / `UPDATE` / `SET` each on its own line, table names, columns and conditions indented on the following lines (`AND` at the start of the line). Sort columns come from an enum expanded inside the 2-way SQL (`/*# sort */`), never from a caller-built string
 - **Lengths:** String lengths (contract `MaxLength`, form validators, terminal digit counts) are the constants in `Pos.Domain.Length`
 - **No null guards:** Do not write `ArgumentNullException.ThrowIfNull`
-- **Terminal input:** No physical keyboard; numbers are entered with the calculator popups in `PopupNavigatorExtensions` (one method per kind of input), reasons are chosen from presets; the software keyboard is only for text fields (customer, delivery, search) and settings
+- **Terminal input:** No physical keyboard; numbers are entered with the calculator popups in `PopupNavigatorExtensions` (one method per kind of input), reasons are chosen from presets; the software keyboard is only for text fields (customer, delivery, search) and settings. Popups are sheets anchored to the bottom of the screen (CommunityToolkit Popup with `VerticalOptions=End`, stackable); list selection uses the `Select` sheet (`IPopupNavigator.ChooseAsync`), never `IDialog.SelectAsync`
 - **UI language:** Japanese only, no localization resources
 - **Design docs:** Record decisions in `docs/decisions.md` and update the affected design document before closing a phase (`docs/implementation-plan.md`)
 - **Guidelines:** `docs/guidelines.md` holds the rules learned from reviews (how things should be, no history). When a review comment comes in, add or update the rule there, then fix the affected design document and this file

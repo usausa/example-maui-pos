@@ -18,7 +18,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         ("日別", "day")
     ];
 
-    private readonly IDialog dialog;
+    private readonly IPopupNavigator popupNavigator;
 
     private readonly Session session;
 
@@ -51,11 +51,11 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
     public IObserveCommand GroupCommand { get; }
 
     public SalesReportViewModel(
-        IDialog dialog,
+        IPopupNavigator popupNavigator,
         Session session,
         NetworkService network)
     {
-        this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
         this.session = session;
         this.network = network;
 
@@ -63,7 +63,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         ScopeCommand = MakeAsyncCommand(ChooseScopeAsync);
         GroupCommand = MakeAsyncCommand(async () =>
         {
-            var index = await dialog.ChooseAsync(Groups.Select(static x => x.Name).ToArray(), "集計", group);
+            var index = await popupNavigator.ChooseAsync(Groups.Select(static x => x.Name).ToArray(), "集計", group);
             if (index >= 0)
             {
                 group = index;
@@ -77,7 +77,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
 
     private async Task ChoosePeriodAsync()
     {
-        var index = await dialog.ChooseAsync(Periods, "期間", period);
+        var index = await popupNavigator.ChooseAsync(Periods, "期間", period);
         if (index >= 0)
         {
             period = index;
@@ -88,7 +88,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
 
     private async Task ChooseScopeAsync()
     {
-        var index = await dialog.ChooseAsync(Scopes, "範囲", scope);
+        var index = await popupNavigator.ChooseAsync(Scopes, "範囲", scope);
         if (index >= 0)
         {
             scope = index;

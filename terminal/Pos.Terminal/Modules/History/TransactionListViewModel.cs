@@ -14,6 +14,8 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
 
     private readonly IDialog dialog;
 
+    private readonly IPopupNavigator popupNavigator;
+
     private readonly Session session;
 
     private readonly TransactionUsecase transactions;
@@ -43,11 +45,13 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
 
     public TransactionListViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
         Session session,
         TransactionUsecase transactions,
         SyncService sync)
     {
         this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
         this.session = session;
         this.transactions = transactions;
         this.sync = sync;
@@ -55,7 +59,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         PeriodCommand = MakeAsyncCommand(ChoosePeriodAsync);
         TypeCommand = MakeAsyncCommand(async () =>
         {
-            var index = await dialog.ChooseAsync(Types, "種別", type);
+            var index = await popupNavigator.ChooseAsync(Types, "種別", type);
             if (index >= 0)
             {
                 type = index;
@@ -80,7 +84,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
 
     private async Task ChoosePeriodAsync()
     {
-        var index = await dialog.ChooseAsync(Periods, "期間", period);
+        var index = await popupNavigator.ChooseAsync(Periods, "期間", period);
         if (index >= 0)
         {
             period = index;

@@ -875,3 +875,21 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
 | LIKE のエスケープが ViewModel にある、`Where(...).ToList()` で削除している | `Helpers/Data/SqlHelper.ToLikePattern`、削除は後ろから `RemoveAt` |
 | 画面固有の Converter が `Modules` にある、`EmptyText` の名前 | Converter は `Converters/` にまとめる。文言が入るプロパティは `Message` |
 | キーボードに依存しないか | 棚卸のコードは電卓かスキャン、返品のレシート番号は端末番号 + 連番の電卓入力 (自店)、取消 / 入出金 / 値引の理由は定型の選択 (`ReasonSelect`)。キーボードは会員・配送先の文字項目、検索、設定に限る |
+
+### D-50. 端末のポップアップは下端に寄せたシート
+
+[D-23](#d-23-端末の画面骨格-template-maui-のシェル準拠) でボトムシートは使わず中央のポップアップにしていたが、片手で持つスマートフォンでは電卓や一覧が画面中央にあると親指が届きにくく、会計画面の埋め込みテンキー (下端) とも位置が揃わない。  
+一覧からの選択 (操作メニュー・絞り込み・承認者) は OS の `AlertDialog` で、文字が小さくアプリの配色とも合っていなかった。
+
+| 案 | 内容 |
+| --- | --- |
+| ✅ **A. CommunityToolkit の Popup を下端に寄せる** | `DefaultPopupSettings` で `VerticalOptions = End` / `HorizontalOptions = Fill` / `Margin = 0`、`PopupOptions.Shape` で上角を丸める。追加の依存がなく、`DialogId` / `IPopupNavigator` の仕組みがそのまま使え、ポップアップ同士を重ねられる (明細編集 → 値引 → 電卓) |
+| B. Syncfusion `SfBottomSheet` | ドラッグや半開きの状態を持つが、ページ内のコントロールなので Popup の上には出せず重ねられない。`DialogId` とは別系統になる |
+
+**決定**: ✅ **A** (利用者指示)。
+
+- すべての `DialogId` のポップアップ (電卓・明細編集・値引・理由・金種別入力) を下端のシートにし、幅の指定 (`ScreenSize.LargeDialogWidth`) はやめる
+- 一覧からの選択は `Select` シート (`IPopupNavigator.ChooseAsync`) にし、`IDialog.SelectAsync` は使わない。  
+  `Select` だけは外側のタップでも閉じる (電卓などは誤操作を防ぐため閉じない)
+- `PopupOptions.Shape` は要素なので、`PopupNavigatorConfig.OptionFactory` で表示のたびに作る
+- 理由の任意入力はキーボードの Enter でも確定する (キーボードが出ている間はシートの下段ボタンが隠れるため)

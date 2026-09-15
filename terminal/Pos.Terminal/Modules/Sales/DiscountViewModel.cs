@@ -105,7 +105,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
                 return;
             }
 
-            approver = await dialog.ChooseAsync(staff, static x => $"{x.Name} ({ViewHelper.Name(x.Role)})", "承認者");
+            approver = await popupNavigator.ChooseAsync(staff, static x => $"{x.Name} ({ViewHelper.Name(x.Role)})", "承認者");
             if (approver is null)
             {
                 return;

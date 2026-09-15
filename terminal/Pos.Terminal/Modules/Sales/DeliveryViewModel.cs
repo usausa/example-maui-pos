@@ -64,7 +64,7 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
         ClearDateCommand = MakeDelegateCommand(() => HasRequestedDate = false);
         SelectTimeSlotCommand = MakeAsyncCommand(async () =>
         {
-            var index = await dialog.ChooseAsync(TimeSlots, "時間帯", Array.IndexOf(TimeSlots, TimeSlotText));
+            var index = await popupNavigator.ChooseAsync(TimeSlots, "時間帯", Array.IndexOf(TimeSlots, TimeSlotText));
             if (index >= 0)
             {
                 TimeSlotText = TimeSlots[index];

@@ -6,5 +6,6 @@ public enum DialogId
     LineEdit,
     Discount,
     ReasonSelect,
+    Select,
     Denominations
 }

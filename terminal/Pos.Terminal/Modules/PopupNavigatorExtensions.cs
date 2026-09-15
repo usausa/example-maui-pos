@@ -1,6 +1,8 @@
 namespace Pos.Terminal.Modules;
 
-// 電卓入力を種類ごとに用意する (表題と桁数は画面側で持たない)。null = キャンセル
+using Pos.Terminal.Modules.Dialogs;
+
+// 電卓入力を種類ごとに用意する (表題と桁数は画面側で持たない)。null = キャンセル。一覧からの選択も OS のダイアログではなくシートで行う
 public static class PopupNavigatorExtensions
 {
     //--------------------------------------------------------------------------------
@@ -61,6 +63,21 @@ public static class PopupNavigatorExtensions
     // 値引の額または率
     public static ValueTask<string?> InputDiscountValueAsync(this IPopupNavigator popupNavigator, bool isAmount, string? value) =>
         popupNavigator.InputNumberAsync(isAmount ? "値引額 (¥)" : "値引率 (%)", value ?? "0", Length.DiscountValueDigits);
+
+    //--------------------------------------------------------------------------------
+    // 一覧からの選択 (操作メニュー・絞り込み・承認者)
+    //--------------------------------------------------------------------------------
+
+    // 選んだ行の番号 (-1 = キャンセル)
+    public static async ValueTask<int> ChooseAsync(this IPopupNavigator popupNavigator, IReadOnlyList<string> items, string title, int selected = -1) =>
+        await popupNavigator.PopupAsync<SelectParameter, int?>(DialogId.Select, new SelectParameter(title, items, selected)) ?? -1;
+
+    public static async ValueTask<T?> ChooseAsync<T>(this IPopupNavigator popupNavigator, IReadOnlyList<T> items, Func<T, string> formatter, string title, int selected = -1)
+        where T : class
+    {
+        var index = await popupNavigator.ChooseAsync(items.Select(formatter).ToList(), title, selected);
+        return index >= 0 ? items[index] : null;
+    }
 
     //--------------------------------------------------------------------------------
     // Helper
