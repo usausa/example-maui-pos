@@ -3,11 +3,11 @@ namespace Pos.Contract.Settings;
 public sealed class SettingsUpdateRequest
 {
     [Required]
-    [MaxLength(100)]
+    [MaxLength(Length.CompanyName)]
     public string CompanyName { get; set; } = default!;
 
     [Required]
-    [MaxLength(3)]
+    [MaxLength(Length.Currency)]
     public string Currency { get; set; } = default!;
 
     public TaxRounding TaxRounding { get; set; }
@@ -15,7 +15,7 @@ public sealed class SettingsUpdateRequest
     public PointBasis PointBasis { get; set; }
 
     [Required]
-    [MaxLength(5)]
+    [MaxLength(Length.BusinessDayStartTime)]
     public string BusinessDayStartTime { get; set; } = default!;
 
     public int Version { get; set; }

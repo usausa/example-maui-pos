@@ -2,7 +2,7 @@ namespace Pos.Contract.Transactions;
 
 using Pos.Contract;
 
-// 取引 (api-design §3.12)。TransactionRequest と同じ形にサーバ付与項目が付く
+// 取引。TransactionCreateRequest と同じ形にサーバ付与項目が付く
 public sealed class TransactionResponseItem
 {
     public Guid Id { get; set; }
@@ -64,7 +64,7 @@ public sealed class TransactionResponseItem
 
     public TransactionResponseItemVoid? Void { get; set; }
 
-    // 受理したが確認が必要な事項 (api-design §5 の警告コード)
+    // 受理したが確認が必要な事項
     public IReadOnlyList<TransactionResponseItemWarning> Warnings { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
@@ -214,3 +214,14 @@ public sealed class TransactionResponseItemWarning
 }
 
 public sealed class TransactionResponse : ListResponse<TransactionResponseItem>;
+
+public static class TransactionResponseItemExtensions
+{
+    // 返品できる明細が残っているか
+    public static bool HasReturnableLine(this TransactionResponseItem transaction) =>
+        transaction.Lines.Any(static x => x.Quantity > x.ReturnedQuantity);
+
+    // 完了した販売で、返品できる明細が残っているもの
+    public static bool IsReturnable(this TransactionResponseItem transaction) =>
+        (transaction.Type == TransactionType.Sale) && (transaction.Status == TransactionStatus.Completed) && transaction.HasReturnableLine();
+}

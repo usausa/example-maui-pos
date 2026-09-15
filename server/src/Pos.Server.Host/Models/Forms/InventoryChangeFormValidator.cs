@@ -11,7 +11,7 @@ public sealed class InventoryChangeFormValidator : FormValidator<InventoryChange
         RuleFor(static x => x.Type).Must(static x => x is InventoryChangeType.PhysicalCount or InventoryChangeType.Adjustment).WithMessage("種別は棚卸か調整を選択してください。");
         RuleFor(static x => x.Quantity).GreaterThanOrEqualTo(0m).WithMessage("棚卸の数量は 0 以上で入力してください。").When(static x => x.Type == InventoryChangeType.PhysicalCount);
         RuleFor(static x => x.Quantity).NotEqual(0m).WithMessage("増減を入力してください。").When(static x => x.Type == InventoryChangeType.Adjustment);
-        RuleFor(static x => x.Reason).MaximumLength(200);
+        RuleFor(static x => x.Reason).MaximumLength(Length.Reason);
         RuleFor(static x => x.StaffId).NotNull().WithMessage("担当を選択してください。");
     }
 }

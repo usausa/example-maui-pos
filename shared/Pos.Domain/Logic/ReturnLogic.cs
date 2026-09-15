@@ -1,6 +1,6 @@
 namespace Pos.Domain.Logic;
 
-// api-design §4.5 の返品計算。元明細から返品明細を導出し、税は §4.3 と同じ方法で再計算する
+// 返品計算。元明細から返品明細を導出し、税は販売と同じ方法で再計算する
 public static class ReturnLogic
 {
     public static SalesResult Calculate(ReturnInput input)

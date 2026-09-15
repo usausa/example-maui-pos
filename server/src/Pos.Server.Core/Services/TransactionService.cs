@@ -7,11 +7,62 @@ using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
 
+public enum TransactionResultStatus
+{
+    // 登録・取消した
+    Success,
+    // 同じ id の再送 (登録済みを返す)
+    Existing,
+    NotFound,
+    // 同じ id で内容が異なる
+    DuplicateMismatch,
+    // 業務ルール違反 (Validation にエラーと期待値)
+    Invalid,
+    // 書き込み中に見つかった違反 (Violation)
+    Violation
+}
+
+// 取引の登録・取消の結果
+public sealed class TransactionResult
+{
+    public TransactionResultStatus Status { get; }
+
+    public TransactionDetailView? Detail { get; }
+
+    public IReadOnlyList<RuleWarning> Warnings { get; }
+
+    public TransactionValidation? Validation { get; }
+
+    public RuleError? Violation { get; }
+
+    private TransactionResult(TransactionResultStatus status, TransactionDetailView? detail = null, IReadOnlyList<RuleWarning>? warnings = null, TransactionValidation? validation = null, RuleError? violation = null)
+    {
+        Status = status;
+        Detail = detail;
+        Warnings = warnings ?? [];
+        Validation = validation;
+        Violation = violation;
+    }
+
+    public static TransactionResult Success(TransactionDetailView detail, IReadOnlyList<RuleWarning>? warnings = null) => new(TransactionResultStatus.Success, detail, warnings);
+
+    public static TransactionResult Existing(TransactionDetailView detail) => new(TransactionResultStatus.Existing, detail);
+
+    public static TransactionResult NotFound() => new(TransactionResultStatus.NotFound);
+
+    public static TransactionResult DuplicateMismatch() => new(TransactionResultStatus.DuplicateMismatch);
+
+    public static TransactionResult Invalid(TransactionValidation validation) => new(TransactionResultStatus.Invalid, validation: validation);
+
+    public static TransactionResult Violated(RuleError violation) => new(TransactionResultStatus.Violation, violation: violation);
+}
+
+// 計算の結果 (登録しない)。Error は先頭の 1 件
+public sealed record TransactionCalculation(SalesResult? Result, RuleError? Error);
+
 // 取引の登録・取消・照会。登録は取引一式 + 在庫 + ポイント + 端末の連番を 1 トランザクションで書く
 public sealed class TransactionService
 {
-    private static readonly string[] SortColumns = ["TransactedAt", "ReceiptNo", "Total", "BusinessDate"];
-    private const string DefaultSort = "TransactedAt";
     private const string ReferenceType = "Transaction";
 
     private readonly IDbProvider provider;
@@ -54,13 +105,13 @@ public sealed class TransactionService
     public ValueTask<TransactionEntity?> QueryByReceiptNoAsync(string receiptNo, CancellationToken cancellationToken) =>
         transactionAccessor.QueryByReceiptNoAsync(receiptNo, cancellationToken);
 
-    public async ValueTask<TransactionDetail?> QueryDetailAsync(Guid id, CancellationToken cancellationToken)
+    public async ValueTask<TransactionDetailView?> QueryDetailAsync(Guid id, CancellationToken cancellationToken)
     {
         var entity = await transactionAccessor.QueryAsync(id, cancellationToken);
         return entity is null ? null : await LoadDetailAsync(entity, cancellationToken);
     }
 
-    public async ValueTask<TransactionDetail?> QueryDetailByReceiptNoAsync(string receiptNo, CancellationToken cancellationToken)
+    public async ValueTask<TransactionDetailView?> QueryDetailByReceiptNoAsync(string receiptNo, CancellationToken cancellationToken)
     {
         var entity = await transactionAccessor.QueryByReceiptNoAsync(receiptNo, cancellationToken);
         return entity is null ? null : await LoadDetailAsync(entity, cancellationToken);
@@ -68,32 +119,29 @@ public sealed class TransactionService
 
     public async ValueTask<PagedResult<TransactionEntity>> QueryPageAsync(TransactionQueryParameter parameter, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(parameter);
-
         var total = await transactionAccessor.CountAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, cancellationToken);
-        var order = SqlHelper.NormalizeSort(SortColumns, DefaultSort, parameter.Sort, parameter.Desc);
-        var items = await transactionAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, order, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await transactionAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
         return new PagedResult<TransactionEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 
     // 明細などを含む
-    public async ValueTask<PagedResult<TransactionDetail>> QueryDetailPageAsync(TransactionQueryParameter parameter, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<TransactionDetailView>> QueryDetailPageAsync(TransactionQueryParameter parameter, CancellationToken cancellationToken)
     {
         var page = await QueryPageAsync(parameter, cancellationToken);
-        var items = new List<TransactionDetail>(page.Items.Count);
+        var items = new List<TransactionDetailView>(page.Items.Count);
         foreach (var entity in page.Items)
         {
             items.Add(await LoadDetailAsync(entity, cancellationToken));
         }
 
-        return new PagedResult<TransactionDetail>(page.Total, page.Page, page.Size, items);
+        return new PagedResult<TransactionDetailView>(page.Total, page.Page, page.Size, items);
     }
 
     // 元取引に紐付く返品取引 (取消済みも含む)
     public ValueTask<List<TransactionEntity>> QueryReturnsAsync(Guid originalTransactionId, CancellationToken cancellationToken) =>
         transactionAccessor.QueryReturnsAsync(originalTransactionId, cancellationToken);
 
-    private async ValueTask<TransactionDetail> LoadDetailAsync(TransactionEntity entity, CancellationToken cancellationToken) =>
+    private async ValueTask<TransactionDetailView> LoadDetailAsync(TransactionEntity entity, CancellationToken cancellationToken) =>
         new()
         {
             Transaction = entity,
@@ -145,10 +193,8 @@ public sealed class TransactionService
     //--------------------------------------------------------------------------------
 
     // 冪等: 同じ id が既にあれば既存を返す (内容が違えば DuplicateMismatch)。検証は Pos.Domain の業務ルール
-    public async ValueTask<TransactionResult> RegisterAsync(TransactionDetail detail, CancellationToken cancellationToken)
+    public async ValueTask<TransactionResult> RegisterAsync(TransactionDetailView detail, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(detail);
-
         var entity = detail.Transaction;
         var existing = await transactionAccessor.QueryAsync(entity.Id, cancellationToken);
         if (existing is not null)
@@ -251,7 +297,7 @@ public sealed class TransactionService
         return TransactionResult.Success(detail, validation.Warnings);
     }
 
-    private async ValueTask InsertDetailAsync(DbTransaction tx, TransactionDetail detail, CancellationToken cancellationToken)
+    private async ValueTask InsertDetailAsync(DbTransaction tx, TransactionDetailView detail, CancellationToken cancellationToken)
     {
         var entity = detail.Transaction;
         await transactionAccessor.InsertAsync(tx, entity, cancellationToken);
@@ -533,7 +579,7 @@ public sealed class TransactionService
         }).ToList();
 
     // 端末が送った計算項目
-    private static SalesResult ToClaimedResult(TransactionDetail detail)
+    private static SalesResult ToClaimedResult(TransactionDetailView detail)
     {
         var entity = detail.Transaction;
         return new SalesResult

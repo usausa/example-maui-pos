@@ -8,9 +8,6 @@ using Pos.Server.Models.Parameters;
 // 会員とポイント (残高は履歴の集計を非正規化したもの。加減算と履歴は同じトランザクションで書く)
 public sealed class CustomerService
 {
-    private static readonly string[] SortColumns = ["Code", "Name", "Kana", "PointBalance", "CreatedAt", "UpdatedAt"];
-    private const string DefaultSort = "Code";
-
     private readonly IDbProvider provider;
     private readonly IDialect dialect;
     private readonly CustomerAccessor customerAccessor;
@@ -34,12 +31,9 @@ public sealed class CustomerService
 
     public async ValueTask<PagedResult<CustomerEntity>> QueryPageAsync(CustomerQueryParameter parameter, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(parameter);
-
         var keyword = ServiceHelper.ToLikePattern(dialect, parameter.Keyword);
         var total = await customerAccessor.CountAsync(keyword, parameter.Code, parameter.Phone, parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
-        var order = parameter.UpdatedSince is null ? SqlHelper.NormalizeSort(SortColumns, DefaultSort, parameter.Sort, parameter.Desc) : SqlHelper.SyncSort;
-        var items = await customerAccessor.QueryListAsync(keyword, parameter.Code, parameter.Phone, parameter.UpdatedSince, parameter.IncludeDeleted, order, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await customerAccessor.QueryListAsync(keyword, parameter.Code, parameter.Phone, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
         return new PagedResult<CustomerEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 
@@ -55,8 +49,6 @@ public sealed class CustomerService
 
     public ValueTask<DataWriteStatus> InsertAsync(CustomerEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.PointBalance = 0;
@@ -67,10 +59,8 @@ public sealed class CustomerService
     }
 
     // PointBalance は更新しない
-    public ValueTask<DataWriteStatus> UpdateAsync(CustomerEntity entity, CancellationToken cancellationToken)
+    public ValueTask<DataWriteResult<CustomerEntity>> UpdateAsync(CustomerEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         return ServiceHelper.UpdateAsync(
             dialect,

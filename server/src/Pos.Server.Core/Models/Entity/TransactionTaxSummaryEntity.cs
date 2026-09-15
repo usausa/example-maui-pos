@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("TransactionTaxSummaries")]
 public sealed class TransactionTaxSummaryEntity
 {
     [Key]

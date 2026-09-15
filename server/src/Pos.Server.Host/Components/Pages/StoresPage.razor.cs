@@ -7,7 +7,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-70 店舗
+// 店舗
 public sealed partial class StoresPage
 {
     private List<StoreEntity> items = [];

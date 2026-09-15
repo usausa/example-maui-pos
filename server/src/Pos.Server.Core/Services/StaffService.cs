@@ -6,9 +6,6 @@ using Pos.Server.Models.Entity;
 
 public sealed class StaffService
 {
-    private static readonly string[] SortColumns = ["Code", "Name", "UpdatedAt"];
-    private const string DefaultSort = "Code";
-
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
     private readonly TimeProvider timeProvider;
@@ -24,11 +21,10 @@ public sealed class StaffService
     }
 
     // storeId 指定時は本部 (StoreId = NULL) も含める
-    public async ValueTask<PagedResult<StaffEntity>> QueryPageAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, string? sort, bool desc, int page, int size, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<StaffEntity>> QueryPageAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, StaffSort sort, bool desc, int page, int size, CancellationToken cancellationToken)
     {
         var total = await masterAccessor.CountStaffAsync(storeId, updatedSince, includeDeleted, cancellationToken);
-        var order = updatedSince is null ? SqlHelper.NormalizeSort(SortColumns, DefaultSort, sort, desc) : SqlHelper.SyncSort;
-        var items = await masterAccessor.QueryStaffListAsync(storeId, updatedSince, includeDeleted, order, size, page * size, cancellationToken);
+        var items = await masterAccessor.QueryStaffListAsync(storeId, updatedSince, includeDeleted, sort, desc, size, page * size, cancellationToken);
         return new PagedResult<StaffEntity>((int)total, page, size, items);
     }
 
@@ -41,8 +37,6 @@ public sealed class StaffService
 
     public ValueTask<DataWriteStatus> InsertAsync(StaffEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
@@ -51,10 +45,8 @@ public sealed class StaffService
         return ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertStaffAsync(entity, cancellationToken));
     }
 
-    public ValueTask<DataWriteStatus> UpdateAsync(StaffEntity entity, CancellationToken cancellationToken)
+    public ValueTask<DataWriteResult<StaffEntity>> UpdateAsync(StaffEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         return ServiceHelper.UpdateAsync(
             dialect,

@@ -13,7 +13,7 @@ public sealed class ReturnLineItem : NotificationObject
 
     public bool IsReturnable => Returnable > 0;
 
-    public string Detail => $"{DisplayText.Yen(Line.UnitPrice)} × {DisplayText.Quantity(Line.Quantity)}  返品可 {DisplayText.Quantity(Returnable)}";
+    public string Detail => $"{ViewHelper.Yen(Line.UnitPrice)} × {ViewHelper.Quantity(Line.Quantity)}  返品可 {ViewHelper.Quantity(Returnable)}";
 
     public decimal Quantity
     {
@@ -27,7 +27,7 @@ public sealed class ReturnLineItem : NotificationObject
         }
     }
 
-    public string QuantityText => DisplayText.Quantity(Quantity);
+    public string QuantityText => ViewHelper.Quantity(Quantity);
 
     public ReturnLineItem(TransactionResponseItemLine line)
     {
@@ -48,9 +48,11 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
 
     private readonly IDialog dialog;
 
-    private ReturnContext returnContext = new();
-
     private readonly ReturnUsecase returns;
+
+    // 返品の画面間で共有する状態 (Scope プラグインが注入する)
+    [Scope]
+    public ReturnContext ReturnContext { get; set; } = default!;
 
     [ObservableProperty]
     public partial string HeaderText { get; set; } = string.Empty;
@@ -61,7 +63,7 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
     public partial string ReasonText { get; set; } = "選択してください";
 
     [ObservableProperty]
-    public partial string RefundText { get; set; } = DisplayText.Yen(0);
+    public partial string RefundText { get; set; } = ViewHelper.Yen(0);
 
     [ObservableProperty]
     public partial string PointsText { get; set; } = string.Empty;
@@ -89,7 +91,7 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
         IncrementCommand = MakeDelegateCommand<ReturnLineItem>(x => SetQuantity(x, x.Quantity + 1));
         InputCommand = MakeAsyncCommand<ReturnLineItem>(async x =>
         {
-            var text = await popupNavigator.InputNumberAsync($"返品数量 (最大 {DisplayText.Quantity(x.Returnable)})", DisplayText.Quantity(x.Quantity), 4);
+            var text = await popupNavigator.InputQuantityAsync($"返品数量 (最大 {ViewHelper.Quantity(x.Returnable)})", x.Quantity);
             if ((text is not null) && Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
             {
                 SetQuantity(x, value);
@@ -100,7 +102,7 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
             var result = await popupNavigator.PopupAsync<ReasonSelectParameter, ReasonSelectResult?>(DialogId.ReasonSelect, new ReasonSelectParameter("返品理由", Reasons, true));
             if (result is not null)
             {
-                returnContext.Reason = result.Text;
+                ReturnContext.Reason = result.Text;
                 ReasonText = result.Text;
                 Refresh();
             }
@@ -109,18 +111,17 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
-        returnContext = context.Parameter.GetContext<ReturnContext>() ?? new ReturnContext();
-        var original = returnContext.Original;
+        var original = ReturnContext.Original;
         if (original is null)
         {
-            await Navigator.PostForwardAsync(ViewId.Return, Parameters.Make().WithContext(returnContext));
+            await Navigator.PostForwardAsync(ViewId.Return);
             return;
         }
 
-        HeaderText = $"🧾 {original.ReceiptNo}  {DisplayText.DateTime(original.TransactedAt)}";
-        var quantities = returnContext.Lines.ToDictionary(static x => x.Line.Id, static x => x.Quantity);
+        HeaderText = $"🧾 {original.ReceiptNo}  {ViewHelper.DateTime(original.TransactedAt)}";
+        var quantities = ReturnContext.Lines.ToDictionary(static x => x.Line.Id, static x => x.Quantity);
         Items.Replace(original.Lines.Select(x => new ReturnLineItem(x) { Quantity = quantities.GetValueOrDefault(x.Id) }));
-        ReasonText = returnContext.Reason ?? "選択してください";
+        ReasonText = ReturnContext.Reason ?? "選択してください";
         Refresh();
     }
 
@@ -132,35 +133,35 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
 
     private void Refresh()
     {
-        var original = returnContext.Original;
+        var original = ReturnContext.Original;
         if (original is null)
         {
             return;
         }
 
-        returnContext.Lines.Clear();
+        ReturnContext.Lines.Clear();
         foreach (var item in Items.Where(static x => x.Quantity > 0))
         {
-            returnContext.Lines.Add((item.Line, item.Quantity));
+            ReturnContext.Lines.Add((item.Line, item.Quantity));
         }
 
-        if (returnContext.Lines.Count == 0)
+        if (ReturnContext.Lines.Count == 0)
         {
-            RefundText = DisplayText.Yen(0);
+            RefundText = ViewHelper.Yen(0);
             PointsText = string.Empty;
             CanProceed = false;
             return;
         }
 
-        var result = returns.Calculate(original, returnContext.Lines, []);
-        RefundText = DisplayText.Yen(result.Total);
+        var result = returns.Calculate(original, ReturnContext.Lines, []);
+        RefundText = ViewHelper.Yen(result.Total);
         PointsText = (result.PointsEarned != 0) || (result.PointsRedeemed != 0)
             ? $"ポイント: 付与取消 {-result.PointsEarned:#,##0}  返還 {-result.PointsRedeemed:#,##0}"
             : string.Empty;
-        CanProceed = returnContext.Reason is not null;
+        CanProceed = ReturnContext.Reason is not null;
     }
 
-    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Return, Parameters.Make().WithContext(returnContext));
+    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Return);
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
@@ -177,18 +178,18 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
 
     protected override async Task OnNotifyFunction4()
     {
-        if (returnContext.Lines.Count == 0)
+        if (ReturnContext.Lines.Count == 0)
         {
             await dialog.InformationAsync("返品する明細を選んでください。");
             return;
         }
 
-        if (returnContext.Reason is null)
+        if (ReturnContext.Reason is null)
         {
             await dialog.InformationAsync("返品理由を選んでください。");
             return;
         }
 
-        await Navigator.ForwardAsync(ViewId.Refund, Parameters.Make().WithContext(returnContext));
+        await Navigator.ForwardAsync(ViewId.Refund);
     }
 }

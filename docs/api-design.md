@@ -58,7 +58,7 @@ C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
 ```
 
 - 並び替えは `sort` (列名) / `desc` (bool)。  
-  許可する列はリソースごとに決め、`SqlHelper.NormalizeSort` で検証する。  
+  許可する列はリソースごとの列挙型 (`StoreSort` など) で決め、一覧の `sort` が不正なら既定の列 (レポートの `sort` / `groupBy` が不正なら 400)。  
   `sort` / `groupBy` の値は大文字小文字を区別しない
 - マスタ系一覧は **差分同期**用に `updatedSince` (datetime) と `includeDeleted` (bool) を受け付ける。  
   `updatedSince` 指定時は `updatedAt > updatedSince` のレコードを `updatedAt, id` 昇順で返し、論理削除済みも `isDeleted: true` で含める
@@ -90,7 +90,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
   "traceId": "00-...",
   "errorCode": "CALCULATION_MISMATCH",
   "errors": { "total": ["expected 80200"] },   // 任意: フィールド別
-  "expected": { /* サーバ計算結果 (取引検証時のみ、TransactionCalculationResponse) */ }
+  "expected": { /* サーバ計算結果 (取引検証時のみ、TransactionCalculateResponse) */ }
 }
 ```
 
@@ -357,7 +357,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | `note` | string(500)? | |
 | `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
-`PointHistoryResponse` (ポイント履歴):
+`CustomerPointHistoryResponse` (ポイント履歴):
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
@@ -379,14 +379,14 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | POST | `/customers` | 端末 / 管理 | 登録 (店頭での新規入会も想定) |
 | PUT | `/customers/{id}` | 端末 / 管理 | 更新 |
 | DELETE | `/customers/{id}` | 管理 | 論理削除 |
-| GET | `/customers/{id}/points/history?page&size` | 端末 / 管理 | ポイント履歴 (新しい順、`PointHistoryResponse`) |
-| POST | `/customers/{id}/points/adjust` | 管理 | 手動調整 `PointAdjustRequest { points, reason, staffId }`。`Adjust` 履歴を作る |
+| GET | `/customers/{id}/points/history?page&size` | 端末 / 管理 | ポイント履歴 (新しい順、`CustomerPointHistoryResponse`) |
+| POST | `/customers/{id}/points/adjust` | 管理 | 手動調整 `CustomerPointAdjustRequest { points, reason, staffId }`。`Adjust` 履歴を作る |
 | GET | `/customers/{id}/transactions?page&size` | 端末 / 管理 | 購入履歴 (新しい順) |
 
 ### 3.12 取引 (Transactions)
 
 販売 (`Sale`) と返品 (`Return`) を同じ形で扱う。  
-端末が計算した結果をそのまま送り (`TransactionRequest`)、サーバは [§4](#4-金額税ポイント計算仕様-共有ライブラリ) の仕様で再計算して検証し、`TransactionResponse` を返す。
+端末が計算した結果をそのまま送り (`TransactionCreateRequest`)、サーバは [§4](#4-金額税ポイント計算仕様-共有ライブラリ) の仕様で再計算して検証し、`TransactionResponse` を返す。
 
 #### 取引の項目
 
@@ -423,7 +423,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | `warnings[]` | `{ code, message, lineId? }[]` | サーバ | 受理したが確認が必要な事項 ([§5](#5-エラーコード) の警告コード) |
 | `createdAt`, `updatedAt` | datetime | サーバ | |
 
-`lines[]` (`TransactionRequestLine` / `TransactionResponseLine`):
+`lines[]` (`TransactionCreateRequestLine` / `TransactionResponseLine`):
 
 | フィールド | 型 | 区分 | 説明 |
 | --- | --- | --- | --- |
@@ -499,7 +499,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 計算過程は [§4.6](#46-計算例)。
 
 ```jsonc
-POST /api/v1/transactions      (TransactionRequest)
+POST /api/v1/transactions      (TransactionCreateRequest)
 {
   "id": "0192a1b2-...", "type": "Sale", "status": "Completed",
   "storeId": "...", "terminalId": "...", "staffId": "...", "shiftId": "...",
@@ -548,12 +548,12 @@ POST /api/v1/transactions      (TransactionRequest)
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| POST | `/transactions` | 端末 | 取引登録 (`TransactionRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `422` 検証エラー |
+| POST | `/transactions` | 端末 | 取引登録 (`TransactionCreateRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `422` 検証エラー |
 | GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&page&size` | 端末 / 管理 | 取引検索 (`transactedAt` 降順、`TransactionResponse`) |
 | GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionResponse`) |
 | GET | `/transactions/lookup?receiptNo=` | 端末 | 返品時のレシート番号検索 |
 | POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, reason, voidedAt }` → `200` 取引 |
-| POST | `/transactions/calculate` | 端末 / 管理 | 入力項目 (`type`, `originalTransactionId`, `lines[]`, `discounts[]`, `payments[]`) を送り (`TransactionCalculateRequest`)、計算項目 (`TransactionCalculationResponse`) を返す (登録しない)。共有ライブラリの検証用 |
+| POST | `/transactions/calculate` | 端末 / 管理 | 入力項目 (`type`, `originalTransactionId`, `lines[]`, `discounts[]`, `payments[]`) を送り (`TransactionCalculateRequest`)、計算項目 (`TransactionCalculateResponse`) を返す (登録しない)。共有ライブラリの検証用 |
 
 #### 業務ルール
 
@@ -610,7 +610,7 @@ POST /api/v1/transactions      (TransactionRequest)
 | `note` | string? | 入力 | |
 | `createdAt`, `updatedAt` | | サーバ | |
 
-`CashEventResponse` (入出金):
+`ShiftCashEventResponse` (入出金):
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
@@ -630,7 +630,7 @@ POST /api/v1/transactions      (TransactionRequest)
 | GET | `/shifts/current?terminalId=` | 端末 | 端末の開設中シフト (なければ 404) |
 | GET | `/shifts?storeId&terminalId&status&from&to&page&size` | 管理 | シフト一覧 |
 | GET | `/shifts/{id}` | 端末 / 管理 | シフト詳細 (集計付き) |
-| POST | `/shifts/{id}/cash-events` | 端末 | 入出金登録 (`CashEventRequest`、`Open` のみ) |
+| POST | `/shifts/{id}/cash-events` | 端末 | 入出金登録 (`ShiftCashEventRequest`、`Open` のみ) |
 | GET | `/shifts/{id}/cash-events` | 端末 / 管理 | 入出金一覧 |
 | POST | `/shifts/{id}/close` | 端末 | 精算 `ShiftCloseRequest { closedAt, closedByStaffId, actualCash, denominations, note }` → `200` シフト (`expectedCash` / `difference` 確定) |
 | GET | `/shifts/{id}/summary` | 端末 / 管理 | 精算レポート (`ShiftSummaryResponse`、下記) |
@@ -718,8 +718,8 @@ POST /api/v1/transactions      (TransactionRequest)
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| GET | `/reports/sales/summary?storeId&from&to&groupBy=` | 管理 / 端末 | 売上集計 (`SalesSummaryResponse`)。`groupBy` = `day` / `store` / `hour` / `terminal` / `staff` / `paymentMethod` / `taxRate` / `category` (不正なら 400) |
-| GET | `/reports/sales/products?storeId&from&to&categoryId&sort=netSales\|quantity&size` | 管理 | 商品別売上 (`ProductSalesResponse`) |
+| GET | `/reports/sales/summary?storeId&from&to&groupBy=` | 管理 / 端末 | 売上集計 (`ReportSalesSummaryResponse`)。`groupBy` = `day` / `store` / `hour` / `terminal` / `staff` / `paymentMethod` / `taxRate` / `category` (不正なら 400) |
+| GET | `/reports/sales/products?storeId&from&to&categoryId&sort=netSales\|quantity&size` | 管理 | 商品別売上 (`ReportProductSalesResponse`) |
 | GET | `/reports/sales/summary/csv`, `/reports/sales/products/csv` | 管理 | CSV 出力 (同じクエリ、CsvHelper、BOM 付き UTF-8。summary は合計行付き) |
 | GET | `/reports/sales/daily/pdf?storeId&date` | 管理 | 売上日報の PDF (店舗 × 営業日、[D-37](decisions.md#d-37-帳票出力-pdf-oysterreport)) |
 

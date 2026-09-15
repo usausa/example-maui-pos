@@ -1,1 +1,8 @@
-SELECT * FROM TransactionLines WHERE TransactionId = /*@ transactionId */'' ORDER BY LineNo
+SELECT
+    *
+FROM
+    TransactionLines
+WHERE
+    TransactionId = /*@ transactionId */''
+ORDER BY
+    LineNo

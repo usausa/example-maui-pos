@@ -1,6 +1,6 @@
 namespace Pos.Domain.Logic;
 
-// 端末が送った計算項目とサーバの再計算結果の一致判定 (api-design §3.12 業務ルール 5)
+// 端末が送った計算項目とサーバの再計算結果の一致判定
 public static partial class SalesLogic
 {
     public static bool Matches(SalesResult expected, SalesResult actual)

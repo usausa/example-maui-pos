@@ -5,12 +5,15 @@ using Microsoft.AspNetCore.Components.Web;
 
 using MudBlazor;
 
+using Pos.Server.Host.Application.Lookup;
+using Pos.Server.Host.Application.State;
 using Pos.Server.Host.Components.Dialogs;
+using Pos.Server.Host.Helpers;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
 
-// S-20 取引一覧
+// 取引一覧
 public sealed partial class TransactionsPage
 {
     private MudDataGrid<TransactionEntity> Grid { get; set; } = default!;
@@ -88,7 +91,7 @@ public sealed partial class TransactionsPage
             To = ToDateOnly(period?.End),
             Type = type,
             Status = status,
-            Sort = sort?.SortBy,
+            Sort = EnumHelper.Parse(sort?.SortBy, TransactionSort.TransactedAt),
             Desc = sort?.Descending ?? true,
             Page = state.Page,
             Size = state.PageSize

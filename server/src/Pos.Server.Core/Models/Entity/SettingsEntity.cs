@@ -1,6 +1,7 @@
 namespace Pos.Server.Models.Entity;
 
 // 会社設定 (1 行、Id = 1)
+[Name("Settings")]
 public sealed class SettingsEntity
 {
     [Key]

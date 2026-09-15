@@ -6,9 +6,9 @@ public sealed class YenConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         value switch
         {
-            decimal d => DisplayText.Yen(d),
-            int i => DisplayText.Yen(i),
-            long l => DisplayText.Yen(l),
+            decimal d => ViewHelper.Yen(d),
+            int i => ViewHelper.Yen(i),
+            long l => ViewHelper.Yen(l),
             _ => null
         };
 

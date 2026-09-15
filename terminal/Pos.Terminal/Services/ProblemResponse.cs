@@ -23,5 +23,5 @@ public sealed class ProblemResponse
     public IReadOnlyDictionary<string, string[]>? Errors { get; set; }
 
     // 取引検証時のサーバ計算結果
-    public TransactionCalculationResponse? Expected { get; set; }
+    public TransactionCalculateResponse? Expected { get; set; }
 }

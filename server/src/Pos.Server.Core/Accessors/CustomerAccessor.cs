@@ -18,10 +18,10 @@ public sealed partial class CustomerAccessor
     public partial ValueTask<long> CountAsync(string? keyword, string? code, string? phone, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<CustomerEntity>> QueryListAsync(string? keyword, string? code, string? phone, DateTime? updatedSince, bool includeDeleted, string sort, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<CustomerEntity>> QueryListAsync(string? keyword, string? code, string? phone, DateTime? updatedSince, bool includeDeleted, CustomerSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(CustomerEntity), Table = "Customers")]
+    [SelectSingle(typeof(CustomerEntity))]
     public partial ValueTask<CustomerEntity?> QueryAsync(Guid id, CancellationToken cancellationToken);
 
     [QueryFirst]
@@ -32,12 +32,12 @@ public sealed partial class CustomerAccessor
     public partial ValueTask<List<CustomerEntity>> QueryNegativePointListAsync(int limit, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(CustomerEntity), Table = "Customers")]
+    [Insert(typeof(CustomerEntity))]
     public partial ValueTask<int> InsertAsync(CustomerEntity entity, CancellationToken cancellationToken);
 
-    // PointBalance は更新しない (ポイントは AddPointsAsync で加減算する)。Version が一致する行だけ更新する
-    [Execute]
-    public partial ValueTask<int> UpdateAsync(
+    // PointBalance は更新しない (ポイントは AddPointsAsync で加減算する)。Version が一致する行だけ更新し、更新後の行を返す
+    [QueryFirst]
+    public partial ValueTask<CustomerEntity?> UpdateAsync(
         Guid id,
         string code,
         string name,
@@ -64,7 +64,7 @@ public sealed partial class CustomerAccessor
     public partial ValueTask<int> AddPointsAsync(DbTransaction tx, Guid id, int delta, DateTime updatedAt, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(PointHistoryEntity), Table = "PointHistories")]
+    [Insert(typeof(PointHistoryEntity))]
     public partial ValueTask<int> InsertPointHistoryAsync(DbTransaction tx, PointHistoryEntity entity, CancellationToken cancellationToken);
 
     [ExecuteScalar]

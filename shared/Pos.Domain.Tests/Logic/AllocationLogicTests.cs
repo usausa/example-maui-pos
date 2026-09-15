@@ -2,7 +2,7 @@ namespace Pos.Domain.Logic;
 
 public sealed class AllocationLogicTests
 {
-    // §4.6: 1,000 を 76,000 / 4,000 / 1,100 で按分。剰余 1 は raw の端数が最大の配送料へ
+    // : 1,000 を 76,000 / 4,000 / 1,100 で按分。剰余 1 は raw の端数が最大の配送料へ
     [Fact]
     public void AllocateByLargestRemainder()
     {
@@ -13,7 +13,7 @@ public sealed class AllocationLogicTests
         Assert.Equal([937m, 49m, 14m], result);
     }
 
-    // 剰余が複数のときは端数の大きい順 (§4.6 のポイント按分: 4,685 / 247 / 68)
+    // 剰余が複数のときは端数の大きい順 (のポイント按分: 4,685 / 247 / 68)
     [Fact]
     public void AllocateMultipleRemainders()
     {

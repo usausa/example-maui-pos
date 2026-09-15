@@ -11,13 +11,21 @@ SELECT
     0 AS TaxTotal,
     0 AS PointsEarned,
     0 AS PointsRedeemed
-FROM TransactionPayments p
-JOIN Transactions t ON t.Id = p.TransactionId
-JOIN PaymentMethods m ON m.Id = p.PaymentMethodId
-WHERE t.Status = 'Completed'
-  AND t.BusinessDate >= /*@ from */'' AND t.BusinessDate <= /*@ to */''
+FROM
+    TransactionPayments p
+    JOIN Transactions t ON t.Id = p.TransactionId
+    JOIN PaymentMethods m ON m.Id = p.PaymentMethodId
+WHERE
+    t.Status = 'Completed'
+    AND t.BusinessDate >= /*@ from */''
+    AND t.BusinessDate <= /*@ to */''
 /*% if (storeId != null) { */
-  AND t.StoreId = /*@ storeId */''
+    AND t.StoreId = /*@ storeId */''
 /*% } */
-GROUP BY p.PaymentMethodId, m.Name, m.SortOrder
-ORDER BY m.SortOrder, m.Name
+GROUP BY
+    p.PaymentMethodId,
+    m.Name,
+    m.SortOrder
+ORDER BY
+    m.SortOrder,
+    m.Name

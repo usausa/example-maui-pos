@@ -1,4 +1,5 @@
-UPDATE Outbox
+UPDATE
+    Outbox
 SET
     Status = /*@ status */'',
     Attempts = /*@ attempts */0,

@@ -22,6 +22,10 @@ using Pos.Terminal.Components;
 using Pos.Terminal.Extender;
 using Pos.Terminal.Helpers;
 using Pos.Terminal.Modules;
+using Pos.Terminal.Modules.Inquiry;
+using Pos.Terminal.Modules.Inventory;
+using Pos.Terminal.Modules.Returns;
+using Pos.Terminal.Modules.Sales;
 
 using SkiaSharp.Views.Maui.Controls.Hosting;
 
@@ -270,6 +274,12 @@ public static partial class MauiProgram
         services.AddSingleton<ShiftUsecase>();
         services.AddSingleton<StockUsecase>();
         services.AddSingleton<SetupUsecase>();
+
+        // Scope (画面間で共有する状態。Navigator の Scope プラグインが生成し、参照する画面がなくなると破棄する)
+        services.AddTransient<SalesContext>();
+        services.AddTransient<ReturnContext>();
+        services.AddTransient<StockContext>();
+        services.AddTransient<CustomerDraft>();
     }
 
     // ------------------------------------------------------------

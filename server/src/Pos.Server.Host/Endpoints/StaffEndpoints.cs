@@ -1,6 +1,7 @@
 namespace Pos.Server.Host.Endpoints;
 
 using Pos.Contract.Staff;
+using Pos.Server.Host.Helpers;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
@@ -50,7 +51,7 @@ public static partial class StaffEndpoints
         [Range(0, Int32.MaxValue)] int page = 0,
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        var result = await service.QueryPageAsync(storeId, updatedSince, includeDeleted, sort, desc, page, size, cancellationToken);
+        var result = await service.QueryPageAsync(storeId, updatedSince, includeDeleted, EnumHelper.Parse(sort, StaffSort.Code), desc, page, size, cancellationToken);
         return TypedResults.Ok(new StaffResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
@@ -83,10 +84,10 @@ public static partial class StaffEndpoints
     {
         var entity = ToEntity(request);
         entity.Id = id;
-        var status = await service.UpdateAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
-            : ApiProblems.FromStatus(status);
+        var result = await service.UpdateAsync(entity, cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse(result.Entity!))
+            : ApiProblems.FromStatus(result.Status);
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(

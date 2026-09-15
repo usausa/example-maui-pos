@@ -16,8 +16,6 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
     private readonly Session session;
 
-    private SalesContext salesContext = new();
-
     private readonly DataAccessor accessor;
 
     private readonly SalesUsecase sales;
@@ -27,6 +25,10 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     private SalesResult result = default!;
 
     private decimal remaining;
+
+    // 販売の画面間で共有する状態 (Scope プラグインが同じインスタンスを注入し、どの画面からも参照されなくなると破棄する)
+    [Scope]
+    public SalesContext SalesContext { get; set; } = default!;
 
     public NumberInputModel Input { get; } = new() { MaxLength = 8 };
 
@@ -59,7 +61,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     public ObservableCollection<MethodItem> Methods { get; } = [];
 
     [ObservableProperty]
-    public partial string InputText { get; set; } = DisplayText.Yen(0);
+    public partial string InputText { get; set; } = ViewHelper.Yen(0);
 
     [ObservableProperty]
     public partial bool CanConfirm { get; set; }
@@ -92,19 +94,19 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         PushCommand = MakeDelegateCommand<string>(x =>
         {
             Input.Push(x);
-            InputText = DisplayText.Yen(InputValue);
+            InputText = ViewHelper.Yen(InputValue);
         });
         PopCommand = MakeDelegateCommand(() =>
         {
             Input.Pop();
-            InputText = DisplayText.Yen(InputValue);
+            InputText = ViewHelper.Yen(InputValue);
         });
         AddAmountCommand = MakeDelegateCommand<string>(x => SetInput(InputValue + Int32.Parse(x, CultureInfo.InvariantCulture)));
         ExactCommand = MakeDelegateCommand(() => SetInput(Math.Max(0, remaining)));
         AddPaymentCommand = MakeAsyncCommand<MethodItem>(AddPaymentAsync);
         RemovePaymentCommand = MakeDelegateCommand<PaymentItem>(x =>
         {
-            salesContext.Payments.Remove(x.Payment);
+            SalesContext.Payments.Remove(x.Payment);
             Refresh();
         });
     }
@@ -113,14 +115,15 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
-        salesContext = context.Parameter.GetContext<SalesContext>() ?? new SalesContext();
-
         // 会員が変わったらポイント支払は無効
-        if (salesContext.Cart.Customer is null)
+        if (SalesContext.Cart.Customer is null)
         {
-            foreach (var payment in salesContext.Payments.Where(static x => x.Method.Kind == PaymentKind.Points).ToList())
+            for (var i = SalesContext.Payments.Count - 1; i >= 0; i--)
             {
-                salesContext.Payments.Remove(payment);
+                if (SalesContext.Payments[i].Method.Kind == PaymentKind.Points)
+                {
+                    SalesContext.Payments.RemoveAt(i);
+                }
             }
         }
 
@@ -139,31 +142,31 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     private void SetInput(decimal value)
     {
         Input.Text = value.ToString("0", CultureInfo.InvariantCulture);
-        InputText = DisplayText.Yen(value);
+        InputText = ViewHelper.Yen(value);
     }
 
     private void Refresh()
     {
-        var cart = salesContext.Cart;
-        var payments = salesContext.Payments;
+        var cart = SalesContext.Cart;
+        var payments = SalesContext.Payments;
         result = sales.Calculate(cart, payments);
 
         var paid = payments.Sum(static x => x.Amount);
         remaining = result.Total - paid;
 
-        TotalText = DisplayText.Yen(result.Total);
+        TotalText = ViewHelper.Yen(result.Total);
         var customer = cart.Customer;
         var pointsUsed = payments.Where(static x => x.Method.Kind == PaymentKind.Points).Sum(static x => x.Amount);
-        PointsText = customer is null ? "会員なし" : $"{DisplayText.Yen(pointsUsed)} / 残高 {DisplayText.Points(customer.PointBalance)}";
+        PointsText = customer is null ? "会員なし" : $"{ViewHelper.Yen(pointsUsed)} / 残高 {ViewHelper.Points(customer.PointBalance)}";
         PointsEnabled = (customer is not null) && (pointsMethod is not null) && (customer.PointBalance > 0);
-        PaidText = DisplayText.Yen(paid);
-        Payments.Replace(payments.Select(static x => new PaymentItem(x, x.Reference is null ? x.Method.Name : $"{x.Method.Name} {x.Reference}", DisplayText.Yen(x.Amount))));
+        PaidText = ViewHelper.Yen(paid);
+        Payments.Replace(payments.Select(static x => new PaymentItem(x, x.Reference is null ? x.Method.Name : $"{x.Method.Name} {x.Reference}", ViewHelper.Yen(x.Amount))));
 
         // 支払が済んだら「残り」の行にお釣りを出す
         var change = result.ChangeAmount;
         CanConfirm = remaining <= 0;
         RemainingCaption = CanConfirm ? "お釣り" : "残り";
-        RemainingText = DisplayText.Yen(CanConfirm ? change : remaining);
+        RemainingText = ViewHelper.Yen(CanConfirm ? change : remaining);
     }
 
     private async Task AddPaymentAsync(MethodItem item)
@@ -198,7 +201,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         string? reference = null;
         if (method.RequiresReference)
         {
-            var input = await popupNavigator.InputDigitsAsync($"{method.Name} の伝票番号", string.Empty, 12);
+            var input = await popupNavigator.InputReferenceAsync(method.Name);
             if (String.IsNullOrWhiteSpace(input))
             {
                 return;
@@ -207,7 +210,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
             reference = input.Trim();
         }
 
-        salesContext.Payments.Add(new CartPayment
+        SalesContext.Payments.Add(new CartPayment
         {
             Id = Guid.NewGuid(),
             Method = method,
@@ -216,24 +219,24 @@ public sealed partial class PaymentViewModel : AppViewModelBase
             Reference = reference
         });
         Input.Clear();
-        InputText = DisplayText.Yen(0);
+        InputText = ViewHelper.Yen(0);
         Refresh();
     }
 
-    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Sales, Parameters.Make().WithContext(salesContext));
+    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Sales);
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
     // ポイント利用
     protected override async Task OnNotifyFunction2()
     {
-        var customer = salesContext.Cart.Customer;
+        var customer = SalesContext.Cart.Customer;
         if ((customer is null) || (pointsMethod is null))
         {
             return;
         }
 
-        var existing = salesContext.Payments.FirstOrDefault(static x => x.Method.Kind == PaymentKind.Points);
+        var existing = SalesContext.Payments.FirstOrDefault(static x => x.Method.Kind == PaymentKind.Points);
         var max = Math.Min(customer.PointBalance, remaining + (existing?.Amount ?? 0m));
         if (max <= 0)
         {
@@ -241,7 +244,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
             return;
         }
 
-        var text = await popupNavigator.InputNumberAsync($"ポイント (〜{max:#,##0})", (existing?.Amount ?? max).ToString("0", CultureInfo.InvariantCulture), 7);
+        var text = await popupNavigator.InputPointsAsync($"ポイント (〜{max:#,##0})", (int)(existing?.Amount ?? max));
         if ((text is null) || !Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var points))
         {
             return;
@@ -255,19 +258,19 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
         if (existing is not null)
         {
-            salesContext.Payments.Remove(existing);
+            SalesContext.Payments.Remove(existing);
         }
 
         if (points > 0)
         {
-            salesContext.Payments.Insert(0, new CartPayment { Id = Guid.NewGuid(), Method = pointsMethod, Amount = points, TenderedAmount = points });
+            SalesContext.Payments.Insert(0, new CartPayment { Id = Guid.NewGuid(), Method = pointsMethod, Amount = points, TenderedAmount = points });
         }
 
         Refresh();
     }
 
     protected override Task OnNotifyFunction3() =>
-        Navigator.ForwardAsync(ViewId.CustomerSelect, Parameters.Make().WithReturnTo(ViewId.Payment).WithContext(salesContext));
+        Navigator.ForwardAsync(ViewId.CustomerSelect, Parameters.Make().WithReturnTo(ViewId.Payment));
 
     protected override async Task OnNotifyFunction4()
     {
@@ -282,14 +285,14 @@ public sealed partial class PaymentViewModel : AppViewModelBase
             return;
         }
 
-        var errors = sales.Validate(salesContext.Cart, salesContext.Payments);
+        var errors = sales.Validate(SalesContext.Cart, SalesContext.Payments);
         if (errors.Count > 0)
         {
-            await dialog.InformationAsync(RuleText.Of(errors[0].Reason));
+            await dialog.InformationAsync(ViewHelper.Reason(errors[0].Reason));
             return;
         }
 
-        var response = await sales.CompleteAsync(salesContext.Cart, salesContext.Payments);
+        var response = await sales.CompleteAsync(SalesContext.Cart, SalesContext.Payments);
         await Navigator.ForwardAsync(ViewId.Complete, Parameters.Make().WithTransactionId(response.Id));
     }
 }

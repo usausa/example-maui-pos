@@ -68,19 +68,19 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
         HasProduct = true;
         Name = value.Name;
         Code = $"{value.Code}  {value.Barcode}".Trim();
-        PriceText = DisplayText.Yen(value.Price);
+        PriceText = ViewHelper.Yen(value.Price);
 
         var taxRate = (await accessor.QueryTaxRateListAsync()).FirstOrDefault(x => x.Id == value.TaxRateId);
         var category = (await accessor.QueryCategoryListAsync()).FirstOrDefault(x => x.Id == value.CategoryId);
-        PriceDetail = $"{(value.TaxIncluded ? "税込" : "税抜")} {(taxRate is null ? string.Empty : DisplayText.Percent(taxRate.Rate))}  還元率 {DisplayText.Percent(value.PointRate)}";
+        PriceDetail = $"{(value.TaxIncluded ? "税込" : "税抜")} {(taxRate is null ? string.Empty : ViewHelper.Percent(taxRate.Rate))}  還元率 {ViewHelper.Percent(value.PointRate)}";
 
         var level = session.StoreId is null ? null : await accessor.QueryInventoryLevelAsync(session.StoreId.Value, value.Id);
         Sections.Replace(
         [
             new SummarySection("📦 自店在庫",
             [
-                new SummaryRow(value.TrackInventory ? "在庫数" : "在庫管理対象外", value.TrackInventory ? DisplayText.Quantity(level?.Quantity ?? 0m) + (value.Unit ?? string.Empty) : "-"),
-                new SummaryRow("更新", level is null ? "-" : DisplayText.DateTime(level.UpdatedAt))
+                new SummaryRow(value.TrackInventory ? "在庫数" : "在庫管理対象外", value.TrackInventory ? ViewHelper.Quantity(level?.Quantity ?? 0m) + (value.Unit ?? string.Empty) : "-"),
+                new SummaryRow("更新", level is null ? "-" : ViewHelper.DateTime(level.UpdatedAt))
             ]),
             new SummarySection("ℹ 商品情報",
             [
@@ -118,7 +118,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
         }
 
         var rows = result.Content!.Levels
-            .Select(x => new SummaryRow((x.StoreId == session.StoreId ? "🏪 " : string.Empty) + x.StoreName, DisplayText.Quantity(x.Quantity)))
+            .Select(x => new SummaryRow((x.StoreId == session.StoreId ? "🏪 " : string.Empty) + x.StoreName, ViewHelper.Quantity(x.Quantity)))
             .ToList();
         Sections.Replace(Sections.Where(static x => !x.Title.StartsWith("🌐", StringComparison.Ordinal))
             .Append(new SummarySection("🌐 他店在庫", rows.Count == 0 ? [new SummaryRow("在庫なし", string.Empty)] : rows))

@@ -110,11 +110,11 @@ api-design §3 の通信データ。
 
 - [x] `Common/`: `ListResponse<T>`、`ProblemResponse`、`JsonDateTimeConverter` (エラーコード定数は `Pos.Domain` の `ErrorCode.ToCode()` で代替)
 - [x] マスタ: Settings / Store / Terminal / Staff / Category / TaxRate / Product / Discount / PaymentMethod / AdjustmentReason の `XxxResponse` / `XxxCreateRequest` / `XxxUpdateRequest` / `XxxListResponse`、`SyncMastersResponse`
-- [x] 顧客: `CustomerXxx`、`PointHistoryResponse` / `PointHistoryListResponse`、`PointAdjustRequest`
-- [x] 取引: `TransactionRequest` / `TransactionResponse` (+ `TransactionRequestLine` / `TransactionResponseLine`、値引・税集計・支払・配送・取消情報・警告)、`TransactionListResponse`、`TransactionVoidRequest`、`TransactionCalculateRequest`、`TransactionCalculationResponse`
-- [x] シフト: `ShiftOpenRequest`、`ShiftResponse` / `ShiftListResponse`、`CashEventRequest` / `CashEventResponse` / `CashEventListResponse`、`ShiftCloseRequest`、`ShiftSummaryResponse`
-- [x] 在庫: `InventoryLevelResponse` / `InventoryLevelListResponse`、`ProductInventoryResponse`、`InventoryChangeRequest` / `InventoryChangeResultResponse`、`InventoryChangeResponse` / `InventoryChangeListResponse`
-- [x] レポート: `SalesSummaryResponse`、`ProductSalesResponse`
+- [x] 顧客: `CustomerXxx`、`CustomerPointHistoryResponse` / `PointHistoryListResponse`、`CustomerPointAdjustRequest`
+- [x] 取引: `TransactionCreateRequest` / `TransactionResponse` (+ `TransactionCreateRequestLine` / `TransactionResponseLine`、値引・税集計・支払・配送・取消情報・警告)、`TransactionListResponse`、`TransactionVoidRequest`、`TransactionCalculateRequest`、`TransactionCalculateResponse`
+- [x] シフト: `ShiftOpenRequest`、`ShiftResponse` / `ShiftListResponse`、`ShiftCashEventRequest` / `ShiftCashEventResponse` / `CashEventListResponse`、`ShiftCloseRequest`、`ShiftSummaryResponse`
+- [x] 在庫: `InventoryLevelResponse` / `InventoryLevelListResponse`、`InventoryProductResponse`、`InventoryChangeRequest` / `InventoryChangeResultResponse`、`InventoryChangeResponse` / `InventoryChangeListResponse`
+- [x] レポート: `ReportSalesSummaryResponse`、`ReportProductSalesResponse`
 - [x] 検証属性 (`Required` / `MaxLength` / `Range`) をテンプレートと同じ書き方で付与
 - [x] サーバの JSON 設定に `JsonDateTimeConverter` / `JsonStringEnumConverter` を登録し、`JsonContractTests` (統合テスト) で形式を固定
 - [x] CA1716 / CA1056 は `Pos.Contract` の `GlobalSuppressions.cs` で抑止 ([D-38](decisions.md#d-38-警告の抑止))
@@ -161,7 +161,7 @@ api-design §3 のエンドポイント。
 
 ### 4a マスタ・設定・同期
 
-- [x] `Mappers` (Smart.Mapper の `[Mapper]`): `MasterMapper` (マスタ・顧客)、`TransactionMapper` (取引一式、`SalesInput` / `ReturnInput` への変換、計算結果 ↔ `TransactionCalculationResponse`)、`ShiftMapper` (集計付き応答、`ExpectedCash`)、`InventoryMapper`、`ReportMapper` (`GroupKey → Key` は `[MapProperty]`)
+- [x] `Mappers` (Smart.Mapper の `[Mapper]`): `MasterMapper` (マスタ・顧客)、`TransactionMapper` (取引一式、`SalesInput` / `ReturnInput` への変換、計算結果 ↔ `TransactionCalculateResponse`)、`ShiftMapper` (集計付き応答、`ExpectedCash`)、`InventoryMapper`、`ReportMapper` (`GroupKey → Key` は `[MapProperty]`)
 - [x] Settings / Stores / Terminals / Staff / Categories / TaxRates / Products (+ `lookup`) / Discounts / PaymentMethods / AdjustmentReasons (`Endpoints/XxxEndpoints.cs`、静的クラス + `MapGroup`)。  
       Problem Details は `Infrastructure/Api/ApiProblems.cs` (`errorCode` / `errors` / `expected`)、`AddValidation` の 400 にも `VALIDATION_ERROR` を付ける
 - [x] `GET /sync/masters?since` (変更がなければ `settings` は省略、`products` は `MaxPageSize` 超で `productsTruncated`)
@@ -171,7 +171,7 @@ api-design §3 のエンドポイント。
 ### 4b 顧客・ポイント
 
 - [x] 検索 / lookup / 登録 / 更新 / 論理削除
-- [x] ポイント履歴、手動調整 (1 トランザクションで残高更新 + `Adjust` 履歴、応答は `PointHistoryResponse`)、購入履歴
+- [x] ポイント履歴、手動調整 (1 トランザクションで残高更新 + `Adjust` 履歴、応答は `CustomerPointHistoryResponse`)、購入履歴
 
 ### 4c シフト
 
@@ -348,6 +348,10 @@ ViewModel は `DataAccessor` / `HttpService` / `Pos.Domain` を直接使い、�
 - [x] 共有: `Pos.Shared` → `Pos.Contract`、一覧 `XxxResponse` / 要素 `XxxResponseItem`、`ListResponse` は直下、`JsonDateTimeConverter` / `ProblemResponse` は各側で定義、`Pos.Domain` は `Enums` / `Logic` 名前空間
 - [x] サーバ: `Services/` (Service 層、`DataWriteStatus`)、`MasterAccessor`、`Models/Views` / `Models/Parameters`、`DataProfile` / `SqlHelper` を `Accessors` へ、Endpoints は `[Mapper]` + Service 呼び出しだけ、`ViewHelper` / `ViewExtensions`、`Application` / `Infrastructure` の整理
 - [x] 端末: `Input` 名前空間の削除、`SalesContext` / `ReturnContext` / `StockContext`、`Services/` の Usecase / Service / Builder、`Models/Cart`、`Modules/Dialogs`、Converter への置き換え、`PostForwardAsync` / `PostActionAsync`、`DataAccessor` の組み込み属性と SQL の整形
+- [x] 2 回目のレビュー ([D-48](decisions.md#d-48-サーバの見直し-並び順の列挙型returning初期データの-sql)、[D-49](decisions.md#d-49-端末の見直し-scope-プラグイン入力の種類ごとの電卓ヘルパーの置き場所)):
+      共有は `Pos.Domain.Length`、Request / Response をエンドポイント名に合わせて改名。  
+      サーバは並び順の列挙型と SQL 側の展開、`[Name]`、`RETURNING`、`Assets/Data/InitialData.sql` (`[DirectSql]` で実行)、`XxxView`、Host の置き場所の整理、`EnumHelper` / `ReportPeriodQuery` / `ExportUrls`。  
+      端末は Scope プラグイン、`Usecases/`、`ViewHelper`、入力の種類ごとの電卓、理由の定型選択
 - [x] 全体: ソースから `§` と設計文書への参照を除く
 - [ ] サーバの SQL ファイルも端末と同じ書き方 (`SELECT` / `FROM` / `WHERE` / `ORDER BY` を行頭) に揃える
 
@@ -527,7 +531,7 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 - [ ] `Orders` (`Id` (端末採番), `OrderNo` (`{店舗コード}-O-{連番}`), `StoreId`, `TerminalId?`, `StaffId`, `CustomerId?`, `CustomerName`, `Phone`, `Type` (`BackOrder` 取り寄せ / `Hold` 取り置き), `Status` (`Ordered` → `Arrived` → `Completed` / `Cancelled`), `RequestedDate?`, `Note`, `TransactionId?`, `OrderedAt`, `ArrivedAt?`, `CompletedAt?`, `CancelledAt?`, `Version`)、`OrderLines` (`ProductId`, `Quantity`, `UnitPrice`, `Note`)。  
       取り置きは登録時点で `Arrived`
 - [ ] `POST /orders` (端末 / 管理、同一 id は 200)、`GET /orders?storeId&status&customerId&keyword&from&to`、`GET /orders/{id}`、`PUT /orders/{id}` (`Ordered` のみ)、`POST /orders/{id}/arrive`、`POST /orders/{id}/cancel`
-- [ ] 会計との紐付け: `TransactionRequest.OrderId?`。  
+- [ ] 会計との紐付け: `TransactionCreateRequest.OrderId?`。  
       登録時に受注が `Arrived` でなければ 422 `ORDER_NOT_READY`、成功で `Orders.TransactionId` + `Completed`。  
       取引の取消で `Arrived` に戻す。  
       `TransactionResponse` に `orderId` / `orderNo`

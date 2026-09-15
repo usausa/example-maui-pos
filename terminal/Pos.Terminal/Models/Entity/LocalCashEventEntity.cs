@@ -1,6 +1,9 @@
 namespace Pos.Terminal.Models.Entity;
 
+using Smart.Data.Accessor.Attributes;
+
 // 入出金 (精算時の予想現金の計算に使う)
+[Name("CashEvents")]
 public sealed class LocalCashEventEntity
 {
     [Key]

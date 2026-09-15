@@ -24,7 +24,7 @@ public sealed class InventoryChangeRequestChange
 
     public Guid? ReasonId { get; set; }
 
-    [MaxLength(200)]
+    [MaxLength(Length.Reason)]
     public string? Reason { get; set; }
 
     public Guid StaffId { get; set; }

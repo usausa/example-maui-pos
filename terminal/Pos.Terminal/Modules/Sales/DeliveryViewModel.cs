@@ -9,7 +9,9 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
 
     private readonly IDialog dialog;
 
-    private SalesContext salesContext = new();
+    // 販売の画面間で共有する状態 (Scope プラグインが同じインスタンスを注入し、どの画面からも参照されなくなると破棄する)
+    [Scope]
+    public SalesContext SalesContext { get; set; } = default!;
 
     public EntryController RecipientName { get; } = new();
 
@@ -51,8 +53,8 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
     {
         this.dialog = dialog;
 
-        InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputDigitsAsync("電話番号", PhoneText, 13) ?? PhoneText);
-        InputPostalCodeCommand = MakeAsyncCommand(async () => PostalCodeText = await popupNavigator.InputDigitsAsync("郵便番号", PostalCodeText, 7) ?? PostalCodeText);
+        InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputPhoneAsync(PhoneText) ?? PhoneText);
+        InputPostalCodeCommand = MakeAsyncCommand(async () => PostalCodeText = await popupNavigator.InputPostalCodeAsync(PostalCodeText) ?? PostalCodeText);
 
         SetDateCommand = MakeDelegateCommand(() =>
         {
@@ -72,10 +74,9 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
 
     public override Task OnNavigatedToAsync(INavigationContext context)
     {
-        salesContext = context.Parameter.GetContext<SalesContext>() ?? new SalesContext();
-        HasCustomer = salesContext.Cart.Customer is not null;
+        HasCustomer = SalesContext.Cart.Customer is not null;
 
-        var delivery = salesContext.Cart.Delivery;
+        var delivery = SalesContext.Cart.Delivery;
         if (delivery is not null)
         {
             RecipientName.Text = delivery.RecipientName;
@@ -91,7 +92,7 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
         return Task.CompletedTask;
     }
 
-    private Task<bool> ReturnAsync() => Navigator.ForwardAsync(ViewId.Sales, Parameters.Make().WithContext(salesContext));
+    private Task<bool> ReturnAsync() => Navigator.ForwardAsync(ViewId.Sales);
 
     protected override Task OnNotifyBackAsync() => ReturnAsync();
 
@@ -100,7 +101,7 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
     // 会員の住所を転記
     protected override Task OnNotifyFunction2()
     {
-        var customer = salesContext.Cart.Customer;
+        var customer = SalesContext.Cart.Customer;
         if (customer is not null)
         {
             RecipientName.Text = customer.Name;
@@ -116,7 +117,7 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
     {
         if (await dialog.AskAsync("配送先を解除しますか？", null, "解除"))
         {
-            salesContext.Cart.Delivery = null;
+            SalesContext.Cart.Delivery = null;
             await ReturnAsync();
         }
     }
@@ -137,7 +138,7 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
             return;
         }
 
-        salesContext.Cart.Delivery = new CartDelivery
+        SalesContext.Cart.Delivery = new CartDelivery
         {
             RecipientName = RecipientName.Text.Trim(),
             Phone = PhoneText.TrimToNull(),

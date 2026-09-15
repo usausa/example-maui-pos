@@ -2,7 +2,11 @@ namespace Pos.Terminal.Modules.Sales;
 
 using BarcodeScanning;
 
-// スキャン: 商品モードは読むたびに明細追加して継続、他のモードは 1 件読んだら呼び出し元へ戻る (コンテキストはそのまま返す)
+using Pos.Terminal.Modules.Inquiry;
+using Pos.Terminal.Modules.Inventory;
+using Pos.Terminal.Modules.Returns;
+
+// スキャン: 商品モードは読むたびに明細追加して継続、他のモードは 1 件読んだら呼び出し元へ戻る
 public sealed partial class ScanViewModel : AppViewModelBase
 {
     private static readonly TimeSpan SameCodeInterval = TimeSpan.FromSeconds(2);
@@ -17,10 +21,6 @@ public sealed partial class ScanViewModel : AppViewModelBase
 
     private ViewId? callerReturnTo;
 
-    private object? sharedContext;
-
-    private SalesContext? sales;
-
     private readonly DataAccessor accessor;
 
     private readonly SalesUsecase salesUsecase;
@@ -32,6 +32,19 @@ public sealed partial class ScanViewModel : AppViewModelBase
     private DateTime lastDetected;
 
     private bool returning;
+
+    // 途中の画面なので、呼び出し元の機能の状態を保持する (商品モードはカートに追加する)
+    [Scope]
+    public SalesContext SalesContext { get; set; } = default!;
+
+    [Scope]
+    public ReturnContext ReturnContext { get; set; } = default!;
+
+    [Scope]
+    public StockContext StockContext { get; set; } = default!;
+
+    [Scope]
+    public CustomerDraft CustomerDraft { get; set; } = default!;
 
     public BarcodeController Controller { get; } = new();
 
@@ -68,9 +81,6 @@ public sealed partial class ScanViewModel : AppViewModelBase
         mode = context.Parameter.GetScanMode();
         returnTo = context.Parameter.GetReturnTo(ViewId.Sales);
         callerReturnTo = context.Parameter.GetCallerReturnTo();
-        sharedContext = context.Parameter.GetContext<object>();
-        sales = sharedContext as SalesContext;
-
         Title = mode switch
         {
             ScanMode.Product or ScanMode.ProductOnce => "スキャン (商品)",
@@ -145,16 +155,11 @@ public sealed partial class ScanViewModel : AppViewModelBase
         // 1 件読んだら呼び出し元へ
         returning = true;
         Controller.Enable = false;
-        await Navigator.ForwardAsync(returnTo, Parameters.Make().WithScanResult(value).WithCallerReturnTo(callerReturnTo).WithContext(sharedContext));
+        await Navigator.ForwardAsync(returnTo, Parameters.Make().WithScanResult(value).WithCallerReturnTo(callerReturnTo));
     }
 
     private async Task AddProductAsync(string value)
     {
-        if (sales is null)
-        {
-            return;
-        }
-
         var product = await accessor.QueryProductByBarcodeAsync(value) ?? await accessor.QueryProductByCodeAsync(value);
         if (product is null)
         {
@@ -174,12 +179,12 @@ public sealed partial class ScanViewModel : AppViewModelBase
             return;
         }
 
-        var line = sales.Cart.Add(product, taxRate);
-        Message = $"✓ {product.Name} を追加 (×{DisplayText.Quantity(line.Quantity)})  {DisplayText.Yen(salesUsecase.Calculate(sales.Cart, []).Total)}";
+        var line = SalesContext.Cart.Add(product, taxRate);
+        Message = $"✓ {product.Name} を追加 (×{ViewHelper.Quantity(line.Quantity)})  {ViewHelper.Yen(salesUsecase.Calculate(SalesContext.Cart, []).Total)}";
     }
 
     protected override Task OnNotifyBackAsync() =>
-        Navigator.ForwardAsync(returnTo, Parameters.Make().WithCallerReturnTo(callerReturnTo).WithContext(sharedContext));
+        Navigator.ForwardAsync(returnTo, Parameters.Make().WithCallerReturnTo(callerReturnTo));
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
@@ -203,7 +208,7 @@ public sealed partial class ScanViewModel : AppViewModelBase
         }
 
         // 数字のコードは電卓で入力する (キーボードに依存しない)
-        var text = await popupNavigator.InputDigitsAsync("コード", string.Empty, 13);
+        var text = await popupNavigator.InputProductCodeAsync();
         if (!String.IsNullOrWhiteSpace(text))
         {
             await HandleAsync(text.Trim());

@@ -7,7 +7,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-44 調整理由
+// 調整理由
 public sealed partial class AdjustmentReasonsPage
 {
     private List<AdjustmentReasonEntity> items = [];

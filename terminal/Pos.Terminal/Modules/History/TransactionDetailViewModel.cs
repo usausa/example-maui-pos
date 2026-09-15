@@ -2,12 +2,21 @@ namespace Pos.Terminal.Modules.History;
 
 using Pos.Contract.Transactions;
 using Pos.Terminal.Models.Entity;
-using Pos.Terminal.Modules.Returns;
+using Pos.Terminal.Modules.Dialogs;
 
 // 取引詳細: 明細・支払・ポイント・配送。取消は同一シフト内のみ、返品は完了した販売のみ
 public sealed partial class TransactionDetailViewModel : AppViewModelBase
 {
+    private static readonly ReasonItem[] VoidReasons =
+    [
+        new(null, "打ち間違い"),
+        new(null, "お客様都合"),
+        new(null, "二重登録")
+    ];
+
     private readonly IDialog dialog;
+
+    private readonly IPopupNavigator popupNavigator;
 
     private readonly Session session;
 
@@ -48,11 +57,13 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
 
     public TransactionDetailViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
         Session session,
         DataAccessor accessor,
         TransactionUsecase transactions)
     {
         this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
         this.session = session;
         this.accessor = accessor;
         this.transactions = transactions;
@@ -81,15 +92,15 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             return;
         }
 
-        var voided = transaction.Status.IsVoided();
+        var voided = transaction.Status == TransactionStatus.Voided;
         Type = transaction.Type;
         IsVoided = voided;
         ReceiptNo = transaction.ReceiptNo;
-        TotalText = DisplayText.Yen(transaction.Total);
+        TotalText = ViewHelper.Yen(transaction.Total);
         SyncStatus = await transactions.QuerySyncStatusAsync(transaction.Id);
 
         var staff = await accessor.QueryStaffAsync(transaction.StaffId);
-        HeaderDetail = $"{DisplayText.DateTime(transaction.TransactedAt)}  担当 {staff?.Name}  営業日 {DisplayText.Date(transaction.BusinessDate)}";
+        HeaderDetail = $"{ViewHelper.DateTime(transaction.TransactedAt)}  担当 {staff?.Name}  営業日 {ViewHelper.Date(transaction.BusinessDate)}";
 
         var methods = (await accessor.QueryPaymentMethodListAsync()).ToDictionary(static x => x.Id, static x => x.Name);
         var sections = new List<SummarySection>
@@ -97,20 +108,20 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             new("🛒 明細", transaction.Lines.Select(static x =>
             {
                 var discount = x.DiscountAmount + x.AllocatedDiscountAmount;
-                var detail = $"{DisplayText.Yen(x.UnitPrice)} × {DisplayText.Quantity(x.Quantity)}{(discount != 0m ? $"  -{DisplayText.Yen(discount)}" : string.Empty)}{(x.ReturnedQuantity > 0 ? $"  返品済 {DisplayText.Quantity(x.ReturnedQuantity)}" : string.Empty)}";
-                return new SummaryRow($"{x.ProductName}\n{detail}", DisplayText.Yen(x.NetAmount));
+                var detail = $"{ViewHelper.Yen(x.UnitPrice)} × {ViewHelper.Quantity(x.Quantity)}{(discount != 0m ? $"  -{ViewHelper.Yen(discount)}" : string.Empty)}{(x.ReturnedQuantity > 0 ? $"  返品済 {ViewHelper.Quantity(x.ReturnedQuantity)}" : string.Empty)}";
+                return new SummaryRow($"{x.ProductName}\n{detail}", ViewHelper.Yen(x.NetAmount));
             }).ToList()),
             new("💰 金額",
             [
-                new SummaryRow("小計", DisplayText.Yen(transaction.Subtotal)),
-                new SummaryRow("値引", DisplayText.MinusYen(transaction.DiscountTotal)),
-                new SummaryRow("消費税", DisplayText.Yen(transaction.TaxTotal)),
-                new SummaryRow("合計", DisplayText.Yen(transaction.Total))
+                new SummaryRow("小計", ViewHelper.Yen(transaction.Subtotal)),
+                new SummaryRow("値引", ViewHelper.MinusYen(transaction.DiscountTotal)),
+                new SummaryRow("消費税", ViewHelper.Yen(transaction.TaxTotal)),
+                new SummaryRow("合計", ViewHelper.Yen(transaction.Total))
             ]),
             new("💳 支払", transaction.Payments.Select(x => new SummaryRow(
-                methods.GetValueOrDefault(x.PaymentMethodId, DisplayText.Name(x.Kind)) + (x.Reference is null ? string.Empty : $" ({x.Reference})"),
-                x.TenderedAmount != x.Amount ? $"{DisplayText.Yen(x.Amount)} (預り {DisplayText.Yen(x.TenderedAmount)})" : DisplayText.Yen(x.Amount)))
-                .Append(new SummaryRow("お釣り", DisplayText.Yen(transaction.ChangeAmount))).ToList())
+                methods.GetValueOrDefault(x.PaymentMethodId, ViewHelper.Name(x.Kind)) + (x.Reference is null ? string.Empty : $" ({x.Reference})"),
+                x.TenderedAmount != x.Amount ? $"{ViewHelper.Yen(x.Amount)} (預り {ViewHelper.Yen(x.TenderedAmount)})" : ViewHelper.Yen(x.Amount)))
+                .Append(new SummaryRow("お釣り", ViewHelper.Yen(transaction.ChangeAmount))).ToList())
         };
         if (transaction.CustomerId is not null)
         {
@@ -129,7 +140,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             [
                 new SummaryRow(delivery.RecipientName, delivery.Phone ?? string.Empty),
                 new SummaryRow(delivery.Address, delivery.PostalCode ?? string.Empty),
-                new SummaryRow("希望", $"{(delivery.RequestedDate is null ? "指定なし" : DisplayText.Date(delivery.RequestedDate.Value))} {delivery.TimeSlot}")
+                new SummaryRow("希望", $"{(delivery.RequestedDate is null ? "指定なし" : ViewHelper.Date(delivery.RequestedDate.Value))} {delivery.TimeSlot}")
             ]));
         }
 
@@ -138,7 +149,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             var voidStaff = await accessor.QueryStaffAsync(transaction.Void.VoidedByStaffId);
             sections.Add(new SummarySection("🚫 取消",
             [
-                new SummaryRow(DisplayText.DateTime(transaction.Void.VoidedAt), voidStaff?.Name ?? string.Empty),
+                new SummaryRow(ViewHelper.DateTime(transaction.Void.VoidedAt), voidStaff?.Name ?? string.Empty),
                 new SummaryRow("理由", transaction.Void.Reason)
             ]));
         }
@@ -164,8 +175,8 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             return;
         }
 
-        var reason = await dialog.InputAsync("取消理由");
-        if (!reason.Accepted || String.IsNullOrWhiteSpace(reason.Text))
+        var reason = await popupNavigator.PopupAsync<ReasonSelectParameter, ReasonSelectResult?>(DialogId.ReasonSelect, new ReasonSelectParameter("取消理由", VoidReasons, true));
+        if (reason is null)
         {
             return;
         }
@@ -175,11 +186,11 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             return;
         }
 
-        await transactions.VoidAsync(transaction, session.Staff.Id, reason.Text.Trim());
+        await transactions.VoidAsync(transaction, session.Staff.Id, reason.Text);
         await dialog.Toast("取り消しました。");
         await LoadAsync();
     }
 
     protected override Task OnNotifyFunction4() =>
-        Navigator.ForwardAsync(ViewId.Return, Parameters.Make().WithTransactionId(transactionId).WithContext(new ReturnContext()));
+        Navigator.ForwardAsync(ViewId.Return, Parameters.Make().WithTransactionId(transactionId));
 }

@@ -1,6 +1,6 @@
 namespace Pos.Server.Host.Models.Forms;
 
-// ポイント手動調整 (S-62)
+// ポイント手動調整
 public sealed class PointAdjustForm
 {
     public int Points { get; set; }

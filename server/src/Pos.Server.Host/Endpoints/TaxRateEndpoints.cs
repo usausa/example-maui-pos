@@ -79,10 +79,10 @@ public static partial class TaxRateEndpoints
     {
         var entity = ToEntity(request);
         entity.Id = id;
-        var status = await service.UpdateAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
-            : ApiProblems.FromStatus(status);
+        var result = await service.UpdateAsync(entity, cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse(result.Entity!))
+            : ApiProblems.FromStatus(result.Status);
     }
 
     // 使用中の商品がある税率は削除できません

@@ -1,5 +1,7 @@
 namespace Pos.Terminal.Modules.Sales;
 
+using Pos.Terminal.Helpers.Data;
+
 public sealed class CategoryItem : NotificationObject
 {
     public Guid? Id { get; }
@@ -30,8 +32,6 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
     private ViewId returnTo = ViewId.Sales;
 
-    private SalesContext? salesContext;
-
     private readonly DataAccessor accessor;
 
     private readonly SalesUsecase sales;
@@ -43,6 +43,10 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
     private CategoryItem? selectedParent;
 
     private CategoryItem? selectedChild;
+
+    // 販売の画面間で共有する状態 (Scope プラグインが同じインスタンスを注入し、どの画面からも参照されなくなると破棄する)。照会からのときは使わない
+    [Scope]
+    public SalesContext SalesContext { get; set; } = default!;
 
     public EntryController Keyword { get; }
 
@@ -59,7 +63,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
     public ObservableCollection<ProductItem> Items { get; } = [];
 
     [ObservableProperty]
-    public partial string EmptyText { get; set; } = "キーワードか部門で検索してください。";
+    public partial string Message { get; set; } = "キーワードか部門で検索してください。";
 
     public IObserveCommand SearchCommand { get; }
 
@@ -93,7 +97,6 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
         returnTo = context.Parameter.GetReturnTo(ViewId.Sales);
-        salesContext = context.Parameter.GetContext<SalesContext>();
         await Navigator.PostActionAsync(LoadAsync);
     }
 
@@ -107,7 +110,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
     // 番号は電卓で入力する (キーボードに依存しない)
     private async Task InputNumberAsync()
     {
-        var text = await popupNavigator.InputDigitsAsync("コード / JAN", string.Empty, 13);
+        var text = await popupNavigator.InputProductCodeAsync();
         if (!String.IsNullOrEmpty(text))
         {
             Keyword.Text = text;
@@ -118,7 +121,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
     private async Task SearchAsync()
     {
         var keyword = Keyword.Text?.Trim();
-        var pattern = String.IsNullOrEmpty(keyword) ? null : "%" + keyword.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal) + "%";
+        var pattern = SqlHelper.ToLikePattern(keyword);
 
         Guid[]? categoryIds = null;
         if (selectedChild?.Id is not null)
@@ -133,13 +136,13 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
         if ((pattern is null) && (categoryIds is null))
         {
             Items.Clear();
-            EmptyText = "キーワードか部門で検索してください。";
+            Message = "キーワードか部門で検索してください。";
             return;
         }
 
         var list = await accessor.QueryProductListAsync(categoryIds, pattern, 200);
-        Items.Replace(list.Select(static x => new ProductItem(x, x.Name, DisplayText.Yen(x.Price), $"{x.Code}  {x.ModelNo}  {x.Brand}".Trim())));
-        EmptyText = "該当する商品がありません。";
+        Items.Replace(list.Select(static x => new ProductItem(x, x.Name, ViewHelper.Yen(x.Price), $"{x.Code}  {x.ModelNo}  {x.Brand}".Trim())));
+        Message = "該当する商品がありません。";
     }
 
     private Task SelectParentAsync(CategoryItem item)
@@ -170,7 +173,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
     private async Task SelectAsync(ProductItem item)
     {
-        if (salesContext is null)
+        if (returnTo != ViewId.Sales)
         {
             await Navigator.ForwardAsync(returnTo, Parameters.Make().WithProductId(item.Product.Id));
             return;
@@ -182,11 +185,11 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
             return;
         }
 
-        var line = salesContext.Cart.Add(item.Product, taxRate);
-        await dialog.Toast($"✓ {item.Product.Name} を追加 (×{DisplayText.Quantity(line.Quantity)})  {DisplayText.Yen(sales.Calculate(salesContext.Cart, []).Total)}");
+        var line = SalesContext.Cart.Add(item.Product, taxRate);
+        await dialog.Toast($"✓ {item.Product.Name} を追加 (×{ViewHelper.Quantity(line.Quantity)})  {ViewHelper.Yen(sales.Calculate(SalesContext.Cart, []).Total)}");
     }
 
-    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(returnTo, Parameters.Make().WithContext(salesContext));
+    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(returnTo);
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 

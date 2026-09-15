@@ -1,29 +1,33 @@
-SELECT COUNT(*) FROM Transactions
-WHERE 1 = 1
+SELECT
+    COUNT(*)
+FROM
+    Transactions
+WHERE
+    1 = 1
 /*% if (storeId != null) { */
-  AND StoreId = /*@ storeId */''
+    AND StoreId = /*@ storeId */''
 /*% } */
 /*% if (terminalId != null) { */
-  AND TerminalId = /*@ terminalId */''
+    AND TerminalId = /*@ terminalId */''
 /*% } */
 /*% if (staffId != null) { */
-  AND StaffId = /*@ staffId */''
+    AND StaffId = /*@ staffId */''
 /*% } */
 /*% if (shiftId != null) { */
-  AND ShiftId = /*@ shiftId */''
+    AND ShiftId = /*@ shiftId */''
 /*% } */
 /*% if (customerId != null) { */
-  AND CustomerId = /*@ customerId */''
+    AND CustomerId = /*@ customerId */''
 /*% } */
 /*% if (from != null) { */
-  AND BusinessDate >= /*@ from */''
+    AND BusinessDate >= /*@ from */''
 /*% } */
 /*% if (to != null) { */
-  AND BusinessDate <= /*@ to */''
+    AND BusinessDate <= /*@ to */''
 /*% } */
 /*% if (type != null) { */
-  AND Type = /*@ type */''
+    AND Type = /*@ type */''
 /*% } */
 /*% if (status != null) { */
-  AND Status = /*@ status */''
+    AND Status = /*@ status */''
 /*% } */

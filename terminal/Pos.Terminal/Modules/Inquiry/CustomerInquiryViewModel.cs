@@ -17,7 +17,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
     public ObservableCollection<CustomerItem> Items { get; } = [];
 
     [ObservableProperty]
-    public partial string EmptyText { get; set; } = "会員番号・電話番号・名前で検索するか、会員証をスキャンしてください。";
+    public partial string Message { get; set; } = "会員番号・電話番号・名前で検索するか、会員証をスキャンしてください。";
 
     [ObservableProperty]
     public partial bool HasCustomer { get; set; }
@@ -118,8 +118,8 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         }
 
         Items.Replace(result.Content!.Items
-            .Select(static x => new CustomerItem(x, x.Name, DisplayText.Points(x.PointBalance), $"{x.Code}  {x.Phone}".Trim())));
-        EmptyText = "該当する会員がいません。";
+            .Select(static x => new CustomerItem(x, x.Name, ViewHelper.Points(x.PointBalance), $"{x.Code}  {x.Phone}".Trim())));
+        Message = "該当する会員がいません。";
     }
 
     private async Task UpdateCustomerAsync(CustomerResponseItem value)
@@ -128,7 +128,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         HasCustomer = true;
         Name = value.Name + (value.Kana is null ? string.Empty : $" ({value.Kana})");
         Code = value.Code;
-        PointsText = DisplayText.Points(value.PointBalance);
+        PointsText = ViewHelper.Points(value.PointBalance);
 
         var sections = new List<SummarySection>
         {
@@ -137,9 +137,9 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
                 new SummaryRow("電話", value.Phone ?? "-"),
                 new SummaryRow("メール", value.Email ?? "-"),
                 new SummaryRow("住所", $"{value.PostalCode} {value.Address}".Trim()),
-                new SummaryRow("生年月日", value.BirthDate is null ? "-" : DisplayText.Date(value.BirthDate.Value)),
+                new SummaryRow("生年月日", value.BirthDate is null ? "-" : ViewHelper.Date(value.BirthDate.Value)),
                 new SummaryRow("備考", value.Note ?? "-"),
-                new SummaryRow("登録", DisplayText.Date(DateOnly.FromDateTime(value.CreatedAt.ToLocalTime())))
+                new SummaryRow("登録", ViewHelper.Date(DateOnly.FromDateTime(value.CreatedAt.ToLocalTime())))
             ])
         };
 
@@ -147,7 +147,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         if (points.IsSuccess)
         {
             sections.Add(new SummarySection("🎁 ポイント履歴", points.Content!.Items
-                .Select(static x => new SummaryRow($"{DisplayText.DateTime(x.OccurredAt)}  {DisplayText.Name(x.Type)}", $"{x.Points:+#,##0;-#,##0;0}  (残 {x.BalanceAfter:#,##0})"))
+                .Select(static x => new SummaryRow($"{ViewHelper.DateTime(x.OccurredAt)}  {ViewHelper.Name(x.Type)}", $"{x.Points:+#,##0;-#,##0;0}  (残 {x.BalanceAfter:#,##0})"))
                 .DefaultIfEmpty(new SummaryRow("履歴なし", string.Empty))
                 .ToList()));
         }
@@ -156,7 +156,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         if (transactions.IsSuccess)
         {
             sections.Add(new SummarySection("🧾 購入履歴", transactions.Content!.Items
-                .Select(static x => new SummaryRow($"{DisplayText.DateTime(x.TransactedAt)}  {(x.Status.IsVoided() ? "取消" : DisplayText.Name(x.Type))}\n{x.ReceiptNo}", DisplayText.Yen(x.Total)))
+                .Select(static x => new SummaryRow($"{ViewHelper.DateTime(x.TransactedAt)}  {(x.Status == TransactionStatus.Voided ? "取消" : ViewHelper.Name(x.Type))}\n{x.ReceiptNo}", ViewHelper.Yen(x.Total)))
                 .DefaultIfEmpty(new SummaryRow("履歴なし", string.Empty))
                 .ToList()));
         }

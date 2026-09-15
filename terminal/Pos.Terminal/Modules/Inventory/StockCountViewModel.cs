@@ -13,11 +13,11 @@ public sealed partial class StockCountViewModel : AppViewModelBase
 
     private readonly Session session;
 
-    private StockContext stockContext = new();
-
     private readonly StockUsecase stock;
 
-    public EntryController Code { get; }
+    // 棚卸の画面とスキャンで共有する状態 (Scope プラグインが注入する)
+    [Scope]
+    public StockContext StockContext { get; set; } = default!;
 
     // 表題・案内文・送信ボタンの文言は画面側の Converter で切り替える
     [ObservableProperty]
@@ -25,7 +25,7 @@ public sealed partial class StockCountViewModel : AppViewModelBase
 
     public ObservableCollection<StockChangeItem> Items { get; } = [];
 
-    public IObserveCommand LookupCommand { get; }
+    public IObserveCommand InputCodeCommand { get; }
 
     public IObserveCommand RemoveCommand { get; }
 
@@ -40,19 +40,17 @@ public sealed partial class StockCountViewModel : AppViewModelBase
         this.session = session;
         this.stock = stock;
 
-        LookupCommand = MakeAsyncCommand(LookupAsync);
-        Code = new EntryController(LookupCommand);
+        InputCodeCommand = MakeAsyncCommand(InputCodeAsync);
         RemoveCommand = MakeDelegateCommand<StockChangeItem>(x =>
         {
-            stockContext.Changes.Remove(x.Change);
+            StockContext.Changes.Remove(x.Change);
             Refresh();
         });
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
-        stockContext = context.Parameter.GetContext<StockContext>() ?? new StockContext();
-        IsAdjustment = stockContext.IsAdjustment;
+        IsAdjustment = StockContext.IsAdjustment;
         Refresh();
 
         var scanned = context.Parameter.GetScanResult();
@@ -64,17 +62,21 @@ public sealed partial class StockCountViewModel : AppViewModelBase
 
     private void Refresh()
     {
-        Items.Replace(stockContext.Changes.Select(static x => new StockChangeItem(
+        Items.Replace(StockContext.Changes.Select(static x => new StockChangeItem(
             x,
             x.Product.Name,
-            x.Type == InventoryChangeType.PhysicalCount ? $"実数 {DisplayText.Quantity(x.Quantity)}" : $"{(x.Quantity >= 0 ? "+" : string.Empty)}{DisplayText.Quantity(x.Quantity)}",
-            $"{x.Product.Code}  現在庫 {DisplayText.Quantity(x.Before)}{(x.Reason is null ? string.Empty : "  " + x.Reason)}")));
+            x.Type == InventoryChangeType.PhysicalCount ? $"実数 {ViewHelper.Quantity(x.Quantity)}" : $"{(x.Quantity >= 0 ? "+" : string.Empty)}{ViewHelper.Quantity(x.Quantity)}",
+            $"{x.Product.Code}  現在庫 {ViewHelper.Quantity(x.Before)}{(x.Reason is null ? string.Empty : "  " + x.Reason)}")));
     }
 
-    private Task LookupAsync()
+    // コードは電卓で入力する (キーボードに依存しない)
+    private async Task InputCodeAsync()
     {
-        var code = Code.Text?.Trim();
-        return String.IsNullOrEmpty(code) ? Task.CompletedTask : HandleCodeAsync(code);
+        var code = await popupNavigator.InputProductCodeAsync();
+        if (!String.IsNullOrEmpty(code))
+        {
+            await HandleCodeAsync(code);
+        }
     }
 
     private async Task HandleCodeAsync(string code)
@@ -100,10 +102,10 @@ public sealed partial class StockCountViewModel : AppViewModelBase
         var before = await stock.QueryQuantityAsync(product.Id);
 
         // 同じ商品はリスト内で置き換える
-        var existing = stockContext.Changes.FirstOrDefault(x => x.Product.Id == product.Id);
+        var existing = StockContext.Changes.FirstOrDefault(x => x.Product.Id == product.Id);
         if (IsAdjustment)
         {
-            var text = await popupNavigator.InputNumberAsync($"増減数 (現在庫 {DisplayText.Quantity(before)})", "0", 6);
+            var text = await popupNavigator.InputStockAsync($"増減数 (現在庫 {ViewHelper.Quantity(before)})", 0m);
             if ((text is null) || !Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var delta) || (delta == 0))
             {
                 return;
@@ -130,14 +132,14 @@ public sealed partial class StockCountViewModel : AppViewModelBase
 
             if (existing is not null)
             {
-                stockContext.Changes.Remove(existing);
+                StockContext.Changes.Remove(existing);
             }
 
-            stockContext.Changes.Add(new StockChange { Id = Guid.NewGuid(), Product = product, Type = InventoryChangeType.Adjustment, Quantity = delta, Before = before, ReasonId = reason.Id, Reason = reason.Text });
+            StockContext.Changes.Add(new StockChange { Id = Guid.NewGuid(), Product = product, Type = InventoryChangeType.Adjustment, Quantity = delta, Before = before, ReasonId = reason.Id, Reason = reason.Text });
         }
         else
         {
-            var text = await popupNavigator.InputNumberAsync($"実数 (現在庫 {DisplayText.Quantity(before)})", DisplayText.Quantity(before), 6);
+            var text = await popupNavigator.InputStockAsync($"実数 (現在庫 {ViewHelper.Quantity(before)})", before);
             if ((text is null) || !Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var quantity))
             {
                 return;
@@ -145,53 +147,52 @@ public sealed partial class StockCountViewModel : AppViewModelBase
 
             if (existing is not null)
             {
-                stockContext.Changes.Remove(existing);
+                StockContext.Changes.Remove(existing);
             }
 
-            stockContext.Changes.Add(new StockChange { Id = Guid.NewGuid(), Product = product, Type = InventoryChangeType.PhysicalCount, Quantity = quantity, Before = before });
+            StockContext.Changes.Add(new StockChange { Id = Guid.NewGuid(), Product = product, Type = InventoryChangeType.PhysicalCount, Quantity = quantity, Before = before });
         }
 
-        Code.Text = string.Empty;
         Refresh();
     }
 
     protected override async Task OnNotifyBackAsync()
     {
-        if ((stockContext.Changes.Count > 0) && !await dialog.AskAsync("未送信の入力があります。破棄して戻りますか？", null, "破棄"))
+        if ((StockContext.Changes.Count > 0) && !await dialog.AskAsync("未送信の入力があります。破棄して戻りますか？", null, "破棄"))
         {
             return;
         }
 
-        stockContext.Changes.Clear();
+        StockContext.Changes.Clear();
         await Navigator.ForwardAsync(ViewId.Menu);
     }
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
     protected override Task OnNotifyFunction2() =>
-        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.ProductOnce, ViewId.StockCount).WithContext(stockContext));
+        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.ProductOnce, ViewId.StockCount));
 
     protected override Task OnNotifyFunction3()
     {
-        stockContext.IsAdjustment = !stockContext.IsAdjustment;
-        IsAdjustment = stockContext.IsAdjustment;
+        StockContext.IsAdjustment = !StockContext.IsAdjustment;
+        IsAdjustment = StockContext.IsAdjustment;
         return Task.CompletedTask;
     }
 
     protected override async Task OnNotifyFunction4()
     {
-        if ((session.Store is null) || (session.Staff is null) || (stockContext.Changes.Count == 0))
+        if ((session.Store is null) || (session.Staff is null) || (StockContext.Changes.Count == 0))
         {
             return;
         }
 
-        if (!await dialog.AskAsync($"{stockContext.Changes.Count} 件を送信しますか？", null, "送信"))
+        if (!await dialog.AskAsync($"{StockContext.Changes.Count} 件を送信しますか？", null, "送信"))
         {
             return;
         }
 
-        await stock.SendAsync(stockContext.Changes.ToList());
-        stockContext.Changes.Clear();
+        await stock.SendAsync(StockContext.Changes.ToList());
+        StockContext.Changes.Clear();
         await dialog.Toast("送信キューに入れました。");
         Refresh();
     }

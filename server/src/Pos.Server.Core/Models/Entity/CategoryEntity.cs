@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("Categories")]
 public sealed class CategoryEntity
 {
     [Key]

@@ -1,6 +1,6 @@
 namespace Pos.Server.Services;
 
-// 書き込みの結果。Invalid は各サービスの業務ルール違反 (文言は呼び出し側が持つ)
+// 書き込みの結果。呼び出し側 (API / 管理画面) が応答や通知に写す
 public enum DataWriteStatus
 {
     Success,

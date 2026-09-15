@@ -12,3 +12,4 @@ global using System.Threading.Tasks;
 global using Xunit;
 
 global using Pos.Domain.Enums;
+global using Pos.Server.Models.Enums;

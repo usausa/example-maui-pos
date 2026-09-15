@@ -1,6 +1,11 @@
-SELECT * FROM Stores
-WHERE 1 = 1
+SELECT
+    *
+FROM
+    Stores
+WHERE
+    1 = 1
 /*% if (!includeDeleted) { */
-  AND IsDeleted = 0
+    AND IsDeleted = 0
 /*% } */
-ORDER BY Code
+ORDER BY
+    Code

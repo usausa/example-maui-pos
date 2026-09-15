@@ -6,12 +6,13 @@ using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 
 using Pos.Server.Host.Components.Dialogs;
+using Pos.Server.Host.Helpers;
 using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
 
-// S-50 商品一覧 / S-51 商品編集
+// 商品一覧 / 商品編集
 public sealed partial class ProductsPage
 {
     private const string DuplicateMessage = "商品コードまたはバーコードが重複しています。";
@@ -60,7 +61,7 @@ public sealed partial class ProductsPage
             Keyword = keyword,
             IsActive = isActive,
             IncludeDeleted = includeDeleted,
-            Sort = sort?.SortBy,
+            Sort = EnumHelper.Parse(sort?.SortBy, ProductSort.Code),
             Desc = sort?.Descending ?? false,
             Page = state.Page,
             Size = state.PageSize

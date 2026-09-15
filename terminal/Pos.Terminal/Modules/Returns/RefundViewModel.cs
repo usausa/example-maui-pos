@@ -31,8 +31,6 @@ public sealed partial class RefundViewModel : AppViewModelBase
 
     private readonly Session session;
 
-    private ReturnContext returnContext = new();
-
     private readonly DataAccessor accessor;
 
     private readonly ReturnUsecase returns;
@@ -46,6 +44,10 @@ public sealed partial class RefundViewModel : AppViewModelBase
     private decimal refund;
 
     private RefundMethodItem? selected;
+
+    // 返品の画面間で共有する状態 (Scope プラグインが注入する)
+    [Scope]
+    public ReturnContext ReturnContext { get; set; } = default!;
 
     [ObservableProperty]
     public partial string TotalText { get; set; } = string.Empty;
@@ -90,20 +92,19 @@ public sealed partial class RefundViewModel : AppViewModelBase
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
-        returnContext = context.Parameter.GetContext<ReturnContext>() ?? new ReturnContext();
-        var original = returnContext.Original;
-        if ((original is null) || (returnContext.Lines.Count == 0))
+        var original = ReturnContext.Original;
+        if ((original is null) || (ReturnContext.Lines.Count == 0))
         {
-            await Navigator.PostForwardAsync(ViewId.Return, Parameters.Make().WithContext(returnContext));
+            await Navigator.PostForwardAsync(ViewId.Return);
             return;
         }
 
-        result = returns.Calculate(original, returnContext.Lines, []);
+        result = returns.Calculate(original, ReturnContext.Lines, []);
         pointsRefund = -result.PointsRedeemed;
         refund = result.Total - pointsRefund;
-        TotalText = DisplayText.Yen(result.Total);
+        TotalText = ViewHelper.Yen(result.Total);
         PointsText = pointsRefund > 0 ? $"{pointsRefund:#,##0} pt を返還" : "なし";
-        RefundText = DisplayText.Yen(refund);
+        RefundText = ViewHelper.Yen(refund);
 
         await Navigator.PostActionAsync(() => LoadMethodsAsync(original));
     }
@@ -134,13 +135,13 @@ public sealed partial class RefundViewModel : AppViewModelBase
         }
     }
 
-    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.ReturnLines, Parameters.Make().WithContext(returnContext));
+    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.ReturnLines);
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
     protected override async Task OnNotifyFunction4()
     {
-        var original = returnContext.Original;
+        var original = ReturnContext.Original;
         if ((original is null) || !session.CanTransact)
         {
             return;
@@ -163,19 +164,19 @@ public sealed partial class RefundViewModel : AppViewModelBase
             payments.Add(new CartPayment { Id = Guid.NewGuid(), Method = selected.Method, Amount = refund, TenderedAmount = refund });
         }
 
-        if (!await dialog.AskAsync($"{DisplayText.Yen(result.Total)} を返金しますか？", "返品", "確定"))
+        if (!await dialog.AskAsync($"{ViewHelper.Yen(result.Total)} を返金しますか？", "返品", "確定"))
         {
             return;
         }
 
-        var errors = returns.Validate(original, returnContext.Lines, payments);
+        var errors = returns.Validate(original, ReturnContext.Lines, payments);
         if (errors.Count > 0)
         {
-            await dialog.InformationAsync(RuleText.Of(errors[0].Reason));
+            await dialog.InformationAsync(ViewHelper.Reason(errors[0].Reason));
             return;
         }
 
-        var response = await returns.CompleteAsync(original, returnContext.Lines, payments, returnContext.Reason);
+        var response = await returns.CompleteAsync(original, ReturnContext.Lines, payments, ReturnContext.Reason);
         await Navigator.ForwardAsync(ViewId.Complete, Parameters.Make().WithTransactionId(response.Id));
     }
 }

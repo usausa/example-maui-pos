@@ -6,12 +6,38 @@ using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
 
+public enum ShiftResultStatus
+{
+    Success,
+    // 同じ id の再送 (登録済みを返す)
+    Existing,
+    NotFound,
+    // 同じ id で内容が異なる
+    DuplicateMismatch,
+    // 端末に開設中のシフトがある
+    TerminalHasOpenShift,
+    // 精算済み
+    Closed
+}
+
+// 開設・精算の結果
+public sealed record ShiftResult(ShiftResultStatus Status, ShiftDetailView? Detail = null);
+
+public enum CashEventResultStatus
+{
+    Success,
+    Existing,
+    DuplicateMismatch,
+    ShiftNotFound,
+    ShiftClosed
+}
+
+// 入出金の結果
+public sealed record CashEventResult(CashEventResultStatus Status, CashEventEntity? Entity = null);
+
 // レジ開閉・現金管理。Open 中の集計は取引から都度求め、精算時に Shifts へ確定する
 public sealed class ShiftService
 {
-    private static readonly string[] SortColumns = ["OpenedAt", "BusinessDate", "ClosedAt"];
-    private const string DefaultSort = "OpenedAt";
-
     private readonly IDbProvider provider;
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
@@ -33,10 +59,8 @@ public sealed class ShiftService
     }
 
     // openingCash + cashSales − cashReturns + paidIn − paidOut
-    public static decimal ExpectedCash(decimal openingCash, ShiftTotals totals)
+    public static decimal ExpectedCash(decimal openingCash, ShiftTotalsView totals)
     {
-        ArgumentNullException.ThrowIfNull(totals);
-
         return openingCash + totals.CashSales - totals.CashReturns + totals.PaidIn - totals.PaidOut;
     }
 
@@ -47,14 +71,14 @@ public sealed class ShiftService
     public ValueTask<ShiftEntity?> QueryAsync(Guid id, CancellationToken cancellationToken) =>
         shiftAccessor.QueryAsync(id, cancellationToken);
 
-    public async ValueTask<ShiftDetail?> QueryDetailAsync(Guid id, CancellationToken cancellationToken)
+    public async ValueTask<ShiftDetailView?> QueryDetailAsync(Guid id, CancellationToken cancellationToken)
     {
         var entity = await shiftAccessor.QueryAsync(id, cancellationToken);
         return entity is null ? null : await LoadDetailAsync(entity, cancellationToken);
     }
 
     // 端末の開設中シフト (なければ null)
-    public async ValueTask<ShiftDetail?> QueryCurrentAsync(Guid terminalId, CancellationToken cancellationToken)
+    public async ValueTask<ShiftDetailView?> QueryCurrentAsync(Guid terminalId, CancellationToken cancellationToken)
     {
         var entity = await shiftAccessor.QueryCurrentAsync(terminalId, cancellationToken);
         return entity is null ? null : await LoadDetailAsync(entity, cancellationToken);
@@ -62,36 +86,33 @@ public sealed class ShiftService
 
     public async ValueTask<PagedResult<ShiftEntity>> QueryPageAsync(ShiftQueryParameter parameter, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(parameter);
-
         var total = await shiftAccessor.CountAsync(parameter.StoreId, parameter.TerminalId, parameter.Status, parameter.From, parameter.To, cancellationToken);
-        var order = SqlHelper.NormalizeSort(SortColumns, DefaultSort, parameter.Sort, parameter.Desc);
-        var items = await shiftAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.Status, parameter.From, parameter.To, order, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await shiftAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.Status, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
         return new PagedResult<ShiftEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 
     // 集計付き
-    public async ValueTask<PagedResult<ShiftDetail>> QueryDetailPageAsync(ShiftQueryParameter parameter, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<ShiftDetailView>> QueryDetailPageAsync(ShiftQueryParameter parameter, CancellationToken cancellationToken)
     {
         var page = await QueryPageAsync(parameter, cancellationToken);
-        var items = new List<ShiftDetail>(page.Items.Count);
+        var items = new List<ShiftDetailView>(page.Items.Count);
         foreach (var entity in page.Items)
         {
             items.Add(await LoadDetailAsync(entity, cancellationToken));
         }
 
-        return new PagedResult<ShiftDetail>(page.Total, page.Page, page.Size, items);
+        return new PagedResult<ShiftDetailView>(page.Total, page.Page, page.Size, items);
     }
 
     // 精算レポートの内容
-    public async ValueTask<ShiftSummary?> QuerySummaryAsync(Guid id, CancellationToken cancellationToken)
+    public async ValueTask<ShiftSummaryView?> QuerySummaryAsync(Guid id, CancellationToken cancellationToken)
     {
         var entity = await shiftAccessor.QueryAsync(id, cancellationToken);
         return entity is null ? null : await LoadSummaryAsync(entity, cancellationToken);
     }
 
     // 精算レポート PDF の入力 (表示名と店舗のタイムゾーン付き)
-    public async ValueTask<ShiftReport?> QueryReportAsync(Guid id, CancellationToken cancellationToken)
+    public async ValueTask<ShiftReportView?> QueryReportAsync(Guid id, CancellationToken cancellationToken)
     {
         var entity = await shiftAccessor.QueryAsync(id, cancellationToken);
         if (entity is null)
@@ -103,7 +124,7 @@ public sealed class ShiftService
         var terminal = await masterAccessor.QueryTerminalAsync(entity.TerminalId, cancellationToken);
         var openedBy = await masterAccessor.QueryStaffAsync(entity.OpenedByStaffId, cancellationToken);
         var closedBy = entity.ClosedByStaffId is null ? null : await masterAccessor.QueryStaffAsync(entity.ClosedByStaffId.Value, cancellationToken);
-        return new ShiftReport
+        return new ShiftReportView
         {
             Summary = await LoadSummaryAsync(entity, cancellationToken),
             StoreName = store?.Name ?? String.Empty,
@@ -122,8 +143,6 @@ public sealed class ShiftService
     // 開設。同じ id は Existing、端末に Open のシフトがあれば TerminalHasOpenShift
     public async ValueTask<ShiftResult> OpenAsync(ShiftEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var existing = await shiftAccessor.QueryAsync(entity.Id, cancellationToken);
         if (existing is not null)
         {
@@ -151,8 +170,6 @@ public sealed class ShiftService
     // 精算: 集計を確定して Closed にする。精算済みは、実査金額が同じ再送なら Existing、違えば Closed
     public async ValueTask<ShiftResult> CloseAsync(Guid id, ShiftCloseParameter parameter, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(parameter);
-
         var shift = await shiftAccessor.QueryAsync(id, cancellationToken);
         if (shift is null)
         {
@@ -167,7 +184,7 @@ public sealed class ShiftService
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var totals = await shiftAccessor.QueryTotalsAsync(id, cancellationToken) ?? ShiftTotals.Empty;
+        var totals = await shiftAccessor.QueryTotalsAsync(id, cancellationToken) ?? ShiftTotalsView.Empty;
         var expectedCash = ExpectedCash(shift.OpeningCash, totals);
         await provider.UsingTxAsync(async (_, tx) =>
         {
@@ -191,8 +208,6 @@ public sealed class ShiftService
     // 入出金 (Open のみ)。同じ id は Existing
     public async ValueTask<CashEventResult> AddCashEventAsync(CashEventEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var existing = await shiftAccessor.QueryCashEventAsync(entity.Id, cancellationToken);
         if (existing is not null)
         {
@@ -235,12 +250,12 @@ public sealed class ShiftService
     //--------------------------------------------------------------------------------
 
     // Open 中は取引から都度集計し、Closed は確定値 (Shifts の列) を使う
-    private async ValueTask<ShiftDetail> LoadDetailAsync(ShiftEntity entity, CancellationToken cancellationToken)
+    private async ValueTask<ShiftDetailView> LoadDetailAsync(ShiftEntity entity, CancellationToken cancellationToken)
     {
         var totals = entity.Status == ShiftStatus.Closed
-            ? new ShiftTotals(entity.CashSales, entity.CashReturns, entity.PaidIn, entity.PaidOut, entity.SalesCount, entity.ReturnCount, entity.VoidCount, entity.SalesTotal, entity.ReturnsTotal)
-            : await shiftAccessor.QueryTotalsAsync(entity.Id, cancellationToken) ?? ShiftTotals.Empty;
-        return new ShiftDetail
+            ? new ShiftTotalsView(entity.CashSales, entity.CashReturns, entity.PaidIn, entity.PaidOut, entity.SalesCount, entity.ReturnCount, entity.VoidCount, entity.SalesTotal, entity.ReturnsTotal)
+            : await shiftAccessor.QueryTotalsAsync(entity.Id, cancellationToken) ?? ShiftTotalsView.Empty;
+        return new ShiftDetailView
         {
             Shift = entity,
             Totals = totals,
@@ -249,13 +264,13 @@ public sealed class ShiftService
         };
     }
 
-    private async ValueTask<ShiftSummary> LoadSummaryAsync(ShiftEntity entity, CancellationToken cancellationToken) =>
+    private async ValueTask<ShiftSummaryView> LoadSummaryAsync(ShiftEntity entity, CancellationToken cancellationToken) =>
         new()
         {
             Shift = await LoadDetailAsync(entity, cancellationToken),
             ByPaymentMethod = await shiftAccessor.QueryPaymentMethodTotalsAsync(entity.Id, cancellationToken),
             ByTaxRate = await shiftAccessor.QueryTaxRateTotalsAsync(entity.Id, cancellationToken),
             ByCategory = await shiftAccessor.QueryCategoryTotalsAsync(entity.Id, cancellationToken),
-            Points = await shiftAccessor.QueryPointTotalsAsync(entity.Id, cancellationToken) ?? PointTotals.Empty
+            Points = await shiftAccessor.QueryPointTotalsAsync(entity.Id, cancellationToken) ?? PointTotalsView.Empty
         };
 }

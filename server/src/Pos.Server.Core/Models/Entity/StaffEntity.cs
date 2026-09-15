@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("Staff")]
 public sealed class StaffEntity
 {
     [Key]

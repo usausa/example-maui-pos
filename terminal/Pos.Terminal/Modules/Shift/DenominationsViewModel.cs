@@ -38,7 +38,7 @@ public sealed class DenominationItem : NotificationObject
         }
     }
 
-    public string SubtotalText => DisplayText.Yen((decimal)Denomination * count);
+    public string SubtotalText => ViewHelper.Yen((decimal)Denomination * count);
 
     public ICommand IncrementCommand { get; }
 
@@ -49,7 +49,7 @@ public sealed class DenominationItem : NotificationObject
         this.changed = changed;
         this.count = count;
         Denomination = denomination;
-        Label = DisplayText.Yen(denomination);
+        Label = ViewHelper.Yen(denomination);
         IncrementCommand = new DelegateCommand(() => Count++);
         DecrementCommand = new DelegateCommand(() => Count = Math.Max(0, Count - 1));
     }
@@ -67,7 +67,7 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
     public ObservableCollection<DenominationItem> Items { get; } = [];
 
     [ObservableProperty]
-    public partial string TotalText { get; set; } = DisplayText.Yen(0);
+    public partial string TotalText { get; set; } = ViewHelper.Yen(0);
 
     public IObserveCommand CloseCommand { get; }
 
@@ -96,7 +96,7 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
     // 枚数は電卓で入力する (キーボードに依存しない)
     private async Task InputCountAsync(DenominationItem item)
     {
-        var text = await popupNavigator.InputNumberAsync($"{item.Label} の枚数", item.CountText, 4);
+        var text = await popupNavigator.InputCountAsync($"{item.Label} の枚数", item.CountText);
         if (Int32.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var count) && (count >= 0))
         {
             item.Count = count;
@@ -107,6 +107,6 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
 
     private void UpdateTotal()
     {
-        TotalText = DisplayText.Yen(Total());
+        TotalText = ViewHelper.Yen(Total());
     }
 }

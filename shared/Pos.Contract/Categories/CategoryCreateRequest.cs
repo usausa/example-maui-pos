@@ -3,11 +3,11 @@ namespace Pos.Contract.Categories;
 public sealed class CategoryCreateRequest
 {
     [Required]
-    [MaxLength(20)]
+    [MaxLength(Length.Code)]
     public string Code { get; set; } = default!;
 
     [Required]
-    [MaxLength(100)]
+    [MaxLength(Length.Name)]
     public string Name { get; set; } = default!;
 
     public Guid? ParentId { get; set; }

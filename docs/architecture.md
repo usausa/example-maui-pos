@@ -45,7 +45,7 @@ template-maui-pos/
 │  │  ├─ Pos.Server.Core/            Accessors (SQL) / Models (Entity / Views / Parameters) / Services
 │  │  └─ Pos.Server.Host/            Minimal API + Blazor (MudBlazor) ホスト
 │  ├─ tests/
-│  │  ├─ Pos.Server.UnitTests/       bUnit (NavMenu / StatusChip)、SqlHelper・フォーム変換の単体テスト
+│  │  ├─ Pos.Server.UnitTests/       bUnit (NavMenu / StatusChip)、フォーム変換の単体テスト
 │  │  └─ Pos.Server.IntegrationTests/ WebApplicationFactory による API テスト (SQLite 一時ファイル)
 │  └─ tools/
 │     └─ Pos.Server.SampleData/      サンプル取引の生成ツール (API 経由、§8)
@@ -87,34 +87,43 @@ Pos.Server.Host ───────┤                      ▲
 ```
 Accessors/
   MasterAccessor.cs                  マスタ (設定・店舗・端末・スタッフ・部門・税率・値引・支払方法・調整理由) の一覧 / 取得 / 登録 / 更新 / 論理削除 / 件数
-  ProductAccessor.cs, CustomerAccessor.cs, TransactionAccessor.cs, ShiftAccessor.cs, InventoryAccessor.cs, ReportAccessor.cs, DatabaseAccessor.cs (PRAGMA)
+  ProductAccessor.cs, CustomerAccessor.cs, TransactionAccessor.cs, ShiftAccessor.cs, InventoryAccessor.cs, ReportAccessor.cs
+  GenericAccessor.cs                 テーブルに紐付かない処理: PRAGMA、後から増えた列の初期値、SQL ファイルの実行 ([DirectSql]。初期データ)
   Sql/{Accessor}.{Method}.sql       2-way SQL。Create.sql に DDL
-  SqlHelper.cs                       SQL に埋め込む値 (並び替え列の検証、集計の GROUP BY 式、タイムゾーンの修飾子) と後から増えた列の追加 (EnsureColumnAsync)
+  SqlHelper.cs                       2-way SQL の /*# */ から呼ぶ SQL 断片だけ (集計の GROUP BY 式、商品別売上の並び順の列)。/*!helper */ で参照する
+  SchemaHelper.cs                    後から増えた列の追加 (EnsureColumnAsync)
   DataProfile.cs                     [AccessorProfile]: 列挙型ごとの EnumTextConverter<T> と DateOnly / DateTime のコンバータ
-Models/Entity/                       {Table 単数}Entity (Smart.Data.Accessor の [Key]。テーブル名は Builder 属性の Table)
-Models/Views/                        DB から読んだ結果の record (TransactionDetail / ShiftDetail / ShiftSummary / ShiftReport / DailySalesReport / ShiftTotals /
-                                     SalesSummaryRow / ProductSalesRow / ProductInventoryLevel / InventoryLevelDetail / ProductExportItem / SyncMasterData など)
-Models/Parameters/                   Service に渡す条件と入力 (PagedParameter を基底にした XxxQueryParameter、InventoryChangeParameter / ShiftCloseParameter、
-                                     SalesSummaryGroupBy / ProductSalesSort)
+Models/Entity/                       {Table 単数}Entity (Smart.Data.Accessor の [Key]。テーブル名はクラスの [Name("Stores")])
+Models/Views/                        DB から読んだ結果 (XxxView: TransactionDetailView / ShiftDetailView / ShiftSummaryView / ShiftReportView / DailySalesReportView /
+                                     ShiftTotalsView / SalesSummaryView / ProductSalesView / ProductInventoryLevelView / InventoryLevelDetailView / ProductExportView /
+                                     SyncMasterDataView など)
+Models/Parameters/                   Service に渡す条件と入力 (PagedParameter<TSort> を基底にした XxxQueryParameter、InventoryChangeParameter / ShiftCloseParameter)
+Models/Enums/                        一覧の並び順 (StoreSort / TerminalSort / StaffSort / CategorySort / ProductSort / CustomerSort / InventoryLevelDetailSort /
+                                     ShiftSort / TransactionSort。列挙名 = 列名、先頭が既定)、SalesSummaryGroupBy / ProductSalesSort
 Models/PagedResult.cs                一覧の結果 (Total / Page / Size / Items)
 Services/                            業務の手順 (サブジェクトごと): マスタの XxxService (Store / Terminal / Staff / Category / TaxRate / Discount / PaymentMethod /
                                      AdjustmentReason / Settings)、ProductService、CustomerService、TransactionService (登録・取消・照会)、
                                      ShiftService (開設・精算・入出金・集計)、InventoryService、ReportService、SyncService、DatabaseService (スキーマ作成・初期データ)
   DataWriteStatus.cs                 書き込みの結果 (Success / NotFound / Duplicate / VersionMismatch / InUse / Invalid)
-  TransactionResult.cs, ShiftResult.cs, CashEventResult.cs, InventoryChangeResult.cs   取引・シフト・在庫変動の結果 (既存の返却・違反を含む)
+  DataWriteResult.cs                 更新の結果 (Status + 更新後の行)
   RuleViolationException.cs          DB トランザクション内の業務ルール違反
-  ServiceHelper.cs                   重複 (IDialect.IsDuplicate) と楽観ロック (更新 0 件) の判定、LIKE のエスケープ
-  InitialData.cs                     起動時の初期データ (§6)。固定 ID (InitialData.MainStoreId など) をテストと設定 QR で使う
+  ServiceHelper.cs                   重複 (IDialect.IsDuplicate) と楽観ロック (更新後の行が返らない) の判定、LIKE のエスケープ
+  InitialData.cs                     初期データ (§6) の固定 ID (InitialData.MainStoreId など)。テストと設定 QR で使う
 Infrastructure/Data/                 EnumTextConverter<T> (列挙型 ↔ TEXT)、DateOnlyTextConverter、DateTimeTextConverter (UTC)
+Infrastructure/Json/                 JsonDateTimeConverter (yyyy-MM-ddTHH:mm:ss.fffZ。Host の JSON 設定で使う)
 ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistration で Services/ の XxxService を Singleton 登録)
 ```
 
+- 特定の Service だけが返す結果 (TransactionResult / ShiftResult / CashEventResult / InventoryChangeResult) は、その Service のファイルの先頭で定義する
 - SQL は Accessor だけが持つ。  
   Service が Accessor を束ね、複数テーブルにまたがる書き込み (取引登録・取消・精算) は Service の中で `IDbProvider.UsingTxAsync` を使う ([db-design.md §5](db-design.md#5-整合性と更新の単位))
-- 業務ルールは `Pos.Domain`、パラメータの正規化 (並び替え列・LIKE・既定値) は Service が行う
-- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`UpdateAsync` の戻り値 0)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` で返す (API と管理画面で同じ規則)
+- 業務ルールは `Pos.Domain`、LIKE のエスケープと既定値は Service が行う。  
+  並び替えは `Models/Enums` の列挙型で受け取り、2-way SQL の中で `/*# sort.ToString() */` と `/*% if (desc) */` で列に展開する (差分同期の `UpdatedAt, Id` 順も SQL 側)
+- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`UPDATE ... RETURNING *` で更新後の行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す (API と管理画面で同じ規則)。  
+  更新の応答は `RETURNING` で返った行から作る (更新後に読み直さない)
 - Accessor の DI 登録は Host の `AddDataAccessors(typeof(DataProfile).Assembly)`、Service は `AddCoreServices()`
 - 更新の引数は列ごとに渡す (2-way SQL の `/*@ entity.Prop */` にはコンバータが効かないため)
+- 引数の null チェック (`ArgumentNullException.ThrowIfNull`) は書かない (CA1062 は無効)
 
 ### 3.2 `Pos.Server.Host`
 
@@ -123,30 +132,38 @@ Application/                         アプリ固有の部品
   ApplicationExtensions.cs           起動構成 (camelCase JSON、Problem Details、Serilog、ヘルスチェック、MudBlazor、OpenAPI (開発時 /swagger, /redoc))
   ViewHelper.cs                      画面の部品の文言と色 (チップ・マーク・見出し)
   ViewExtensions.cs                  表示用の書式 (金額・数量・日時・列挙型の日本語名) の拡張メソッド
-  PageComponentBase.cs               ページの基底 (読み込み / 実行 / エラー / 確認 / 編集ダイアログ、DataWriteStatus の通知)
-  NameLookup.cs (ID → 名称), StoreFilterState.cs (scoped), RuleText.cs, SnackbarExtensions.cs, DialogServiceExtensions.cs, Styles.cs, Log.cs, NamingPolicy.cs
-  Reports/                           OysterReport の帳票: ShiftReportBuilder (精算レポート)、DailySalesReportBuilder (売上日報)、ReportText (D-37)
+  SnackbarExtensions.cs, Styles.cs, Log.cs, NamingPolicy.cs
+  Lookup/NameLookup.cs               ID → 名称 (店舗・端末・スタッフ・支払方法)
+  State/StoreFilterState.cs          一覧ページ間で共有する店舗の絞り込み (scoped)
+  Urls/ExportUrls.cs                 管理画面から開くダウンロード URL (CSV / PDF)
+Reports/                             OysterReport の帳票: ShiftReportBuilder (精算レポート)、DailySalesReportBuilder (売上日報)、ReportText (D-37)
 Endpoints/                           静的クラス + MapGroup (ハンドラは private static)。Request → Entity / Parameter の変換 ([Mapper]) と Service の呼び出しだけを担う
-  ApiRoutes.cs (/api/v1), ApiDefaults.cs (ページサイズ), ApiProblems.cs (errorCode / errors / expected 付き Problem Details と DataWriteStatus からの変換)
+  ApiRoutes.cs (/api/v1), ApiDefaults.cs (ページサイズ), ApiProblems.cs (errorCode / errors / expected 付き Problem Details と DataWriteStatus からの変換),
+  ApiRuleText.cs (業務ルール違反と警告の文言)
   SettingsEndpoints, StoreEndpoints, TerminalEndpoints, StaffEndpoints, CategoryEndpoints, TaxRateEndpoints,
   ProductEndpoints, DiscountEndpoints, PaymentMethodEndpoints, SyncEndpoints, CustomerEndpoints,
-  TransactionEndpoints, ShiftEndpoints (+ summary/pdf), InventoryEndpoints (+ adjustment-reasons), ReportEndpoints (+ daily/pdf)
-Infrastructure/                      アプリに依存しない部品: Api (CsvExport)、Components (AppComponentBase, EditDialogBase<TForm>, ErrorBoundaryLogger)、
-                                     ExceptionHandling (GlobalExceptionHandler)、Json (JsonDateTimeConverter)、Reports (EmbeddedFontResolver: 同梱 IPAex ゴシック)
-Models/Forms/                        管理画面のフォーム + FluentValidation (FormValidator<T> を基底に XxxForm / XxxFormValidator。マスタ 10 種 + Customer / Settings / InventoryChange / PointAdjust)。  
-                                     Entity ↔ Form の変換 ([Mapper]。Guid? / DateOnly の変換は [MapUsing]) はフォームが持つ
+  TransactionEndpoints, ShiftEndpoints (+ summary/pdf), InventoryEndpoints, AdjustmentReasonEndpoints (/inventory/adjustment-reasons), ReportEndpoints (+ daily/pdf)
+Helpers/EnumHelper.cs                クエリ文字列や並び順ラベルの列挙値 (大文字小文字を区別せず、数値や未定義の値は受け付けない)
+Infrastructure/                      アプリに依存しない部品: Csv (CsvExport)、Logging (ErrorBoundaryLogger)、ExceptionHandling (GlobalExceptionHandler)、
+                                     Reports (EmbeddedFontResolver: 同梱 IPAex ゴシック)
+Models/Forms/                        管理画面のフォーム + FluentValidation (FormValidator<T> を基底に XxxForm / XxxFormValidator。マスタ 10 種 + Customer / InventoryChange / PointAdjust)。
+                                     Entity ↔ Form の変換 ([Mapper]。Guid? / DateOnly の変換は [MapUsing]) はフォームが持つ。
+                                     1 つのページだけで使うフォーム (SettingsForm) はそのページの内部クラス。文字列の長さは Pos.Domain.Length の定数
+Models/Queries/                      API のクエリ ([AsParameters]): ReportPeriodQuery (店舗と期間。from ≤ to は IValidatableObject)
 Models/Export/                       CSV の行 (ProductExportRow, SalesSummaryExportRow, ProductSalesExportRow。CsvHelper の [Name] で日本語見出し)
 Components/
   App.razor, Routes.razor, _Imports.razor
+  AppComponentBase.cs                Disposable をまとめて破棄するコンポーネントの基底
+  PageComponentBase.cs               ページの基底 (読み込み / 実行 / エラー / 確認 / 編集ダイアログ、DataWriteStatus / DataWriteResult の通知)
   Layout/ (MainLayout, NavMenu (MudNavGroup。現在の URL のグループを開く), EmptyLayout, ReconnectModal)
   Pages/  Home (S-01), SalesSummaryPage (S-10), ProductSalesPage (S-11), TransactionsPage (S-20), ShiftsPage (S-30), InventoryPage (S-40),
           InventoryChangesPage (S-42), AdjustmentReasonsPage (S-44), ProductsPage (S-50), CategoriesPage (S-53), TaxRatesPage (S-54), DiscountsPage (S-55),
           PaymentMethodsPage (S-56), CustomersPage (S-60), CustomerDetailPage (S-61), StoresPage (S-70), TerminalsPage (S-71), StaffPage (S-72), SettingsPage (S-80),
           Error, NotFound。ページは .razor + .razor.cs
   Controls/ (ErrorBanner, ProgressOverlay, StoreSelect (店舗セレクタ), StatusChip (ViewHelper の文言 + 色))
-  Dialogs/ (AppMessageBox, XxxEditDialog (EditDialogBase<TForm>。マスタ 10 種 + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31),
+  Dialogs/ (EditDialogBase<TForm>, DialogServiceExtensions (情報・確認), AppMessageBox, XxxEditDialog (マスタ 10 種 + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31),
             ProductInventoryDialog (S-41), InventoryChangeDialog (S-43), PointAdjustDialog (S-62), TerminalQrDialog (S-71))
-Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート。出力ディレクトリへコピー)
+Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート)、Data/InitialData.sql (初期データ。起動時に読んで実行する。出力ディレクトリへコピー)
 Settings/                            LogSetting / ProfilerSetting
 wwwroot/                             css/app.css, js/reconnect.js
 ```
@@ -157,6 +174,10 @@ wwwroot/                             css/app.css, js/reconnect.js
 - Blazor ページも同じ Service を `[Inject]` して使う。  
   Razor の表示用の加工は `ViewHelper` / `ViewExtensions` に集約し、Accessor / `IDbProvider` はページから使わない
 - `InitializeApplicationAsync` で `DatabaseService.InitializeAsync` (スキーマ作成、後から増えた列の追加、初期データ) を行う
+- 一覧の `sort` / レポートの `groupBy` は文字列で受け取り `EnumHelper` で列挙型にする (一覧の不正な値は既定、`groupBy` / レポートの `sort` は 400)。  
+  レポートの期間 (`ReportPeriodQuery`) の `from > to` は `IValidatableObject` で 400 にする (API の入力検証は DataAnnotations、FluentValidation は管理画面のフォームだけ)
+- 描画モードは対話型 (プリレンダリングなし)。  
+  エラーと 404 のページ (`[ExcludeFromInteractiveRouting]`) は例外や 404 の再実行で描画されるので静的 SSR にする (常に対話型にすると回線のない再実行で空の HTML になる)
 
 ---
 
@@ -187,7 +208,7 @@ Logic/
 - `TransactionLogic` は DB を見ない。  
   シフト・商品・元取引などの事実は呼び出し側が Context に詰めて渡す。  
   検証できる入力なら再計算結果を `Expected` に返すので、サーバはそれを `CALCULATION_MISMATCH` の `expected` と応答の計算項目に使う
-- 違反は `RuleReason` (理由) で返し、利用者向けの文言はサーバ (`Application/RuleText`) と端末 (`Models/RuleText`) がそれぞれ持つ
+- 違反は `RuleReason` (理由) で返し、利用者向けの文言はサーバ (`Endpoints/ApiRuleText`) と端末 (`Modules/Helpers/ViewHelper`) がそれぞれ持つ
 - `Pos.Domain.Tests` の `DependencyTests` が「UI / DB / HTTP / `Pos.Contract` を参照していない」ことを検証する
 
 ### 4.2 `Pos.Contract`
@@ -199,26 +220,27 @@ Stores/ Terminals/ Staff/ Categories/ TaxRates/ Products/ Discounts/ PaymentMeth
                XxxResponse (一覧) / XxxResponseItem / XxxCreateRequest / XxxUpdateRequest
 Sync/          SyncMastersResponse
 Customers/     CustomerResponse / CustomerResponseItem / CustomerCreateRequest / CustomerUpdateRequest,
-               PointHistoryResponse / PointHistoryResponseItem, PointAdjustRequest
-Transactions/  TransactionRequest (+ TransactionRequestLine / Discount / TaxSummary / Payment / Delivery / Void),
+               CustomerPointHistoryResponse / CustomerPointHistoryResponseItem, CustomerPointAdjustRequest
+Transactions/  TransactionCreateRequest (+ TransactionCreateRequestLine / Discount / TaxSummary / Payment / Delivery / Void),
                TransactionResponse / TransactionResponseItem (+ TransactionResponseItemLine / ... / Warning),
-               TransactionVoidRequest, TransactionCalculateRequest, TransactionCalculationResponse (計算項目のみ。calculate の応答と expected)
+               TransactionVoidRequest, TransactionCalculateRequest, TransactionCalculateResponse (計算項目のみ。calculate の応答と expected)
 Shifts/        ShiftOpenRequest, ShiftResponse / ShiftResponseItem (+ Denomination / Totals), ShiftCloseRequest (+ Denomination),
-               CashEventRequest / CashEventResponse / CashEventResponseItem, ShiftSummaryResponse (+ PaymentMethod / TaxRate / Category / Points / Cash)
-Inventory/     InventoryLevelResponse / InventoryLevelResponseItem, ProductInventoryResponse (+ Level),
+               ShiftCashEventRequest / ShiftCashEventResponse / ShiftCashEventResponseItem, ShiftSummaryResponse (+ PaymentMethod / TaxRate / Category / Points / Cash)
+Inventory/     InventoryLevelResponse / InventoryLevelResponseItem, InventoryProductResponse (+ Level),
                InventoryChangeRequest (+ Change) / InventoryChangeResultResponse (+ Result、InventoryChangeResultStatus),
                InventoryChangeResponse / InventoryChangeResponseItem, AdjustmentReasonResponse / AdjustmentReasonResponseItem / CreateRequest / UpdateRequest
-Reports/       SalesSummaryResponse (+ Row), ProductSalesResponse (+ Row)
+Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+ Row)
 ```
 
 - 名前空間はフォルダごと (`Pos.Contract.Transactions` など)。  
-  書き方は (`{ get; set; } = default!` のクラス、Request には `Required` / `MaxLength` / `Range`)。  
+  書き方は (`{ get; set; } = default!` のクラス、Request には `Required` / `MaxLength` / `Range`。文字列の長さは `Pos.Domain.Length` の定数)。  
   camelCase への変換はシリアライザ設定で行い、属性は付けない
-- 入れ子の要素は親の名前に要素名を続ける (`TransactionResponseItemLine`)
+- クラス名はエンドポイントのクラス名 + メソッド名 (`TransactionCreateRequest` / `TransactionCalculateResponse` / `CustomerPointHistoryResponse` / `ShiftCashEventRequest` / `ReportSalesSummaryResponse`)。  
+  入れ子の要素は親の名前に要素名を続ける (`TransactionResponseItemLine`)
 - 列挙型は `Pos.Domain` のものをそのまま使う。  
   エラーコード定数は持たず、`Pos.Domain` の `ErrorCode.ToCode()` / `WarningCode.ToCode()` と端末の `ProblemResponse.ErrorCode` (文字列) で突き合わせる
 - 日付は `DateOnly`、日時は `DateTime` (UTC)。  
-  `JsonDateTimeConverter` (`yyyy-MM-ddTHH:mm:ss.fffZ`) と Problem Details の型 (`ProblemResponse`) は契約ではないのでサーバと端末がそれぞれ持つ (`Infrastructure/Json`、`Helpers/Json` / `Services`)。  
+  `JsonDateTimeConverter` (`yyyy-MM-ddTHH:mm:ss.fffZ`) と Problem Details の型 (`ProblemResponse`) は契約ではないのでサーバと端末がそれぞれ持つ (サーバは `Pos.Server.Core` の `Infrastructure/Json`、端末は `Helpers/Json` / `Services`)。  
   サーバは `ConfigureHttpJsonOptions`、端末は `HttpService.JsonOptions` で同じ設定を登録し、形式は `Pos.Server.IntegrationTests` の `JsonContractTests` で固定
 - 名前空間 `Pos.Contract` は VB の予約語と重なるため CA1716 を、`ImageUrl` は CA1056 を `Pos.Contract` の `GlobalSuppressions.cs` で抑止している ([D-38](decisions.md#d-38-警告の抑止))
 
@@ -238,23 +260,25 @@ Extensions.cs                        拡張メソッド (リソース、IDialog 
 Shell/ ShellProperty (+ Active: 表示中の View だけがシェルを更新) / ShellEvent / ShellUpdateBehavior / IShellControl
 Behaviors/                           Entry / Label / Scroll などの動作、EntryBind (EntryController)、BarcodeBind (CameraView)
 Messaging/                           BarcodeController、EntryController
-Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、QrImageSourceConverter (QRCoder)、YenConverter。  
+Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、QrImageSourceConverter (QRCoder)、YenConverter、StockSendTextConverter。  
                                      色や選択マーク・画面固有の文言は Smart.Maui の BoolToColor / MapToColor / BoolToText を Styles.xaml で構成する
 Helpers/                             アプリに依存しない処理だけ: DateTimeHelper (日付書式の集約)、SettingParser (Key=Value)、CrashReport、ElementHelper、
-                                     Data/ (EnumTextConverter<T> / DateOnlyTextConverter / DateTimeTicksConverter / SchemaHelper)、Json/JsonDateTimeConverter
+                                     Data/ (EnumTextConverter<T> / DateOnlyTextConverter / DateTimeTicksConverter / SchemaHelper / SqlHelper: LIKE のエスケープ)、Json/JsonDateTimeConverter
 Permissions.cs                       カメラ権限
 Modules/
-  ViewId.cs, DialogId.cs, Parameters.cs (遷移パラメータ: スキャンモード / 戻り先 / 取引 ID / 会員 / 機能のコンテキスト), AppViewModelBase.cs, AppDialogViewModelBase.cs
+  ViewId.cs, DialogId.cs, Parameters.cs (遷移パラメータ: スキャンモード / 戻り先 / 取引 ID / 会員), AppViewModelBase.cs, AppDialogViewModelBase.cs
+  PopupNavigatorExtensions.cs        入力の種類ごとの電卓 (電話番号 / 郵便番号 / 生年月日 / コード / 伝票番号 / 数量 / 金額 / ポイント / 枚数 / 在庫 / 値引。桁数は Pos.Domain.Length)
+  Helpers/ViewHelper.cs              金額・数量・日時・列挙型・業務ルールの文言 (XAML からは DisplayNameConverter で使う)
   Setup/      SetupView (T-00), StaffSelectView (T-01)
   Main/       MenuView (T-02)
   Shift/      ShiftOpenView (T-03), CashEventView (T-50), ShiftCloseView (T-51), ShiftReportView (T-52), DenominationsView (金種別入力ポップアップ)
   Sales/      SalesContext (カートと支払)、SalesView (T-10), ScanView (T-11), ProductSearchView (T-12), CustomerSelectView (T-14),
               DeliveryView (T-16), HoldView (T-17), PaymentView (T-20), CompleteView (T-21), ReceiptView (T-22),
-              LineEditView (P-13), DiscountView (P-15), DiscountChooser (定義済み / 任意の値引を IDialog で選ぶ)
+              LineEditView (P-13), DiscountView (P-15。取引値引と明細値引の両方)
   Returns/    ReturnContext (元取引・返品明細・理由)、ReturnView (T-40), ReturnLinesView (T-41), RefundView (T-42)
   History/    TransactionListView (T-30), TransactionDetailView (T-31)
-  Inquiry/    ProductInquiryView (T-60), CustomerInquiryView (T-61), CustomerEditView (T-62)
-  Inventory/  StockContext (入力リスト)、StockCountView (T-70), StockSendTextConverter (画面固有の Converter)
+  Inquiry/    ProductInquiryView (T-60), CustomerInquiryView (T-61), CustomerEditView (T-62)、CustomerDraft (スキャン中の入力内容)
+  Inventory/  StockContext (入力リスト)、StockCountView (T-70)
   Report/     SalesReportView (T-80)
   Setting/    SettingView (T-90)
   Dialogs/    InputNumberView (電卓)、ReasonSelectView (理由の選択)
@@ -262,21 +286,22 @@ Models/
   Cart/       SalesCart, CartLine, CartDiscount, CartPayment, CartDelivery
   Entity/     ローカル DB のエンティティ (LocalTransaction / LocalShift / LocalCashEvent / Outbox / SyncState / HoldCart。マスタは Pos.Contract の Response をそのまま使う)
   Input/      NumberInputParameter, NumberInputModel
-  DisplayText.cs                     金額・数量・日時・列挙型の日本語 (XAML からは DisplayNameConverter で使う)
-  TransactionExtensions.cs           列挙型と取引の判定 (IsVoided / IsOpen / IsReturnable など)
-  RuleText.cs, SummaryRow.cs (集計・詳細画面の行と節), StockChange.cs, SelectItem.cs
-Services/
+  SummaryRow.cs (集計・詳細画面の行と節), StockChange.cs, SelectItem.cs
+Services/                            単機能の部品
   DataAccessor.cs + Sql/            ローカル SQLite (Smart.Data.Accessor、2-way SQL。ローカルのエンティティのキーによる取得・削除は [SelectSingle] / [Delete])、DataProfile (型変換)
   DatabaseService.cs                 ローカル DB の初期化 (PRAGMA、テーブル作成、後から増えた列の追加)
   HttpService.cs / ApiResult.cs / ApiContext.cs / ApiNames.cs / ProblemResponse.cs   HttpClient による API 呼び出し (Pos.Contract の Request / Response、失敗時は Problem Details、D-40)
   NetworkService.cs                  オンライン限定操作の接続確認・インジケータ・エラー通知
   SyncService.cs                     マスタ差分同期と Outbox 送信のバックグラウンド実行、レシート番号の採番
+  ReceiptService.cs                  レシート画像の組み立て (ReceiptTextBuilder: 等幅 32 桁、ReceiptImageBuilder: SkiaSharp で桁位置に描画)
+  ShiftReportTextBuilder.cs          精算レポートの共有テキストの組み立て
+Usecases/                            通信 → DB → 完了までの一連の手順
   TransactionUsecase.cs              取引の保存 (ローカル取引 + Outbox + 自店在庫を 1 トランザクション)、取消、履歴 (送信状態付き)
   SalesUsecase.cs / ReturnUsecase.cs 会計・返品の計算 (Pos.Domain) と確定、保留、元取引の検索 (オンラインならサーバの最新)
   ShiftUsecase.cs                    開設 (サーバに残ったシフトの引き継ぎ)、精算、入出金、集計
   StockUsecase.cs / SetupUsecase.cs  棚卸・在庫調整の送信、初期設定 (接続確認・設定の保存・初回同期)
-  ReceiptService.cs                  レシート画像の組み立て (ReceiptTextBuilder: 等幅 32 桁、ReceiptImageBuilder: SkiaSharp で桁位置に描画)
-  TransactionBuilder.cs / ShiftSummaryBuilder.cs / ShiftReportTextBuilder.cs   Request / シフト集計 / 精算レポートの共有テキストの組み立て
+  TransactionMapper.cs               Cart → Pos.Domain の計算入力 → TransactionCreateRequest の変換
+  ShiftSummaryCalculator.cs          ローカルの取引・入出金からのシフト集計
 State/
   DeviceState.cs / StartupState.cs
   Settings.cs                        ApiEndPoint / StoreId / TerminalId / OpenSalesAfterLogin (IPreferences)
@@ -287,17 +312,23 @@ Resources/
 Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CAMERA 権限
 ```
 
-- ViewModel は入力の検証と表示に徹し、通信 → DB → 完了までの一連の手順は `XxxUsecase`、単機能は `XxxService`、組み立ては `XxxBuilder` に置く ([D-46](decisions.md#d-46-端末の-service--usecase-とナビゲーションのコンテキスト))。  
+- ViewModel は入力の検証と表示に徹し、通信 → DB → 完了までの一連の手順は `Usecases/` の `XxxUsecase`、単機能は `Services/` の `XxxService` に置く ([D-46](decisions.md#d-46-端末の-service--usecase-とナビゲーションのコンテキスト)、[D-49](decisions.md#d-49-端末の見直し-scope-プラグイン入力の種類ごとの電卓ヘルパーの置き場所))。  
+  `XxxBuilder` は文字列や画像の組み立てだけに使い、データの変換や計算は `XxxMapper` / `XxxCalculator` と呼ぶ。  
   ViewModel から `IDbProvider` は使わない。  
   フィールドと引数は Component (IDialog など) → State (Session、コンテキスト) → Service の順
-- 特定の機能の画面間でだけ共有する状態 (カート、返品、棚卸の入力) は `State` ではなく `SalesContext` / `ReturnContext` / `StockContext` とし、`Parameters.WithContext` で次の画面へ渡す。  
-  スキャンなど途中の画面は受け取ったコンテキストをそのまま返す
+- 特定の機能の画面間でだけ共有する状態 (カート、返品、棚卸の入力、会員編集の下書き) は `State` ではなく `SalesContext` / `ReturnContext` / `StockContext` / `CustomerDraft` とし、ViewModel の `[Scope]` プロパティに Smart.Navigation の Scope プラグインが注入する (DI に transient 登録)。  
+  同じ名前のプロパティを持つ画面の間で同じインスタンスが共有され、どの画面からも参照されなくなると破棄される (会計完了やメニューへ戻ると新しいカートになる)。  
+  スキャンなど途中の画面は、呼び出し元の機能の状態を保持するために各コンテキストのプロパティを持つ
 - 使用者に常に紐付く情報 (店舗・端末・担当・シフト) は `Session` に集約する
 - 通信は HttpClient + `System.Text.Json` (`HttpService.JsonOptions`: camelCase / null 省略 / 列挙型は文字列 / `JsonDateTimeConverter`) ([D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))
 - 画面遷移は `Navigator.ForwardAsync` のみ (スタックは使わない)。  
   ナビゲーションイベントの中では遷移と非同期処理を `PostForwardAsync` / `PostActionAsync` で後回しにする。  
   複数の画面から使う画面 (スキャン、会員選択、レシートなど) は `Parameters.WithReturnTo` で戻り先を受け取る
 - 一覧は `ObservableCollection<T>`、列挙型の文言・色・選択マークなどの表示の切り替えは ViewModel ではなく Converter (Smart.Maui の部品 + `DisplayNameConverter`) と Trigger で行う
+- 数値・番号は `PopupNavigatorExtensions` の入力の種類ごとの電卓 (`InputPhoneAsync` / `InputQuantityAsync` など) で入力する。  
+  理由 (取消・入出金・値引) は定型の選択 (`ReasonSelect`) で、キーボードは会員・配送先の文字項目、検索、設定に限る
+- 数値・番号は `PopupNavigatorExtensions` の入力の種類ごとの電卓 (`InputPhoneAsync` / `InputQuantityAsync` など) で入力する。  
+  理由 (取消・入出金・値引) は定型の選択 (`ReasonSelect`) で、キーボードは会員・配送先の文字項目、検索、設定に限る
 - 物理キーボードは前提にしない (物理キー向けの `Input` 名前空間は持たない)。  
   数値・番号は電卓ボタン ([D-44](decisions.md#d-44-入力はキーボードに依存しない-数値番号は電卓ボタン))
 - 販売・会計画面は `Styles.xaml` の POS 節 (白い行 + 区切り線、名称は太字、金額は青、[D-43](decisions.md#d-43-端末シェルのデザイン-pos-画面に合わせる)) を使う。  
@@ -332,6 +363,6 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CA
 | --- | --- |
 | 対象 | 有効な店舗 × 端末ごとに、`--days` 日分 (既定 7)。開設中のシフトがある端末は省略 |
 | 1 日の流れ | 08:30 に在庫調整 (初日のみ、物品を 10〜30 個「サンプル入荷」) → 09:00 開設 (釣銭準備金 3 万円) → 販売 `--per-day` ± 2 件 (既定 6) → 返品 (販売の 25%) → 取消 (30% の日に 1 件) → 出金 (60% の日) → 20:00 精算 (ときどき過不足) |
-| 販売の内容 | 端末と同じ手順 (`SalesCalculator` → `TransactionRequest` → `POST /transactions`)。1〜3 明細、明細値引 (承認者付き) / 取引値引 15%、シリアル番号、会員 (ポイント利用は残高まで)、カード 35% (伝票番号付き) / 現金 (千円単位の預り)、サービス明細には配送先 |
+| 販売の内容 | 端末と同じ手順 (`SalesCalculator` → `TransactionCreateRequest` → `POST /transactions`)。1〜3 明細、明細値引 (承認者付き) / 取引値引 15%、シリアル番号、会員 (ポイント利用は残高まで)、カード 35% (伝票番号付き) / 現金 (千円単位の預り)、サービス明細には配送先 |
 | レシート番号 | `terminals/{id}` の `lastReceiptSeq` から連番を続ける |
 | 乱数 | `--seed` (既定 1) で再現できる。サーバが 409 / 422 で拒否した取引は省略して続行する |

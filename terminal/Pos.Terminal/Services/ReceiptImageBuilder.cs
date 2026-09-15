@@ -15,8 +15,6 @@ public static class ReceiptImageBuilder
 
     public static byte[] Build(string text)
     {
-        ArgumentNullException.ThrowIfNull(text);
-
         var lines = text.Replace("\r", string.Empty, StringComparison.Ordinal).Split('\n');
         var width = (int)((Columns * ColumnWidth) + (Padding * 2));
         var height = (int)((lines.Length * LineHeight) + (Padding * 2));

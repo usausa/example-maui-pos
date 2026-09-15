@@ -1,1 +1,6 @@
-SELECT * FROM Settings WHERE Id = 1
+SELECT
+    *
+FROM
+    Settings
+WHERE
+    Id = 1

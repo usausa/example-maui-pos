@@ -1,7 +1,7 @@
 namespace Pos.Server.Models.Parameters;
 
 // シフト一覧の絞り込み (from / to は営業日)
-public sealed class ShiftQueryParameter : PagedParameter
+public sealed class ShiftQueryParameter : PagedParameter<ShiftSort>
 {
     public Guid? StoreId { get; init; }
 

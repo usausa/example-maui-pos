@@ -34,4 +34,5 @@ global using Smart.Text;
 
 // ReSharper disable MissingBlankLines
 global using Pos.Domain.Enums;
+global using Pos.Server.Models.Enums;
 global using KeyAttribute = Smart.Data.Accessor.Attributes.KeyAttribute;

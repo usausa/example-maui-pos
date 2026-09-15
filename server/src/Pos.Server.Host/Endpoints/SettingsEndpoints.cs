@@ -46,9 +46,9 @@ public static partial class SettingsEndpoints
         SettingsUpdateRequest request,
         CancellationToken cancellationToken)
     {
-        var status = await service.UpdateAsync(ToEntity(request), cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(cancellationToken))!))
-            : ApiProblems.FromStatus(status);
+        var result = await service.UpdateAsync(ToEntity(request), cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse(result.Entity!))
+            : ApiProblems.FromStatus(result.Status);
     }
 }

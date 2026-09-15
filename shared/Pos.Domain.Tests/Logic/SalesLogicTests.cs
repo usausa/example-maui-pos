@@ -2,7 +2,7 @@ namespace Pos.Domain.Logic;
 
 public sealed class SalesLogicTests
 {
-    // api-design §4.6 の例。全数値が一致すること
+    // 計算例。全数値が一致すること
     [Fact]
     public void CalculateExample()
     {

@@ -1,7 +1,6 @@
 namespace Pos.Server.Host.Application;
 
 using Pos.Server.Models.Entity;
-using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
 
 // 管理画面の表示文字列 (金額・日時の書式、列挙型の日本語名)
@@ -52,40 +51,30 @@ public static class ViewExtensions
     public static string ToTaxIncludedText(this bool taxIncluded) => taxIncluded ? "内税" : "外税";
 
     // 税率別のときだけ課税対象 / 税額、それ以外は税
-    public static string ToTaxText(this SalesSummaryRow row, SalesSummaryGroupBy groupBy)
+    public static string ToTaxText(this SalesSummaryView row, SalesSummaryGroupBy groupBy)
     {
-        ArgumentNullException.ThrowIfNull(row);
-
         return groupBy == SalesSummaryGroupBy.TaxRate ? $"{row.TaxableAmount.ToYen()} / {row.TaxAmount.ToYen()}" : row.TaxTotal.ToYen();
     }
 
     // コードと名称
     public static string ToDisplayText(this ProductEntity product)
     {
-        ArgumentNullException.ThrowIfNull(product);
-
         return $"{product.Code} {product.Name}";
     }
 
     public static string ToDisplayText(this CustomerEntity customer)
     {
-        ArgumentNullException.ThrowIfNull(customer);
-
         return $"{customer.Code} {customer.Name}";
     }
 
-    public static string ToProductText(this InventoryLevelDetail level)
+    public static string ToProductText(this InventoryLevelDetailView level)
     {
-        ArgumentNullException.ThrowIfNull(level);
-
         return $"{level.ProductCode} {level.ProductName}";
     }
 
     // セレクタ用 (中分類は字下げ)
     public static string ToIndentedName(this CategoryEntity category)
     {
-        ArgumentNullException.ThrowIfNull(category);
-
         return category.ParentId is null ? category.Name : "　" + category.Name;
     }
 

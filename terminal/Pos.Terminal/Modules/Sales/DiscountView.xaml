@@ -3,7 +3,6 @@
            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
            xmlns:s="http://smart/maui"
            xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-           xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
            xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
            xmlns:modules="clr-namespace:Pos.Terminal.Modules"
            x:Class="Pos.Terminal.Modules.Sales.DiscountView"
@@ -88,11 +87,11 @@
                 Margin="16,8,16,0"
                 Command="{Binding InputValueCommand}"
                 Text="{Binding ValueText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='値 (タップして入力)'}" />
-        <Entry Grid.Row="5"
-               Style="{StaticResource PosFieldEntry}"
-               Margin="16,8,16,8"
-               behaviors:EntryBind.Controller="{Binding Reason}"
-               Placeholder="理由" />
+        <Button Grid.Row="5"
+                Style="{StaticResource PosFieldInputButton}"
+                Margin="16,8,16,8"
+                Command="{Binding SelectReasonCommand}"
+                Text="{Binding ReasonText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='理由 (タップして選択)'}" />
 
         <Grid Grid.Row="6"
               Style="{StaticResource FunctionGrid}"

@@ -4,10 +4,11 @@ using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
+using Pos.Server.Host.Application.Lookup;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-21 取引詳細 (参照のみ。取消・返品は端末で行う)
+// 取引詳細 (参照のみ。取消・返品は端末で行う)
 public sealed partial class TransactionDetailDialog
 {
     private TransactionEntity? transaction;

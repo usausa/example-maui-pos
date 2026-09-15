@@ -58,7 +58,7 @@
 <MudGrid Spacing="2">
     <MudItem xs="12" md="6">
         <MudPaper Elevation="1">
-            <MudTable T="SalesSummaryRow" Items="storeRows" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+            <MudTable T="SalesSummaryView" Items="storeRows" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
                 <ToolBarContent>
                     <MudText Typo="Typo.subtitle1" Class="pa-2">🏬 店舗別売上 (本日)</MudText>
                 </ToolBarContent>
@@ -127,7 +127,7 @@
     </MudItem>
     <MudItem xs="12" md="6">
         <MudPaper Elevation="1" Class="mb-2">
-            <MudTable T="InventoryLevelDetail" Items="negativeInventory" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+            <MudTable T="InventoryLevelDetailView" Items="negativeInventory" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
                 <ToolBarContent>
                     <MudBadge Content="NegativeInventoryCount" Color="Color.Error" Overlap="true" Visible="NegativeInventoryCount > 0">
                         <MudText Typo="Typo.subtitle1" Class="pa-2">⚠️ 在庫マイナス</MudText>

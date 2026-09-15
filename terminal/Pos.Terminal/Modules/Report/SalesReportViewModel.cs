@@ -125,7 +125,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         }
 
         var total = scope == 0
-            ? result.Content!.Rows.FirstOrDefault(x => x.Key == session.TerminalId?.ToString()) ?? new SalesSummaryResponseRow { Key = string.Empty, Label = string.Empty }
+            ? result.Content!.Rows.FirstOrDefault(x => x.Key == session.TerminalId?.ToString()) ?? new ReportSalesSummaryResponseRow { Key = string.Empty, Label = string.Empty }
             : result.Content!.Total;
         var summary = result.Content;
         if ((scope != 0) && (Groups[group].GroupBy != totalGroupBy))
@@ -139,17 +139,17 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
             summary = rows.Content!;
         }
 
-        Message = $"📅 {DisplayText.Date(from)} 〜 {DisplayText.Date(to)}  {Scopes[scope]}";
+        Message = $"📅 {ViewHelper.Date(from)} 〜 {ViewHelper.Date(to)}  {Scopes[scope]}";
 
         var sections = new List<SummarySection>
         {
             new("💰 合計",
             [
-                new SummaryRow("純売上", DisplayText.Yen(total.NetSales)),
-                new SummaryRow("売上", $"{total.TransactionCount} 件  {DisplayText.Yen(total.SalesTotal)}"),
-                new SummaryRow("返品", $"{total.ReturnCount} 件  {DisplayText.Yen(total.ReturnsTotal)}"),
-                new SummaryRow("値引", DisplayText.Yen(total.DiscountTotal)),
-                new SummaryRow("消費税", DisplayText.Yen(total.TaxTotal)),
+                new SummaryRow("純売上", ViewHelper.Yen(total.NetSales)),
+                new SummaryRow("売上", $"{total.TransactionCount} 件  {ViewHelper.Yen(total.SalesTotal)}"),
+                new SummaryRow("返品", $"{total.ReturnCount} 件  {ViewHelper.Yen(total.ReturnsTotal)}"),
+                new SummaryRow("値引", ViewHelper.Yen(total.DiscountTotal)),
+                new SummaryRow("消費税", ViewHelper.Yen(total.TaxTotal)),
                 new SummaryRow("会員取引", $"{total.CustomerCount} 件"),
                 new SummaryRow("ポイント", $"付与 {total.PointsEarned:#,##0}  利用 {total.PointsRedeemed:#,##0}")
             ])
@@ -157,7 +157,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         if (scope != 0)
         {
             sections.Add(new SummarySection("📊 " + Groups[group].Name, summary.Rows
-                .Select(static x => new SummaryRow(x.Label, $"{x.TransactionCount} 件  {DisplayText.Yen(x.NetSales)}"))
+                .Select(static x => new SummaryRow(x.Label, $"{x.TransactionCount} 件  {ViewHelper.Yen(x.NetSales)}"))
                 .DefaultIfEmpty(new SummaryRow("データなし", string.Empty))
                 .ToList()));
         }

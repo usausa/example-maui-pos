@@ -11,13 +11,21 @@ SELECT
     0 AS TaxTotal,
     COALESCE(SUM(l.PointsEarned), 0) AS PointsEarned,
     COALESCE(SUM(l.PointsRedeemed), 0) AS PointsRedeemed
-FROM TransactionLines l
-JOIN Transactions t ON t.Id = l.TransactionId
-JOIN Categories c ON c.Id = l.CategoryId
-WHERE t.Status = 'Completed'
-  AND t.BusinessDate >= /*@ from */'' AND t.BusinessDate <= /*@ to */''
+FROM
+    TransactionLines l
+    JOIN Transactions t ON t.Id = l.TransactionId
+    JOIN Categories c ON c.Id = l.CategoryId
+WHERE
+    t.Status = 'Completed'
+    AND t.BusinessDate >= /*@ from */''
+    AND t.BusinessDate <= /*@ to */''
 /*% if (storeId != null) { */
-  AND t.StoreId = /*@ storeId */''
+    AND t.StoreId = /*@ storeId */''
 /*% } */
-GROUP BY l.CategoryId, c.Name, c.SortOrder
-ORDER BY c.SortOrder, c.Name
+GROUP BY
+    l.CategoryId,
+    c.Name,
+    c.SortOrder
+ORDER BY
+    c.SortOrder,
+    c.Name

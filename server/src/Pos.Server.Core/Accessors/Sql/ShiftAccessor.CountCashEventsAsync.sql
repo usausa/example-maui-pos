@@ -1,1 +1,6 @@
-SELECT COUNT(*) FROM CashEvents WHERE ShiftId = /*@ shiftId */''
+SELECT
+    COUNT(*)
+FROM
+    CashEvents
+WHERE
+    ShiftId = /*@ shiftId */''

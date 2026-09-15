@@ -11,11 +11,16 @@ SELECT
     COALESCE(SUM(CASE WHEN t.Type = 'Sale' THEN t.TaxTotal ELSE -t.TaxTotal END), 0) AS TaxTotal,
     COALESCE(SUM(t.PointsEarned), 0) AS PointsEarned,
     COALESCE(SUM(t.PointsRedeemed), 0) AS PointsRedeemed
-FROM Transactions t
-WHERE t.Status = 'Completed'
-  AND t.BusinessDate >= /*@ from */'' AND t.BusinessDate <= /*@ to */''
+FROM
+    Transactions t
+WHERE
+    t.Status = 'Completed'
+    AND t.BusinessDate >= /*@ from */''
+    AND t.BusinessDate <= /*@ to */''
 /*% if (storeId != null) { */
-  AND t.StoreId = /*@ storeId */''
+    AND t.StoreId = /*@ storeId */''
 /*% } */
-GROUP BY GroupKey
-ORDER BY GroupKey
+GROUP BY
+    GroupKey
+ORDER BY
+    GroupKey

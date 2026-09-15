@@ -1,1 +1,8 @@
-SELECT * FROM ShiftDenominations WHERE ShiftId = /*@ shiftId */'' ORDER BY Denomination DESC
+SELECT
+    *
+FROM
+    ShiftDenominations
+WHERE
+    ShiftId = /*@ shiftId */''
+ORDER BY
+    Denomination DESC

@@ -13,7 +13,7 @@ public sealed class ShiftCloseRequest
     // 金種別枚数 (任意)
     public IReadOnlyList<ShiftCloseRequestDenomination> Denominations { get; set; } = [];
 
-    [MaxLength(500)]
+    [MaxLength(Length.Note)]
     public string? Note { get; set; }
 }
 

@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("TransactionLineSerials")]
 public sealed class TransactionLineSerialEntity
 {
     [Key]

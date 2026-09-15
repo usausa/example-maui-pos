@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("InventoryChanges")]
 public sealed class InventoryChangeEntity
 {
     [Key]

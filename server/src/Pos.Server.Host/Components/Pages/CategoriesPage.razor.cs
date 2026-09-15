@@ -9,7 +9,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-53 部門 (2 階層のツリー)
+// 部門 (2 階層のツリー)
 public sealed partial class CategoriesPage
 {
     private List<CategoryEntity> items = [];

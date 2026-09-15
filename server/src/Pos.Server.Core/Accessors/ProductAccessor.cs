@@ -15,14 +15,14 @@ public sealed partial class ProductAccessor
     public partial ValueTask<long> CountAsync(Guid? categoryId, string? keyword, bool? isActive, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<ProductEntity>> QueryListAsync(Guid? categoryId, string? keyword, bool? isActive, DateTime? updatedSince, bool includeDeleted, string sort, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<ProductEntity>> QueryListAsync(Guid? categoryId, string? keyword, bool? isActive, DateTime? updatedSince, bool includeDeleted, ProductSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (コード順)
     [Query]
     public partial ValueTask<List<ProductEntity>> QueryAllAsync(bool includeDeleted, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(ProductEntity), Table = "Products")]
+    [SelectSingle(typeof(ProductEntity))]
     public partial ValueTask<ProductEntity?> QueryAsync(Guid id, CancellationToken cancellationToken);
 
     [QueryFirst]
@@ -33,19 +33,19 @@ public sealed partial class ProductAccessor
 
     // CSV 出力 (削除済みを除く全件、コード順。部門・税率のコードと名称付き)
     [Query]
-    public partial ValueTask<List<ProductExportItem>> QueryExportListAsync(CancellationToken cancellationToken);
+    public partial ValueTask<List<ProductExportView>> QueryExportListAsync(CancellationToken cancellationToken);
 
     // 取引検証用 (明細の商品をまとめて取得)
     [Query]
     public partial ValueTask<List<ProductEntity>> QueryByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(ProductEntity), Table = "Products")]
+    [Insert(typeof(ProductEntity))]
     public partial ValueTask<int> InsertAsync(ProductEntity entity, CancellationToken cancellationToken);
 
-    // Version が一致する行だけ更新する (楽観ロック)。戻り値 0 = 競合または削除済み
-    [Execute]
-    public partial ValueTask<int> UpdateAsync(
+    // Version が一致する行だけ更新し、更新後の行を返す (null = 競合または削除済み)
+    [QueryFirst]
+    public partial ValueTask<ProductEntity?> UpdateAsync(
         Guid id,
         string code,
         string? barcode,

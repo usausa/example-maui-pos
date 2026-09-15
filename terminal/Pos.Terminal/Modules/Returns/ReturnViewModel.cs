@@ -7,9 +7,15 @@ public sealed partial class ReturnViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
-    private ReturnContext returnContext = new();
+    private readonly IPopupNavigator popupNavigator;
+
+    private readonly Session session;
 
     private readonly ReturnUsecase returns;
+
+    // 返品の画面間で共有する状態 (Scope プラグインが注入する)
+    [Scope]
+    public ReturnContext ReturnContext { get; set; } = default!;
 
     [ObservableProperty]
     public partial string Message { get; set; } = "レシートの QR をスキャンするか、レシート番号を入力してください。";
@@ -35,20 +41,23 @@ public sealed partial class ReturnViewModel : AppViewModelBase
 
     public ReturnViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
+        Session session,
         ReturnUsecase returns)
     {
         this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
+        this.session = session;
         this.returns = returns;
 
-        NextCommand = MakeAsyncCommand(() => Navigator.ForwardAsync(ViewId.ReturnLines, Parameters.Make().WithContext(returnContext)), () => CanProceed);
+        NextCommand = MakeAsyncCommand(() => Navigator.ForwardAsync(ViewId.ReturnLines), () => CanProceed);
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
-        returnContext = context.Parameter.GetContext<ReturnContext>() ?? new ReturnContext();
-        if (returnContext.Original is not null)
+        if (ReturnContext.Original is not null)
         {
-            UpdateOriginal(returnContext.Original);
+            UpdateOriginal(ReturnContext.Original);
         }
 
         var id = context.Parameter.GetTransactionId();
@@ -67,15 +76,15 @@ public sealed partial class ReturnViewModel : AppViewModelBase
     {
         if (transaction is null)
         {
-            returnContext.Reset();
+            ReturnContext.Reset();
             HasOriginal = false;
             CanProceed = false;
             Message = $"❌ 取引が見つかりません: {key}";
             return;
         }
 
-        returnContext.Reset();
-        returnContext.Original = transaction;
+        ReturnContext.Reset();
+        ReturnContext.Original = transaction;
         UpdateOriginal(transaction);
     }
 
@@ -83,17 +92,17 @@ public sealed partial class ReturnViewModel : AppViewModelBase
     {
         HasOriginal = true;
         ReceiptNo = transaction.ReceiptNo;
-        TotalText = DisplayText.Yen(transaction.Total);
-        Detail = $"{DisplayText.DateTime(transaction.TransactedAt)}  {DisplayText.Name(transaction.Type)} / {DisplayText.Name(transaction.Status)}";
+        TotalText = ViewHelper.Yen(transaction.Total);
+        Detail = $"{ViewHelper.DateTime(transaction.TransactedAt)}  {ViewHelper.Name(transaction.Type)} / {ViewHelper.Name(transaction.Status)}";
         Rows.Replace(transaction.Lines.Select(static x => new SummaryRow(
-            $"{x.ProductName}\n{DisplayText.Yen(x.UnitPrice)} × {DisplayText.Quantity(x.Quantity)}{(x.ReturnedQuantity > 0 ? $"  返品済 {DisplayText.Quantity(x.ReturnedQuantity)}" : string.Empty)}",
-            DisplayText.Yen(x.NetAmount))));
+            $"{x.ProductName}\n{ViewHelper.Yen(x.UnitPrice)} × {ViewHelper.Quantity(x.Quantity)}{(x.ReturnedQuantity > 0 ? $"  返品済 {ViewHelper.Quantity(x.ReturnedQuantity)}" : string.Empty)}",
+            ViewHelper.Yen(x.NetAmount))));
 
         var returnable = transaction.IsReturnable();
         CanProceed = returnable;
         Message = returnable
             ? "元取引を確認して、返品する明細を選んでください。"
-            : transaction.Type.IsReturn() ? "❌ 返品取引は返品できません。" : transaction.Status.IsVoided() ? "❌ 取消済みの取引です。" : "❌ すべて返品済みです。";
+            : transaction.Type == TransactionType.Return ? "❌ 返品取引は返品できません。" : transaction.Status == TransactionStatus.Voided ? "❌ 取消済みの取引です。" : "❌ すべて返品済みです。";
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Menu);
@@ -101,16 +110,25 @@ public sealed partial class ReturnViewModel : AppViewModelBase
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
     protected override Task OnNotifyFunction2() =>
-        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Receipt, ViewId.Return).WithContext(returnContext));
+        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Receipt, ViewId.Return));
 
+    // レシート番号は自店のものを端末番号 + 連番で入力する (キーボードに依存しない)
     protected override async Task OnNotifyFunction3()
     {
-        var result = await dialog.InputAsync("レシート番号", placeHolder: "S001-01-000123");
-        if (result.Accepted && !String.IsNullOrWhiteSpace(result.Text))
+        var text = await popupNavigator.InputReceiptNoAsync();
+        if (String.IsNullOrEmpty(text) || (session.Store is null))
         {
-            var receiptNo = result.Text.Trim();
-            Apply(await returns.FindOriginalByReceiptNoAsync(receiptNo), receiptNo);
+            return;
         }
+
+        if (text.Length != Length.ReceiptNoDigits)
+        {
+            await dialog.InformationAsync("端末番号 2 桁と連番 6 桁を続けて入力してください。");
+            return;
+        }
+
+        var receiptNo = $"{session.Store.Code}-{text[..2]}-{text[2..]}";
+        Apply(await returns.FindOriginalByReceiptNoAsync(receiptNo), receiptNo);
     }
 
     protected override Task OnNotifyFunction4() => Navigator.ForwardAsync(ViewId.TransactionList);

@@ -64,8 +64,8 @@ public sealed class HttpService
     public ValueTask<ApiResult<InventoryLevelResponse>> GetInventoryAsync(Guid storeId, DateTime? updatedSince, int page, int size, CancellationToken cancellationToken = default) =>
         GetAsync<InventoryLevelResponse>($"inventory?storeId={storeId}&page={page}&size={size}{(updatedSince is null ? string.Empty : "&updatedSince=" + Format(updatedSince.Value))}", cancellationToken);
 
-    public ValueTask<ApiResult<ProductInventoryResponse>> GetProductInventoryAsync(Guid productId, CancellationToken cancellationToken = default) =>
-        GetAsync<ProductInventoryResponse>($"inventory/{productId}", cancellationToken);
+    public ValueTask<ApiResult<InventoryProductResponse>> GetProductInventoryAsync(Guid productId, CancellationToken cancellationToken = default) =>
+        GetAsync<InventoryProductResponse>($"inventory/{productId}", cancellationToken);
 
     public ValueTask<ApiResult<InventoryChangeResultResponse>> PostInventoryChangesAsync(InventoryChangeRequest request, CancellationToken cancellationToken = default) =>
         PostAsync<InventoryChangeResultResponse>("inventory/changes", request, cancellationToken);
@@ -83,8 +83,8 @@ public sealed class HttpService
     public ValueTask<ApiResult<CustomerResponse>> SearchCustomersAsync(string keyword, CancellationToken cancellationToken = default) =>
         GetAsync<CustomerResponse>($"customers?keyword={Uri.EscapeDataString(keyword)}&size=50", cancellationToken);
 
-    public ValueTask<ApiResult<PointHistoryResponse>> GetCustomerPointHistoryAsync(Guid id, CancellationToken cancellationToken = default) =>
-        GetAsync<PointHistoryResponse>($"customers/{id}/points/history?size=50", cancellationToken);
+    public ValueTask<ApiResult<CustomerPointHistoryResponse>> GetCustomerPointHistoryAsync(Guid id, CancellationToken cancellationToken = default) =>
+        GetAsync<CustomerPointHistoryResponse>($"customers/{id}/points/history?size=50", cancellationToken);
 
     public ValueTask<ApiResult<TransactionResponse>> GetCustomerTransactionsAsync(Guid id, CancellationToken cancellationToken = default) =>
         GetAsync<TransactionResponse>($"customers/{id}/transactions?size=50", cancellationToken);
@@ -99,7 +99,7 @@ public sealed class HttpService
     // Transaction
     //--------------------------------------------------------------------------------
 
-    public ValueTask<ApiResult<TransactionResponseItem>> PostTransactionAsync(TransactionRequest request, CancellationToken cancellationToken = default) =>
+    public ValueTask<ApiResult<TransactionResponseItem>> PostTransactionAsync(TransactionCreateRequest request, CancellationToken cancellationToken = default) =>
         PostAsync<TransactionResponseItem>("transactions", request, cancellationToken);
 
     public ValueTask<ApiResult<TransactionResponseItem>> PostTransactionVoidAsync(Guid id, TransactionVoidRequest request, CancellationToken cancellationToken = default) =>
@@ -121,8 +121,8 @@ public sealed class HttpService
     public ValueTask<ApiResult<ShiftResponseItem>> GetCurrentShiftAsync(Guid terminalId, CancellationToken cancellationToken = default) =>
         GetAsync<ShiftResponseItem>($"shifts/current?terminalId={terminalId}", cancellationToken);
 
-    public ValueTask<ApiResult<CashEventResponseItem>> PostCashEventAsync(Guid shiftId, CashEventRequest request, CancellationToken cancellationToken = default) =>
-        PostAsync<CashEventResponseItem>($"shifts/{shiftId}/cash-events", request, cancellationToken);
+    public ValueTask<ApiResult<ShiftCashEventResponseItem>> PostCashEventAsync(Guid shiftId, ShiftCashEventRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<ShiftCashEventResponseItem>($"shifts/{shiftId}/cash-events", request, cancellationToken);
 
     public ValueTask<ApiResult<ShiftResponseItem>> PostShiftCloseAsync(Guid shiftId, ShiftCloseRequest request, CancellationToken cancellationToken = default) =>
         PostAsync<ShiftResponseItem>($"shifts/{shiftId}/close", request, cancellationToken);
@@ -134,8 +134,8 @@ public sealed class HttpService
     // Report
     //--------------------------------------------------------------------------------
 
-    public ValueTask<ApiResult<SalesSummaryResponse>> GetSalesSummaryAsync(Guid? storeId, DateOnly from, DateOnly to, string groupBy, CancellationToken cancellationToken = default) =>
-        GetAsync<SalesSummaryResponse>($"reports/sales/summary?from={DateTimeHelper.ToIsoDate(from)}&to={DateTimeHelper.ToIsoDate(to)}&groupBy={groupBy}{(storeId is null ? string.Empty : "&storeId=" + storeId)}", cancellationToken);
+    public ValueTask<ApiResult<ReportSalesSummaryResponse>> GetSalesSummaryAsync(Guid? storeId, DateOnly from, DateOnly to, string groupBy, CancellationToken cancellationToken = default) =>
+        GetAsync<ReportSalesSummaryResponse>($"reports/sales/summary?from={DateTimeHelper.ToIsoDate(from)}&to={DateTimeHelper.ToIsoDate(to)}&groupBy={groupBy}{(storeId is null ? string.Empty : "&storeId=" + storeId)}", cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Core

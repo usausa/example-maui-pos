@@ -1,19 +1,25 @@
-SELECT * FROM InventoryChanges
-WHERE 1 = 1
+SELECT
+    *
+FROM
+    InventoryChanges
+WHERE
+    1 = 1
 /*% if (storeId != null) { */
-  AND StoreId = /*@ storeId */''
+    AND StoreId = /*@ storeId */''
 /*% } */
 /*% if (productId != null) { */
-  AND ProductId = /*@ productId */''
+    AND ProductId = /*@ productId */''
 /*% } */
 /*% if (type != null) { */
-  AND Type = /*@ type */''
+    AND Type = /*@ type */''
 /*% } */
 /*% if (from != null) { */
-  AND OccurredAt >= /*@ from */''
+    AND OccurredAt >= /*@ from */''
 /*% } */
 /*% if (to != null) { */
-  AND OccurredAt < /*@ to */''
+    AND OccurredAt < /*@ to */''
 /*% } */
-ORDER BY OccurredAt DESC, Id DESC
+ORDER BY
+    OccurredAt DESC,
+    Id DESC
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

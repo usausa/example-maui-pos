@@ -6,9 +6,6 @@ using Pos.Server.Models.Entity;
 
 public sealed class StoreService
 {
-    private static readonly string[] SortColumns = ["Code", "Name", "UpdatedAt"];
-    private const string DefaultSort = "Code";
-
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
     private readonly InventoryAccessor inventoryAccessor;
@@ -30,12 +27,11 @@ public sealed class StoreService
     public static TimeZoneInfo ResolveTimeZone(string? id) =>
         !String.IsNullOrEmpty(id) && TimeZoneInfo.TryFindSystemTimeZoneById(id, out var timeZone) ? timeZone : TimeZoneInfo.Local;
 
-    // 差分同期 (updatedSince 指定時) は updatedAt, id 順で固定
-    public async ValueTask<PagedResult<StoreEntity>> QueryPageAsync(DateTime? updatedSince, bool includeDeleted, string? sort, bool desc, int page, int size, CancellationToken cancellationToken)
+    // 差分同期 (updatedSince 指定時) は updatedAt, id 順 (SQL 側で固定)
+    public async ValueTask<PagedResult<StoreEntity>> QueryPageAsync(DateTime? updatedSince, bool includeDeleted, StoreSort sort, bool desc, int page, int size, CancellationToken cancellationToken)
     {
         var total = await masterAccessor.CountStoresAsync(updatedSince, includeDeleted, cancellationToken);
-        var order = updatedSince is null ? SqlHelper.NormalizeSort(SortColumns, DefaultSort, sort, desc) : SqlHelper.SyncSort;
-        var items = await masterAccessor.QueryStoreListAsync(updatedSince, includeDeleted, order, size, page * size, cancellationToken);
+        var items = await masterAccessor.QueryStoreListAsync(updatedSince, includeDeleted, sort, desc, size, page * size, cancellationToken);
         return new PagedResult<StoreEntity>((int)total, page, size, items);
     }
 
@@ -49,8 +45,6 @@ public sealed class StoreService
     // Id / CreatedAt / UpdatedAt / Version はここで付与する
     public ValueTask<DataWriteStatus> InsertAsync(StoreEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
@@ -59,10 +53,8 @@ public sealed class StoreService
         return ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertStoreAsync(entity, cancellationToken));
     }
 
-    public ValueTask<DataWriteStatus> UpdateAsync(StoreEntity entity, CancellationToken cancellationToken)
+    public ValueTask<DataWriteResult<StoreEntity>> UpdateAsync(StoreEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         return ServiceHelper.UpdateAsync(
             dialect,

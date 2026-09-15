@@ -8,7 +8,7 @@ public sealed class TerminalCreateRequest
     public int TerminalNo { get; set; }
 
     [Required]
-    [MaxLength(50)]
+    [MaxLength(Length.TerminalName)]
     public string Name { get; set; } = default!;
 
     public bool IsActive { get; set; } = true;

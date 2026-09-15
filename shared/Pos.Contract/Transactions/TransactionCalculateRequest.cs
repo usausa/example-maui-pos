@@ -9,9 +9,9 @@ public sealed class TransactionCalculateRequest
     public Guid? OriginalTransactionId { get; set; }
 
     [Required]
-    public IReadOnlyList<TransactionRequestLine> Lines { get; set; } = default!;
+    public IReadOnlyList<TransactionCreateRequestLine> Lines { get; set; } = default!;
 
-    public IReadOnlyList<TransactionRequestDiscount> Discounts { get; set; } = [];
+    public IReadOnlyList<TransactionCreateRequestDiscount> Discounts { get; set; } = [];
 
-    public IReadOnlyList<TransactionRequestPayment> Payments { get; set; } = [];
+    public IReadOnlyList<TransactionCreateRequestPayment> Payments { get; set; } = [];
 }

@@ -1,7 +1,7 @@
 namespace Pos.Server.Models.Parameters;
 
 // 取引一覧の絞り込み (from / to は営業日)
-public sealed class TransactionQueryParameter : PagedParameter
+public sealed class TransactionQueryParameter : PagedParameter<TransactionSort>
 {
     public Guid? StoreId { get; init; }
 

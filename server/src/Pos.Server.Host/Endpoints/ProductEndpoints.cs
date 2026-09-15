@@ -1,7 +1,8 @@
 namespace Pos.Server.Host.Endpoints;
 
 using Pos.Contract.Products;
-using Pos.Server.Host.Infrastructure.Api;
+using Pos.Server.Host.Helpers;
+using Pos.Server.Host.Infrastructure.Csv;
 using Pos.Server.Host.Models.Export;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
@@ -44,7 +45,7 @@ public static partial class ProductEndpoints
     private static partial ProductEntity ToEntity(ProductUpdateRequest request);
 
     [Mapper]
-    private static partial ProductExportRow ToExportRow(ProductExportItem item);
+    private static partial ProductExportRow ToExportRow(ProductExportView item);
 
     //--------------------------------------------------------------------------------
     // Handler
@@ -71,7 +72,7 @@ public static partial class ProductEndpoints
             IsActive = isActive,
             UpdatedSince = updatedSince,
             IncludeDeleted = includeDeleted,
-            Sort = sort,
+            Sort = EnumHelper.Parse(sort, ProductSort.Code),
             Desc = desc,
             Page = page,
             Size = size
@@ -136,10 +137,10 @@ public static partial class ProductEndpoints
     {
         var entity = ToEntity(request);
         entity.Id = id;
-        var status = await service.UpdateAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
-            : ApiProblems.FromStatus(status, duplicateTitle: DuplicateTitle);
+        var result = await service.UpdateAsync(entity, cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse(result.Entity!))
+            : ApiProblems.FromStatus(result.Status, duplicateTitle: DuplicateTitle);
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(

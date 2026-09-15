@@ -18,10 +18,6 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
     private readonly IPopupNavigator popupNavigator;
 
-    private readonly Session session;
-
-    private readonly DataAccessor accessor;
-
     private CartLine line = default!;
 
     private IReadOnlyList<DiscountResponseItem> discounts = [];
@@ -80,14 +76,10 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
     public LineEditViewModel(
         IDialog dialog,
-        IPopupNavigator popupNavigator,
-        Session session,
-        DataAccessor accessor)
+        IPopupNavigator popupNavigator)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
-        this.session = session;
-        this.accessor = accessor;
 
         DecrementCommand = MakeDelegateCommand(() => SetQuantity(quantity - 1));
         IncrementCommand = MakeDelegateCommand(() => SetQuantity(quantity + 1));
@@ -113,7 +105,7 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
         Name = line.Product.Name;
         CanOverridePrice = line.Product.AllowsPriceOverride;
-        PriceCaption = CanOverridePrice ? $"単価 (定価 {DisplayText.Yen(line.Product.Price)})" : "単価";
+        PriceCaption = CanOverridePrice ? $"単価 (定価 {ViewHelper.Yen(line.Product.Price)})" : "単価";
         SerialCaption = line.Product.RequiresSerial ? "シリアル番号 (必須)" : "シリアル番号";
         Serial.Text = String.Join(",", line.SerialNumbers);
         Note.Text = line.Note;
@@ -126,25 +118,25 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
     private void SetQuantity(decimal value)
     {
         quantity = Math.Max(1, value);
-        QuantityText = DisplayText.Quantity(quantity);
+        QuantityText = ViewHelper.Quantity(quantity);
     }
 
     private void SetUnitPrice(decimal value)
     {
         unitPrice = value;
-        UnitPriceText = DisplayText.Yen(value);
+        UnitPriceText = ViewHelper.Yen(value);
     }
 
     private void SetDiscount(CartDiscount? value)
     {
         discount = value;
         HasDiscount = value is not null;
-        DiscountText = value is null ? "なし" : $"{value.Name} ({DiscountChooser.Describe(value.Type, value.Value)})";
+        DiscountText = value is null ? "なし" : $"{value.Name} ({ViewHelper.DiscountValue(value.Type, value.Value)})";
     }
 
     private async Task InputQuantityAsync()
     {
-        var text = await popupNavigator.InputNumberAsync("数量", DisplayText.Quantity(quantity), 4);
+        var text = await popupNavigator.InputQuantityAsync("数量", quantity);
         if (Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) && (value > 0))
         {
             SetQuantity(value);
@@ -153,7 +145,7 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
     private async Task InputPriceAsync()
     {
-        var text = await popupNavigator.InputNumberAsync("単価", unitPrice.ToString("0", CultureInfo.InvariantCulture), 8);
+        var text = await popupNavigator.InputAmountAsync("単価", unitPrice);
         if (Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) && (value >= 0))
         {
             SetUnitPrice(value);
@@ -162,7 +154,7 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
     private async Task ChooseDiscountAsync()
     {
-        var selected = await DiscountChooser.ChooseAsync(dialog, accessor, session, new DiscountParameter("明細値引", discounts, unitPrice * quantity));
+        var selected = await popupNavigator.PopupAsync<DiscountParameter, CartDiscount?>(DialogId.Discount, new DiscountParameter("明細値引", discounts, unitPrice * quantity));
         if (selected is not null)
         {
             SetDiscount(selected);

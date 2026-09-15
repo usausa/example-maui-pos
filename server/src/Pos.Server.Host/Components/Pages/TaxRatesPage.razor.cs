@@ -7,7 +7,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-54 税率 (既定は 1 件だけ)
+// 税率 (既定は 1 件だけ)
 public sealed partial class TaxRatesPage
 {
     private List<TaxRateEntity> items = [];

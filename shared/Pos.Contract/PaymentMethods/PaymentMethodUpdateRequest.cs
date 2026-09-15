@@ -3,15 +3,15 @@ namespace Pos.Contract.PaymentMethods;
 public sealed class PaymentMethodUpdateRequest
 {
     [Required]
-    [MaxLength(20)]
+    [MaxLength(Length.Code)]
     public string Code { get; set; } = default!;
 
     [Required]
-    [MaxLength(50)]
+    [MaxLength(Length.PaymentMethodName)]
     public string Name { get; set; } = default!;
 
     // 端末の支払ボタンに出す短い名前 (省略時は name)
-    [MaxLength(10)]
+    [MaxLength(Length.PaymentMethodShortName)]
     public string? ShortName { get; set; }
 
     public PaymentKind Kind { get; set; }

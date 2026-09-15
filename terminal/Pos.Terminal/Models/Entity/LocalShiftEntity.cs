@@ -1,6 +1,9 @@
 namespace Pos.Terminal.Models.Entity;
 
+using Smart.Data.Accessor.Attributes;
+
 // 端末で開設したシフト
+[Name("Shifts")]
 public sealed class LocalShiftEntity
 {
     [Key]

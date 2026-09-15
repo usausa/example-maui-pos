@@ -1,5 +1,7 @@
-UPDATE Discounts
-SET Code = /*@ code */'',
+UPDATE
+    Discounts
+SET
+    Code = /*@ code */'',
     Name = /*@ name */'',
     Type = /*@ type */'',
     Value = /*@ value */0,
@@ -9,4 +11,9 @@ SET Code = /*@ code */'',
     SortOrder = /*@ sortOrder */0,
     UpdatedAt = /*@ updatedAt */'',
     Version = Version + 1
-WHERE Id = /*@ id */'' AND Version = /*@ version */0 AND IsDeleted = 0
+WHERE
+    Id = /*@ id */''
+    AND Version = /*@ version */0
+    AND IsDeleted = 0
+RETURNING
+    *

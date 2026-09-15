@@ -7,7 +7,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-72 スタッフ
+// スタッフ
 public sealed partial class StaffPage
 {
     private List<StaffEntity> items = [];

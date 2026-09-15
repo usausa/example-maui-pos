@@ -6,9 +6,6 @@ using Pos.Server.Models.Entity;
 
 public sealed class TerminalService
 {
-    private static readonly string[] SortColumns = ["TerminalNo", "Name", "UpdatedAt"];
-    private const string DefaultSort = "TerminalNo";
-
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
     private readonly TimeProvider timeProvider;
@@ -23,11 +20,10 @@ public sealed class TerminalService
         this.timeProvider = timeProvider;
     }
 
-    public async ValueTask<PagedResult<TerminalEntity>> QueryPageAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, string? sort, bool desc, int page, int size, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<TerminalEntity>> QueryPageAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, TerminalSort sort, bool desc, int page, int size, CancellationToken cancellationToken)
     {
         var total = await masterAccessor.CountTerminalsAsync(storeId, updatedSince, includeDeleted, cancellationToken);
-        var order = updatedSince is null ? SqlHelper.NormalizeSort(SortColumns, DefaultSort, sort, desc) : SqlHelper.SyncSort;
-        var items = await masterAccessor.QueryTerminalListAsync(storeId, updatedSince, includeDeleted, order, size, page * size, cancellationToken);
+        var items = await masterAccessor.QueryTerminalListAsync(storeId, updatedSince, includeDeleted, sort, desc, size, page * size, cancellationToken);
         return new PagedResult<TerminalEntity>((int)total, page, size, items);
     }
 
@@ -40,8 +36,6 @@ public sealed class TerminalService
 
     public ValueTask<DataWriteStatus> InsertAsync(TerminalEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
@@ -50,10 +44,8 @@ public sealed class TerminalService
         return ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertTerminalAsync(entity, cancellationToken));
     }
 
-    public ValueTask<DataWriteStatus> UpdateAsync(TerminalEntity entity, CancellationToken cancellationToken)
+    public ValueTask<DataWriteResult<TerminalEntity>> UpdateAsync(TerminalEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         return ServiceHelper.UpdateAsync(
             dialect,

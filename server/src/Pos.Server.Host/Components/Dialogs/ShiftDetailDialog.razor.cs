@@ -4,16 +4,17 @@ using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
+using Pos.Server.Host.Application.Lookup;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
-// S-31 シフト詳細 (精算レポートと同じ内容 + 入出金・金種)
+// シフト詳細 (精算レポートと同じ内容 + 入出金・金種)
 public sealed partial class ShiftDetailDialog
 {
     private const int CashEventLimit = 1000;
 
-    private ShiftSummary? summary;
+    private ShiftSummaryView? summary;
     private IReadOnlyList<CashEventEntity> cashEvents = [];
 
     [Parameter]

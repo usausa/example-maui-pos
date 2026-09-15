@@ -29,8 +29,6 @@ public sealed class PaymentMethodService
     // 2 件目の有効なポイント支払は Invalid
     public async ValueTask<DataWriteStatus> InsertAsync(PaymentMethodEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
@@ -44,13 +42,11 @@ public sealed class PaymentMethodService
         return await ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertPaymentMethodAsync(entity, cancellationToken));
     }
 
-    public async ValueTask<DataWriteStatus> UpdateAsync(PaymentMethodEntity entity, CancellationToken cancellationToken)
+    public async ValueTask<DataWriteResult<PaymentMethodEntity>> UpdateAsync(PaymentMethodEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         if (await IsSecondPointsMethodAsync(entity, cancellationToken))
         {
-            return DataWriteStatus.Invalid;
+            return new DataWriteResult<PaymentMethodEntity>(DataWriteStatus.Invalid, null);
         }
 
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;

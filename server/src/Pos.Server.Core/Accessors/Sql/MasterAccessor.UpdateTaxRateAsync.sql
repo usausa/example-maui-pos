@@ -1,5 +1,7 @@
-UPDATE TaxRates
-SET Code = /*@ code */'',
+UPDATE
+    TaxRates
+SET
+    Code = /*@ code */'',
     Name = /*@ name */'',
     Rate = /*@ rate */0,
     Kind = /*@ kind */'',
@@ -7,4 +9,9 @@ SET Code = /*@ code */'',
     SortOrder = /*@ sortOrder */0,
     UpdatedAt = /*@ updatedAt */'',
     Version = Version + 1
-WHERE Id = /*@ id */'' AND Version = /*@ version */0 AND IsDeleted = 0
+WHERE
+    Id = /*@ id */''
+    AND Version = /*@ version */0
+    AND IsDeleted = 0
+RETURNING
+    *

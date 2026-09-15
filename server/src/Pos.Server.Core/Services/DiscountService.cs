@@ -28,8 +28,6 @@ public sealed class DiscountService
 
     public ValueTask<DataWriteStatus> InsertAsync(DiscountEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
@@ -38,10 +36,8 @@ public sealed class DiscountService
         return ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertDiscountAsync(entity, cancellationToken));
     }
 
-    public ValueTask<DataWriteStatus> UpdateAsync(DiscountEntity entity, CancellationToken cancellationToken)
+    public ValueTask<DataWriteResult<DiscountEntity>> UpdateAsync(DiscountEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         return ServiceHelper.UpdateAsync(
             dialect,

@@ -8,7 +8,7 @@ using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
 
-// S-61 顧客詳細 (ポイント履歴・購入履歴・S-62 ポイント調整)
+// 顧客詳細 (ポイント履歴・購入履歴・ポイント調整)
 public sealed partial class CustomerDetailPage
 {
     private CustomerEntity? customer;

@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
-             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Shift"
              x:Class="Pos.Terminal.Modules.Shift.CashEventView"
              x:DataType="{x:Type module:CashEventViewModel}"
@@ -96,11 +95,19 @@
             </Grid>
             <BoxView Style="{StaticResource PosSeparatorBoxView}" />
 
-            <Label Style="{StaticResource PosFieldLabel}"
-                   Text="理由" />
-            <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding Reason}"
-                   Placeholder="両替、釣銭補充 など" />
+            <Grid Style="{StaticResource PosValueRowGrid}"
+                  ColumnDefinitions="*,Auto"
+                  Padding="16,12">
+                <Label Grid.Column="0"
+                       Style="{StaticResource PosNameLabel}"
+                       Text="📝 理由" />
+                <Button Grid.Column="1"
+                        Style="{StaticResource PosFieldValueButton}"
+                        Margin="0"
+                        WidthRequest="160"
+                        Command="{Binding SelectReasonCommand}"
+                        Text="{Binding ReasonText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして選択'}" />
+            </Grid>
         </VerticalStackLayout>
     </Grid>
 

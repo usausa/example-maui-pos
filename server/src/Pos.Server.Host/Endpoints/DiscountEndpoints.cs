@@ -79,10 +79,10 @@ public static partial class DiscountEndpoints
     {
         var entity = ToEntity(request);
         entity.Id = id;
-        var status = await service.UpdateAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
-            : ApiProblems.FromStatus(status);
+        var result = await service.UpdateAsync(entity, cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse(result.Entity!))
+            : ApiProblems.FromStatus(result.Status);
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(

@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Pos.Server.Accessors;
 using Pos.Server.Models.Entity;
-using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
@@ -49,21 +48,23 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         var conflicted = await accessor.UpdateStoreAsync(id, code, "更新 2", null, null, null, null, null, null, "Asia/Tokyo", true, now.AddSeconds(2), 1, Token);
         var stored = await accessor.QueryStoreAsync(id, Token);
 
-        Assert.Equal(1, updated);
-        Assert.Equal(0, conflicted);
+        Assert.NotNull(updated);
+        Assert.Equal("更新 1", updated.Name);
+        Assert.Equal(2, updated.Version);
+        Assert.Null(conflicted);
         Assert.NotNull(stored);
         Assert.Equal("更新 1", stored.Name);
         Assert.Equal(2, stored.Version);
 
         // 差分同期: updatedSince 以降のものだけ
-        var since = await accessor.QueryStoreListAsync(now.AddMilliseconds(500), true, "UpdatedAt, Id", 100, 0, Token);
+        var since = await accessor.QueryStoreListAsync(now.AddMilliseconds(500), true, StoreSort.Code, false, 100, 0, Token);
         Assert.Contains(since, x => x.Id == id);
         Assert.DoesNotContain(since, x => x.Id == InitialData.MainStoreId);
 
         Assert.Equal(1, await accessor.DeleteStoreAsync(id, now.AddSeconds(3), Token));
         Assert.Equal(0, await accessor.DeleteStoreAsync(id, now.AddSeconds(4), Token));
-        Assert.DoesNotContain(await accessor.QueryStoreListAsync(null, false, "Code", 100, 0, Token), x => x.Id == id);
-        Assert.Contains(await accessor.QueryStoreListAsync(null, true, "Code", 100, 0, Token), x => (x.Id == id) && x.IsDeleted);
+        Assert.DoesNotContain(await accessor.QueryStoreListAsync(null, false, StoreSort.Code, false, 100, 0, Token), x => x.Id == id);
+        Assert.Contains(await accessor.QueryStoreListAsync(null, true, StoreSort.Code, false, 100, 0, Token), x => (x.Id == id) && x.IsDeleted);
     }
 
     [Fact]
@@ -71,20 +72,20 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
     {
         var accessor = Resolve<ProductAccessor>();
 
-        var byKeyword = await accessor.QueryListAsync(null, "%カメラ%", null, null, false, "Code", 100, 0, Token);
+        var byKeyword = await accessor.QueryListAsync(null, "%カメラ%", null, null, false, ProductSort.Code, false, 100, 0, Token);
         Assert.NotEmpty(byKeyword);
         Assert.All(byKeyword, x => Assert.Contains("カメラ", x.Name + x.Kana + x.Code, StringComparison.Ordinal));
 
         var camera = await accessor.QueryByCodeAsync("CAM-X100", Token);
         Assert.NotNull(camera);
-        var byCategory = await accessor.QueryListAsync(camera.CategoryId, null, null, null, false, "Code", 100, 0, Token);
+        var byCategory = await accessor.QueryListAsync(camera.CategoryId, null, null, null, false, ProductSort.Code, false, 100, 0, Token);
         Assert.Contains(byCategory, x => x.Id == camera.Id);
         Assert.Equal(await accessor.CountAsync(camera.CategoryId, null, null, null, false, Token), byCategory.Count);
 
         var byIds = await accessor.QueryByIdsAsync([InitialData.CameraProductId, InitialData.SdCardProductId], Token);
         Assert.Equal(2, byIds.Count);
 
-        var inactive = await accessor.QueryListAsync(null, null, false, null, false, "Code", 100, 0, Token);
+        var inactive = await accessor.QueryListAsync(null, null, false, null, false, ProductSort.Code, false, 100, 0, Token);
         Assert.Empty(inactive);
     }
 
@@ -160,18 +161,18 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(sdBefore - 2m, (await inventory.QueryLevelsByProductAsync(InitialData.SdCardProductId, Token)).Single(x => x.StoreId == InitialData.MainStoreId).Quantity);
         Assert.Equal(1, (await masters.QueryTerminalAsync(InitialData.MainTerminal2Id, Token))!.LastReceiptSeq);
         Assert.Equal(1, await transactions.CountAsync(null, null, null, shiftId, null, null, null, TransactionType.Sale, TransactionStatus.Completed, Token));
-        Assert.Single(await transactions.QueryListAsync(InitialData.MainStoreId, null, null, null, InitialData.Customer1Id, businessDate, businessDate, null, null, "TransactedAt DESC", 10, 0, Token));
+        Assert.Single(await transactions.QueryListAsync(InitialData.MainStoreId, null, null, null, InitialData.Customer1Id, businessDate, businessDate, null, null, TransactionSort.TransactedAt, true, 10, 0, Token));
 
         // 集計
         var totals = await shifts.QueryTotalsAsync(shiftId, Token);
         Assert.NotNull(totals);
-        Assert.Equal(new ShiftTotals(80000m, 0m, 0m, 0m, 1, 0, 0, 80000m, 0m), totals);
+        Assert.Equal(new ShiftTotalsView(80000m, 0m, 0m, 0m, 1, 0, 0, 80000m, 0m), totals);
         var byPayment = Assert.Single(await shifts.QueryPaymentMethodTotalsAsync(shiftId, Token));
-        Assert.Equal(new PaymentMethodTotal(InitialData.CashPaymentMethodId, "現金", PaymentKind.Cash, 80000m, 1, 0m, 0), byPayment);
+        Assert.Equal(new PaymentMethodTotalView(InitialData.CashPaymentMethodId, "現金", PaymentKind.Cash, 80000m, 1, 0m, 0), byPayment);
         var byTax = Assert.Single(await shifts.QueryTaxRateTotalsAsync(shiftId, Token));
         Assert.Equal(7272m, byTax.TaxAmount);
         Assert.Equal(2, (await shifts.QueryCategoryTotalsAsync(shiftId, Token)).Count);
-        Assert.Equal(new PointTotals(7640, 0), await shifts.QueryPointTotalsAsync(shiftId, Token));
+        Assert.Equal(new PointTotalsView(7640, 0), await shifts.QueryPointTotalsAsync(shiftId, Token));
 
         // 返品数量 (超過は 0 件)
         Assert.Equal(1, await InTxAsync(provider, tx => transactions.AddReturnedQuantityAsync(tx, sdCardLineId, 1m, Token)));
@@ -200,7 +201,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(1, await InTxAsync(provider, tx => transactions.VoidAsync(tx, transactionId, now.AddMinutes(10), InitialData.ManagerStaffId, "誤操作", now.AddMinutes(10), Token)));
         Assert.Equal(TransactionStatus.Voided, (await transactions.QueryAsync(transactionId, Token))!.Status);
         var totalsAfterVoid = await shifts.QueryTotalsAsync(shiftId, Token);
-        Assert.Equal(new ShiftTotals(0m, 0m, 0m, 0m, 0, 0, 1, 0m, 0m), totalsAfterVoid);
+        Assert.Equal(new ShiftTotalsView(0m, 0m, 0m, 0m, 0, 0, 1, 0m, 0m), totalsAfterVoid);
 
         // 入出金と精算
         await shifts.InsertCashEventAsync(new CashEventEntity { Id = Guid.NewGuid(), ShiftId = shiftId, Type = CashEventType.PaidOut, Amount = 10000m, Reason = "両替", StaffId = InitialData.MainCashierStaffId, OccurredAt = now.AddMinutes(20), CreatedAt = now.AddMinutes(20) }, Token);

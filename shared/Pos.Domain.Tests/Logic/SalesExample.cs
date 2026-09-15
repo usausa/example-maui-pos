@@ -1,6 +1,6 @@
 namespace Pos.Domain.Logic;
 
-// api-design §4.6 の計算例 (デジカメ + SD カード × 2 + 配送料、取引値引 1,000、5,000 pt 利用)
+// 計算例 (デジカメ + SD カード × 2 + 配送料、取引値引 1,000、5,000 pt 利用)
 internal static class SalesExample
 {
     public static readonly Guid TaxRate10 = new("00000000-0000-0000-0000-000000000010");
@@ -81,7 +81,7 @@ internal static class SalesExample
         AllowsChange = true
     };
 
-    // §4.6 の元取引の明細 (返品テスト用)
+    // の元取引の明細 (返品テスト用)
     public static List<ReturnOriginalLine> OriginalLines() =>
     [
         Original(CameraLine, 80000m, 1m, 4000m, 937m, 7037, 4685),

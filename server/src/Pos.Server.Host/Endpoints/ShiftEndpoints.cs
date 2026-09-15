@@ -1,7 +1,8 @@
 namespace Pos.Server.Host.Endpoints;
 
 using Pos.Contract.Shifts;
-using Pos.Server.Host.Application.Reports;
+using Pos.Server.Host.Helpers;
+using Pos.Server.Host.Reports;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
@@ -38,7 +39,7 @@ public static partial class ShiftEndpoints
     private static partial ShiftEntity ToEntity(ShiftOpenRequest request);
 
     [Mapper]
-    private static partial CashEventEntity ToEntity(CashEventRequest request);
+    private static partial CashEventEntity ToEntity(ShiftCashEventRequest request);
 
     [Mapper]
     [MapUsing(nameof(ShiftCloseParameter.Denominations), nameof(ToDenominations))]
@@ -56,21 +57,21 @@ public static partial class ShiftEndpoints
     private static partial ShiftResponseItemDenomination ToResponse(ShiftDenominationEntity entity);
 
     [Mapper]
-    private static partial ShiftResponseItemTotals ToResponse(ShiftTotals totals);
+    private static partial ShiftResponseItemTotals ToResponse(ShiftTotalsView totals);
 
     [Mapper]
-    private static partial CashEventResponseItem ToResponse(CashEventEntity entity);
+    private static partial ShiftCashEventResponseItem ToResponse(CashEventEntity entity);
 
     [Mapper]
-    private static partial ShiftSummaryResponsePaymentMethod ToResponse(PaymentMethodTotal total);
+    private static partial ShiftSummaryResponsePaymentMethod ToResponse(PaymentMethodTotalView total);
 
     [Mapper]
-    private static partial ShiftSummaryResponseTaxRate ToResponse(TaxRateTotal total);
+    private static partial ShiftSummaryResponseTaxRate ToResponse(TaxRateTotalView total);
 
     [Mapper]
-    private static partial ShiftSummaryResponseCategory ToResponse(CategoryTotal total);
+    private static partial ShiftSummaryResponseCategory ToResponse(CategoryTotalView total);
 
-    private static ShiftResponseItem ToResponse(ShiftDetail detail)
+    private static ShiftResponseItem ToResponse(ShiftDetailView detail)
     {
         var response = ToResponseCore(detail.Shift);
         response.Totals = ToResponse(detail.Totals);
@@ -79,7 +80,7 @@ public static partial class ShiftEndpoints
         return response;
     }
 
-    private static ShiftSummaryResponse ToResponse(ShiftSummary summary)
+    private static ShiftSummaryResponse ToResponse(ShiftSummaryView summary)
     {
         var shift = ToResponse(summary.Shift);
         return new ShiftSummaryResponse
@@ -146,7 +147,7 @@ public static partial class ShiftEndpoints
         [Range(0, Int32.MaxValue)] int page = 0,
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        var parameter = new ShiftQueryParameter { StoreId = storeId, TerminalId = terminalId, Status = status, From = from, To = to, Sort = sort, Desc = desc, Page = page, Size = size };
+        var parameter = new ShiftQueryParameter { StoreId = storeId, TerminalId = terminalId, Status = status, From = from, To = to, Sort = EnumHelper.Parse(sort, ShiftSort.OpenedAt), Desc = desc, Page = page, Size = size };
         var result = await service.QueryDetailPageAsync(parameter, cancellationToken);
         return TypedResults.Ok(new ShiftResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
@@ -164,7 +165,7 @@ public static partial class ShiftEndpoints
     private static async ValueTask<IResult> HandleCashEventAsync(
         ShiftService service,
         Guid id,
-        CashEventRequest request,
+        ShiftCashEventRequest request,
         CancellationToken cancellationToken)
     {
         var entity = ToEntity(request);
@@ -190,7 +191,7 @@ public static partial class ShiftEndpoints
         var result = await service.QueryCashEventPageAsync(id, page, size, cancellationToken);
         return result is null
             ? ApiProblems.NotFound()
-            : TypedResults.Ok(new CashEventResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+            : TypedResults.Ok(new ShiftCashEventResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     // 精算: 集計を確定して Closed にする (取引・入出金は送信済みであること)。同じ内容の再送は 200

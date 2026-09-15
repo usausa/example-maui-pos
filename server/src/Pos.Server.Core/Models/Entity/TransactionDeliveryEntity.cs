@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("TransactionDeliveries")]
 public sealed class TransactionDeliveryEntity
 {
     [Key]

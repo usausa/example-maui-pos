@@ -110,7 +110,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton StartIcon="@Icons.Material.Filled.Receipt" Href="@($"transactions?shiftId={Id}")" OnClick="() => MudDialog.Close()">取引一覧</MudButton>
-        <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@($"api/v1/shifts/{Id}/summary/pdf")" Target="_blank">精算レポート PDF</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@ExportUrls.ShiftSummaryPdf(Id)" Target="_blank">精算レポート PDF</MudButton>
         <MudButton Color="Color.Primary" OnClick="() => MudDialog.Close()">閉じる</MudButton>
     </DialogActions>
 </MudDialog>

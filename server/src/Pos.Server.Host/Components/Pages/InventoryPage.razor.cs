@@ -5,17 +5,19 @@ using Microsoft.AspNetCore.Components.Web;
 
 using MudBlazor;
 
+using Pos.Server.Host.Application.State;
 using Pos.Server.Host.Components.Dialogs;
+using Pos.Server.Host.Helpers;
 using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
-// S-40 現在庫 (行クリックで S-41 商品別全店在庫、[棚卸・調整] で S-43)
+// 現在庫 (行クリックで商品別全店在庫、[棚卸・調整] で棚卸・調整登録)
 public sealed partial class InventoryPage
 {
-    private MudDataGrid<InventoryLevelDetail> Grid { get; set; } = default!;
+    private MudDataGrid<InventoryLevelDetailView> Grid { get; set; } = default!;
 
     private List<CategoryEntity> categories = [];
     private Guid? storeId;
@@ -45,7 +47,7 @@ public sealed partial class InventoryPage
     // Grid
     //--------------------------------------------------------------------------------
 
-    private async Task<GridData<InventoryLevelDetail>> LoadServerData(GridState<InventoryLevelDetail> state, CancellationToken cancellationToken)
+    private async Task<GridData<InventoryLevelDetailView>> LoadServerData(GridState<InventoryLevelDetailView> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new InventoryLevelDetailQueryParameter
@@ -54,13 +56,13 @@ public sealed partial class InventoryPage
             CategoryId = categoryId,
             Keyword = keyword,
             NegativeOnly = negativeOnly,
-            Sort = sort?.SortBy,
+            Sort = EnumHelper.Parse(sort?.SortBy, InventoryLevelDetailSort.ProductCode),
             Desc = sort?.Descending ?? false,
             Page = state.Page,
             Size = state.PageSize
         };
         var result = await InventoryService.QueryLevelDetailPageAsync(parameter, cancellationToken);
-        return new GridData<InventoryLevelDetail> { TotalItems = result.Total, Items = result.Items };
+        return new GridData<InventoryLevelDetailView> { TotalItems = result.Total, Items = result.Items };
     }
 
     private Task SearchAsync() => Grid.ReloadServerData();
@@ -75,7 +77,7 @@ public sealed partial class InventoryPage
         return SearchAsync();
     }
 
-    private async Task OnRowClick(DataGridRowClickEventArgs<InventoryLevelDetail> args)
+    private async Task OnRowClick(DataGridRowClickEventArgs<InventoryLevelDetailView> args)
     {
         var reference = await DialogService.ShowAsync<ProductInventoryDialog>(
             string.Empty,

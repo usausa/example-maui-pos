@@ -32,5 +32,7 @@ public static class ApiRoutes
 
     public const string Inventory = Prefix + "/inventory";
 
+    public const string AdjustmentReasons = Inventory + "/adjustment-reasons";
+
     public const string Reports = Prefix + "/reports";
 }

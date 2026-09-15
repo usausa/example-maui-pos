@@ -3,11 +3,11 @@ namespace Pos.Contract.TaxRates;
 public sealed class TaxRateUpdateRequest
 {
     [Required]
-    [MaxLength(10)]
+    [MaxLength(Length.TaxRateCode)]
     public string Code { get; set; } = default!;
 
     [Required]
-    [MaxLength(50)]
+    [MaxLength(Length.TaxRateName)]
     public string Name { get; set; } = default!;
 
     [Range(0, 1)]

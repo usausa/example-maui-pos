@@ -2,8 +2,6 @@ namespace Pos.Server.Host.Application;
 
 using MudBlazor;
 
-using Pos.Server.Models.Parameters;
-
 // 状態を絵文字付きのチップで示す (文言と色の組)
 public static class ViewHelper
 {

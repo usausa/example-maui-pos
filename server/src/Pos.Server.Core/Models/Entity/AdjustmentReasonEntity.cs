@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("AdjustmentReasons")]
 public sealed class AdjustmentReasonEntity
 {
     [Key]

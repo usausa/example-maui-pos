@@ -28,13 +28,15 @@ public sealed class ReportService
     }
 
     // 営業日の範囲 (両端含む)。指定がなければ to は当日、from は to の 30 日前
+    // 省略時の既定: to は今日 (from が未来ならその日)、from は to の 30 日前
     public (DateOnly Start, DateOnly End) ResolvePeriod(DateOnly? from, DateOnly? to)
     {
-        var end = to ?? DateOnly.FromDateTime(timeProvider.GetLocalNow().Date);
+        var today = DateOnly.FromDateTime(timeProvider.GetLocalNow().Date);
+        var end = to ?? ((from > today) ? from.Value : today);
         return (from ?? end.AddDays(-DefaultPeriodDays), end);
     }
 
-    public async ValueTask<List<SalesSummaryRow>> QuerySalesSummaryAsync(Guid? storeId, DateOnly from, DateOnly to, SalesSummaryGroupBy groupBy, CancellationToken cancellationToken) =>
+    public async ValueTask<List<SalesSummaryView>> QuerySalesSummaryAsync(Guid? storeId, DateOnly from, DateOnly to, SalesSummaryGroupBy groupBy, CancellationToken cancellationToken) =>
         groupBy switch
         {
             SalesSummaryGroupBy.Hour => await reportAccessor.QuerySalesSummaryByHourAsync(storeId, from, to, await ResolveTimeZoneModifierAsync(storeId, from, cancellationToken), cancellationToken),
@@ -45,10 +47,8 @@ public sealed class ReportService
         };
 
     // 合計行は各行の合算 (CustomerCount は延べ人数)。TaxableAmount / TaxAmount は税率別のときだけ
-    public static SalesSummaryRow Sum(IEnumerable<SalesSummaryRow> rows, bool withTax)
+    public static SalesSummaryView Sum(IEnumerable<SalesSummaryView> rows, bool withTax)
     {
-        ArgumentNullException.ThrowIfNull(rows);
-
         var transactionCount = 0;
         var returnCount = 0;
         var customerCount = 0;
@@ -77,7 +77,7 @@ public sealed class ReportService
             taxAmount += row.TaxAmount ?? 0m;
         }
 
-        return new SalesSummaryRow(
+        return new SalesSummaryView(
             TotalKey,
             "合計",
             transactionCount,
@@ -94,11 +94,11 @@ public sealed class ReportService
             withTax ? taxAmount : null);
     }
 
-    public ValueTask<List<ProductSalesRow>> QueryProductSalesAsync(Guid? storeId, DateOnly from, DateOnly to, Guid? categoryId, ProductSalesSort sort, int size, CancellationToken cancellationToken) =>
+    public ValueTask<List<ProductSalesView>> QueryProductSalesAsync(Guid? storeId, DateOnly from, DateOnly to, Guid? categoryId, ProductSalesSort sort, int size, CancellationToken cancellationToken) =>
         reportAccessor.QueryProductSalesAsync(storeId, from, to, categoryId, sort, size, cancellationToken);
 
     // 売上日報 (店舗 × 営業日)。店舗がなければ null
-    public async ValueTask<DailySalesReport?> QueryDailySalesAsync(Guid storeId, DateOnly date, CancellationToken cancellationToken)
+    public async ValueTask<DailySalesReportView?> QueryDailySalesAsync(Guid storeId, DateOnly date, CancellationToken cancellationToken)
     {
         var store = await masterAccessor.QueryStoreAsync(storeId, cancellationToken);
         if (store is null)
@@ -110,7 +110,7 @@ public sealed class ReportService
         var terminals = (await masterAccessor.QueryTerminalAllAsync(true, cancellationToken)).ToDictionary(static x => x.Id, static x => x.Name);
         var staff = (await masterAccessor.QueryStaffAllAsync(true, cancellationToken)).ToDictionary(static x => x.Id, static x => x.Name);
         var shifts = await shiftService.QueryDetailPageAsync(new ShiftQueryParameter { StoreId = storeId, From = date, To = date, Size = Int32.MaxValue }, cancellationToken);
-        return new DailySalesReport
+        return new DailySalesReportView
         {
             StoreCode = store.Code,
             StoreName = store.Name,
@@ -120,8 +120,8 @@ public sealed class ReportService
             ByPaymentMethod = await reportAccessor.QuerySalesSummaryByPaymentMethodAsync(storeId, date, date, cancellationToken),
             ByTaxRate = await reportAccessor.QuerySalesSummaryByTaxRateAsync(storeId, date, date, cancellationToken),
             ByCategory = await reportAccessor.QuerySalesSummaryByCategoryAsync(storeId, date, date, cancellationToken),
-            ByHour = await reportAccessor.QuerySalesSummaryByHourAsync(storeId, date, date, SqlHelper.ToTimeZoneModifier(timeZone, date), cancellationToken),
-            Shifts = shifts.Items.Select(x => new DailySalesReportShift(
+            ByHour = await reportAccessor.QuerySalesSummaryByHourAsync(storeId, date, date, ToTimeZoneModifier(timeZone, date), cancellationToken),
+            Shifts = shifts.Items.Select(x => new DailySalesReportViewShift(
                 terminals.GetValueOrDefault(x.Shift.TerminalId, String.Empty),
                 staff.GetValueOrDefault(x.Shift.OpenedByStaffId, String.Empty),
                 x.Shift.OpenedAt,
@@ -136,6 +136,13 @@ public sealed class ReportService
     private async ValueTask<string> ResolveTimeZoneModifierAsync(Guid? storeId, DateOnly date, CancellationToken cancellationToken)
     {
         var store = storeId is null ? null : await masterAccessor.QueryStoreAsync(storeId.Value, cancellationToken);
-        return SqlHelper.ToTimeZoneModifier(StoreService.ResolveTimeZone(store?.TimeZone), date);
+        return ToTimeZoneModifier(StoreService.ResolveTimeZone(store?.TimeZone), date);
+    }
+
+    // SQLite の日時修飾子 ("+540 minutes" など)。UTC の列を店舗時刻にするときに使う
+    private static string ToTimeZoneModifier(TimeZoneInfo timeZone, DateOnly date)
+    {
+        var offset = timeZone.GetUtcOffset(date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+        return FormattableString.Invariant($"{(int)offset.TotalMinutes:+0;-0} minutes");
     }
 }

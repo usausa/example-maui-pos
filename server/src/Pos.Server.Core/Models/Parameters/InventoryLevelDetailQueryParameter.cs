@@ -1,7 +1,7 @@
 namespace Pos.Server.Models.Parameters;
 
 // 現在庫一覧 (管理画面) の絞り込み。keyword は商品のコード / JAN / 名称 / かなの部分一致
-public sealed class InventoryLevelDetailQueryParameter : PagedParameter
+public sealed class InventoryLevelDetailQueryParameter : PagedParameter<InventoryLevelDetailSort>
 {
     public Guid? StoreId { get; init; }
 

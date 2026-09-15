@@ -24,8 +24,6 @@ internal sealed class SampleDataOptions
 
     public static SampleDataOptions Parse(string[] args)
     {
-        ArgumentNullException.ThrowIfNull(args);
-
         var options = new SampleDataOptions();
         for (var i = 0; i < args.Length; i++)
         {

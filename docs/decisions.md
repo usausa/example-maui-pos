@@ -437,7 +437,7 @@ DB は利用者指定で SQLite。
 | ✅ **B. `page` (0 始まり) / `size` + 一覧応答 `xxxListResponse { total, page, size, items }`** | テンプレートの `DataListResponse` と `MudDataGrid` の `ServerData` (総件数が必要) に一致する |
 
 **決定**: ✅ **B**。  
-並び替えは `sort` / `desc` を `SqlHelper.NormalizeSort` の許可リストで検証する (テンプレートどおり)。  
+並び替えは `sort` / `desc` を受け付ける (検証の方法は [D-48](#d-48-サーバの見直し-並び順の列挙型returning初期データの-sql))。  
 差分同期は `updatedSince` で絞った一覧を `UpdatedAt, Id` 順にページングする。
 
 ### D-22. 共有プロジェクト: 通信データとドメインロジックは別プロジェクト
@@ -477,7 +477,7 @@ DB は利用者指定で SQLite。
 ### D-27. 用語: DTO は使わない
 
 通信データは `XxxRequest` / `XxxResponse` と呼び、「DTO」という語は文書・アセンブリ名・名前空間・クラス名のいずれにも使わない (利用者指示)。  
-一覧は `XxxResponse` でその要素は `XxxResponseItem`、入れ子の要素は `TransactionResponseItemLine` / `TransactionRequestLine` のように親の名前に要素名を続ける ([D-47](#d-47-通信データと名前空間の命名))。
+一覧は `XxxResponse` でその要素は `XxxResponseItem`、入れ子の要素は `TransactionResponseItemLine` / `TransactionCreateRequestLine` のように親の名前に要素名を続ける ([D-47](#d-47-通信データと名前空間の命名))。
 
 ### D-23. 端末の画面骨格: `template-maui` のシェル準拠
 
@@ -704,7 +704,7 @@ Smart.Navigation.Maui には効果 (`MauiEffect.Forward` = 右からスライド
 | --- | --- |
 | A. 起動時の初期データに取引も入れる | 営業日が固定になり、集計の検証やレシート番号の連番と噛み合わない。取引の登録処理 (在庫・ポイント・連番) を二重に持つことになる |
 | B. SQL で直接 INSERT する | 副作用 (在庫変動・ポイント履歴・`lastReceiptSeq`) を自前で再現する必要があり、サーバの検証も通らない |
-| ✅ **C. API を呼ぶコンソールツール** | `server/tools/Pos.Server.SampleData`。`Pos.Domain` で計算した `TransactionRequest` を `POST /transactions` に送る (端末と同じ経路)。サーバの検証・副作用をそのまま使える |
+| ✅ **C. API を呼ぶコンソールツール** | `server/tools/Pos.Server.SampleData`。`Pos.Domain` で計算した `TransactionCreateRequest` を `POST /transactions` に送る (端末と同じ経路)。サーバの検証・副作用をそのまま使える |
 
 **決定**: ✅ **C**。
 
@@ -814,7 +814,7 @@ OS のソフトキーボードは画面の半分を隠し、機種やキーボ�
 - `Services/` は単機能を `XxxService`、複合機能を `XxxUsecase`、組み立てを `XxxBuilder` と呼ぶ (`HttpService` / `DataAccessor` / `NetworkService` はそのまま)。  
   `TransactionUsecase` (保存・取消・履歴)、`SalesUsecase`、`ReturnUsecase`、`ShiftUsecase`、`StockUsecase`、`SetupUsecase`、`ReceiptService`、`DatabaseService`、`SyncService`
 - ViewModel は `IDbProvider` を使わず、フィールドは Component → State → Service の順に並べる
-- 特定の機能の画面間でだけ共有する状態は `SalesContext` / `ReturnContext` / `StockContext` として `Parameters.WithContext` で渡す。  
+- 特定の機能の画面間でだけ共有する状態は `SalesContext` / `ReturnContext` / `StockContext` として `Parameters.WithContext` で渡す (→ [D-49](#d-49-端末の見直し-scope-プラグイン入力の種類ごとの電卓ヘルパーの置き場所) で Scope プラグインに変更)。  
   使用者に常に紐付く情報 (店舗・端末・担当・シフト) は `Session` に集約する
 - `DataAccessor` はローカルのエンティティ (`[Key]` あり) のキー取得・削除に `[SelectSingle]` / `[Delete]` を使い、1 文だけの書き込みにはトランザクションを使わない。  
   SQL は `SELECT` / `FROM` / `WHERE` / `ORDER BY` を行頭に置き、列と条件を字下げする書き方に揃える
@@ -822,7 +822,7 @@ OS のソフトキーボードは画面の半分を隠し、機種やキーボ�
 - 色・列挙型の文言・選択マーク・画面固有の文言 (棚卸の表題など) は ViewModel ではなく Converter (Smart.Maui の `BoolToColorConverter` / `MapToColorConverter` / `BoolToTextConverter` と `DisplayNameConverter`) と Trigger で扱う
 - 物理キーボードは前提にしないので `Input` 名前空間 (ショートカット・フォーカス制御) と `KeyInputDriver` を削除した。  
   根の画面の戻るは ViewModel が `HandlesBack = false` で宣言し、`MainActivity` がタスクを背面へ回す (ViewModel は遷移だけを行う)
-- `Helpers` にはアプリに依存しない処理だけを置く (`DisplayText` は `Models`、`DataProfile` は `Services`、`AppDialogExtensions` は `Extensions.cs` へ)。  
+- `Helpers` にはアプリに依存しない処理だけを置く (`DataProfile` は `Services`、`AppDialogExtensions` は `Extensions.cs` へ。表示用の `DisplayText` は [D-49](#d-49-端末の見直し-scope-プラグイン入力の種類ごとの電卓ヘルパーの置き場所) で `Modules/Helpers/ViewHelper` に変更)。  
   日付の書式は `DateTimeHelper` に集約し、`Trim` のような補助は拡張メソッドにする
 - `Models/Sales` は `Models/Cart` (`SalesCart` ...)、共通ダイアログは `Modules/Dialogs`、一覧は `ObservableCollection<T>`、`Show...` はダイアログを出すメソッドだけに使う
 
@@ -837,3 +837,39 @@ OS のソフトキーボードは画面の半分を隠し、機種やキーボ�
 | ロジック | 業務でまとめず `Pos.Domain.Logic` に `SalesLogic` / `ReturnLogic` / `TaxLogic` / `TransactionLogic` のようにまとめる。エラーの扱い (文言) はコアドメインではないので、Domain は `RuleReason` だけを返す |
 | ソースの注釈 | ソースが正。ソースから設計文書 (節番号・`§`・画面 ID・決定番号) を参照しない |
 
+### D-48. サーバの見直し: 並び順の列挙型、RETURNING、初期データの SQL
+
+2 回目のレビューで、サーバの Core / Host に次の指摘を受けた。
+
+| 指摘 | 決定 |
+| --- | --- |
+| 並び替え列の検証 (`SqlHelper.NormalizeSort`) と差分同期の並び (`SyncSort`) が C# 側にある | 並び順はリソースごとの列挙型 (`Models/Enums` の `StoreSort` など。列挙名 = 列名、先頭が既定) で受け取り、2-way SQL の中で `/*# sort.ToString() */` と `/*% if (desc) */` / `updatedSince` の分岐で展開する。`SqlHelper` は 2-way SQL の `/*# */` から呼ぶ断片だけにし、列の追加は `SchemaHelper`、タイムゾーンの修飾子は `ReportService` の private に移す |
+| `SelectSingle` などの Builder 属性で `Table` を個別に指定している | Entity クラスの `[Name("Stores")]` でテーブル名を持つ (Smart.Data.Accessor 3.0.0-beta11) |
+| 更新後に `QueryAsync` で読み直している (読み直す間に削除される余地) | `UPDATE ... RETURNING *` を `[QueryFirst]` で受け、`DataWriteResult<T>` (Status + 更新後の行) で返す |
+| `InitialData` がクラスで初期データを組み立てている | 外部の SQL ファイル (Host の `Assets/Data/InitialData.sql`。複数の `INSERT`、`@now` は投入時刻) を起動時に読み、`GenericAccessor.ExecuteScriptAsync` (`[DirectSql]` + `[Execute]`。第 1 引数の文字列が SQL、残りの引数がパラメータ) で投入する。`InitialData` は固定 ID だけを持つ。`DatabaseAccessor` は `GenericAccessor` に改名 |
+| `Models/Views` の名前が不揃い | `XxxView` に統一 (`SalesSummaryView` / `TransactionDetailView` など) |
+| Views / Parameters に列挙型が混ざる、Service の結果型がファイルに分かれている | 列挙型は `Models/Enums`、特定の Service だけの結果 (`TransactionResult` など) はその Service のファイルの先頭で定義 |
+| `ArgumentNullException.ThrowIfNull` | 書かない (CA1062 は無効) |
+| Host の置き場所 (`Application` 直下の雑多なクラス、`Infrastructure/Components`、`Application/Reports`、`RuleText`、`CsvExport` の名前空間) | `Components/` (PageComponentBase / AppComponentBase)、`Components/Dialogs/` (EditDialogBase / DialogServiceExtensions)、`Application/Lookup` / `State` / `Urls`、`Reports/` (Endpoints と同階層)、`Endpoints/ApiRuleText`、`Infrastructure/Csv` / `Logging`、`JsonDateTimeConverter` は Core の `Infrastructure/Json` |
+| Endpoints の静的 `TryParse`、`ReportEndpoints` の大小比較 | 列挙値の解析は `Helpers/EnumHelper`。レポートの期間は `[AsParameters] ReportPeriodQuery` の `IValidatableObject` で `from > to` を 400 にする (API の入力検証は DataAnnotations で統一し、FluentValidation は管理画面のフォームだけ)。省略時の既定 (`ResolvePeriod`) は `to` を今日 (`from` が未来ならその日) にして逆転しない |
+| 1 つのページだけのフォーム、CSV / PDF の URL | `SettingsForm` は `SettingsPage` の内部クラス (他のフォームはダイアログと呼び出し元ページの 2 か所で使うので `Models/Forms` のまま)。URL は `Application/Urls/ExportUrls` |
+| `PageRenderMode` を常に対話型にできないか | できない。エラーと 404 のページは例外や 404 の再実行 (回線なし) で描画されるので静的 SSR が必要。プリレンダリングもないため、常に対話型にすると空の HTML になる |
+| 文字列の長さが各所に数値で散らばる | `Pos.Domain.Length` の定数に集約し、Contract の `MaxLength`、フォームの `MaximumLength`、端末の電卓の桁数で使う |
+| Request / Response の名前 | エンドポイントのクラス名 + メソッド名 (`TransactionCreateRequest`、`CustomerPointHistoryResponse`、`ShiftCashEventRequest`、`ReportSalesSummaryResponse` など)。一覧 `XxxResponse` / 要素 `XxxResponseItem` は維持。`AdjustmentReason` は独自の名前空間とエンドポイント |
+| `TransactionResponseItem` の拡張メソッド | 型と同じファイルに置く (`IsReturnable` / `HasReturnableLine`) |
+
+SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列・条件を次の行に字下げする書き方に統一した (サーバ・端末とも)。
+
+### D-49. 端末の見直し: Scope プラグイン、入力の種類ごとの電卓、ヘルパーの置き場所
+
+| 指摘 | 決定 |
+| --- | --- |
+| 機能の画面間で持ち回るコンテキストを遷移パラメータで渡している | Smart.Navigation の Scope プラグインを使う。`SalesContext` / `ReturnContext` / `StockContext` / `CustomerDraft` を DI に transient 登録し、ViewModel の `[Scope]` プロパティ (同じ名前) に注入する。どの画面からも参照されなくなると破棄されるので、会計完了やメニューへ戻ると新しいカートになる。スキャンは途中の画面なので各コンテキストのプロパティを持ち、呼び出し元の状態を保持する |
+| `DisplayText` / `RuleText` が `Models` にある | 表示用なので `Modules/Helpers/ViewHelper` (業務ルールの文言も `ViewHelper.Reason` / `Warning`) |
+| 単一値と比較するだけの拡張メソッド (`IsVoided` など) | 削除して比較式にする。`IsReturnable` のように意味でまとめるものは Contract の型と同じファイル |
+| Service と Usecase が同じフォルダ | `Services/` (単機能) と `Usecases/` (複合。`TransactionMapper` / `ShiftSummaryCalculator` も) に分ける。`Builder` はテキスト・画像の組み立てだけに使う |
+| 電卓入力の表題・桁数を画面ごとに指定している | `PopupNavigatorExtensions` に入力の種類ごとのメソッド (`InputPhoneAsync` / `InputQuantityAsync` など) を置き、桁数は `Pos.Domain.Length` |
+| `DiscountChooser` が `Modules` 直下にある | 削除し、明細値引も取引値引と同じ `DiscountView` のポップアップを使う |
+| LIKE のエスケープが ViewModel にある、`Where(...).ToList()` で削除している | `Helpers/Data/SqlHelper.ToLikePattern`、削除は後ろから `RemoveAt` |
+| 画面固有の Converter が `Modules` にある、`EmptyText` の名前 | Converter は `Converters/` にまとめる。文言が入るプロパティは `Message` |
+| キーボードに依存しないか | 棚卸のコードは電卓かスキャン、返品のレシート番号は端末番号 + 連番の電卓入力 (自店)、取消 / 入出金 / 値引の理由は定型の選択 (`ReasonSelect`)。キーボードは会員・配送先の文字項目、検索、設定に限る |

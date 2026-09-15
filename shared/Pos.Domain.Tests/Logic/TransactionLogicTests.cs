@@ -375,7 +375,7 @@ public sealed class TransactionLogicTests
         HasCustomer = hasCustomer
     };
 
-    // SD カードを quantity 個返品 (§4.6 の元取引)
+    // SD カードを quantity 個返品 (の元取引)
     private static ReturnInput ReturnInput(decimal quantity) => new()
     {
         TaxRounding = TaxRounding.Floor,

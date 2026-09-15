@@ -8,7 +8,7 @@ using Pos.Server.Models.Entity;
 
 using QRCoder;
 
-// 端末の設定 QR (S-71)。template-maui の SettingParser 互換 (行単位の Key=Value)
+// 端末の設定 QR。template-maui の SettingParser 互換 (行単位の Key=Value)
 public sealed partial class TerminalQrDialog
 {
     private string qrText = string.Empty;

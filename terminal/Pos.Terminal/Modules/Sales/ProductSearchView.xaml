@@ -111,7 +111,7 @@
                         ItemsSource="{Binding Items}">
             <CollectionView.EmptyView>
                 <Label Style="{StaticResource PosMessageLabel}"
-                       Text="{Binding EmptyText}" />
+                       Text="{Binding Message}" />
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="{x:Type module:ProductItem}">

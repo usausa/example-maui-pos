@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("Stores")]
 public sealed class StoreEntity
 {
     [Key]

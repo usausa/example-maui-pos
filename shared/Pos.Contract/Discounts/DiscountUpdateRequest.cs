@@ -3,11 +3,11 @@ namespace Pos.Contract.Discounts;
 public sealed class DiscountUpdateRequest
 {
     [Required]
-    [MaxLength(20)]
+    [MaxLength(Length.Code)]
     public string Code { get; set; } = default!;
 
     [Required]
-    [MaxLength(50)]
+    [MaxLength(Length.DiscountName)]
     public string Name { get; set; } = default!;
 
     public DiscountType Type { get; set; }

@@ -1,5 +1,7 @@
-UPDATE Products
-SET Code = /*@ code */'',
+UPDATE
+    Products
+SET
+    Code = /*@ code */'',
     Barcode = /*@ barcode */'',
     Name = /*@ name */'',
     Kana = /*@ kana */'',
@@ -19,4 +21,9 @@ SET Code = /*@ code */'',
     IsActive = /*@ isActive */1,
     UpdatedAt = /*@ updatedAt */'',
     Version = Version + 1
-WHERE Id = /*@ id */'' AND Version = /*@ version */0 AND IsDeleted = 0
+WHERE
+    Id = /*@ id */''
+    AND Version = /*@ version */0
+    AND IsDeleted = 0
+RETURNING
+    *

@@ -1,9 +1,15 @@
-SELECT * FROM TaxRates
-WHERE 1 = 1
+SELECT
+    *
+FROM
+    TaxRates
+WHERE
+    1 = 1
 /*% if (updatedSince != null) { */
-  AND UpdatedAt > /*@ updatedSince */''
+    AND UpdatedAt > /*@ updatedSince */''
 /*% } */
 /*% if (!includeDeleted) { */
-  AND IsDeleted = 0
+    AND IsDeleted = 0
 /*% } */
-ORDER BY SortOrder, Code
+ORDER BY
+    SortOrder,
+    Code

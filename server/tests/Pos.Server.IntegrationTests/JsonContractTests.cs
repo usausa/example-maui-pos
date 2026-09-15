@@ -38,11 +38,11 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public void SerializeOmitsNullAndWritesEnumAsString()
     {
-        var response = new TransactionCalculationResponse
+        var response = new TransactionCalculateResponse
         {
             Lines = [],
             Discounts = [],
-            TaxSummaries = [new TransactionCalculationResponseTaxSummary { TaxRateId = Guid.Empty, Rate = 0.10m, TaxIncluded = true, TaxableAmount = 80100m, TaxAmount = 7281m }],
+            TaxSummaries = [new TransactionCalculateResponseTaxSummary { TaxRateId = Guid.Empty, Rate = 0.10m, TaxIncluded = true, TaxableAmount = 80100m, TaxAmount = 7281m }],
             Total = 80100m
         };
         var delivery = new TransactionResponseItemDelivery { RecipientName = "山田 太郎", Address = "東京都", RequestedDate = new DateOnly(2026, 9, 14) };

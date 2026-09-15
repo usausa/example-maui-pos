@@ -175,7 +175,7 @@ public sealed partial class DataAccessor
     //--------------------------------------------------------------------------------
 
     [Execute]
-    [Insert(typeof(LocalTransactionEntity), Table = "Transactions")]
+    [Insert(typeof(LocalTransactionEntity))]
     public partial ValueTask<int> InsertTransactionAsync(DbTransaction tx, LocalTransactionEntity entity);
 
     [Execute]
@@ -185,7 +185,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<int> UpdateTransactionStatusAsync(DbTransaction tx, Guid id, TransactionStatus status, string payload);
 
     [QueryFirst]
-    [SelectSingle(typeof(LocalTransactionEntity), Table = "Transactions")]
+    [SelectSingle(typeof(LocalTransactionEntity))]
     public partial ValueTask<LocalTransactionEntity?> QueryTransactionAsync(Guid id);
 
     [QueryFirst]
@@ -202,19 +202,19 @@ public sealed partial class DataAccessor
     //--------------------------------------------------------------------------------
 
     [Execute]
-    [Insert(typeof(LocalShiftEntity), Table = "Shifts")]
+    [Insert(typeof(LocalShiftEntity))]
     public partial ValueTask<int> InsertShiftAsync(DbTransaction tx, LocalShiftEntity entity);
 
     // サーバに残っていたシフトの取り込み (Outbox には入れない)
     [Execute]
-    [Insert(typeof(LocalShiftEntity), Table = "Shifts")]
+    [Insert(typeof(LocalShiftEntity))]
     public partial ValueTask<int> ImportShiftAsync(LocalShiftEntity entity);
 
     [Execute]
     public partial ValueTask<int> CloseShiftAsync(DbTransaction tx, Guid id, DateTime closedAt, Guid closedByStaffId, decimal actualCash, decimal expectedCash, decimal difference, string? note);
 
     [QueryFirst]
-    [SelectSingle(typeof(LocalShiftEntity), Table = "Shifts")]
+    [SelectSingle(typeof(LocalShiftEntity))]
     public partial ValueTask<LocalShiftEntity?> QueryShiftAsync(Guid id);
 
     [QueryFirst]
@@ -224,7 +224,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<List<LocalShiftEntity>> QueryShiftListAsync(int limit);
 
     [Execute]
-    [Insert(typeof(LocalCashEventEntity), Table = "CashEvents")]
+    [Insert(typeof(LocalCashEventEntity))]
     public partial ValueTask<int> InsertCashEventAsync(DbTransaction tx, LocalCashEventEntity entity);
 
     [Query]
@@ -235,11 +235,11 @@ public sealed partial class DataAccessor
     //--------------------------------------------------------------------------------
 
     [Execute]
-    [Insert(typeof(OutboxEntity), Table = "Outbox")]
+    [Insert(typeof(OutboxEntity))]
     public partial ValueTask<int> InsertOutboxAsync(DbTransaction tx, OutboxEntity entity);
 
     [QueryFirst]
-    [SelectSingle(typeof(OutboxEntity), Table = "Outbox")]
+    [SelectSingle(typeof(OutboxEntity))]
     public partial ValueTask<OutboxEntity?> QueryOutboxAsync(Guid id);
 
     // status 指定なしは未送信 (Pending / Failed) を発生順に
@@ -253,7 +253,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<int> UpdateOutboxAsync(Guid id, OutboxStatus status, int attempts, string? lastError, DateTime? sentAt);
 
     [Execute]
-    [Delete(typeof(OutboxEntity), Table = "Outbox")]
+    [Delete(typeof(OutboxEntity))]
     public partial ValueTask<int> DeleteOutboxAsync(Guid id);
 
     [Execute]
@@ -274,17 +274,17 @@ public sealed partial class DataAccessor
     //--------------------------------------------------------------------------------
 
     [Execute]
-    [Insert(typeof(HoldCartEntity), Table = "HoldCarts")]
+    [Insert(typeof(HoldCartEntity))]
     public partial ValueTask<int> InsertHoldCartAsync(HoldCartEntity entity);
 
     [Query]
     public partial ValueTask<List<HoldCartEntity>> QueryHoldCartListAsync();
 
     [QueryFirst]
-    [SelectSingle(typeof(HoldCartEntity), Table = "HoldCarts")]
+    [SelectSingle(typeof(HoldCartEntity))]
     public partial ValueTask<HoldCartEntity?> QueryHoldCartAsync(Guid id);
 
     [Execute]
-    [Delete(typeof(HoldCartEntity), Table = "HoldCarts")]
+    [Delete(typeof(HoldCartEntity))]
     public partial ValueTask<int> DeleteHoldCartAsync(Guid id);
 }

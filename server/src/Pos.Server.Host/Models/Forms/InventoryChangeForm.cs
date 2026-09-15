@@ -5,7 +5,7 @@ using Pos.Server.Models.Parameters;
 
 using Smart.Mapper;
 
-// 棚卸・調整の登録 (S-43)
+// 棚卸・調整の登録
 public sealed partial class InventoryChangeForm
 {
     public Guid? StoreId { get; set; }

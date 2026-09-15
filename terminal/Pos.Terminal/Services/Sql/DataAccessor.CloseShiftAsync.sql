@@ -1,4 +1,5 @@
-UPDATE Shifts
+UPDATE
+    Shifts
 SET
     Status = 'Closed',
     ClosedAt = /*@ closedAt */0,

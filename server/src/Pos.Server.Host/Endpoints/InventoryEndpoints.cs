@@ -21,11 +21,6 @@ public static partial class InventoryEndpoints
         group.MapGet("/", HandleLevelListAsync);
         group.MapPost("/changes", HandleChangesAsync);
         group.MapGet("/changes", HandleChangeListAsync);
-        group.MapGet("/adjustment-reasons", HandleReasonListAsync);
-        group.MapGet("/adjustment-reasons/{id:guid}", HandleReasonGetAsync);
-        group.MapPost("/adjustment-reasons", HandleReasonCreateAsync);
-        group.MapPut("/adjustment-reasons/{id:guid}", HandleReasonUpdateAsync);
-        group.MapDelete("/adjustment-reasons/{id:guid}", HandleReasonDeleteAsync);
         group.MapGet("/{productId:guid}", HandleProductLevelsAsync);
     }
 
@@ -37,22 +32,13 @@ public static partial class InventoryEndpoints
     private static partial InventoryLevelResponseItem ToResponse(InventoryLevelEntity entity);
 
     [Mapper]
-    private static partial ProductInventoryResponseLevel ToResponse(ProductInventoryLevel level);
+    private static partial InventoryProductResponseLevel ToResponse(ProductInventoryLevelView level);
 
     [Mapper]
     private static partial InventoryChangeResponseItem ToResponse(InventoryChangeEntity entity);
 
     [Mapper]
     private static partial InventoryChangeParameter ToParameter(InventoryChangeRequestChange change);
-
-    [Mapper]
-    internal static partial AdjustmentReasonResponseItem ToResponse(AdjustmentReasonEntity entity);
-
-    [Mapper]
-    private static partial AdjustmentReasonEntity ToEntity(AdjustmentReasonCreateRequest request);
-
-    [Mapper]
-    private static partial AdjustmentReasonEntity ToEntity(AdjustmentReasonUpdateRequest request);
 
     //--------------------------------------------------------------------------------
     // Level
@@ -92,7 +78,7 @@ public static partial class InventoryEndpoints
         var levels = await service.QueryProductLevelsAsync(productId, cancellationToken);
         return levels is null
             ? ApiProblems.NotFound("商品が見つかりません")
-            : TypedResults.Ok(new ProductInventoryResponse { ProductId = productId, Levels = levels.Select(ToResponse).ToList() });
+            : TypedResults.Ok(new InventoryProductResponse { ProductId = productId, Levels = levels.Select(ToResponse).ToList() });
     }
 
     //--------------------------------------------------------------------------------
@@ -133,64 +119,5 @@ public static partial class InventoryEndpoints
         var parameter = new InventoryChangeQueryParameter { StoreId = storeId, ProductId = productId, Type = type, From = from, To = to, Page = page, Size = size };
         var result = await service.QueryChangePageAsync(parameter, cancellationToken);
         return TypedResults.Ok(new InventoryChangeResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
-    }
-
-    //--------------------------------------------------------------------------------
-    // AdjustmentReason
-    //--------------------------------------------------------------------------------
-
-    // 少数なのでページングなし
-    private static async ValueTask<IResult> HandleReasonListAsync(
-        AdjustmentReasonService service,
-        DateTime? updatedSince,
-        CancellationToken cancellationToken,
-        bool includeDeleted = false)
-    {
-        var items = await service.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
-        return TypedResults.Ok(new AdjustmentReasonResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
-    }
-
-    private static async ValueTask<IResult> HandleReasonGetAsync(
-        AdjustmentReasonService service,
-        Guid id,
-        CancellationToken cancellationToken)
-    {
-        var entity = await service.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
-    }
-
-    private static async ValueTask<IResult> HandleReasonCreateAsync(
-        AdjustmentReasonService service,
-        AdjustmentReasonCreateRequest request,
-        CancellationToken cancellationToken)
-    {
-        var entity = ToEntity(request);
-        var status = await service.InsertAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.Inventory}/adjustment-reasons/{entity.Id}", ToResponse(entity))
-            : ApiProblems.DuplicateCode();
-    }
-
-    private static async ValueTask<IResult> HandleReasonUpdateAsync(
-        AdjustmentReasonService service,
-        Guid id,
-        AdjustmentReasonUpdateRequest request,
-        CancellationToken cancellationToken)
-    {
-        var entity = ToEntity(request);
-        entity.Id = id;
-        var status = await service.UpdateAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
-            : ApiProblems.FromStatus(status);
-    }
-
-    private static async ValueTask<IResult> HandleReasonDeleteAsync(
-        AdjustmentReasonService service,
-        Guid id,
-        CancellationToken cancellationToken)
-    {
-        var status = await service.DeleteAsync(id, cancellationToken);
-        return status == DataWriteStatus.Success ? TypedResults.NoContent() : ApiProblems.FromStatus(status);
     }
 }

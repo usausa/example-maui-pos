@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("Terminals")]
 public sealed class TerminalEntity
 {
     [Key]

@@ -22,12 +22,13 @@ using MudBlazor;
 using MudBlazor.Services;
 
 using Pos.Server.Accessors;
-using Pos.Server.Host.Application.Reports;
+using Pos.Server.Host.Application.State;
 using Pos.Server.Host.Components;
 using Pos.Server.Host.Endpoints;
-using Pos.Server.Host.Infrastructure.Components;
 using Pos.Server.Host.Infrastructure.ExceptionHandling;
-using Pos.Server.Host.Infrastructure.Json;
+using Pos.Server.Host.Infrastructure.Logging;
+using Pos.Server.Host.Reports;
+using Pos.Server.Infrastructure.Json;
 using Pos.Server.Services;
 
 using Serilog;
@@ -36,6 +37,7 @@ using Smart.Data;
 
 public static class ApplicationExtensions
 {
+    private const string InitialDataPath = "Assets/Data/InitialData.sql";
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
     private const string ApiPathPrefix = "/api";
@@ -392,6 +394,7 @@ public static class ApplicationExtensions
         app.MapTransactionEndpoints();
         app.MapShiftEndpoints();
         app.MapInventoryEndpoints();
+        app.MapAdjustmentReasonEndpoints();
         app.MapReportEndpoints();
 
         return app;
@@ -402,7 +405,7 @@ public static class ApplicationExtensions
     //--------------------------------------------------------------------------------
 
     public static ValueTask InitializeApplicationAsync(this WebApplication app) =>
-        app.Services.GetRequiredService<DatabaseService>().InitializeAsync(CancellationToken.None);
+        app.Services.GetRequiredService<DatabaseService>().InitializeAsync(InitialDataPath, CancellationToken.None);
 
     //--------------------------------------------------------------------------------
     // Profiler

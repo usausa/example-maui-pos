@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("CashEvents")]
 public sealed class CashEventEntity
 {
     [Key]

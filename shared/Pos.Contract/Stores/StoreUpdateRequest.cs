@@ -3,33 +3,33 @@ namespace Pos.Contract.Stores;
 public sealed class StoreUpdateRequest
 {
     [Required]
-    [MaxLength(10)]
+    [MaxLength(Length.StoreCode)]
     public string Code { get; set; } = default!;
 
     [Required]
-    [MaxLength(100)]
+    [MaxLength(Length.Name)]
     public string Name { get; set; } = default!;
 
-    [MaxLength(10)]
+    [MaxLength(Length.PostalCode)]
     public string? PostalCode { get; set; }
 
-    [MaxLength(200)]
+    [MaxLength(Length.Address)]
     public string? Address { get; set; }
 
-    [MaxLength(20)]
+    [MaxLength(Length.Phone)]
     public string? Phone { get; set; }
 
-    [MaxLength(14)]
+    [MaxLength(Length.RegistrationNo)]
     public string? RegistrationNo { get; set; }
 
-    [MaxLength(500)]
+    [MaxLength(Length.ReceiptText)]
     public string? ReceiptHeader { get; set; }
 
-    [MaxLength(500)]
+    [MaxLength(Length.ReceiptText)]
     public string? ReceiptFooter { get; set; }
 
     [Required]
-    [MaxLength(50)]
+    [MaxLength(Length.TimeZone)]
     public string TimeZone { get; set; } = default!;
 
     public bool IsActive { get; set; }

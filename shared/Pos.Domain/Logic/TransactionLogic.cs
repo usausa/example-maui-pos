@@ -1,6 +1,6 @@
 namespace Pos.Domain.Logic;
 
-// api-design §3.12 の業務ルール。DB は見ず、必要な事実は Context で受け取る
+// 取引の業務ルール。DB は見ず、必要な事実は Context で受け取る
 public static class TransactionLogic
 {
     // ------------------------------------------------------------
@@ -63,7 +63,7 @@ public static class TransactionLogic
         return new TransactionValidation { Errors = errors, Warnings = warnings, Expected = expected };
     }
 
-    // 計算できる入力か (api-design §4.1 / §4.2 の前提)。端末のカート検証や計算 API の事前チェックにも使う
+    // 計算できる入力か。端末のカート検証や計算 API の事前チェックにも使う
     public static IReadOnlyList<RuleError> ValidateInput(SalesInput input)
     {
         var errors = new List<RuleError>();

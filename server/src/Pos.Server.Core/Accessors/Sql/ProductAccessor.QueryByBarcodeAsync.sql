@@ -1,1 +1,7 @@
-SELECT * FROM Products WHERE Barcode = /*@ barcode */'' AND IsDeleted = 0
+SELECT
+    *
+FROM
+    Products
+WHERE
+    Barcode = /*@ barcode */''
+    AND IsDeleted = 0

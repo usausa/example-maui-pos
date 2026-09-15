@@ -3,7 +3,7 @@ namespace Pos.Server.Accessors;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Views;
 
-// 会社設定と各マスタ。更新は Version が一致する行だけ (楽観ロック)、削除は論理削除。戻り値 0 = 競合または削除済み。
+// 会社設定と各マスタ。更新は Version が一致する行だけ (楽観ロック) で更新後の行を返す (null = 競合または削除済み)、削除は論理削除。
 // 更新の引数は列ごとに渡す (Entity のプロパティ参照では型変換が効かないため)
 [DataAccessor]
 [ExecuteConfig(typeof(DataProfile))]
@@ -11,10 +11,6 @@ public sealed partial class MasterAccessor
 {
     [Execute]
     public partial void Create();
-
-    // 後から増えた列を既存 DB に足す (足したときは true。呼び出し側で初期値を入れる)
-    public static ValueTask<bool> EnsurePaymentMethodShortNameAsync(DbConnection con, CancellationToken cancellationToken) =>
-        SqlHelper.EnsureColumnAsync(con, "PaymentMethods", "ShortName", "TEXT", cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Settings (1 行、Id = 1)
@@ -24,11 +20,11 @@ public sealed partial class MasterAccessor
     public partial ValueTask<SettingsEntity?> QuerySettingsAsync(CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(SettingsEntity), Table = "Settings")]
+    [Insert(typeof(SettingsEntity))]
     public partial ValueTask<int> InsertSettingsAsync(SettingsEntity entity, CancellationToken cancellationToken);
 
-    [Execute]
-    public partial ValueTask<int> UpdateSettingsAsync(
+    [QueryFirst]
+    public partial ValueTask<SettingsEntity?> UpdateSettingsAsync(
         string companyName,
         string currency,
         TaxRounding taxRounding,
@@ -46,22 +42,22 @@ public sealed partial class MasterAccessor
     public partial ValueTask<long> CountStoresAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<StoreEntity>> QueryStoreListAsync(DateTime? updatedSince, bool includeDeleted, string sort, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<StoreEntity>> QueryStoreListAsync(DateTime? updatedSince, bool includeDeleted, StoreSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (コード順)
     [Query]
     public partial ValueTask<List<StoreEntity>> QueryStoreAllAsync(bool includeDeleted, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(StoreEntity), Table = "Stores")]
+    [SelectSingle(typeof(StoreEntity))]
     public partial ValueTask<StoreEntity?> QueryStoreAsync(Guid id, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(StoreEntity), Table = "Stores")]
+    [Insert(typeof(StoreEntity))]
     public partial ValueTask<int> InsertStoreAsync(StoreEntity entity, CancellationToken cancellationToken);
 
-    [Execute]
-    public partial ValueTask<int> UpdateStoreAsync(
+    [QueryFirst]
+    public partial ValueTask<StoreEntity?> UpdateStoreAsync(
         Guid id,
         string code,
         string name,
@@ -88,22 +84,22 @@ public sealed partial class MasterAccessor
     public partial ValueTask<long> CountTerminalsAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<TerminalEntity>> QueryTerminalListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, string sort, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<TerminalEntity>> QueryTerminalListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, TerminalSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (店舗、端末番号順)
     [Query]
     public partial ValueTask<List<TerminalEntity>> QueryTerminalAllAsync(bool includeDeleted, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(TerminalEntity), Table = "Terminals")]
+    [SelectSingle(typeof(TerminalEntity))]
     public partial ValueTask<TerminalEntity?> QueryTerminalAsync(Guid id, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(TerminalEntity), Table = "Terminals")]
+    [Insert(typeof(TerminalEntity))]
     public partial ValueTask<int> InsertTerminalAsync(TerminalEntity entity, CancellationToken cancellationToken);
 
-    [Execute]
-    public partial ValueTask<int> UpdateTerminalAsync(
+    [QueryFirst]
+    public partial ValueTask<TerminalEntity?> UpdateTerminalAsync(
         Guid id,
         Guid storeId,
         int terminalNo,
@@ -133,22 +129,22 @@ public sealed partial class MasterAccessor
     public partial ValueTask<long> CountStaffAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<StaffEntity>> QueryStaffListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, string sort, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<StaffEntity>> QueryStaffListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, StaffSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (コード順)
     [Query]
     public partial ValueTask<List<StaffEntity>> QueryStaffAllAsync(bool includeDeleted, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(StaffEntity), Table = "Staff")]
+    [SelectSingle(typeof(StaffEntity))]
     public partial ValueTask<StaffEntity?> QueryStaffAsync(Guid id, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(StaffEntity), Table = "Staff")]
+    [Insert(typeof(StaffEntity))]
     public partial ValueTask<int> InsertStaffAsync(StaffEntity entity, CancellationToken cancellationToken);
 
-    [Execute]
-    public partial ValueTask<int> UpdateStaffAsync(
+    [QueryFirst]
+    public partial ValueTask<StaffEntity?> UpdateStaffAsync(
         Guid id,
         string code,
         string name,
@@ -170,22 +166,22 @@ public sealed partial class MasterAccessor
     public partial ValueTask<long> CountCategoriesAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<CategoryEntity>> QueryCategoryListAsync(DateTime? updatedSince, bool includeDeleted, string sort, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<CategoryEntity>> QueryCategoryListAsync(DateTime? updatedSince, bool includeDeleted, CategorySort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (並び順、コード順)
     [Query]
     public partial ValueTask<List<CategoryEntity>> QueryCategoryAllAsync(bool includeDeleted, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(CategoryEntity), Table = "Categories")]
+    [SelectSingle(typeof(CategoryEntity))]
     public partial ValueTask<CategoryEntity?> QueryCategoryAsync(Guid id, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(CategoryEntity), Table = "Categories")]
+    [Insert(typeof(CategoryEntity))]
     public partial ValueTask<int> InsertCategoryAsync(CategoryEntity entity, CancellationToken cancellationToken);
 
-    [Execute]
-    public partial ValueTask<int> UpdateCategoryAsync(
+    [QueryFirst]
+    public partial ValueTask<CategoryEntity?> UpdateCategoryAsync(
         Guid id,
         string code,
         string name,
@@ -207,7 +203,7 @@ public sealed partial class MasterAccessor
 
     // 部門ごとの所属商品数 (管理画面のツリー)
     [Query]
-    public partial ValueTask<List<CategoryProductCount>> QueryCategoryProductCountsAsync(CancellationToken cancellationToken);
+    public partial ValueTask<List<CategoryProductCountView>> QueryCategoryProductCountsAsync(CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // TaxRate (少数なのでページングなし。SortOrder, Code 順)
@@ -217,15 +213,15 @@ public sealed partial class MasterAccessor
     public partial ValueTask<List<TaxRateEntity>> QueryTaxRateListAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(TaxRateEntity), Table = "TaxRates")]
+    [SelectSingle(typeof(TaxRateEntity))]
     public partial ValueTask<TaxRateEntity?> QueryTaxRateAsync(Guid id, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(TaxRateEntity), Table = "TaxRates")]
+    [Insert(typeof(TaxRateEntity))]
     public partial ValueTask<int> InsertTaxRateAsync(TaxRateEntity entity, CancellationToken cancellationToken);
 
-    [Execute]
-    public partial ValueTask<int> UpdateTaxRateAsync(
+    [QueryFirst]
+    public partial ValueTask<TaxRateEntity?> UpdateTaxRateAsync(
         Guid id,
         string code,
         string name,
@@ -256,15 +252,15 @@ public sealed partial class MasterAccessor
     public partial ValueTask<List<DiscountEntity>> QueryDiscountListAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(DiscountEntity), Table = "Discounts")]
+    [SelectSingle(typeof(DiscountEntity))]
     public partial ValueTask<DiscountEntity?> QueryDiscountAsync(Guid id, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(DiscountEntity), Table = "Discounts")]
+    [Insert(typeof(DiscountEntity))]
     public partial ValueTask<int> InsertDiscountAsync(DiscountEntity entity, CancellationToken cancellationToken);
 
-    [Execute]
-    public partial ValueTask<int> UpdateDiscountAsync(
+    [QueryFirst]
+    public partial ValueTask<DiscountEntity?> UpdateDiscountAsync(
         Guid id,
         string code,
         string name,
@@ -289,15 +285,15 @@ public sealed partial class MasterAccessor
     public partial ValueTask<List<PaymentMethodEntity>> QueryPaymentMethodListAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(PaymentMethodEntity), Table = "PaymentMethods")]
+    [SelectSingle(typeof(PaymentMethodEntity))]
     public partial ValueTask<PaymentMethodEntity?> QueryPaymentMethodAsync(Guid id, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(PaymentMethodEntity), Table = "PaymentMethods")]
+    [Insert(typeof(PaymentMethodEntity))]
     public partial ValueTask<int> InsertPaymentMethodAsync(PaymentMethodEntity entity, CancellationToken cancellationToken);
 
-    [Execute]
-    public partial ValueTask<int> UpdatePaymentMethodAsync(
+    [QueryFirst]
+    public partial ValueTask<PaymentMethodEntity?> UpdatePaymentMethodAsync(
         Guid id,
         string code,
         string name,
@@ -326,15 +322,15 @@ public sealed partial class MasterAccessor
     public partial ValueTask<List<AdjustmentReasonEntity>> QueryAdjustmentReasonListAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(AdjustmentReasonEntity), Table = "AdjustmentReasons")]
+    [SelectSingle(typeof(AdjustmentReasonEntity))]
     public partial ValueTask<AdjustmentReasonEntity?> QueryAdjustmentReasonAsync(Guid id, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(AdjustmentReasonEntity), Table = "AdjustmentReasons")]
+    [Insert(typeof(AdjustmentReasonEntity))]
     public partial ValueTask<int> InsertAdjustmentReasonAsync(AdjustmentReasonEntity entity, CancellationToken cancellationToken);
 
-    [Execute]
-    public partial ValueTask<int> UpdateAdjustmentReasonAsync(
+    [QueryFirst]
+    public partial ValueTask<AdjustmentReasonEntity?> UpdateAdjustmentReasonAsync(
         Guid id,
         string code,
         string name,

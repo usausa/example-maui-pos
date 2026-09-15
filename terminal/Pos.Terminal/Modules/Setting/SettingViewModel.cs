@@ -95,7 +95,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
 
     private void UpdateSync()
     {
-        LastSyncText = session.LastSyncAt is null ? "最終同期: -" : $"最終同期: {DisplayText.DateTime(session.LastSyncAt.Value)}";
+        LastSyncText = session.LastSyncAt is null ? "最終同期: -" : $"最終同期: {ViewHelper.DateTime(session.LastSyncAt.Value)}";
         UnsentText = session.UnsentCount == 0 ? "未送信なし" : session.FailedCount > 0 ? $"未送信 {session.UnsentCount} / 要確認 {session.FailedCount}" : $"未送信 {session.UnsentCount}";
         SyncStatus = session.FailedCount > 0 ? OutboxStatus.Failed : session.UnsentCount > 0 ? OutboxStatus.Pending : OutboxStatus.Sent;
     }
@@ -106,15 +106,15 @@ public sealed partial class SettingViewModel : AppViewModelBase
             x,
             x.Status,
             x.Kind,
-            DisplayText.DateTime(x.CreatedAt),
+            ViewHelper.DateTime(x.CreatedAt),
             x.LastError ?? string.Empty)));
     }
 
     private async Task HandleOutboxAsync(OutboxItem item)
     {
         var entity = item.Entity;
-        var kind = DisplayText.Name(item.Kind);
-        if (!entity.Status.IsFailed())
+        var kind = ViewHelper.Name(item.Kind);
+        if (entity.Status != OutboxStatus.Failed)
         {
             await dialog.InformationAsync($"{kind}\n{item.TimeText}\n試行 {entity.Attempts} 回\n{entity.LastError}", "未送信");
             return;

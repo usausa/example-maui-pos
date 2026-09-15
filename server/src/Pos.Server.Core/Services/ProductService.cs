@@ -8,9 +8,6 @@ using Pos.Server.Models.Views;
 
 public sealed class ProductService
 {
-    private static readonly string[] SortColumns = ["Code", "Name", "Price", "UpdatedAt"];
-    private const string DefaultSort = "Code";
-
     private readonly IDialect dialect;
     private readonly ProductAccessor productAccessor;
     private readonly TimeProvider timeProvider;
@@ -25,15 +22,12 @@ public sealed class ProductService
         this.timeProvider = timeProvider;
     }
 
-    // 差分同期 (UpdatedSince 指定時) は updatedAt, id 順で固定
+    // 差分同期 (UpdatedSince 指定時) は updatedAt, id 順 (SQL 側で固定)
     public async ValueTask<PagedResult<ProductEntity>> QueryPageAsync(ProductQueryParameter parameter, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(parameter);
-
         var keyword = ServiceHelper.ToLikePattern(dialect, parameter.Keyword);
         var total = await productAccessor.CountAsync(parameter.CategoryId, keyword, parameter.IsActive, parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
-        var order = parameter.UpdatedSince is null ? SqlHelper.NormalizeSort(SortColumns, DefaultSort, parameter.Sort, parameter.Desc) : SqlHelper.SyncSort;
-        var items = await productAccessor.QueryListAsync(parameter.CategoryId, keyword, parameter.IsActive, parameter.UpdatedSince, parameter.IncludeDeleted, order, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await productAccessor.QueryListAsync(parameter.CategoryId, keyword, parameter.IsActive, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
         return new PagedResult<ProductEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 
@@ -42,7 +36,7 @@ public sealed class ProductService
         productAccessor.QueryAllAsync(includeDeleted, cancellationToken);
 
     // CSV 出力 (削除済みを除く全件、コード順)
-    public ValueTask<List<ProductExportItem>> QueryExportListAsync(CancellationToken cancellationToken) =>
+    public ValueTask<List<ProductExportView>> QueryExportListAsync(CancellationToken cancellationToken) =>
         productAccessor.QueryExportListAsync(cancellationToken);
 
     public ValueTask<ProductEntity?> QueryAsync(Guid id, CancellationToken cancellationToken) =>
@@ -56,8 +50,6 @@ public sealed class ProductService
 
     public ValueTask<DataWriteStatus> InsertAsync(ProductEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
@@ -66,10 +58,8 @@ public sealed class ProductService
         return ServiceHelper.InsertAsync(dialect, () => productAccessor.InsertAsync(entity, cancellationToken));
     }
 
-    public ValueTask<DataWriteStatus> UpdateAsync(ProductEntity entity, CancellationToken cancellationToken)
+    public ValueTask<DataWriteResult<ProductEntity>> UpdateAsync(ProductEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         return ServiceHelper.UpdateAsync(
             dialect,

@@ -9,7 +9,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-71 レジ端末
+// レジ端末
 public sealed partial class TerminalsPage
 {
     private List<TerminalEntity> items = [];

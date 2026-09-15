@@ -29,8 +29,6 @@ public sealed class TaxRateService
     // 既定は 1 件だけ (IsDefault なら他を落とす)
     public async ValueTask<DataWriteStatus> InsertAsync(TaxRateEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
@@ -45,21 +43,19 @@ public sealed class TaxRateService
         return status;
     }
 
-    public async ValueTask<DataWriteStatus> UpdateAsync(TaxRateEntity entity, CancellationToken cancellationToken)
+    public async ValueTask<DataWriteResult<TaxRateEntity>> UpdateAsync(TaxRateEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
-        var status = await ServiceHelper.UpdateAsync(
+        var result = await ServiceHelper.UpdateAsync(
             dialect,
             () => masterAccessor.UpdateTaxRateAsync(entity.Id, entity.Code, entity.Name, entity.Rate, entity.Kind, entity.IsDefault, entity.SortOrder, entity.UpdatedAt, entity.Version, cancellationToken),
             async () => await masterAccessor.QueryTaxRateAsync(entity.Id, cancellationToken) is { IsDeleted: false });
-        if ((status == DataWriteStatus.Success) && entity.IsDefault)
+        if ((result.Status == DataWriteStatus.Success) && entity.IsDefault)
         {
             await masterAccessor.ClearDefaultTaxRateAsync(entity.Id, entity.UpdatedAt, cancellationToken);
         }
 
-        return status;
+        return result;
     }
 
     // 使用中の商品がある税率は削除できない

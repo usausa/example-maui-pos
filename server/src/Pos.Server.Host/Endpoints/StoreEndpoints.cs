@@ -1,6 +1,7 @@
 namespace Pos.Server.Host.Endpoints;
 
 using Pos.Contract.Stores;
+using Pos.Server.Host.Helpers;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
@@ -49,7 +50,7 @@ public static partial class StoreEndpoints
         [Range(0, Int32.MaxValue)] int page = 0,
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        var result = await service.QueryPageAsync(updatedSince, includeDeleted, sort, desc, page, size, cancellationToken);
+        var result = await service.QueryPageAsync(updatedSince, includeDeleted, EnumHelper.Parse(sort, StoreSort.Code), desc, page, size, cancellationToken);
         return TypedResults.Ok(new StoreResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
@@ -82,10 +83,10 @@ public static partial class StoreEndpoints
     {
         var entity = ToEntity(request);
         entity.Id = id;
-        var status = await service.UpdateAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
-            : ApiProblems.FromStatus(status);
+        var result = await service.UpdateAsync(entity, cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse(result.Entity!))
+            : ApiProblems.FromStatus(result.Status);
     }
 
     // 端末または在庫がある店舗は削除できません

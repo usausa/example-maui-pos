@@ -8,9 +8,9 @@ public sealed class HoldItem : NotificationObject
 
     public string Summary => Entity.Summary;
 
-    public string TotalText => DisplayText.Yen(Entity.Total);
+    public string TotalText => ViewHelper.Yen(Entity.Total);
 
-    public string TimeText => "⏸ " + DisplayText.DateTime(Entity.CreatedAt);
+    public string TimeText => "⏸ " + ViewHelper.DateTime(Entity.CreatedAt);
 
     public bool IsSelected
     {
@@ -29,11 +29,13 @@ public sealed partial class HoldViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
-    private SalesContext salesContext = new();
-
     private readonly SalesUsecase sales;
 
     private HoldItem? selected;
+
+    // 販売の画面間で共有する状態 (Scope プラグインが同じインスタンスを注入し、どの画面からも参照されなくなると破棄する)
+    [Scope]
+    public SalesContext SalesContext { get; set; } = default!;
 
     public ObservableCollection<HoldItem> Items { get; } = [];
 
@@ -63,7 +65,6 @@ public sealed partial class HoldViewModel : AppViewModelBase
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
-        salesContext = context.Parameter.GetContext<SalesContext>() ?? new SalesContext();
         await Navigator.PostActionAsync(LoadAsync);
     }
 
@@ -74,7 +75,7 @@ public sealed partial class HoldViewModel : AppViewModelBase
         HasSelection = false;
     }
 
-    private Task<bool> ReturnAsync() => Navigator.ForwardAsync(ViewId.Sales, Parameters.Make().WithContext(salesContext));
+    private Task<bool> ReturnAsync() => Navigator.ForwardAsync(ViewId.Sales);
 
     protected override Task OnNotifyBackAsync() => ReturnAsync();
 
@@ -98,7 +99,7 @@ public sealed partial class HoldViewModel : AppViewModelBase
             return;
         }
 
-        if (!salesContext.Cart.IsEmpty && !await dialog.AskAsync("現在の明細を破棄して呼び出しますか？", null, "呼出"))
+        if (!SalesContext.Cart.IsEmpty && !await dialog.AskAsync("現在の明細を破棄して呼び出しますか？", null, "呼出"))
         {
             return;
         }
@@ -110,8 +111,8 @@ public sealed partial class HoldViewModel : AppViewModelBase
             return;
         }
 
-        salesContext.Reset();
-        salesContext.Cart = cart;
+        SalesContext.Reset();
+        SalesContext.Cart = cart;
         await ReturnAsync();
     }
 }

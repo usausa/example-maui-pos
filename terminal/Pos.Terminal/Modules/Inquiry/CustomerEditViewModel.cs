@@ -3,14 +3,14 @@ namespace Pos.Terminal.Modules.Inquiry;
 using Pos.Contract.Customers;
 using Pos.Terminal.Modules.Sales;
 
-// スキャン画面へ行っている間の入力内容 (販売からの登録ならカートのコンテキストも引き継ぐ)
+// スキャン画面へ行っている間の入力内容。会員編集とスキャンの ViewModel の [Scope] プロパティに Scope プラグインが注入する
 public sealed class CustomerDraft
 {
+    public bool HasDraft { get; set; }
+
     public CustomerResponseItem? Original { get; set; }
 
     public ViewId ReturnTo { get; set; }
-
-    public SalesContext? Sales { get; set; }
 
     public string? Code { get; set; }
 
@@ -29,6 +29,21 @@ public sealed class CustomerDraft
     public string? BirthDate { get; set; }
 
     public string? Note { get; set; }
+
+    public void Clear()
+    {
+        HasDraft = false;
+        Original = null;
+        Code = null;
+        Name = null;
+        Kana = null;
+        Phone = null;
+        Email = null;
+        PostalCode = null;
+        Address = null;
+        BirthDate = null;
+        Note = null;
+    }
 }
 
 // 会員登録・編集 (オンライン限定)。保存後は呼び出し元へ会員を渡す (販売からならカートにも紐付ける)
@@ -42,9 +57,15 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
 
     private ViewId returnTo = ViewId.CustomerInquiry;
 
-    private SalesContext? sales;
-
     private readonly NetworkService network;
+
+    // 販売からの登録のときにカートの状態を保持する (照会からのときは使わない)
+    [Scope]
+    public SalesContext SalesContext { get; set; } = default!;
+
+    // スキャン画面へ行っている間の入力内容 (スキャン画面も同じ名前のプロパティで保持する)
+    [Scope]
+    public CustomerDraft CustomerDraft { get; set; } = default!;
 
     [ObservableProperty]
     public partial string Title { get; set; } = "会員登録";
@@ -85,8 +106,8 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         this.popupNavigator = popupNavigator;
         this.network = network;
 
-        InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputDigitsAsync("電話番号", PhoneText, 13) ?? PhoneText);
-        InputPostalCodeCommand = MakeAsyncCommand(async () => PostalCodeText = await popupNavigator.InputDigitsAsync("郵便番号", PostalCodeText, 7) ?? PostalCodeText);
+        InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputPhoneAsync(PhoneText) ?? PhoneText);
+        InputPostalCodeCommand = MakeAsyncCommand(async () => PostalCodeText = await popupNavigator.InputPostalCodeAsync(PostalCodeText) ?? PostalCodeText);
         InputBirthDateCommand = MakeAsyncCommand(InputBirthDateAsync);
     }
 
@@ -94,40 +115,38 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
     private async Task InputBirthDateAsync()
     {
         var digits = new string((BirthDateText ?? string.Empty).Where(Char.IsAsciiDigit).ToArray());
-        var text = await popupNavigator.InputDigitsAsync("生年月日 (yyyyMMdd)", digits, 8);
+        var text = await popupNavigator.InputBirthDateAsync(digits);
         if (text is null)
         {
             return;
         }
 
         BirthDateText = DateTimeHelper.TryParseCompactDate(text, out var date)
-            ? DisplayText.Date(date)
+            ? ViewHelper.Date(date)
             : text.Length == 0 ? null : text;
     }
 
     public override Task OnNavigatedToAsync(INavigationContext context)
     {
-        var draft = context.Parameter.GetContext<CustomerDraft>();
-        if (draft is not null)
+        if (CustomerDraft.HasDraft)
         {
-            original = draft.Original;
-            returnTo = draft.ReturnTo;
-            sales = draft.Sales;
-            Code.Text = draft.Code;
-            Name.Text = draft.Name;
-            Kana.Text = draft.Kana;
-            PhoneText = draft.Phone;
-            Email.Text = draft.Email;
-            PostalCodeText = draft.PostalCode;
-            Address.Text = draft.Address;
-            BirthDateText = draft.BirthDate;
-            Note.Text = draft.Note;
+            original = CustomerDraft.Original;
+            returnTo = CustomerDraft.ReturnTo;
+            Code.Text = CustomerDraft.Code;
+            Name.Text = CustomerDraft.Name;
+            Kana.Text = CustomerDraft.Kana;
+            PhoneText = CustomerDraft.Phone;
+            Email.Text = CustomerDraft.Email;
+            PostalCodeText = CustomerDraft.PostalCode;
+            Address.Text = CustomerDraft.Address;
+            BirthDateText = CustomerDraft.BirthDate;
+            Note.Text = CustomerDraft.Note;
+            CustomerDraft.Clear();
         }
         else
         {
             original = context.Parameter.GetCustomer();
             returnTo = context.Parameter.GetReturnTo(ViewId.CustomerInquiry);
-            sales = context.Parameter.GetContext<SalesContext>();
             if (original is not null)
             {
                 Code.Text = original.Code;
@@ -137,7 +156,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
                 Email.Text = original.Email;
                 PostalCodeText = original.PostalCode;
                 Address.Text = original.Address;
-                BirthDateText = original.BirthDate is null ? null : DisplayText.Date(original.BirthDate.Value);
+                BirthDateText = original.BirthDate is null ? null : ViewHelper.Date(original.BirthDate.Value);
                 Note.Text = original.Note;
             }
         }
@@ -154,31 +173,35 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         return Task.CompletedTask;
     }
 
-    private CustomerDraft ToDraft() => new()
+    // スキャン画面へ行っている間の入力内容を残す
+    private void SaveDraft()
     {
-        Original = original,
-        ReturnTo = returnTo,
-        Sales = sales,
-        Code = Code.Text,
-        Name = Name.Text,
-        Kana = Kana.Text,
-        Phone = PhoneText,
-        Email = Email.Text,
-        PostalCode = PostalCodeText,
-        Address = Address.Text,
-        BirthDate = BirthDateText,
-        Note = Note.Text
-    };
+        CustomerDraft.HasDraft = true;
+        CustomerDraft.Original = original;
+        CustomerDraft.ReturnTo = returnTo;
+        CustomerDraft.Code = Code.Text;
+        CustomerDraft.Name = Name.Text;
+        CustomerDraft.Kana = Kana.Text;
+        CustomerDraft.Phone = PhoneText;
+        CustomerDraft.Email = Email.Text;
+        CustomerDraft.PostalCode = PostalCodeText;
+        CustomerDraft.Address = Address.Text;
+        CustomerDraft.BirthDate = BirthDateText;
+        CustomerDraft.Note = Note.Text;
+    }
 
     private Task<bool> ReturnAsync(CustomerResponseItem? customer) =>
-        Navigator.ForwardAsync(returnTo, Parameters.Make().WithCustomer(customer).WithContext(sales));
+        Navigator.ForwardAsync(returnTo, Parameters.Make().WithCustomer(customer));
 
     protected override Task OnNotifyBackAsync() => ReturnAsync(original);
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
-    protected override Task OnNotifyFunction2() =>
-        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Customer, ViewId.CustomerEdit).WithContext(ToDraft()));
+    protected override Task OnNotifyFunction2()
+    {
+        SaveDraft();
+        return Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Customer, ViewId.CustomerEdit));
+    }
 
     protected override Task OnNotifyFunction3()
     {
@@ -263,7 +286,10 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         }
 
         var saved = result.Content!;
-        sales?.Cart.Customer = saved;
+        if (returnTo != ViewId.CustomerInquiry)
+        {
+            SalesContext.Cart.Customer = saved;
+        }
 
         await dialog.Toast(original is null ? "会員を登録しました。" : "会員を更新しました。");
         await ReturnAsync(saved);

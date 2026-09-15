@@ -26,7 +26,6 @@ public static class Parameters
     private const string CustomerIdKey = nameof(CustomerIdKey);
     private const string CallerReturnToKey = nameof(CallerReturnToKey);
     private const string ProductIdKey = nameof(ProductIdKey);
-    private const string ContextKey = nameof(ContextKey);
 
     public static NavigationParameter Make() => new();
 
@@ -86,15 +85,6 @@ public static class Parameters
 
     public static ViewId? GetCallerReturnTo(this INavigationParameter parameter) =>
         parameter.TryGetValue<ViewId>(CallerReturnToKey, out var value) ? value : null;
-
-    // 機能の画面間で共有するコンテキスト (販売・返品・棚卸)。スキャンなど途中の画面はそのまま返す
-
-    public static NavigationParameter WithContext(this NavigationParameter parameter, object? context) =>
-        context is null ? parameter : parameter.SetValue(ContextKey, context);
-
-    public static T? GetContext<T>(this INavigationParameter parameter)
-        where T : class =>
-        parameter.TryGetValue<T>(ContextKey, out var value) ? value : null;
 
     // Product
 

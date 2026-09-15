@@ -16,22 +16,24 @@ internal static class ServiceHelper
         }
     }
 
-    // 更新 0 件は、行がなければ (削除済みを含む) NotFound、あれば VersionMismatch
-    public static async ValueTask<DataWriteStatus> UpdateAsync(IDialect dialect, Func<ValueTask<int>> update, Func<ValueTask<bool>> exists)
+    // 更新後の行が返らなければ、行がなければ (削除済みを含む) NotFound、あれば VersionMismatch
+    public static async ValueTask<DataWriteResult<T>> UpdateAsync<T>(IDialect dialect, Func<ValueTask<T?>> update, Func<ValueTask<bool>> exists)
+        where T : class
     {
         try
         {
-            if (await update() > 0)
+            var entity = await update();
+            if (entity is not null)
             {
-                return DataWriteStatus.Success;
+                return new DataWriteResult<T>(DataWriteStatus.Success, entity);
             }
         }
         catch (DbException ex) when (dialect.IsDuplicate(ex))
         {
-            return DataWriteStatus.Duplicate;
+            return new DataWriteResult<T>(DataWriteStatus.Duplicate, null);
         }
 
-        return await exists() ? DataWriteStatus.VersionMismatch : DataWriteStatus.NotFound;
+        return new DataWriteResult<T>(await exists() ? DataWriteStatus.VersionMismatch : DataWriteStatus.NotFound, null);
     }
 
     // 部分一致検索の LIKE パターン (% _ はエスケープ)

@@ -3,10 +3,11 @@ namespace Pos.Server.Host.Endpoints;
 using System.Text.Json;
 
 using Pos.Contract.Reports;
-using Pos.Server.Host.Application.Reports;
-using Pos.Server.Host.Infrastructure.Api;
+using Pos.Server.Host.Helpers;
+using Pos.Server.Host.Infrastructure.Csv;
 using Pos.Server.Host.Models.Export;
-using Pos.Server.Models.Parameters;
+using Pos.Server.Host.Models.Queries;
+using Pos.Server.Host.Reports;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
@@ -34,37 +35,23 @@ public static partial class ReportEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    [MapProperty(nameof(SalesSummaryResponseRow.Key), nameof(SalesSummaryRow.GroupKey))]
-    [MapProperty(nameof(SalesSummaryResponseRow.Label), nameof(SalesSummaryRow.GroupLabel))]
-    private static partial SalesSummaryResponseRow ToResponse(SalesSummaryRow row);
+    [MapProperty(nameof(ReportSalesSummaryResponseRow.Key), nameof(SalesSummaryView.GroupKey))]
+    [MapProperty(nameof(ReportSalesSummaryResponseRow.Label), nameof(SalesSummaryView.GroupLabel))]
+    private static partial ReportSalesSummaryResponseRow ToResponse(SalesSummaryView row);
 
     [Mapper]
-    private static partial ProductSalesResponseRow ToResponse(ProductSalesRow row);
+    private static partial ReportProductSalesResponseRow ToResponse(ProductSalesView row);
 
     [Mapper]
-    [MapProperty(nameof(SalesSummaryExportRow.Key), nameof(SalesSummaryRow.GroupKey))]
-    [MapProperty(nameof(SalesSummaryExportRow.Label), nameof(SalesSummaryRow.GroupLabel))]
-    private static partial SalesSummaryExportRow ToExportRow(SalesSummaryRow row);
+    [MapProperty(nameof(SalesSummaryExportRow.Key), nameof(SalesSummaryView.GroupKey))]
+    [MapProperty(nameof(SalesSummaryExportRow.Label), nameof(SalesSummaryView.GroupLabel))]
+    private static partial SalesSummaryExportRow ToExportRow(SalesSummaryView row);
 
     [Mapper]
-    private static partial ProductSalesExportRow ToExportRow(ProductSalesRow row);
+    private static partial ProductSalesExportRow ToExportRow(ProductSalesView row);
 
     // "paymentMethod" など camelCase
     private static string ToKey(SalesSummaryGroupBy groupBy) => JsonNamingPolicy.CamelCase.ConvertName(groupBy.ToString());
-
-    // クエリ文字列の列挙値 (大文字小文字は区別しない。省略時は既定)
-    private static bool TryParse<TEnum>(string? value, TEnum defaultValue, out TEnum result)
-        where TEnum : struct, Enum
-    {
-        if (String.IsNullOrEmpty(value))
-        {
-            result = defaultValue;
-            return true;
-        }
-
-        result = default;
-        return !Char.IsDigit(value[0]) && Enum.TryParse(value, true, out result);
-    }
 
     //--------------------------------------------------------------------------------
     // Summary
@@ -72,25 +59,18 @@ public static partial class ReportEndpoints
 
     private static async ValueTask<IResult> HandleSalesSummaryAsync(
         ReportService service,
-        Guid? storeId,
-        DateOnly? from,
-        DateOnly? to,
+        [AsParameters] ReportPeriodQuery query,
         string? groupBy,
         CancellationToken cancellationToken)
     {
-        var (start, end) = service.ResolvePeriod(from, to);
-        if (start > end)
-        {
-            return ApiProblems.BadRequest("期間の指定が不正です");
-        }
-
-        if (!TryParse(groupBy, SalesSummaryGroupBy.Day, out var group))
+        if (!EnumHelper.TryParse(groupBy, SalesSummaryGroupBy.Day, out var group))
         {
             return ApiProblems.BadRequest("groupBy が不正です");
         }
 
-        var rows = await service.QuerySalesSummaryAsync(storeId, start, end, group, cancellationToken);
-        return TypedResults.Ok(new SalesSummaryResponse
+        var (start, end) = service.ResolvePeriod(query.From, query.To);
+        var rows = await service.QuerySalesSummaryAsync(query.StoreId, start, end, group, cancellationToken);
+        return TypedResults.Ok(new ReportSalesSummaryResponse
         {
             From = start,
             To = end,
@@ -102,19 +82,17 @@ public static partial class ReportEndpoints
 
     private static async ValueTask<IResult> HandleSalesSummaryCsvAsync(
         ReportService service,
-        Guid? storeId,
-        DateOnly? from,
-        DateOnly? to,
+        [AsParameters] ReportPeriodQuery query,
         string? groupBy,
         CancellationToken cancellationToken)
     {
-        var (start, end) = service.ResolvePeriod(from, to);
-        if ((start > end) || !TryParse(groupBy, SalesSummaryGroupBy.Day, out var group))
+        if (!EnumHelper.TryParse(groupBy, SalesSummaryGroupBy.Day, out var group))
         {
-            return ApiProblems.BadRequest("指定が不正です");
+            return ApiProblems.BadRequest("groupBy が不正です");
         }
 
-        var rows = await service.QuerySalesSummaryAsync(storeId, start, end, group, cancellationToken);
+        var (start, end) = service.ResolvePeriod(query.From, query.To);
+        var rows = await service.QuerySalesSummaryAsync(query.StoreId, start, end, group, cancellationToken);
         rows.Add(ReportService.Sum(rows, group == SalesSummaryGroupBy.TaxRate));
         return CsvExport.Stream(rows.Select(ToExportRow), $"sales-summary-{start:yyyyMMdd}-{end:yyyyMMdd}.csv");
     }
@@ -125,45 +103,36 @@ public static partial class ReportEndpoints
 
     private static async ValueTask<IResult> HandleProductSalesAsync(
         ReportService service,
-        Guid? storeId,
-        DateOnly? from,
-        DateOnly? to,
+        [AsParameters] ReportPeriodQuery query,
         Guid? categoryId,
         string? sort,
         CancellationToken cancellationToken,
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.ProductSalesSize)
     {
-        var (start, end) = service.ResolvePeriod(from, to);
-        if (start > end)
-        {
-            return ApiProblems.BadRequest("期間の指定が不正です");
-        }
-
-        if (!TryParse(sort, ProductSalesSort.NetSales, out var order))
+        if (!EnumHelper.TryParse(sort, ProductSalesSort.NetSales, out var order))
         {
             return ApiProblems.BadRequest("sort が不正です");
         }
 
-        var rows = await service.QueryProductSalesAsync(storeId, start, end, categoryId, order, size, cancellationToken);
-        return TypedResults.Ok(new ProductSalesResponse { Rows = rows.Select(ToResponse).ToList() });
+        var (start, end) = service.ResolvePeriod(query.From, query.To);
+        var rows = await service.QueryProductSalesAsync(query.StoreId, start, end, categoryId, order, size, cancellationToken);
+        return TypedResults.Ok(new ReportProductSalesResponse { Rows = rows.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleProductSalesCsvAsync(
         ReportService service,
-        Guid? storeId,
-        DateOnly? from,
-        DateOnly? to,
+        [AsParameters] ReportPeriodQuery query,
         Guid? categoryId,
         string? sort,
         CancellationToken cancellationToken)
     {
-        var (start, end) = service.ResolvePeriod(from, to);
-        if ((start > end) || !TryParse(sort, ProductSalesSort.NetSales, out var order))
+        if (!EnumHelper.TryParse(sort, ProductSalesSort.NetSales, out var order))
         {
-            return ApiProblems.BadRequest("指定が不正です");
+            return ApiProblems.BadRequest("sort が不正です");
         }
 
-        var rows = await service.QueryProductSalesAsync(storeId, start, end, categoryId, order, ApiDefaults.MaxPageSize, cancellationToken);
+        var (start, end) = service.ResolvePeriod(query.From, query.To);
+        var rows = await service.QueryProductSalesAsync(query.StoreId, start, end, categoryId, order, ApiDefaults.MaxPageSize, cancellationToken);
         return CsvExport.Stream(rows.Select(ToExportRow), $"product-sales-{start:yyyyMMdd}-{end:yyyyMMdd}.csv");
     }
 

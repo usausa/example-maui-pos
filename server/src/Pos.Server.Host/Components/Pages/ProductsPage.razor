@@ -6,7 +6,7 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
     <MudText Typo="Typo.h5">🏷 商品</MudText>
     <MudSpacer />
-    <MudButton StartIcon="@Icons.Material.Filled.FileDownload" Variant="Variant.Outlined" Size="Size.Small" Href="api/v1/products/csv">CSV</MudButton>
+    <MudButton StartIcon="@Icons.Material.Filled.FileDownload" Variant="Variant.Outlined" Size="Size.Small" Href="@ExportUrls.ProductsCsv">CSV</MudButton>
     <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
 </MudStack>
 

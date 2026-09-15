@@ -56,18 +56,18 @@ public sealed partial class CompleteViewModel : AppViewModelBase
             return;
         }
 
-        var isReturn = transaction.Type.IsReturn();
+        var isReturn = transaction.Type == TransactionType.Return;
         Title = isReturn ? "返品完了" : "会計完了";
         Message = isReturn ? "✅ 返品を登録しました" : "✅ ありがとうございました";
         ChangeCaption = isReturn ? "返金額" : "お釣り";
-        ChangeText = DisplayText.Yen(isReturn ? transaction.Total : transaction.ChangeAmount);
-        TotalText = $"合計 {DisplayText.Yen(transaction.Total)}  お預り {DisplayText.Yen(transaction.TenderedTotal)}";
+        ChangeText = ViewHelper.Yen(isReturn ? transaction.Total : transaction.ChangeAmount);
+        TotalText = $"合計 {ViewHelper.Yen(transaction.Total)}  お預り {ViewHelper.Yen(transaction.TenderedTotal)}";
         if ((transaction.PointsEarned != 0) || (transaction.PointsRedeemed != 0))
         {
-            var balance = transaction.PointsBalanceAfter is null ? string.Empty : $"  残高 {DisplayText.Points(transaction.PointsBalanceAfter.Value)}";
+            var balance = transaction.PointsBalanceAfter is null ? string.Empty : $"  残高 {ViewHelper.Points(transaction.PointsBalanceAfter.Value)}";
             PointsText = isReturn
                 ? $"ポイント取消 {-transaction.PointsEarned:#,##0}  返還 {-transaction.PointsRedeemed:#,##0}{balance}"
-                : $"ポイント付与 {DisplayText.Points(transaction.PointsEarned)}  利用 {transaction.PointsRedeemed:#,##0}{balance}";
+                : $"ポイント付与 {ViewHelper.Points(transaction.PointsEarned)}  利用 {transaction.PointsRedeemed:#,##0}{balance}";
         }
 
         ReceiptNoText = $"No. {transaction.ReceiptNo}";
@@ -82,7 +82,7 @@ public sealed partial class CompleteViewModel : AppViewModelBase
 
     // 次へ: 返品ならホーム、販売なら新しい会計
     protected override Task OnNotifyFunction4() =>
-        transaction?.Type.IsReturn() ?? true
+        (transaction is null) || (transaction.Type == TransactionType.Return)
             ? Navigator.ForwardAsync(ViewId.Menu)
-            : Navigator.ForwardAsync(ViewId.Sales, Parameters.Make().WithContext(new SalesContext()));
+            : Navigator.ForwardAsync(ViewId.Sales);
 }

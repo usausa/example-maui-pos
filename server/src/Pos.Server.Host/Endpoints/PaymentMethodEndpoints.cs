@@ -79,10 +79,10 @@ public static partial class PaymentMethodEndpoints
     {
         var entity = ToEntity(request);
         entity.Id = id;
-        var status = await service.UpdateAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
-            : ApiProblems.FromStatus(status, invalidTitle: "ポイントの支払方法は 1 件だけ有効にできます");
+        var result = await service.UpdateAsync(entity, cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse(result.Entity!))
+            : ApiProblems.FromStatus(result.Status, invalidTitle: "ポイントの支払方法は 1 件だけ有効にできます");
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(

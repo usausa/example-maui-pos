@@ -109,10 +109,10 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         Items.Replace(list.Select(static x => new TransactionItem(
             x.Transaction,
             x.Transaction.Type,
-            x.Transaction.Status.IsVoided(),
+            x.Transaction.Status == TransactionStatus.Voided,
             x.Transaction.ReceiptNo,
-            DisplayText.Yen(x.Transaction.Total),
-            $"{DisplayText.DateTime(x.Transaction.TransactedAt)}  {(x.Transaction.CustomerId is null ? string.Empty : "👤")}",
+            ViewHelper.Yen(x.Transaction.Total),
+            $"{ViewHelper.DateTime(x.Transaction.TransactedAt)}  {(x.Transaction.CustomerId is null ? string.Empty : "👤")}",
             x.SyncStatus)));
         CountText = $"{Items.Count} 件";
     }

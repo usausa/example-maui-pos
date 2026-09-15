@@ -2,7 +2,7 @@ namespace Pos.Domain.Enums;
 
 public sealed class ErrorCodeTests
 {
-    // api-design §5 の errorCode 文字列
+    // API の errorCode 文字列
     [Theory]
     [InlineData(ErrorCode.ValidationError, "VALIDATION_ERROR")]
     [InlineData(ErrorCode.NotFound, "NOT_FOUND")]

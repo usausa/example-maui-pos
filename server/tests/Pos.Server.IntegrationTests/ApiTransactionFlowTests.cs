@@ -63,7 +63,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         // 販売の計算 (設計書の例)
         var sale = CreateSaleRequest(shiftId);
         using var calculateResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/calculate", ToCalculateRequest(sale), options);
-        var calculation = await calculateResponse.ReadAsAsync<TransactionCalculationResponse>(HttpStatusCode.OK, options);
+        var calculation = await calculateResponse.ReadAsAsync<TransactionCalculateResponse>(HttpStatusCode.OK, options);
         Assert.Equal(85100m, calculation.Subtotal);
         Assert.Equal(5000m, calculation.DiscountTotal);
         Assert.Equal(80100m, calculation.Total);
@@ -104,7 +104,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
 
         // 副作用: ポイント残高・履歴、在庫、端末の連番
         Assert.Equal(8074, (await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/{InitialData.Customer1Id}", options)).PointBalance);
-        var history = await client.GetJsonAsync<PointHistoryResponse>($"{ApiRoutes.Customers}/{InitialData.Customer1Id}/points/history", options);
+        var history = await client.GetJsonAsync<CustomerPointHistoryResponse>($"{ApiRoutes.Customers}/{InitialData.Customer1Id}/points/history", options);
         Assert.Equal(3, history.Total);
         Assert.Contains(history.Items, static x => (x.Type == PointHistoryType.Redeem) && (x.Points == -5000) && (x.BalanceAfter == 1000));
         Assert.Contains(history.Items, static x => (x.Type == PointHistoryType.Earn) && (x.Points == 7074) && (x.BalanceAfter == 8074));
@@ -119,7 +119,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         var sdCardLine = saleResult.Lines[1];
         var returnRequest = CreateReturnRequest(shiftId, sale.Id, sdCardLine, 1m, "S001-01-000002");
         using var returnCalculateResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/calculate", ToCalculateRequest(returnRequest), options);
-        var returnCalculation = await returnCalculateResponse.ReadAsAsync<TransactionCalculationResponse>(HttpStatusCode.OK, options);
+        var returnCalculation = await returnCalculateResponse.ReadAsAsync<TransactionCalculateResponse>(HttpStatusCode.OK, options);
         Assert.Equal(1976m, returnCalculation.Total);
         Assert.Equal(179m, returnCalculation.TaxTotal);
         Assert.Equal(-18, returnCalculation.PointsEarned);
@@ -158,12 +158,12 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(2, (await client.GetJsonAsync<TransactionResponse>($"{ApiRoutes.Customers}/{InitialData.Customer1Id}/transactions", options)).Total);
 
         // 入出金 (再送は 200)
-        var cashEvent = new CashEventRequest { Id = Guid.NewGuid(), Type = CashEventType.PaidOut, Amount = 10000m, Reason = "両替", StaffId = InitialData.MainCashierStaffId, OccurredAt = Now.AddHours(1) };
+        var cashEvent = new ShiftCashEventRequest { Id = Guid.NewGuid(), Type = CashEventType.PaidOut, Amount = 10000m, Reason = "両替", StaffId = InitialData.MainCashierStaffId, OccurredAt = Now.AddHours(1) };
         using var cashEventResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/cash-events", cashEvent, options);
-        await cashEventResponse.ReadAsAsync<CashEventResponseItem>(HttpStatusCode.Created, options);
+        await cashEventResponse.ReadAsAsync<ShiftCashEventResponseItem>(HttpStatusCode.Created, options);
         using var cashEventAgainResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/cash-events", cashEvent, options);
-        await cashEventAgainResponse.ReadAsAsync<CashEventResponseItem>(HttpStatusCode.OK, options);
-        Assert.Equal(1, (await client.GetJsonAsync<CashEventResponse>($"{ApiRoutes.Shifts}/{shiftId}/cash-events", options)).Total);
+        await cashEventAgainResponse.ReadAsAsync<ShiftCashEventResponseItem>(HttpStatusCode.OK, options);
+        Assert.Equal(1, (await client.GetJsonAsync<ShiftCashEventResponse>($"{ApiRoutes.Shifts}/{shiftId}/cash-events", options)).Total);
 
         // 開設中の集計: 30000 + 25100 − 0 + 0 − 10000
         var opened = await client.GetJsonAsync<ShiftResponseItem>($"{ApiRoutes.Shifts}/{shiftId}", options);
@@ -189,7 +189,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         await lateResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "SHIFT_CLOSED", options);
         using var lateVoidResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", voidRequest, options);
         await lateVoidResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "SHIFT_CLOSED", options);
-        using var lateCashResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/cash-events", new CashEventRequest { Id = Guid.NewGuid(), Type = CashEventType.PaidIn, Amount = 1m, StaffId = InitialData.MainCashierStaffId, OccurredAt = Now.AddHours(9) }, options);
+        using var lateCashResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/cash-events", new ShiftCashEventRequest { Id = Guid.NewGuid(), Type = CashEventType.PaidIn, Amount = 1m, StaffId = InitialData.MainCashierStaffId, OccurredAt = Now.AddHours(9) }, options);
         await lateCashResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "SHIFT_CLOSED", options);
 
         // 精算レポート
@@ -214,7 +214,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         await missingStorePdfResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
 
         // 売上レポート (取消済みは除外)
-        var byDay = await client.GetJsonAsync<SalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary?storeId={InitialData.MainStoreId}&from=2026-09-11&to=2026-09-11&groupBy=day", options);
+        var byDay = await client.GetJsonAsync<ReportSalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary?storeId={InitialData.MainStoreId}&from=2026-09-11&to=2026-09-11&groupBy=day", options);
         var day = Assert.Single(byDay.Rows);
         Assert.Equal("2026-09-11", day.Key);
         Assert.Equal(1, day.TransactionCount);
@@ -222,24 +222,26 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(80100m, byDay.Total.NetSales);
         Assert.Equal(5000m, byDay.Total.DiscountTotal);
         Assert.Equal(7074, byDay.Total.PointsEarned);
-        var byHour = await client.GetJsonAsync<SalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary?storeId={InitialData.MainStoreId}&from=2026-09-11&to=2026-09-11&groupBy=hour", options);
+        var byHour = await client.GetJsonAsync<ReportSalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary?storeId={InitialData.MainStoreId}&from=2026-09-11&to=2026-09-11&groupBy=hour", options);
         Assert.Equal("12", Assert.Single(byHour.Rows).Key);
-        var byPaymentMethod = await client.GetJsonAsync<SalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary?from=2026-09-11&to=2026-09-11&groupBy=paymentMethod", options);
+        var byPaymentMethod = await client.GetJsonAsync<ReportSalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary?from=2026-09-11&to=2026-09-11&groupBy=paymentMethod", options);
         Assert.Equal(3, byPaymentMethod.Rows.Count);
         Assert.Equal(80100m, byPaymentMethod.Total.SalesTotal);
-        var byTaxRate = await client.GetJsonAsync<SalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary?from=2026-09-11&to=2026-09-11&groupBy=taxRate", options);
+        var byTaxRate = await client.GetJsonAsync<ReportSalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary?from=2026-09-11&to=2026-09-11&groupBy=taxRate", options);
         Assert.Equal(7281m, byTaxRate.Total.TaxAmount);
-        var defaultPeriod = await client.GetJsonAsync<SalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary", options);
+        var defaultPeriod = await client.GetJsonAsync<ReportSalesSummaryResponse>($"{ApiRoutes.Reports}/sales/summary", options);
         Assert.Equal(DateOnly.FromDateTime(DateTime.Now), defaultPeriod.To);
         Assert.Equal(defaultPeriod.To.AddDays(-30), defaultPeriod.From);
         using var badGroupResponse = await client.GetAsync(new Uri($"{ApiRoutes.Reports}/sales/summary?from=2026-09-11&to=2026-09-11&groupBy=week", UriKind.Relative), Token);
         await badGroupResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
-        var products = await client.GetJsonAsync<ProductSalesResponse>($"{ApiRoutes.Reports}/sales/products?from=2026-09-11&to=2026-09-11", options);
+        using var badPeriodResponse = await client.GetAsync(new Uri($"{ApiRoutes.Reports}/sales/summary?from=2026-09-12&to=2026-09-11", UriKind.Relative), Token);
+        await badPeriodResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        var products = await client.GetJsonAsync<ReportProductSalesResponse>($"{ApiRoutes.Reports}/sales/products?from=2026-09-11&to=2026-09-11", options);
         Assert.Equal(3, products.Rows.Count);
         Assert.Equal("CAM-X100", products.Rows[0].ProductCode);
         Assert.Equal(75063m, products.Rows[0].NetSales);
         Assert.Equal(75063m - 60000m, products.Rows[0].GrossProfit);
-        var byQuantity = await client.GetJsonAsync<ProductSalesResponse>($"{ApiRoutes.Reports}/sales/products?from=2026-09-11&to=2026-09-11&sort=quantity&size=1", options);
+        var byQuantity = await client.GetJsonAsync<ReportProductSalesResponse>($"{ApiRoutes.Reports}/sales/products?from=2026-09-11&to=2026-09-11&sort=quantity&size=1", options);
         Assert.Equal("SD-64", Assert.Single(byQuantity.Rows).ProductCode);
     }
 
@@ -248,7 +250,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     public async Task InventoryChangesAreIdempotent()
     {
         var client = factory.CreateClient();
-        var before = (await client.GetJsonAsync<ProductInventoryResponse>($"{ApiRoutes.Inventory}/{InitialData.SdCardProductId}", options)).Levels.Single(static x => x.StoreId == InitialData.BranchStoreId).Quantity;
+        var before = (await client.GetJsonAsync<InventoryProductResponse>($"{ApiRoutes.Inventory}/{InitialData.SdCardProductId}", options)).Levels.Single(static x => x.StoreId == InitialData.BranchStoreId).Quantity;
         var request = new InventoryChangeRequest
         {
             Changes =
@@ -298,13 +300,13 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     }
 
     private async Task<decimal> QuantityAsync(HttpClient client, Guid productId) =>
-        (await client.GetJsonAsync<ProductInventoryResponse>($"{ApiRoutes.Inventory}/{productId}", options)).Levels.Single(static x => x.StoreId == InitialData.MainStoreId).Quantity;
+        (await client.GetJsonAsync<InventoryProductResponse>($"{ApiRoutes.Inventory}/{productId}", options)).Levels.Single(static x => x.StoreId == InitialData.MainStoreId).Quantity;
 
     // 設計書の販売例: デジカメ (展示品 5%) + SD カード × 2 + 配送料、取引値引 1,000、ポイント 5,000 + カード 50,000 + 現金 25,100 (預り 30,000)
-    private static TransactionRequest CreateSaleRequest(Guid shiftId)
+    private static TransactionCreateRequest CreateSaleRequest(Guid shiftId)
     {
         var cameraLineId = Guid.NewGuid();
-        return new TransactionRequest
+        return new TransactionCreateRequest
         {
             Id = Guid.NewGuid(),
             Type = TransactionType.Sale,
@@ -319,31 +321,31 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
             TransactedAt = Now,
             Lines =
             [
-                new TransactionRequestLine { Id = cameraLineId, LineNo = 1, ProductId = InitialData.CameraProductId, ProductCode = "CAM-X100", ProductName = "デジタルカメラ X-100", CategoryId = CameraCategoryId, Kind = ProductKind.Goods, ListPrice = 80000m, UnitPrice = 80000m, Quantity = 1m, TaxRateId = InitialData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0.10m, SerialNumbers = ["SN-0001234"] },
-                new TransactionRequestLine { Id = Guid.NewGuid(), LineNo = 2, ProductId = InitialData.SdCardProductId, ProductCode = "SD-64", ProductName = "SD カード 64GB", CategoryId = AccessoryCategoryId, Kind = ProductKind.Goods, ListPrice = 2000m, UnitPrice = 2000m, Quantity = 2m, TaxRateId = InitialData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0.01m },
-                new TransactionRequestLine { Id = Guid.NewGuid(), LineNo = 3, ProductId = InitialData.DeliveryProductId, ProductCode = "SVC-DELIVERY", ProductName = "配送料", CategoryId = ServiceCategoryId, Kind = ProductKind.Service, ListPrice = 1100m, UnitPrice = 1100m, Quantity = 1m, TaxRateId = InitialData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0m }
+                new TransactionCreateRequestLine { Id = cameraLineId, LineNo = 1, ProductId = InitialData.CameraProductId, ProductCode = "CAM-X100", ProductName = "デジタルカメラ X-100", CategoryId = CameraCategoryId, Kind = ProductKind.Goods, ListPrice = 80000m, UnitPrice = 80000m, Quantity = 1m, TaxRateId = InitialData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0.10m, SerialNumbers = ["SN-0001234"] },
+                new TransactionCreateRequestLine { Id = Guid.NewGuid(), LineNo = 2, ProductId = InitialData.SdCardProductId, ProductCode = "SD-64", ProductName = "SD カード 64GB", CategoryId = AccessoryCategoryId, Kind = ProductKind.Goods, ListPrice = 2000m, UnitPrice = 2000m, Quantity = 2m, TaxRateId = InitialData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0.01m },
+                new TransactionCreateRequestLine { Id = Guid.NewGuid(), LineNo = 3, ProductId = InitialData.DeliveryProductId, ProductCode = "SVC-DELIVERY", ProductName = "配送料", CategoryId = ServiceCategoryId, Kind = ProductKind.Service, ListPrice = 1100m, UnitPrice = 1100m, Quantity = 1m, TaxRateId = InitialData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0m }
             ],
             Discounts =
             [
-                new TransactionRequestDiscount { Id = Guid.NewGuid(), LineId = cameraLineId, DiscountId = InitialData.DisplayDiscountId, Name = "展示品 5%", Type = DiscountType.Percent, Value = 0.05m, ApprovedByStaffId = InitialData.ManagerStaffId },
-                new TransactionRequestDiscount { Id = Guid.NewGuid(), Name = "端数値引", Type = DiscountType.Amount, Value = 1000m, Reason = "セット割" }
+                new TransactionCreateRequestDiscount { Id = Guid.NewGuid(), LineId = cameraLineId, DiscountId = InitialData.DisplayDiscountId, Name = "展示品 5%", Type = DiscountType.Percent, Value = 0.05m, ApprovedByStaffId = InitialData.ManagerStaffId },
+                new TransactionCreateRequestDiscount { Id = Guid.NewGuid(), Name = "端数値引", Type = DiscountType.Amount, Value = 1000m, Reason = "セット割" }
             ],
             Payments =
             [
-                new TransactionRequestPayment { Id = Guid.NewGuid(), SeqNo = 1, PaymentMethodId = InitialData.PointsPaymentMethodId, Kind = PaymentKind.Points, Amount = 5000m, TenderedAmount = 5000m },
-                new TransactionRequestPayment { Id = Guid.NewGuid(), SeqNo = 2, PaymentMethodId = InitialData.CardPaymentMethodId, Kind = PaymentKind.Card, Amount = 50000m, TenderedAmount = 50000m, Reference = "CARD-0001" },
-                new TransactionRequestPayment { Id = Guid.NewGuid(), SeqNo = 3, PaymentMethodId = InitialData.CashPaymentMethodId, Kind = PaymentKind.Cash, Amount = 25100m, TenderedAmount = 30000m }
+                new TransactionCreateRequestPayment { Id = Guid.NewGuid(), SeqNo = 1, PaymentMethodId = InitialData.PointsPaymentMethodId, Kind = PaymentKind.Points, Amount = 5000m, TenderedAmount = 5000m },
+                new TransactionCreateRequestPayment { Id = Guid.NewGuid(), SeqNo = 2, PaymentMethodId = InitialData.CardPaymentMethodId, Kind = PaymentKind.Card, Amount = 50000m, TenderedAmount = 50000m, Reference = "CARD-0001" },
+                new TransactionCreateRequestPayment { Id = Guid.NewGuid(), SeqNo = 3, PaymentMethodId = InitialData.CashPaymentMethodId, Kind = PaymentKind.Cash, Amount = 25100m, TenderedAmount = 30000m }
             ],
-            Delivery = new TransactionRequestDelivery { RecipientName = "山田 太郎", Address = "東京都千代田区千代田 1-1-1", RequestedDate = new DateOnly(2026, 9, 14), TimeSlot = "14-16" }
+            Delivery = new TransactionCreateRequestDelivery { RecipientName = "山田 太郎", Address = "東京都千代田区千代田 1-1-1", RequestedDate = new DateOnly(2026, 9, 14), TimeSlot = "14-16" }
         };
     }
 
     // 返品: ポイント返還分 (−pointsRedeemed) をポイント、残りを現金で返金する
-    private static TransactionRequest CreateReturnRequest(Guid shiftId, Guid originalId, TransactionResponseItemLine original, decimal quantity, string receiptNo)
+    private static TransactionCreateRequest CreateReturnRequest(Guid shiftId, Guid originalId, TransactionResponseItemLine original, decimal quantity, string receiptNo)
     {
         var refundPoints = (int)Math.Floor(original.PointsRedeemed * quantity / original.Quantity);
         var netAmount = Math.Floor(original.UnitPrice * quantity) - Math.Floor(original.DiscountAmount * quantity / original.Quantity) - Math.Floor(original.AllocatedDiscountAmount * quantity / original.Quantity);
-        return new TransactionRequest
+        return new TransactionCreateRequest
         {
             Id = Guid.NewGuid(),
             Type = TransactionType.Return,
@@ -359,17 +361,17 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
             OriginalTransactionId = originalId,
             Lines =
             [
-                new TransactionRequestLine { Id = Guid.NewGuid(), LineNo = 1, ProductId = original.ProductId, ProductCode = original.ProductCode, ProductName = original.ProductName, CategoryId = original.CategoryId, Kind = original.Kind, ListPrice = original.ListPrice, UnitPrice = original.UnitPrice, Quantity = quantity, TaxRateId = original.TaxRateId, TaxRate = original.TaxRate, TaxIncluded = original.TaxIncluded, PointRate = original.PointRate, OriginalLineId = original.Id }
+                new TransactionCreateRequestLine { Id = Guid.NewGuid(), LineNo = 1, ProductId = original.ProductId, ProductCode = original.ProductCode, ProductName = original.ProductName, CategoryId = original.CategoryId, Kind = original.Kind, ListPrice = original.ListPrice, UnitPrice = original.UnitPrice, Quantity = quantity, TaxRateId = original.TaxRateId, TaxRate = original.TaxRate, TaxIncluded = original.TaxIncluded, PointRate = original.PointRate, OriginalLineId = original.Id }
             ],
             Payments =
             [
-                new TransactionRequestPayment { Id = Guid.NewGuid(), SeqNo = 1, PaymentMethodId = InitialData.PointsPaymentMethodId, Kind = PaymentKind.Points, Amount = refundPoints, TenderedAmount = refundPoints },
-                new TransactionRequestPayment { Id = Guid.NewGuid(), SeqNo = 2, PaymentMethodId = InitialData.CashPaymentMethodId, Kind = PaymentKind.Cash, Amount = netAmount - refundPoints, TenderedAmount = netAmount - refundPoints }
+                new TransactionCreateRequestPayment { Id = Guid.NewGuid(), SeqNo = 1, PaymentMethodId = InitialData.PointsPaymentMethodId, Kind = PaymentKind.Points, Amount = refundPoints, TenderedAmount = refundPoints },
+                new TransactionCreateRequestPayment { Id = Guid.NewGuid(), SeqNo = 2, PaymentMethodId = InitialData.CashPaymentMethodId, Kind = PaymentKind.Cash, Amount = netAmount - refundPoints, TenderedAmount = netAmount - refundPoints }
             ]
         };
     }
 
-    private static TransactionCalculateRequest ToCalculateRequest(TransactionRequest request) => new()
+    private static TransactionCalculateRequest ToCalculateRequest(TransactionCreateRequest request) => new()
     {
         Type = request.Type,
         OriginalTransactionId = request.OriginalTransactionId,
@@ -379,7 +381,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     };
 
     // 端末が計算した体で、計算項目を応答から写す (明細・値引は並び順で対応)
-    private static void Apply(TransactionRequest request, TransactionCalculationResponse calculation)
+    private static void Apply(TransactionCreateRequest request, TransactionCalculateResponse calculation)
     {
         for (var i = 0; i < request.Lines.Count; i++)
         {
@@ -398,7 +400,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
             request.Discounts[i].Amount = calculation.Discounts[i].Amount;
         }
 
-        request.TaxSummaries = calculation.TaxSummaries.Select(static x => new TransactionRequestTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList();
+        request.TaxSummaries = calculation.TaxSummaries.Select(static x => new TransactionCreateRequestTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList();
         request.Subtotal = calculation.Subtotal;
         request.DiscountTotal = calculation.DiscountTotal;
         request.NetSubtotal = calculation.NetSubtotal;

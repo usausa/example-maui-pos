@@ -1,6 +1,6 @@
 namespace Pos.Domain.Logic;
 
-// api-design §4 の販売計算。入力は変更しない
+// 販売計算。入力は変更しない
 public static partial class SalesLogic
 {
     public static SalesResult Calculate(SalesInput input)
@@ -14,7 +14,7 @@ public static partial class SalesLogic
             lineIndexes[lines[i].Id] = i;
         }
 
-        // §4.1 明細
+        // 明細
         var amounts = new decimal[count];
         for (var i = 0; i < count; i++)
         {
@@ -43,7 +43,7 @@ public static partial class SalesLogic
             lineDiscountAmounts[index] += amount;
         }
 
-        // §4.2 取引値引の按分
+        // 取引値引の按分
         var bases = new decimal[count];
         var baseTotal = 0m;
         for (var i = 0; i < count; i++)
@@ -76,7 +76,7 @@ public static partial class SalesLogic
             netAmounts[i] = bases[i] - allocatedDiscounts[i];
         }
 
-        // §4.3 税 (税率 × 内税/外税 のグループごと)
+        // 税 (税率 × 内税/外税 のグループごと)
         var taxLines = new TaxLine[count];
         for (var i = 0; i < count; i++)
         {
@@ -87,7 +87,7 @@ public static partial class SalesLogic
         var taxSummaries = tax.Summaries;
         var allocatedTaxes = tax.AllocatedTaxes;
 
-        // §4.4 ポイント
+        // ポイント
         var pointsRedeemedTotal = 0m;
         foreach (var payment in input.Payments)
         {

@@ -13,9 +13,11 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
 
     private ViewId returnTo = ViewId.Sales;
 
-    private SalesContext salesContext = new();
-
     private readonly NetworkService network;
+
+    // 販売の画面間で共有する状態 (Scope プラグインが同じインスタンスを注入し、どの画面からも参照されなくなると破棄する)
+    [Scope]
+    public SalesContext SalesContext { get; set; } = default!;
 
     public EntryController Keyword { get; }
 
@@ -28,7 +30,7 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
     public ObservableCollection<CustomerItem> Items { get; } = [];
 
     [ObservableProperty]
-    public partial string EmptyText { get; set; } = "会員番号・電話番号・名前で検索するか、会員証をスキャンしてください。";
+    public partial string Message { get; set; } = "会員番号・電話番号・名前で検索するか、会員証をスキャンしてください。";
 
     public IObserveCommand SearchCommand { get; }
 
@@ -54,8 +56,7 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
         returnTo = context.Parameter.GetCallerReturnTo() ?? context.Parameter.GetReturnTo(ViewId.Sales);
-        salesContext = context.Parameter.GetContext<SalesContext>() ?? new SalesContext();
-        var current = salesContext.Cart.Customer;
+        var current = SalesContext.Cart.Customer;
         HasCustomer = current is not null;
         CurrentText = current is null ? string.Empty : $"👤 現在: {current.Name} ({current.Code})";
 
@@ -85,7 +86,7 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
     // 番号は電卓で入力する (キーボードに依存しない)
     private async Task InputNumberAsync()
     {
-        var text = await popupNavigator.InputDigitsAsync("会員番号 / 電話番号", string.Empty, 13);
+        var text = await popupNavigator.InputCustomerNoAsync();
         if (!String.IsNullOrEmpty(text))
         {
             Keyword.Text = text;
@@ -109,31 +110,31 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
 
         Items.Replace(result.Content!.Items
             .Where(static x => !x.IsDeleted)
-            .Select(static x => new CustomerItem(x, x.Name, DisplayText.Points(x.PointBalance), $"{x.Code}  {x.Phone}".Trim())));
-        EmptyText = "該当する会員がいません。";
+            .Select(static x => new CustomerItem(x, x.Name, ViewHelper.Points(x.PointBalance), $"{x.Code}  {x.Phone}".Trim())));
+        Message = "該当する会員がいません。";
     }
 
     private async Task ApplyAsync(CustomerResponseItem customer)
     {
-        salesContext.Cart.Customer = customer;
-        await dialog.Toast($"👤 {customer.Name} ({DisplayText.Points(customer.PointBalance)})");
-        await Navigator.ForwardAsync(returnTo, Parameters.Make().WithContext(salesContext));
+        SalesContext.Cart.Customer = customer;
+        await dialog.Toast($"👤 {customer.Name} ({ViewHelper.Points(customer.PointBalance)})");
+        await Navigator.ForwardAsync(returnTo);
     }
 
-    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(returnTo, Parameters.Make().WithContext(salesContext));
+    protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(returnTo);
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
     protected override Task OnNotifyFunction2() =>
-        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Customer, ViewId.CustomerSelect, returnTo).WithContext(salesContext));
+        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Customer, ViewId.CustomerSelect, returnTo));
 
     // 新規登録 (登録後はカートへ紐付けて呼び出し元へ)
     protected override Task OnNotifyFunction3() =>
-        Navigator.ForwardAsync(ViewId.CustomerEdit, Parameters.Make().WithReturnTo(returnTo).WithContext(salesContext));
+        Navigator.ForwardAsync(ViewId.CustomerEdit, Parameters.Make().WithReturnTo(returnTo));
 
     protected override async Task OnNotifyFunction4()
     {
-        salesContext.Cart.Customer = null;
-        await Navigator.ForwardAsync(returnTo, Parameters.Make().WithContext(salesContext));
+        SalesContext.Cart.Customer = null;
+        await Navigator.ForwardAsync(returnTo);
     }
 }

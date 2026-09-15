@@ -1,8 +1,8 @@
 namespace Pos.Contract.Sync;
 
+using Pos.Contract.AdjustmentReasons;
 using Pos.Contract.Categories;
 using Pos.Contract.Discounts;
-using Pos.Contract.Inventory;
 using Pos.Contract.PaymentMethods;
 using Pos.Contract.Products;
 using Pos.Contract.Settings;
@@ -11,7 +11,7 @@ using Pos.Contract.Stores;
 using Pos.Contract.TaxRates;
 using Pos.Contract.Terminals;
 
-// since 以降に更新されたマスタ (api-design §3.10)。論理削除済みも isDeleted: true で含む
+// since 以降に更新されたマスタ。論理削除済みも isDeleted: true で含む
 public sealed class SyncMastersResponse
 {
     // 次回の since に使う

@@ -3,23 +3,23 @@ namespace Pos.Contract.Products;
 public sealed class ProductUpdateRequest
 {
     [Required]
-    [MaxLength(20)]
+    [MaxLength(Length.Code)]
     public string Code { get; set; } = default!;
 
-    [MaxLength(20)]
+    [MaxLength(Length.Barcode)]
     public string? Barcode { get; set; }
 
     [Required]
-    [MaxLength(100)]
+    [MaxLength(Length.Name)]
     public string Name { get; set; } = default!;
 
-    [MaxLength(100)]
+    [MaxLength(Length.Kana)]
     public string? Kana { get; set; }
 
-    [MaxLength(50)]
+    [MaxLength(Length.Brand)]
     public string? Brand { get; set; }
 
-    [MaxLength(50)]
+    [MaxLength(Length.ModelNo)]
     public string? ModelNo { get; set; }
 
     public Guid CategoryId { get; set; }
@@ -45,7 +45,7 @@ public sealed class ProductUpdateRequest
 
     public bool AllowsPriceOverride { get; set; }
 
-    [MaxLength(10)]
+    [MaxLength(Length.Unit)]
     public string? Unit { get; set; }
 
     public bool IsActive { get; set; }

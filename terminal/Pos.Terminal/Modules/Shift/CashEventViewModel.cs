@@ -1,8 +1,18 @@
 namespace Pos.Terminal.Modules.Shift;
 
+using Pos.Terminal.Modules.Dialogs;
+
 // 入出金: 種別・金額・理由を ShiftUsecase で登録する (Outbox 経由でサーバへ)
 public sealed partial class CashEventViewModel : AppViewModelBase
 {
+    private static readonly ReasonItem[] Reasons =
+    [
+        new(null, "釣銭補充"),
+        new(null, "両替"),
+        new(null, "経費支払"),
+        new(null, "売上金回収")
+    ];
+
     private readonly IDialog dialog;
 
     private readonly IPopupNavigator popupNavigator;
@@ -18,13 +28,16 @@ public sealed partial class CashEventViewModel : AppViewModelBase
     public partial CashEventType Type { get; set; } = CashEventType.PaidIn;
 
     [ObservableProperty]
-    public partial string AmountText { get; set; } = DisplayText.Yen(0);
+    public partial string AmountText { get; set; } = ViewHelper.Yen(0);
 
-    public EntryController Reason { get; } = new();
+    [ObservableProperty]
+    public partial string? ReasonText { get; set; }
 
     public IObserveCommand SelectTypeCommand { get; }
 
     public IObserveCommand InputAmountCommand { get; }
+
+    public IObserveCommand SelectReasonCommand { get; }
 
     public CashEventViewModel(
         IDialog dialog,
@@ -39,6 +52,7 @@ public sealed partial class CashEventViewModel : AppViewModelBase
 
         SelectTypeCommand = MakeDelegateCommand<string>(SelectType);
         InputAmountCommand = MakeAsyncCommand(InputAmountAsync);
+        SelectReasonCommand = MakeAsyncCommand(SelectReasonAsync);
     }
 
     private void SelectType(string value)
@@ -47,17 +61,26 @@ public sealed partial class CashEventViewModel : AppViewModelBase
         if (Type == CashEventType.NoSale)
         {
             amount = 0;
-            AmountText = DisplayText.Yen(0);
+            AmountText = ViewHelper.Yen(0);
         }
     }
 
     private async Task InputAmountAsync()
     {
-        var text = await popupNavigator.InputNumberAsync("金額", amount.ToString("0", CultureInfo.InvariantCulture), 8);
+        var text = await popupNavigator.InputAmountAsync("金額", amount);
         if ((text is not null) && Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
         {
             amount = value;
-            AmountText = DisplayText.Yen(value);
+            AmountText = ViewHelper.Yen(value);
+        }
+    }
+
+    private async Task SelectReasonAsync()
+    {
+        var reason = await popupNavigator.PopupAsync<ReasonSelectParameter, ReasonSelectResult?>(DialogId.ReasonSelect, new ReasonSelectParameter("理由", Reasons, true));
+        if (reason is not null)
+        {
+            ReasonText = reason.Text;
         }
     }
 
@@ -78,13 +101,13 @@ public sealed partial class CashEventViewModel : AppViewModelBase
             return;
         }
 
-        if (!await dialog.AskAsync($"{DisplayText.Name(Type)} {DisplayText.Yen(amount)} を登録しますか？", null, "確定"))
+        if (!await dialog.AskAsync($"{ViewHelper.Name(Type)} {ViewHelper.Yen(amount)} を登録しますか？", null, "確定"))
         {
             return;
         }
 
-        await shifts.AddCashEventAsync(Type, amount, Reason.Text.TrimToNull());
-        await dialog.Toast($"{DisplayText.Name(Type)}を登録しました。");
+        await shifts.AddCashEventAsync(Type, amount, ReasonText);
+        await dialog.Toast($"{ViewHelper.Name(Type)}を登録しました。");
         await Navigator.ForwardAsync(ViewId.Menu);
     }
 }

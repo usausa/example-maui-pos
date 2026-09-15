@@ -1,1 +1,7 @@
-SELECT COUNT(*) FROM Products WHERE TaxRateId = /*@ taxRateId */'' AND IsDeleted = 0
+SELECT
+    COUNT(*)
+FROM
+    Products
+WHERE
+    TaxRateId = /*@ taxRateId */''
+    AND IsDeleted = 0

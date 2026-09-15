@@ -1,7 +1,5 @@
 namespace Pos.Terminal.Modules.Setup;
 
-using Pos.Terminal.Modules.Sales;
-
 // 役割の文言と色は画面側の Converter で付ける
 public sealed record StaffItem(StaffResponseItem Staff, string Name, StaffRole Role);
 
@@ -54,7 +52,7 @@ public sealed partial class StaffSelectViewModel : AppViewModelBase
 
         // ログイン後に販売画面を開く設定
         return settings.OpenSalesAfterLogin && session.IsShiftOpen
-            ? Navigator.ForwardAsync(ViewId.Sales, Parameters.Make().WithContext(new SalesContext()))
+            ? Navigator.ForwardAsync(ViewId.Sales)
             : Navigator.ForwardAsync(ViewId.Menu);
     }
 

@@ -1,1 +1,6 @@
-SELECT * FROM TransactionDeliveries WHERE TransactionId = /*@ transactionId */''
+SELECT
+    *
+FROM
+    TransactionDeliveries
+WHERE
+    TransactionId = /*@ transactionId */''

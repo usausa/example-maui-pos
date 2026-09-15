@@ -28,8 +28,6 @@ public sealed class AdjustmentReasonService
 
     public ValueTask<DataWriteStatus> InsertAsync(AdjustmentReasonEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
@@ -38,10 +36,8 @@ public sealed class AdjustmentReasonService
         return ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertAdjustmentReasonAsync(entity, cancellationToken));
     }
 
-    public ValueTask<DataWriteStatus> UpdateAsync(AdjustmentReasonEntity entity, CancellationToken cancellationToken)
+    public ValueTask<DataWriteResult<AdjustmentReasonEntity>> UpdateAsync(AdjustmentReasonEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         return ServiceHelper.UpdateAsync(
             dialect,

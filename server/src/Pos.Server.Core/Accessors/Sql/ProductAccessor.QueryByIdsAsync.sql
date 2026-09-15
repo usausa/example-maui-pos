@@ -1,1 +1,6 @@
-SELECT * FROM Products WHERE Id IN /*@ ids */('')
+SELECT
+    *
+FROM
+    Products
+WHERE
+    Id IN /*@ ids */('')

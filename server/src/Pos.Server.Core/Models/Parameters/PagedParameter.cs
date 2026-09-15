@@ -1,9 +1,10 @@
 namespace Pos.Server.Models.Parameters;
 
-// 一覧の並び順とページ。Sort は各サービスが許可した列だけを使う
-public abstract class PagedParameter
+// 一覧の並び順とページ。並び順は資源ごとの列挙型 (先頭が既定)
+public abstract class PagedParameter<TSort>
+    where TSort : struct, Enum
 {
-    public string? Sort { get; init; }
+    public TSort Sort { get; init; }
 
     public bool Desc { get; init; }
 

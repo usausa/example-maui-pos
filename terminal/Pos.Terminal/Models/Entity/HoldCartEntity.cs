@@ -1,6 +1,9 @@
 namespace Pos.Terminal.Models.Entity;
 
-// 会計途中の保留 (端末ローカルのみ、T-17)。Payload は Cart の JSON
+using Smart.Data.Accessor.Attributes;
+
+// 会計途中の保留 (端末ローカルのみ)。Payload は Cart の JSON
+[Name("HoldCarts")]
 public sealed class HoldCartEntity
 {
     [Key]

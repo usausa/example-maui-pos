@@ -7,10 +7,10 @@ using MudBlazor;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
-// S-41 商品別全店在庫
+// 商品別全店在庫
 public sealed partial class ProductInventoryDialog
 {
-    private IReadOnlyList<ProductInventoryLevel> levels = [];
+    private IReadOnlyList<ProductInventoryLevelView> levels = [];
 
     [Parameter]
     public Guid ProductId { get; set; }

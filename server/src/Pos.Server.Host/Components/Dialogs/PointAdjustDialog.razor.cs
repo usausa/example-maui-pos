@@ -6,7 +6,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-62 ポイント調整
+// ポイント調整
 public sealed partial class PointAdjustDialog
 {
     private static readonly PointAdjustFormValidator Validator = new();

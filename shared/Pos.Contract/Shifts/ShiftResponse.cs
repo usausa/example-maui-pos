@@ -2,7 +2,7 @@ namespace Pos.Contract.Shifts;
 
 using Pos.Contract;
 
-// シフト (api-design §3.13)
+// シフト
 public sealed class ShiftResponseItem
 {
     public Guid Id { get; set; }

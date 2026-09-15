@@ -1,6 +1,6 @@
 namespace Pos.Domain.Logic;
 
-// 計算項目 (api-design §3.12 の「計算」区分)。販売・返品で共通
+// 計算項目。販売・返品で共通
 public sealed record SalesResult
 {
     public required IReadOnlyList<SalesResultLine> Lines { get; init; }

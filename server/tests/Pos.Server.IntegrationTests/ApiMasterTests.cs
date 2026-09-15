@@ -154,13 +154,13 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         var customer = await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/lookup?code=M0003", options);
         Assert.Equal(500, customer.PointBalance);
 
-        using var adjustResponse = await client.PostJsonAsync($"{ApiRoutes.Customers}/{customer.Id}/points/adjust", new PointAdjustRequest { Points = 100, Reason = "キャンペーン", StaffId = InitialData.ManagerStaffId }, options);
-        var adjusted = await adjustResponse.ReadAsAsync<PointHistoryResponseItem>(HttpStatusCode.OK, options);
+        using var adjustResponse = await client.PostJsonAsync($"{ApiRoutes.Customers}/{customer.Id}/points/adjust", new CustomerPointAdjustRequest { Points = 100, Reason = "キャンペーン", StaffId = InitialData.ManagerStaffId }, options);
+        var adjusted = await adjustResponse.ReadAsAsync<CustomerPointHistoryResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(PointHistoryType.Adjust, adjusted.Type);
         Assert.Equal(600, adjusted.BalanceAfter);
         Assert.Equal(600, (await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/{customer.Id}", options)).PointBalance);
 
-        var history = await client.GetJsonAsync<PointHistoryResponse>($"{ApiRoutes.Customers}/{customer.Id}/points/history", options);
+        var history = await client.GetJsonAsync<CustomerPointHistoryResponse>($"{ApiRoutes.Customers}/{customer.Id}/points/history", options);
         Assert.Equal(2, history.Total);
         Assert.Equal(600, history.Items[0].BalanceAfter);
         Assert.All(history.Items, x => Assert.Equal(PointHistoryType.Adjust, x.Type));

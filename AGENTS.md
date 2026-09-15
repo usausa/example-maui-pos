@@ -9,12 +9,15 @@
 # Project Rules
 
 - **Structure:** Monorepo. `server/Pos.Server.slnx` (ASP.NET Core) and `terminal/Pos.Terminal.slnx` (MAUI) are opened separately, both include the `shared/` projects. See `docs/architecture.md`
-- **Layers:** SQL lives only in Accessors. Server: Endpoints and Blazor pages call `Services/` (`XxxService`), which use Accessors and `Pos.Domain`; Razor display formatting lives only in `ViewHelper` / `ViewExtensions`. Terminal: ViewModels call `Services/` (`XxxService` for a single function, `XxxUsecase` for a sequence, `XxxBuilder` for building); no `IDbProvider` in ViewModels
-- **Naming:** Communication data is `XxxRequest` / `XxxResponse`; a list is `XxxResponse` whose `Items` are `XxxResponseItem` (nested elements append the element name: `TransactionResponseItemLine`). Never use the word "DTO" in code, namespaces or documents
+- **Layers:** SQL lives only in Accessors. Server: Endpoints and Blazor pages call `Services/` (`XxxService`), which use Accessors and `Pos.Domain`; Razor display formatting lives only in `ViewHelper` / `ViewExtensions`. Terminal: ViewModels call `Services/` (`XxxService`, a single function) and `Usecases/` (`XxxUsecase`, a sequence); `XxxBuilder` only builds text or images (data conversion is `XxxMapper` / `XxxCalculator`); no `IDbProvider` in ViewModels; state shared between the screens of one feature is a `[Scope]` property (Smart.Navigation Scope plugin), not a navigation parameter
+- **Naming:** Communication data is `XxxRequest` / `XxxResponse` named after the endpoint class and method (`TransactionCreateRequest`, `ReportSalesSummaryResponse`); a list is `XxxResponse` whose `Items` are `XxxResponseItem` (nested elements append the element name: `TransactionResponseItemLine`). Server read models are `XxxView`, sort orders are enums in `Models/Enums`. Never use the word "DTO" in code, namespaces or documents
 - **Source comments:** Source is the source of truth: do not reference design documents (section numbers, `§`, screen IDs, decision numbers) from source code
 - **JSON:** camelCase, `null` properties omitted, UTC datetime as `yyyy-MM-ddTHH:mm:ss.fffZ`
 - **Database:** SQLite with `Usa.Smart.Data.Accessor` (2-way SQL files), no ORM. Design in `docs/db-design.md`
-- **SQL format:** `SELECT` / `FROM` / `WHERE` / `ORDER BY` each on its own line, columns and conditions indented on the following lines
+- **SQL format:** `SELECT` / `FROM` / `WHERE` / `ORDER BY` / `UPDATE` / `SET` each on its own line, table names, columns and conditions indented on the following lines (`AND` at the start of the line). Sort columns come from an enum expanded inside the 2-way SQL (`/*# sort.ToString() */`), never from a caller-built string
+- **Lengths:** String lengths (contract `MaxLength`, form validators, terminal digit counts) are the constants in `Pos.Domain.Length`
+- **No null guards:** Do not write `ArgumentNullException.ThrowIfNull`
+- **Terminal input:** No physical keyboard; numbers are entered with the calculator popups in `PopupNavigatorExtensions` (one method per kind of input), reasons are chosen from presets; the software keyboard is only for text fields (customer, delivery, search) and settings
 - **UI language:** Japanese only, no localization resources
 - **Design docs:** Record decisions in `docs/decisions.md` and update the affected design document before closing a phase (`docs/implementation-plan.md`)
 

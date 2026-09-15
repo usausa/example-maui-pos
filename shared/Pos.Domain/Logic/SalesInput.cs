@@ -1,6 +1,6 @@
 namespace Pos.Domain.Logic;
 
-// 販売の計算入力 (api-design §4)。Request / Response とは別の純粋な型
+// 販売の計算入力。Request / Response とは別の純粋な型
 public sealed record SalesInput
 {
     public required TaxRounding TaxRounding { get; init; }

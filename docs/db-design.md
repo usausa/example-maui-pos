@@ -18,7 +18,7 @@
 | --- | --- |
 | RDBMS | **SQLite** (`Microsoft.Data.Sqlite`)。接続文字列は `Data Source=pos.db;Cache=Shared;Pooling=True`。WAL と `busy_timeout` を起動時の PRAGMA で設定する |
 | データアクセス | `Usa.Smart.Data.Accessor` の `[DataAccessor]` + 2-way SQL ファイル (`Accessors/Sql/{Accessor}.{Method}.sql`)。ORM は使わない。SQL は Accessor だけが持ち、Accessor を使うのは `Services/` の Service だけ ([D-45](decisions.md#d-45-サーバの-service-層)) |
-| スキーマ作成 | 起動時に `{Accessor}.Create.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を実行する。後から増えた列は `SqlHelper.EnsureColumnAsync` (`PRAGMA table_info` で確認して `ALTER TABLE ADD COLUMN`) で既存の DB に足す |
+| スキーマ作成 | 起動時に `{Accessor}.Create.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を実行する。後から増えた列は `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確認して `ALTER TABLE ADD COLUMN`) で既存の DB に足す |
 | 命名 | テーブル = 複数形 PascalCase (`Transactions`)、列 = PascalCase。FK は `〜Id`。エンティティクラスは `{Table 単数}Entity` (`TransactionEntity`) |
 | 主キー | `guid` を **TEXT (36 文字。`Microsoft.Data.Sqlite` の既定で大文字)** で保存。端末発のデータは端末が GUID v7 を採番 ([D-10](decisions.md#d-10-冪等性-クライアント採番-id)) |
 | 列挙型 | TEXT (列挙名)。汎用 `EnumTextConverter<T>` を `DataProfile` (`[AccessorProfile]`) に列挙型ごとに宣言し、各 Accessor が `[ExecuteConfig(typeof(DataProfile))]` で参照する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。値は API の enum と同じ |
@@ -26,7 +26,7 @@
 | 監査列 | `CreatedAt` / `UpdatedAt` (UTC)。マスタ系は楽観ロック用 `Version` (INTEGER、更新ごとに +1) |
 | 履歴 | 取引・シフト・入出金・在庫変動・ポイント履歴は**更新・削除しない** (取消も `Status` 更新 + 逆方向の履歴追加) |
 | スナップショット | 取引明細は商品名・単価・税率・還元率を販売時点の値で保持する。マスタ変更が過去の取引に影響しない |
-| 外部キー | `FOREIGN KEY` は宣言するが、SQLite の既定では強制されないため接続文字列の `Foreign Keys=True` で接続ごとに有効化する (WAL と busy_timeout は起動時の `DatabaseAccessor.ExecutePragmaAsync`) |
+| 外部キー | `FOREIGN KEY` は宣言するが、SQLite の既定では強制されないため接続文字列の `Foreign Keys=True` で接続ごとに有効化する (WAL と busy_timeout は起動時の `GenericAccessor.ExecutePragmaAsync`) |
 
 型の表記 (C# ↔ SQLite):
 
@@ -766,11 +766,14 @@ public sealed partial class TransactionAccessor
 
 - 2-way SQL の POCO 引数 (`/*@ entity.Prop */`) にはコンバータが効かないので、列挙型・日付を渡す UPDATE はスカラー引数で書く (`UpdateAsync(id, code, ..., kind, updatedAt, version)`)。  
   INSERT は Builder (`[Insert]`) を使う
-- 生 SQL (`/*# sort */Id`) のプレースホルダは 1 トークン。  
-  並び替えは呼び出し側が `SqlHelper.NormalizeSort` で検証した `"Column DESC"` を渡す
-- 集計は `Models/` の record (`ShiftTotals` / `SalesSummaryRow` など) に列名で写す
+- 生 SQL (`/*# sort.ToString() */Code`) のプレースホルダは 1 トークン。  
+  並び替えは列挙型 (`StoreSort` など。列挙名 = 列名、先頭が既定) を受け取り、`/*% if (desc) { */` で `DESC` を付ける (差分同期の `UpdatedAt, Id` 順も SQL 側の分岐)
+- 更新は `UPDATE ... RETURNING *` で更新後の行を返す (`[QueryFirst]`。null = 競合または削除済み)
+- 集計は `Models/Views` の `XxxView` (`ShiftTotalsView` / `SalesSummaryView` など) に列名で写す
+- SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列・条件を次の行に字下げする (`UPDATE` の次の行に表名)。  
+  初期データは Host の `Assets/Data/InitialData.sql` (複数の `INSERT`。`@now` は投入時刻) を起動時に読み、`GenericAccessor.ExecuteScriptAsync` (`[DirectSql]`) で会社設定がない DB へ 1 トランザクションで投入する
 
-起動時の PRAGMA (`DatabaseAccessor.ExecutePragmaAsync.sql`。WAL は DB ファイルに永続化される):
+起動時の PRAGMA (`GenericAccessor.ExecutePragmaAsync.sql`。WAL は DB ファイルに永続化される):
 
 ```sql
 PRAGMA journal_mode = WAL;
@@ -821,7 +824,7 @@ SQLite は書き込みが直列化される (単一ライター) ため、サー
 MAUI 側のローカル DB。  
 `Microsoft.Data.Sqlite` + Smart.Data.Accessor (`DataAccessor` + `Services/Sql/*.sql`) で扱い、日時は INTEGER (UTC ticks) + `DateTimeTicksConverter` で保存する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。  
 ローカルのエンティティ (`[Key]` あり) のキーによる取得・削除は `[SelectSingle]` / `[Delete]` で生成し、SQL ファイルは `SELECT` / `FROM` / `WHERE` / `ORDER BY` を行頭に置いて列と条件を字下げする。  
-書き込みは `Services/` の Usecase が行い、1 文だけの書き込みにはトランザクションを使わない。
+書き込みは `Usecases/` の Usecase が行い、1 文だけの書き込みにはトランザクションを使わない。
 
 | テーブル | 内容 |
 | --- | --- |

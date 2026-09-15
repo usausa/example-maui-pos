@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("Discounts")]
 public sealed class DiscountEntity
 {
     [Key]

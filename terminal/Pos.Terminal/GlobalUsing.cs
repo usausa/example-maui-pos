@@ -53,7 +53,9 @@ global using Smart.Text;
 
 global using SkiaSharp;
 
+global using Pos.Domain;
 global using Pos.Domain.Enums;
+global using Pos.Contract.AdjustmentReasons;
 global using Pos.Contract.Categories;
 global using Pos.Contract.Discounts;
 global using Pos.Contract.Inventory;
@@ -70,7 +72,9 @@ global using Pos.Terminal.Helpers;
 global using Pos.Terminal.Messaging;
 global using Pos.Terminal.Models;
 global using Pos.Terminal.Models.Input;
+global using Pos.Terminal.Modules.Helpers;
 global using Pos.Terminal.Services;
+global using Pos.Terminal.Usecases;
 global using Pos.Terminal.State;
 
 global using KeyAttribute = Smart.Data.Accessor.Attributes.KeyAttribute;

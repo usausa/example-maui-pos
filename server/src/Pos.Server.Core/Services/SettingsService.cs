@@ -20,17 +20,16 @@ public sealed class SettingsService
     public ValueTask<SettingsEntity?> QueryAsync(CancellationToken cancellationToken) =>
         masterAccessor.QuerySettingsAsync(cancellationToken);
 
-    // 更新 0 件は、行がなければ NotFound、あれば VersionMismatch
-    public async ValueTask<DataWriteStatus> UpdateAsync(SettingsEntity entity, CancellationToken cancellationToken)
+    // 更新後の行が返らなければ、行がなければ NotFound、あれば VersionMismatch
+    public async ValueTask<DataWriteResult<SettingsEntity>> UpdateAsync(SettingsEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
-        if (await masterAccessor.UpdateSettingsAsync(entity.CompanyName, entity.Currency, entity.TaxRounding, entity.PointBasis, entity.BusinessDayStartTime, entity.UpdatedAt, entity.Version, cancellationToken) > 0)
+        var updated = await masterAccessor.UpdateSettingsAsync(entity.CompanyName, entity.Currency, entity.TaxRounding, entity.PointBasis, entity.BusinessDayStartTime, entity.UpdatedAt, entity.Version, cancellationToken);
+        if (updated is not null)
         {
-            return DataWriteStatus.Success;
+            return new DataWriteResult<SettingsEntity>(DataWriteStatus.Success, updated);
         }
 
-        return await masterAccessor.QuerySettingsAsync(cancellationToken) is null ? DataWriteStatus.NotFound : DataWriteStatus.VersionMismatch;
+        return new DataWriteResult<SettingsEntity>(await masterAccessor.QuerySettingsAsync(cancellationToken) is null ? DataWriteStatus.NotFound : DataWriteStatus.VersionMismatch, null);
     }
 }

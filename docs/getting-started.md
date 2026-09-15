@@ -30,7 +30,7 @@ dotnet run --project server/src/Pos.Server.Host
   ポートは `appsettings.json` の `http_ports`
 - API 仕様 (開発時): http://localhost:8080/swagger 、http://localhost:8080/redoc 、`/openapi/v1.json`
 - データベース (SQLite `pos.db`、実行ディレクトリ) は起動時に自動作成され、初期データ (店舗 2 / 端末 3 / スタッフ / 税率 / 支払方法 / 部門・商品 33 / 値引 / 会員 5 / 在庫) が投入される ([architecture.md §6](architecture.md#6-初期データ))。  
-  後から増えた列は起動時に既存の DB へ足す (`SqlHelper.EnsureColumnAsync`)
+  後から増えた列は起動時に既存の DB へ足す (`SchemaHelper.EnsureColumnAsync`)
 - Aspire で起動する場合は `dotnet run --project server/src/Pos.Server.AppHost` (ダッシュボードは http://localhost:15000)
 - Visual Studio では `server/Pos.Server.slnx` を開いて `Pos.Server.Host` を実行
 

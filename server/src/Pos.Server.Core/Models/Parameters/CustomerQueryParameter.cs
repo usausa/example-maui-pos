@@ -1,7 +1,7 @@
 namespace Pos.Server.Models.Parameters;
 
 // 会員一覧の絞り込み (keyword は code / name / kana / phone の部分一致)
-public sealed class CustomerQueryParameter : PagedParameter
+public sealed class CustomerQueryParameter : PagedParameter<CustomerSort>
 {
     public string? Keyword { get; init; }
 

@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("PointHistories")]
 public sealed class PointHistoryEntity
 {
     [Key]

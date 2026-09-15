@@ -21,11 +21,13 @@ public sealed partial class SalesViewModel : AppViewModelBase
 
     private readonly IPopupNavigator popupNavigator;
 
-    private SalesContext salesContext = new();
-
     private readonly DataAccessor accessor;
 
     private readonly SalesUsecase sales;
+
+    // 販売の画面間で共有する状態 (Scope プラグインが同じインスタンスを注入し、どの画面からも参照されなくなると破棄する)
+    [Scope]
+    public SalesContext SalesContext { get; set; } = default!;
 
     [ObservableProperty]
     public partial string CustomerText { get; set; } = string.Empty;
@@ -68,16 +70,16 @@ public sealed partial class SalesViewModel : AppViewModelBase
         this.accessor = accessor;
         this.sales = sales;
 
-        CustomerCommand = MakeAsyncCommand(() => Navigator.ForwardAsync(ViewId.CustomerSelect, Parameters.Make().WithReturnTo(ViewId.Sales).WithContext(salesContext)));
+        CustomerCommand = MakeAsyncCommand(() => Navigator.ForwardAsync(ViewId.CustomerSelect, Parameters.Make().WithReturnTo(ViewId.Sales)));
         ClearCustomerCommand = MakeDelegateCommand(() =>
         {
-            salesContext.Cart.Customer = null;
+            SalesContext.Cart.Customer = null;
             Refresh();
         });
         EditLineCommand = MakeAsyncCommand<CartLineItem>(EditLineAsync);
         DeleteLineCommand = MakeDelegateCommand<CartLineItem>(x =>
         {
-            salesContext.Cart.Lines.Remove(x.Line);
+            SalesContext.Cart.Lines.Remove(x.Line);
             Refresh();
         });
         MoreCommand = MakeAsyncCommand(MoreAsync);
@@ -85,7 +87,6 @@ public sealed partial class SalesViewModel : AppViewModelBase
 
     public override Task OnNavigatedToAsync(INavigationContext context)
     {
-        salesContext = context.Parameter.GetContext<SalesContext>() ?? new SalesContext();
         Refresh();
         return Task.CompletedTask;
     }
@@ -93,9 +94,9 @@ public sealed partial class SalesViewModel : AppViewModelBase
     // 明細の表示と合計を計算し直す
     private void Refresh()
     {
-        var cart = salesContext.Cart;
+        var cart = SalesContext.Cart;
         HasCustomer = cart.Customer is not null;
-        CustomerText = cart.Customer is null ? "👤 会員を選択" : $"👤 {cart.Customer.Name}  {DisplayText.Points(cart.Customer.PointBalance)}";
+        CustomerText = cart.Customer is null ? "👤 会員を選択" : $"👤 {cart.Customer.Name}  {ViewHelper.Points(cart.Customer.PointBalance)}";
 
         var result = sales.Calculate(cart, []);
         var items = new List<CartLineItem>(cart.Lines.Count);
@@ -104,21 +105,21 @@ public sealed partial class SalesViewModel : AppViewModelBase
             var line = cart.Lines[i];
             var calculated = result.Lines[i];
             var discount = calculated.DiscountAmount + calculated.AllocatedDiscountAmount;
-            var detail = $"{DisplayText.Yen(line.UnitPrice)} × {DisplayText.Quantity(line.Quantity)}";
+            var detail = $"{ViewHelper.Yen(line.UnitPrice)} × {ViewHelper.Quantity(line.Quantity)}";
             if (discount != 0m)
             {
-                detail += $"  -{DisplayText.Yen(discount)}";
+                detail += $"  -{ViewHelper.Yen(discount)}";
             }
 
             var note = String.Join("  ", new[] { line.SerialNumbers.Count > 0 ? "S/N " + String.Join(",", line.SerialNumbers) : null, line.Note }.Where(static x => !String.IsNullOrEmpty(x)));
-            items.Add(new CartLineItem(line, line.Product.Name, detail, DisplayText.Yen(calculated.NetAmount), note, note.Length > 0));
+            items.Add(new CartLineItem(line, line.Product.Name, detail, ViewHelper.Yen(calculated.NetAmount), note, note.Length > 0));
         }
 
         Lines.Replace(items);
         HasLines = items.Count > 0;
-        SubtotalText = $"小計 {DisplayText.Yen(result.Subtotal)}";
-        DiscountText = result.DiscountTotal == 0m ? string.Empty : $"値引 -{DisplayText.Yen(result.DiscountTotal)}";
-        TotalText = $"合計 {DisplayText.Yen(result.Total)}  (内消費税 {DisplayText.Yen(result.TaxTotal)})";
+        SubtotalText = $"小計 {ViewHelper.Yen(result.Subtotal)}";
+        DiscountText = result.DiscountTotal == 0m ? string.Empty : $"値引 -{ViewHelper.Yen(result.DiscountTotal)}";
+        TotalText = $"合計 {ViewHelper.Yen(result.Total)}  (内消費税 {ViewHelper.Yen(result.TaxTotal)})";
     }
 
     private async Task EditLineAsync(CartLineItem item)
@@ -127,7 +128,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
         var result = await popupNavigator.PopupAsync<LineEditParameter, LineEditResult>(DialogId.LineEdit, new LineEditParameter(item.Line, discounts));
         if (result == LineEditResult.Delete)
         {
-            salesContext.Cart.Lines.Remove(item.Line);
+            SalesContext.Cart.Lines.Remove(item.Line);
         }
 
         Refresh();
@@ -135,7 +136,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
 
     private async Task MoreAsync()
     {
-        var cart = salesContext.Cart;
+        var cart = SalesContext.Cart;
         var actions = new List<(string Label, MoreAction Action)>
         {
             ("🏷 取引値引", MoreAction.Discount),
@@ -175,7 +176,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
                 break;
 
             case MoreAction.Delivery:
-                await Navigator.ForwardAsync(ViewId.Delivery, Parameters.Make().WithContext(salesContext));
+                await Navigator.ForwardAsync(ViewId.Delivery);
                 break;
 
             case MoreAction.Hold:
@@ -186,19 +187,19 @@ public sealed partial class SalesViewModel : AppViewModelBase
                 }
 
                 await sales.HoldAsync(cart);
-                salesContext.Reset();
+                SalesContext.Reset();
                 Refresh();
                 await dialog.Toast("保留しました。");
                 break;
 
             case MoreAction.Recall:
-                await Navigator.ForwardAsync(ViewId.Hold, Parameters.Make().WithContext(salesContext));
+                await Navigator.ForwardAsync(ViewId.Hold);
                 break;
 
             case MoreAction.Clear:
                 if (cart.IsEmpty || await dialog.AskAsync("明細をすべて削除しますか？", null, "削除"))
                 {
-                    salesContext.Reset();
+                    SalesContext.Reset();
                     Refresh();
                 }
 
@@ -211,27 +212,27 @@ public sealed partial class SalesViewModel : AppViewModelBase
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
     protected override Task OnNotifyFunction2() =>
-        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Product, ViewId.Sales).WithContext(salesContext));
+        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Product, ViewId.Sales));
 
     protected override Task OnNotifyFunction3() =>
-        Navigator.ForwardAsync(ViewId.ProductSearch, Parameters.Make().WithReturnTo(ViewId.Sales).WithContext(salesContext));
+        Navigator.ForwardAsync(ViewId.ProductSearch, Parameters.Make().WithReturnTo(ViewId.Sales));
 
     protected override async Task OnNotifyFunction4()
     {
-        if (salesContext.Cart.IsEmpty)
+        if (SalesContext.Cart.IsEmpty)
         {
             await dialog.InformationAsync("明細がありません。");
             return;
         }
 
         // シリアル番号が必要な商品の確認
-        var missing = salesContext.Cart.Lines.FirstOrDefault(static x => x.Product.RequiresSerial && (x.SerialNumbers.Count == 0));
+        var missing = SalesContext.Cart.Lines.FirstOrDefault(static x => x.Product.RequiresSerial && (x.SerialNumbers.Count == 0));
         if (missing is not null)
         {
             await dialog.InformationAsync($"{missing.Product.Name} のシリアル番号を入力してください。");
             return;
         }
 
-        await Navigator.ForwardAsync(ViewId.Payment, Parameters.Make().WithContext(salesContext));
+        await Navigator.ForwardAsync(ViewId.Payment);
     }
 }

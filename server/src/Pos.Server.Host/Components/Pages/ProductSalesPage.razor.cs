@@ -1,22 +1,21 @@
 namespace Pos.Server.Host.Components.Pages;
 
-using System.Text.Json;
-
 using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
+using Pos.Server.Host.Application.State;
+using Pos.Server.Host.Application.Urls;
 using Pos.Server.Models.Entity;
-using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
-// S-11 商品別売上
+// 商品別売上
 public sealed partial class ProductSalesPage
 {
     private const int RowLimit = 100;
 
-    private List<ProductSalesRow> rows = [];
+    private List<ProductSalesView> rows = [];
     private List<CategoryEntity> categories = [];
     private DateRange? period;
     private Guid? storeId;
@@ -35,8 +34,7 @@ public sealed partial class ProductSalesPage
     private (DateOnly Start, DateOnly End) Period =>
         ReportService.ResolvePeriod(ToDateOnly(period?.Start), ToDateOnly(period?.End));
 
-    private string CsvUrl =>
-        $"api/v1/reports/sales/products/csv?from={Period.Start:yyyy-MM-dd}&to={Period.End:yyyy-MM-dd}&sort={JsonNamingPolicy.CamelCase.ConvertName(sort.ToString())}{(storeId is null ? string.Empty : $"&storeId={storeId}")}{(categoryId is null ? string.Empty : $"&categoryId={categoryId}")}";
+    private string CsvUrl => ExportUrls.ProductSalesCsv(Period.Start, Period.End, sort, storeId, categoryId);
 
     protected override async Task OnInitializedAsync()
     {

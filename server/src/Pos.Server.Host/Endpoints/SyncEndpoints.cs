@@ -38,7 +38,7 @@ public static class SyncEndpoints
             Products = data.Products.Select(ProductEndpoints.ToResponse).ToList(),
             Discounts = data.Discounts.Select(DiscountEndpoints.ToResponse).ToList(),
             PaymentMethods = data.PaymentMethods.Select(PaymentMethodEndpoints.ToResponse).ToList(),
-            AdjustmentReasons = data.AdjustmentReasons.Select(InventoryEndpoints.ToResponse).ToList(),
+            AdjustmentReasons = data.AdjustmentReasons.Select(AdjustmentReasonEndpoints.ToResponse).ToList(),
             ProductsTruncated = false
         });
     }

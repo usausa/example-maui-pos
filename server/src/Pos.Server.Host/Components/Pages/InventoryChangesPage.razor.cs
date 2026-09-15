@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
+using Pos.Server.Host.Application.Lookup;
+using Pos.Server.Host.Application.State;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
 
-// S-42 在庫変動履歴
+// 在庫変動履歴
 public sealed partial class InventoryChangesPage
 {
     private const int SearchLimit = 20;

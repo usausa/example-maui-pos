@@ -1,5 +1,7 @@
-UPDATE Stores
-SET Code = /*@ code */'',
+UPDATE
+    Stores
+SET
+    Code = /*@ code */'',
     Name = /*@ name */'',
     PostalCode = /*@ postalCode */'',
     Address = /*@ address */'',
@@ -11,4 +13,9 @@ SET Code = /*@ code */'',
     IsActive = /*@ isActive */1,
     UpdatedAt = /*@ updatedAt */'',
     Version = Version + 1
-WHERE Id = /*@ id */'' AND Version = /*@ version */0 AND IsDeleted = 0
+WHERE
+    Id = /*@ id */''
+    AND Version = /*@ version */0
+    AND IsDeleted = 0
+RETURNING
+    *

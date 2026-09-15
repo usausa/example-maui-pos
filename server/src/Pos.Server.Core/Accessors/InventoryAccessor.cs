@@ -22,19 +22,19 @@ public sealed partial class InventoryAccessor
     public partial ValueTask<List<InventoryLevelEntity>> QueryLevelListAsync(Guid? storeId, Guid? productId, Guid? categoryId, bool negativeOnly, DateTime? updatedSince, int limit, int offset, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(InventoryLevelEntity), Table = "InventoryLevels")]
+    [SelectSingle(typeof(InventoryLevelEntity))]
     public partial ValueTask<InventoryLevelEntity?> QueryLevelAsync(DbTransaction tx, Guid storeId, Guid productId, CancellationToken cancellationToken);
 
     // 商品の全店舗在庫 (他店在庫照会)
     [Query]
-    public partial ValueTask<List<ProductInventoryLevel>> QueryLevelsByProductAsync(Guid productId, CancellationToken cancellationToken);
+    public partial ValueTask<List<ProductInventoryLevelView>> QueryLevelsByProductAsync(Guid productId, CancellationToken cancellationToken);
 
     // 管理画面の現在庫一覧 (店舗名・商品名付き)。keyword は LIKE パターン
     [ExecuteScalar]
     public partial ValueTask<long> CountLevelDetailsAsync(Guid? storeId, Guid? categoryId, string? keyword, bool negativeOnly, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<InventoryLevelDetail>> QueryLevelDetailListAsync(Guid? storeId, Guid? categoryId, string? keyword, bool negativeOnly, string sort, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<InventoryLevelDetailView>> QueryLevelDetailListAsync(Guid? storeId, Guid? categoryId, string? keyword, bool negativeOnly, InventoryLevelDetailSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // UPSERT で加減算し、更新後の数量を返す
     [ExecuteScalar]
@@ -45,11 +45,11 @@ public sealed partial class InventoryAccessor
     //--------------------------------------------------------------------------------
 
     [Execute]
-    [Insert(typeof(InventoryChangeEntity), Table = "InventoryChanges")]
+    [Insert(typeof(InventoryChangeEntity))]
     public partial ValueTask<int> InsertChangeAsync(DbTransaction tx, InventoryChangeEntity entity, CancellationToken cancellationToken);
 
     [QueryFirst]
-    [SelectSingle(typeof(InventoryChangeEntity), Table = "InventoryChanges")]
+    [SelectSingle(typeof(InventoryChangeEntity))]
     public partial ValueTask<InventoryChangeEntity?> QueryChangeAsync(Guid id, CancellationToken cancellationToken);
 
     // from / to は UTC 日時 (to は含まない)

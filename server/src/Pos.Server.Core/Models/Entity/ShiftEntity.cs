@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("Shifts")]
 public sealed class ShiftEntity
 {
     [Key]

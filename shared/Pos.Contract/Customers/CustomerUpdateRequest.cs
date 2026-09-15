@@ -3,31 +3,31 @@ namespace Pos.Contract.Customers;
 public sealed class CustomerUpdateRequest
 {
     [Required]
-    [MaxLength(20)]
+    [MaxLength(Length.Code)]
     public string Code { get; set; } = default!;
 
     [Required]
-    [MaxLength(100)]
+    [MaxLength(Length.Name)]
     public string Name { get; set; } = default!;
 
-    [MaxLength(100)]
+    [MaxLength(Length.Kana)]
     public string? Kana { get; set; }
 
-    [MaxLength(20)]
+    [MaxLength(Length.Phone)]
     public string? Phone { get; set; }
 
-    [MaxLength(100)]
+    [MaxLength(Length.Email)]
     public string? Email { get; set; }
 
-    [MaxLength(10)]
+    [MaxLength(Length.PostalCode)]
     public string? PostalCode { get; set; }
 
-    [MaxLength(200)]
+    [MaxLength(Length.Address)]
     public string? Address { get; set; }
 
     public DateOnly? BirthDate { get; set; }
 
-    [MaxLength(500)]
+    [MaxLength(Length.Note)]
     public string? Note { get; set; }
 
     public int Version { get; set; }

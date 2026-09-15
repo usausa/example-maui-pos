@@ -1,23 +1,22 @@
 namespace Pos.Server.Host.Components.Pages;
 
-using System.Text.Json;
-
 using Microsoft.AspNetCore.Components;
 
 using MudBlazor;
 
-using Pos.Server.Models.Parameters;
+using Pos.Server.Host.Application.State;
+using Pos.Server.Host.Application.Urls;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
-// S-10 売上集計 (グラフ・CSV・売上日報 PDF)
+// 売上集計 (グラフ・CSV・売上日報 PDF)
 public sealed partial class SalesSummaryPage
 {
     // 目盛は 10 本まで
     private readonly BarChartOptions chartOptions = new() { YAxisTicks = 10000, MaxNumYAxisTicks = 10 };
 
-    private List<SalesSummaryRow> rows = [];
-    private SalesSummaryRow total = ReportService.Sum([], false);
+    private List<SalesSummaryView> rows = [];
+    private SalesSummaryView total = ReportService.Sum([], false);
     private List<ChartSeries<double>> chartSeries = [];
     private string[] chartLabels = [];
     private DateRange? period;
@@ -35,11 +34,10 @@ public sealed partial class SalesSummaryPage
     private (DateOnly Start, DateOnly End) Period =>
         ReportService.ResolvePeriod(ToDateOnly(period?.Start), ToDateOnly(period?.End));
 
-    private string CsvUrl =>
-        $"api/v1/reports/sales/summary/csv?from={Period.Start:yyyy-MM-dd}&to={Period.End:yyyy-MM-dd}&groupBy={JsonNamingPolicy.CamelCase.ConvertName(groupBy.ToString())}{(storeId is null ? string.Empty : $"&storeId={storeId}")}";
+    private string CsvUrl => ExportUrls.SalesSummaryCsv(Period.Start, Period.End, groupBy, storeId);
 
     private string DailyPdfUrl =>
-        (reportStoreId is null) || (reportDate is null) ? string.Empty : $"api/v1/reports/sales/daily/pdf?storeId={reportStoreId}&date={reportDate:yyyy-MM-dd}";
+        (reportStoreId is null) || (reportDate is null) ? string.Empty : ExportUrls.DailySalesPdf(reportStoreId.Value, DateOnly.FromDateTime(reportDate.Value));
 
     protected override Task OnInitializedAsync()
     {

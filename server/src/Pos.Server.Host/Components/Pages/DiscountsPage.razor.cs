@@ -7,7 +7,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-55 値引
+// 値引
 public sealed partial class DiscountsPage
 {
     private List<DiscountEntity> items = [];

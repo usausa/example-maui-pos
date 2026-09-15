@@ -2,7 +2,7 @@ namespace Pos.Contract.Inventory;
 
 using Pos.Contract;
 
-// 在庫変動履歴 (api-design §3.14)
+// 在庫変動履歴
 public sealed class InventoryChangeResponseItem
 {
     // 端末採番 (棚卸・調整) / サーバ採番 (取引由来)

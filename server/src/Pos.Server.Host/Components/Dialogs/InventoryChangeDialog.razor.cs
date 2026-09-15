@@ -7,7 +7,7 @@ using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
 
-// S-43 棚卸・調整登録
+// 棚卸・調整登録
 public sealed partial class InventoryChangeDialog
 {
     private const int SearchLimit = 20;

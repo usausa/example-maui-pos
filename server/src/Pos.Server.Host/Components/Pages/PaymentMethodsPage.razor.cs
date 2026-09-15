@@ -7,7 +7,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// S-56 支払方法 (Kind = Points かつ有効な行はちょうど 1 件)
+// 支払方法 (Kind = Points かつ有効な行はちょうど 1 件)
 public sealed partial class PaymentMethodsPage
 {
     private List<PaymentMethodEntity> items = [];

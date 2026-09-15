@@ -1,1 +1,6 @@
-SELECT COUNT(*) FROM PointHistories WHERE CustomerId = /*@ customerId */''
+SELECT
+    COUNT(*)
+FROM
+    PointHistories
+WHERE
+    CustomerId = /*@ customerId */''

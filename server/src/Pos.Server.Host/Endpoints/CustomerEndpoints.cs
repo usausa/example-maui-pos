@@ -2,6 +2,7 @@ namespace Pos.Server.Host.Endpoints;
 
 using Pos.Contract.Customers;
 using Pos.Contract.Transactions;
+using Pos.Server.Host.Helpers;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
@@ -44,7 +45,7 @@ public static partial class CustomerEndpoints
     private static partial CustomerEntity ToEntity(CustomerUpdateRequest request);
 
     [Mapper]
-    private static partial PointHistoryResponseItem ToResponse(PointHistoryEntity entity);
+    private static partial CustomerPointHistoryResponseItem ToResponse(PointHistoryEntity entity);
 
     //--------------------------------------------------------------------------------
     // Customer
@@ -71,7 +72,7 @@ public static partial class CustomerEndpoints
             Phone = phone,
             UpdatedSince = updatedSince,
             IncludeDeleted = includeDeleted,
-            Sort = sort,
+            Sort = EnumHelper.Parse(sort, CustomerSort.Code),
             Desc = desc,
             Page = page,
             Size = size
@@ -124,10 +125,10 @@ public static partial class CustomerEndpoints
     {
         var entity = ToEntity(request);
         entity.Id = id;
-        var status = await service.UpdateAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
-            : ApiProblems.FromStatus(status, duplicateTitle: DuplicateTitle);
+        var result = await service.UpdateAsync(entity, cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse(result.Entity!))
+            : ApiProblems.FromStatus(result.Status, duplicateTitle: DuplicateTitle);
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(
@@ -153,14 +154,14 @@ public static partial class CustomerEndpoints
         var result = await service.QueryPointHistoryPageAsync(id, page, size, cancellationToken);
         return result is null
             ? ApiProblems.NotFound()
-            : TypedResults.Ok(new PointHistoryResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+            : TypedResults.Ok(new CustomerPointHistoryResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     // 手動調整 (Adjust 履歴を作り、残高を加減算する)
     private static async ValueTask<IResult> HandlePointAdjustAsync(
         CustomerService service,
         Guid id,
-        PointAdjustRequest request,
+        CustomerPointAdjustRequest request,
         CancellationToken cancellationToken)
     {
         var history = await service.AdjustPointsAsync(id, request.Points, request.Reason, request.StaffId, cancellationToken);

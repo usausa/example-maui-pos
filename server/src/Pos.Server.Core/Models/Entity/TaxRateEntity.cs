@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("TaxRates")]
 public sealed class TaxRateEntity
 {
     [Key]

@@ -1,6 +1,7 @@
 namespace Pos.Server.Host.Endpoints;
 
 using Pos.Contract.Categories;
+using Pos.Server.Host.Helpers;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
@@ -49,7 +50,7 @@ public static partial class CategoryEndpoints
         [Range(0, Int32.MaxValue)] int page = 0,
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.MaxPageSize)
     {
-        var result = await service.QueryPageAsync(updatedSince, includeDeleted, sort, desc, page, size, cancellationToken);
+        var result = await service.QueryPageAsync(updatedSince, includeDeleted, EnumHelper.Parse(sort, CategorySort.SortOrder), desc, page, size, cancellationToken);
         return TypedResults.Ok(new CategoryResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
@@ -82,10 +83,10 @@ public static partial class CategoryEndpoints
     {
         var entity = ToEntity(request);
         entity.Id = id;
-        var status = await service.UpdateAsync(entity, cancellationToken);
-        return status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse((await service.QueryAsync(id, cancellationToken))!))
-            : ApiProblems.FromStatus(status, invalidTitle: "親部門に自分自身は指定できません");
+        var result = await service.UpdateAsync(entity, cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToResponse(result.Entity!))
+            : ApiProblems.FromStatus(result.Status, invalidTitle: "親部門に自分自身は指定できません");
     }
 
     // 商品または子部門がある部門は削除できません

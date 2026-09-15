@@ -3,11 +3,11 @@ namespace Pos.Contract.Staff;
 public sealed class StaffCreateRequest
 {
     [Required]
-    [MaxLength(20)]
+    [MaxLength(Length.Code)]
     public string Code { get; set; } = default!;
 
     [Required]
-    [MaxLength(50)]
+    [MaxLength(Length.StaffName)]
     public string Name { get; set; } = default!;
 
     public StaffRole Role { get; set; }

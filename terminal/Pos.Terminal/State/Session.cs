@@ -35,7 +35,7 @@ public sealed partial class Session : ObservableObject
 
     public Guid? TerminalId => Terminal?.Id;
 
-    public bool IsShiftOpen => CurrentShift?.Status.IsOpen() ?? false;
+    public bool IsShiftOpen => CurrentShift?.Status == ShiftStatus.Open;
 
     // 取引・入出金を登録できる状態 (店舗・端末・担当が決まり、シフトが開設中)
     public bool CanTransact => (Store is not null) && (Terminal is not null) && (Staff is not null) && IsShiftOpen;

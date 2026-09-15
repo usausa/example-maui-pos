@@ -13,13 +13,22 @@ SELECT
     0 AS PointsRedeemed,
     COALESCE(SUM(CASE WHEN t.Type = 'Sale' THEN s.TaxableAmount ELSE -s.TaxableAmount END), 0) AS TaxableAmount,
     COALESCE(SUM(CASE WHEN t.Type = 'Sale' THEN s.TaxAmount ELSE -s.TaxAmount END), 0) AS TaxAmount
-FROM TransactionTaxSummaries s
-JOIN Transactions t ON t.Id = s.TransactionId
-JOIN TaxRates r ON r.Id = s.TaxRateId
-WHERE t.Status = 'Completed'
-  AND t.BusinessDate >= /*@ from */'' AND t.BusinessDate <= /*@ to */''
+FROM
+    TransactionTaxSummaries s
+    JOIN Transactions t ON t.Id = s.TransactionId
+    JOIN TaxRates r ON r.Id = s.TaxRateId
+WHERE
+    t.Status = 'Completed'
+    AND t.BusinessDate >= /*@ from */''
+    AND t.BusinessDate <= /*@ to */''
 /*% if (storeId != null) { */
-  AND t.StoreId = /*@ storeId */''
+    AND t.StoreId = /*@ storeId */''
 /*% } */
-GROUP BY s.TaxRateId, s.TaxIncluded, r.Name, r.SortOrder
-ORDER BY r.SortOrder, s.TaxIncluded DESC
+GROUP BY
+    s.TaxRateId,
+    s.TaxIncluded,
+    r.Name,
+    r.SortOrder
+ORDER BY
+    r.SortOrder,
+    s.TaxIncluded DESC

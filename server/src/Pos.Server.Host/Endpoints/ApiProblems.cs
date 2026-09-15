@@ -7,7 +7,7 @@ using Pos.Server.Services;
 // Problem Details (errorCode / errors / expected 付き)
 public static class ApiProblems
 {
-    public static IResult Problem(int status, ErrorCode code, string title, string? detail = null, IReadOnlyDictionary<string, string[]>? errors = null, TransactionCalculationResponse? expected = null)
+    public static IResult Problem(int status, ErrorCode code, string title, string? detail = null, IReadOnlyDictionary<string, string[]>? errors = null, TransactionCalculateResponse? expected = null)
     {
         var extensions = new Dictionary<string, object?>(StringComparer.Ordinal) { ["errorCode"] = code.ToCode() };
         if (errors is not null)
@@ -57,21 +57,17 @@ public static class ApiProblems
         };
 
     // 業務ルール違反 (先頭のエラーを title / errorCode に、全件を errors に)
-    public static IResult FromValidation(TransactionValidation validation, TransactionCalculationResponse? expected)
+    public static IResult FromValidation(TransactionValidation validation, TransactionCalculateResponse? expected)
     {
-        ArgumentNullException.ThrowIfNull(validation);
-
         var first = validation.Errors[0];
         var errors = validation.Errors
             .GroupBy(static x => x.LineId?.ToString("D") ?? "transaction", StringComparer.Ordinal)
-            .ToDictionary(static g => g.Key, static g => g.Select(static x => RuleText.Of(x.Reason)).ToArray(), StringComparer.Ordinal);
-        return Problem(StatusCodes.Status422UnprocessableEntity, first.Code, RuleText.Of(first.Reason), null, errors, expected);
+            .ToDictionary(static g => g.Key, static g => g.Select(static x => ApiRuleText.Of(x.Reason)).ToArray(), StringComparer.Ordinal);
+        return Problem(StatusCodes.Status422UnprocessableEntity, first.Code, ApiRuleText.Of(first.Reason), null, errors, expected);
     }
 
     public static IResult FromViolation(RuleError violation)
     {
-        ArgumentNullException.ThrowIfNull(violation);
-
-        return Unprocessable(violation.Code, RuleText.Of(violation.Reason));
+        return Unprocessable(violation.Code, ApiRuleText.Of(violation.Reason));
     }
 }

@@ -1,1 +1,7 @@
-SELECT * FROM Products WHERE Code = /*@ code */'' AND IsDeleted = 0
+SELECT
+    *
+FROM
+    Products
+WHERE
+    Code = /*@ code */''
+    AND IsDeleted = 0

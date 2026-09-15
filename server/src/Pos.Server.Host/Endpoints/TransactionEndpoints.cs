@@ -2,6 +2,7 @@ namespace Pos.Server.Host.Endpoints;
 
 using Pos.Contract.Transactions;
 using Pos.Domain.Logic;
+using Pos.Server.Host.Helpers;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
@@ -32,25 +33,25 @@ public static partial class TransactionEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    private static partial TransactionEntity ToEntity(TransactionRequest request);
+    private static partial TransactionEntity ToEntity(TransactionCreateRequest request);
 
     [Mapper]
-    private static partial TransactionLineEntity ToEntity(TransactionRequestLine request);
+    private static partial TransactionLineEntity ToEntity(TransactionCreateRequestLine request);
 
     [Mapper]
-    private static partial TransactionDiscountEntity ToEntity(TransactionRequestDiscount request);
+    private static partial TransactionDiscountEntity ToEntity(TransactionCreateRequestDiscount request);
 
     [Mapper]
-    private static partial TransactionTaxSummaryEntity ToEntity(TransactionRequestTaxSummary request);
+    private static partial TransactionTaxSummaryEntity ToEntity(TransactionCreateRequestTaxSummary request);
 
     [Mapper]
-    private static partial TransactionPaymentEntity ToEntity(TransactionRequestPayment request);
+    private static partial TransactionPaymentEntity ToEntity(TransactionCreateRequestPayment request);
 
     [Mapper]
-    private static partial TransactionDeliveryEntity ToEntity(TransactionRequestDelivery request);
+    private static partial TransactionDeliveryEntity ToEntity(TransactionCreateRequestDelivery request);
 
     // 取引一式 (シリアルは明細から起こす)
-    private static TransactionDetail ToDetail(TransactionRequest request)
+    private static TransactionDetailView ToDetail(TransactionCreateRequest request)
     {
         var entity = ToEntity(request);
         if (request.Void is not null)
@@ -60,7 +61,7 @@ public static partial class TransactionEndpoints
             entity.VoidReason = request.Void.Reason;
         }
 
-        return new TransactionDetail
+        return new TransactionDetailView
         {
             Transaction = entity,
             Lines = request.Lines.Select(ToEntity).ToList(),
@@ -95,7 +96,7 @@ public static partial class TransactionEndpoints
     private static partial TransactionResponseItemDelivery ToResponse(TransactionDeliveryEntity entity);
 
     // 明細・値引・税・支払・配送・シリアルを集めて応答にする
-    internal static TransactionResponseItem ToResponse(TransactionDetail detail, IReadOnlyList<RuleWarning>? warnings = null)
+    internal static TransactionResponseItem ToResponse(TransactionDetailView detail, IReadOnlyList<RuleWarning>? warnings = null)
     {
         var entity = detail.Transaction;
         var serialsByLine = detail.Serials.ToLookup(static x => x.TransactionLineId, static x => x.SerialNumber);
@@ -115,16 +116,16 @@ public static partial class TransactionEndpoints
             : new TransactionResponseItemVoid { VoidedAt = entity.VoidedAt.Value, VoidedByStaffId = entity.VoidedByStaffId ?? Guid.Empty, Reason = entity.VoidReason ?? String.Empty };
         if (warnings is not null)
         {
-            response.Warnings = warnings.Select(static x => new TransactionResponseItemWarning { Code = x.Code.ToCode(), Message = RuleText.Of(x.Code), LineId = x.LineId }).ToList();
+            response.Warnings = warnings.Select(static x => new TransactionResponseItemWarning { Code = x.Code.ToCode(), Message = ApiRuleText.Of(x.Code), LineId = x.LineId }).ToList();
         }
 
         return response;
     }
 
     // 計算結果 (Pos.Domain) を応答にする
-    private static TransactionCalculationResponse ToResponse(SalesResult result) => new()
+    private static TransactionCalculateResponse ToResponse(SalesResult result) => new()
     {
-        Lines = result.Lines.Select(static x => new TransactionCalculationResponseLine
+        Lines = result.Lines.Select(static x => new TransactionCalculateResponseLine
         {
             Id = x.Id,
             Amount = x.Amount,
@@ -134,8 +135,8 @@ public static partial class TransactionEndpoints
             PointsRedeemed = x.PointsRedeemed,
             PointsEarned = x.PointsEarned
         }).ToList(),
-        Discounts = result.Discounts.Select(static x => new TransactionCalculationResponseDiscount { Id = x.Id, Amount = x.Amount }).ToList(),
-        TaxSummaries = result.TaxSummaries.Select(static x => new TransactionCalculationResponseTaxSummary
+        Discounts = result.Discounts.Select(static x => new TransactionCalculateResponseDiscount { Id = x.Id, Amount = x.Amount }).ToList(),
+        TaxSummaries = result.TaxSummaries.Select(static x => new TransactionCalculateResponseTaxSummary
         {
             TaxRateId = x.TaxRateId,
             Rate = x.Rate,
@@ -164,7 +165,7 @@ public static partial class TransactionEndpoints
     // 冪等: 同じ id は 200 で既存を返す (内容が違えば 409)
     private static async ValueTask<IResult> HandleCreateAsync(
         TransactionService service,
-        TransactionRequest request,
+        TransactionCreateRequest request,
         CancellationToken cancellationToken)
     {
         var detail = ToDetail(request);
@@ -231,7 +232,7 @@ public static partial class TransactionEndpoints
             To = to,
             Type = type,
             Status = status,
-            Sort = sort,
+            Sort = EnumHelper.Parse(sort, TransactionSort.TransactedAt),
             Desc = desc,
             Page = page,
             Size = size

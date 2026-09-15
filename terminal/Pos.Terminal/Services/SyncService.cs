@@ -448,7 +448,7 @@ public sealed class SyncService : IDisposable
 
             case OutboxKind.Transaction:
             {
-                var result = await httpService.PostTransactionAsync(Deserialize<TransactionRequest>(item.Payload), cancellationToken);
+                var result = await httpService.PostTransactionAsync(Deserialize<TransactionCreateRequest>(item.Payload), cancellationToken);
                 if (result.IsSuccess && (result.Content is not null))
                 {
                     await accessor.UpdateTransactionAsync(item.TargetId, result.Content.Status, JsonSerializer.Serialize(result.Content, HttpService.JsonOptions));
@@ -469,7 +469,7 @@ public sealed class SyncService : IDisposable
             }
 
             case OutboxKind.CashEvent:
-                return ToPlain(await httpService.PostCashEventAsync(item.TargetId, Deserialize<CashEventRequest>(item.Payload), cancellationToken));
+                return ToPlain(await httpService.PostCashEventAsync(item.TargetId, Deserialize<ShiftCashEventRequest>(item.Payload), cancellationToken));
 
             case OutboxKind.ShiftClose:
                 return ToPlain(await httpService.PostShiftCloseAsync(item.TargetId, Deserialize<ShiftCloseRequest>(item.Payload), cancellationToken));

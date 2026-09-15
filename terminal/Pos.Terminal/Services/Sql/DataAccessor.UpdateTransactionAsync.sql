@@ -1,4 +1,5 @@
-UPDATE Transactions
+UPDATE
+    Transactions
 SET
     Status = /*@ status */'',
     Payload = /*@ payload */''

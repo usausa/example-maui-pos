@@ -6,12 +6,13 @@ using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 
 using Pos.Server.Host.Components.Dialogs;
+using Pos.Server.Host.Helpers;
 using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
 
-// S-60 顧客一覧
+// 顧客一覧
 public sealed partial class CustomersPage
 {
     private MudDataGrid<CustomerEntity> Grid { get; set; } = default!;
@@ -32,7 +33,7 @@ public sealed partial class CustomersPage
         {
             Keyword = keyword,
             IncludeDeleted = includeDeleted,
-            Sort = sort?.SortBy,
+            Sort = EnumHelper.Parse(sort?.SortBy, CustomerSort.Code),
             Desc = sort?.Descending ?? false,
             Page = state.Page,
             Size = state.PageSize

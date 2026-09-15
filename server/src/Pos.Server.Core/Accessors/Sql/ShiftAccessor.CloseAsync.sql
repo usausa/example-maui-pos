@@ -1,5 +1,7 @@
-UPDATE Shifts
-SET Status = 'Closed',
+UPDATE
+    Shifts
+SET
+    Status = 'Closed',
     ClosedAt = /*@ closedAt */'',
     ClosedByStaffId = /*@ closedByStaffId */'',
     ActualCash = /*@ actualCash */0,
@@ -16,4 +18,6 @@ SET Status = 'Closed',
     ReturnsTotal = /*@ totals.ReturnsTotal */0,
     Note = /*@ note */'',
     UpdatedAt = /*@ updatedAt */''
-WHERE Id = /*@ id */'' AND Status = 'Open'
+WHERE
+    Id = /*@ id */''
+    AND Status = 'Open'

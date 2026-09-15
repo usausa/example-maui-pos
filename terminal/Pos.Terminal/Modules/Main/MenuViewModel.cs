@@ -1,9 +1,5 @@
 namespace Pos.Terminal.Modules.Main;
 
-using Pos.Terminal.Modules.Inventory;
-using Pos.Terminal.Modules.Returns;
-using Pos.Terminal.Modules.Sales;
-
 // ホーム: 機能選択。シフト未開設なら販売・返品・入出金は開設へ誘導する
 public sealed partial class MenuViewModel : AppViewModelBase
 {
@@ -47,7 +43,7 @@ public sealed partial class MenuViewModel : AppViewModelBase
         var shift = session.CurrentShift;
         IsShiftOpen = session.IsShiftOpen;
         ShiftDetail = shift is not null && IsShiftOpen
-            ? $"営業日 {DisplayText.Date(shift.BusinessDate)}  {DisplayText.Time(shift.OpenedAt)} 開設  担当 {session.Staff?.Name}"
+            ? $"営業日 {ViewHelper.Date(shift.BusinessDate)}  {ViewHelper.Time(shift.OpenedAt)} 開設  担当 {session.Staff?.Name}"
             : $"担当 {session.Staff?.Name}";
         sync.Trigger();
         return Task.CompletedTask;
@@ -81,14 +77,6 @@ public sealed partial class MenuViewModel : AppViewModelBase
                 break;
         }
 
-        // 機能ごとのコンテキストはここで作る
-        var parameter = id switch
-        {
-            ViewId.Sales => Parameters.Make().WithContext(new SalesContext()),
-            ViewId.Return => Parameters.Make().WithContext(new ReturnContext()),
-            ViewId.StockCount => Parameters.Make().WithContext(new StockContext()),
-            _ => Parameters.Make()
-        };
-        await Navigator.ForwardAsync(id, parameter);
+        await Navigator.ForwardAsync(id);
     }
 }

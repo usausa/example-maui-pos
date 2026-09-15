@@ -7,9 +7,6 @@ using Pos.Server.Models.Entity;
 // 部門 (2 階層)
 public sealed class CategoryService
 {
-    private static readonly string[] SortColumns = ["SortOrder", "Code", "Name", "UpdatedAt"];
-    private const string DefaultSort = "SortOrder";
-
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
     private readonly TimeProvider timeProvider;
@@ -24,11 +21,10 @@ public sealed class CategoryService
         this.timeProvider = timeProvider;
     }
 
-    public async ValueTask<PagedResult<CategoryEntity>> QueryPageAsync(DateTime? updatedSince, bool includeDeleted, string? sort, bool desc, int page, int size, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<CategoryEntity>> QueryPageAsync(DateTime? updatedSince, bool includeDeleted, CategorySort sort, bool desc, int page, int size, CancellationToken cancellationToken)
     {
         var total = await masterAccessor.CountCategoriesAsync(updatedSince, includeDeleted, cancellationToken);
-        var order = updatedSince is null ? SqlHelper.NormalizeSort(SortColumns, DefaultSort, sort, desc) : SqlHelper.SyncSort;
-        var items = await masterAccessor.QueryCategoryListAsync(updatedSince, includeDeleted, order, size, page * size, cancellationToken);
+        var items = await masterAccessor.QueryCategoryListAsync(updatedSince, includeDeleted, sort, desc, size, page * size, cancellationToken);
         return new PagedResult<CategoryEntity>((int)total, page, size, items);
     }
 
@@ -56,8 +52,6 @@ public sealed class CategoryService
 
     public ValueTask<DataWriteStatus> InsertAsync(CategoryEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
@@ -67,13 +61,11 @@ public sealed class CategoryService
     }
 
     // 親部門に自分自身は指定できない (Invalid)
-    public ValueTask<DataWriteStatus> UpdateAsync(CategoryEntity entity, CancellationToken cancellationToken)
+    public ValueTask<DataWriteResult<CategoryEntity>> UpdateAsync(CategoryEntity entity, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         if (entity.ParentId == entity.Id)
         {
-            return ValueTask.FromResult(DataWriteStatus.Invalid);
+            return ValueTask.FromResult(new DataWriteResult<CategoryEntity>(DataWriteStatus.Invalid, null));
         }
 
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;

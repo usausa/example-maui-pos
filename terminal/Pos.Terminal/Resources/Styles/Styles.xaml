@@ -5,8 +5,7 @@
                     xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
                     xmlns:converters="clr-namespace:Pos.Terminal.Converters"
                     xmlns:enums="clr-namespace:Pos.Domain.Enums;assembly=Pos.Domain"
-                    xmlns:entity="clr-namespace:Pos.Terminal.Models.Entity"
-                    xmlns:inventory="clr-namespace:Pos.Terminal.Modules.Inventory">
+                    xmlns:entity="clr-namespace:Pos.Terminal.Models.Entity">
 
     <!-- ================================================================================ -->
     <!-- Value -->
@@ -40,8 +39,6 @@
                               Expression="{x:Static s:CompareExpressions.GreaterThan}" />
 
     <s:ColorToBrushConverter x:Key="ColorToBrushConverter" />
-
-    <s:IntToBoolConverter x:Key="IntToBoolConverter" />
 
     <converters:EmptyTextConverter x:Key="EmptyTextConverter" />
 
@@ -114,7 +111,7 @@
                            TrueValue="🔧 調整モード: 増減数と理由を入力します。F3 で棚卸に切替"
                            FalseValue="📋 棚卸モード: 実際の在庫数を入力します。F3 で調整に切替" />
 
-    <inventory:StockSendTextConverter x:Key="StockSendTextConverter" />
+    <converters:StockSendTextConverter x:Key="StockSendTextConverter" />
 
     <!-- ================================================================================ -->
     <!-- Main -->

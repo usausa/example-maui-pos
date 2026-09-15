@@ -2,23 +2,24 @@ namespace Pos.Server.Host.Components.Pages;
 
 using Microsoft.AspNetCore.Components;
 
+using Pos.Server.Host.Application.Lookup;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
-// S-01 ダッシュボード (本日の KPI、店舗別売上、開設中シフト、端末の通信状態、要確認の在庫・会員)
+// ダッシュボード (本日の KPI、店舗別売上、開設中シフト、端末の通信状態、要確認の在庫・会員)
 public sealed partial class Home
 {
     private const int WarningLimit = 10;
 
     private DateOnly today;
     private NameLookup names = new();
-    private SalesSummaryRow todaySummary = ReportService.Sum([], false);
-    private List<SalesSummaryRow> storeRows = [];
+    private SalesSummaryView todaySummary = ReportService.Sum([], false);
+    private List<SalesSummaryView> storeRows = [];
     private IReadOnlyList<ShiftEntity> openShifts = [];
     private List<TerminalEntity> terminals = [];
-    private IReadOnlyList<InventoryLevelDetail> negativeInventory = [];
+    private IReadOnlyList<InventoryLevelDetailView> negativeInventory = [];
     private List<CustomerEntity> negativeCustomers = [];
 
     private int NegativeInventoryCount { get; set; }
@@ -57,9 +58,9 @@ public sealed partial class Home
             names = await NameLookup.LoadAsync(StoreService, TerminalService, StaffService, null, CancellationToken);
             storeRows = await ReportService.QuerySalesSummaryAsync(null, today, today, SalesSummaryGroupBy.Store, CancellationToken);
             todaySummary = ReportService.Sum(storeRows, false);
-            openShifts = (await ShiftService.QueryPageAsync(new ShiftQueryParameter { Status = ShiftStatus.Open, Sort = "OpenedAt", Size = ListLimit }, CancellationToken)).Items;
+            openShifts = (await ShiftService.QueryPageAsync(new ShiftQueryParameter { Status = ShiftStatus.Open, Sort = ShiftSort.OpenedAt, Size = ListLimit }, CancellationToken)).Items;
             terminals = names.Terminals.Values.Where(static x => !x.IsDeleted && x.IsActive).OrderBy(static x => x.StoreId).ThenBy(static x => x.TerminalNo).ToList();
-            var negative = await InventoryService.QueryLevelDetailPageAsync(new InventoryLevelDetailQueryParameter { NegativeOnly = true, Sort = "Quantity", Size = WarningLimit }, CancellationToken);
+            var negative = await InventoryService.QueryLevelDetailPageAsync(new InventoryLevelDetailQueryParameter { NegativeOnly = true, Sort = InventoryLevelDetailSort.Quantity, Size = WarningLimit }, CancellationToken);
             NegativeInventoryCount = negative.Total;
             negativeInventory = negative.Items;
             negativeCustomers = await CustomerService.QueryNegativePointListAsync(WarningLimit, CancellationToken);

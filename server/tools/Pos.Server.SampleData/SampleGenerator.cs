@@ -14,7 +14,7 @@ using Pos.Contract.Terminals;
 using Pos.Contract.Transactions;
 using Pos.Domain.Logic;
 
-// 端末と同じ手順 (Pos.Domain で計算 → TransactionRequest → POST) で、過去 N 日分のシフト・販売・返品・入出金・精算を作る
+// 端末と同じ手順 (Pos.Domain で計算 → TransactionCreateRequest → POST) で、過去 N 日分のシフト・販売・返品・入出金・精算を作る
 internal sealed class SampleGenerator
 {
     private static readonly string[] PaidOutReasons = ["両替", "釣銭補充", "経費支払"];
@@ -236,7 +236,7 @@ internal sealed class SampleGenerator
         if (random.Next(100) < 60)
         {
             paidOut = random.Next(1, 4) * 5000m;
-            await client.PostAsync<CashEventResponseItem>($"shifts/{shift.Id}/cash-events", new CashEventRequest
+            await client.PostAsync<ShiftCashEventResponseItem>($"shifts/{shift.Id}/cash-events", new ShiftCashEventRequest
             {
                 Id = Guid.NewGuid(),
                 Type = CashEventType.PaidOut,
@@ -264,13 +264,13 @@ internal sealed class SampleGenerator
     // Sale
     //--------------------------------------------------------------------------------
 
-    private (TransactionRequest Request, decimal CashDelta) BuildSale(StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, StaffResponseItem manager, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
+    private (TransactionCreateRequest Request, decimal CashDelta) BuildSale(StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, StaffResponseItem manager, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
     {
         var customer = (customers.Count > 0) && (random.Next(100) < 35) ? Pick(customers) : null;
         var lineCount = random.Next(1, 4);
         var lines = new List<SalesInputLine>();
         var lineProducts = new List<ProductResponseItem>();
-        var discounts = new List<TransactionRequestDiscount>();
+        var discounts = new List<TransactionCreateRequestDiscount>();
         var inputDiscounts = new List<SalesInputDiscount>();
         var serials = new Dictionary<Guid, List<string>>();
 
@@ -310,7 +310,7 @@ internal sealed class SampleGenerator
                 var definition = Pick(lineDiscounts);
                 var id = Guid.NewGuid();
                 inputDiscounts.Add(new SalesInputDiscount { Id = id, LineId = lineId, Type = definition.Type, Value = definition.Value });
-                discounts.Add(new TransactionRequestDiscount
+                discounts.Add(new TransactionCreateRequestDiscount
                 {
                     Id = id,
                     LineId = lineId,
@@ -331,19 +331,19 @@ internal sealed class SampleGenerator
             {
                 var definition = Pick(transactionDiscounts);
                 inputDiscounts.Add(new SalesInputDiscount { Id = id, Type = definition.Type, Value = definition.Value });
-                discounts.Add(new TransactionRequestDiscount { Id = id, DiscountId = definition.Id, Name = definition.Name, Type = definition.Type, Value = definition.Value, ApprovedByStaffId = definition.RequiresApproval ? manager.Id : null });
+                discounts.Add(new TransactionCreateRequestDiscount { Id = id, DiscountId = definition.Id, Name = definition.Name, Type = definition.Type, Value = definition.Value, ApprovedByStaffId = definition.RequiresApproval ? manager.Id : null });
             }
             else
             {
                 inputDiscounts.Add(new SalesInputDiscount { Id = id, Type = DiscountType.Amount, Value = 100m });
-                discounts.Add(new TransactionRequestDiscount { Id = id, Name = "端数値引", Type = DiscountType.Amount, Value = 100m, Reason = "端数" });
+                discounts.Add(new TransactionCreateRequestDiscount { Id = id, Name = "端数値引", Type = DiscountType.Amount, Value = 100m, Reason = "端数" });
             }
         }
 
         // 支払: 金額を決めるため一度計算してから支払を組む
         var provisional = SalesLogic.Calculate(new SalesInput { TaxRounding = taxRounding, PointBasis = pointBasis, Lines = lines, Discounts = inputDiscounts });
         var payments = new List<SalesInputPayment>();
-        var requestPayments = new List<TransactionRequestPayment>();
+        var requestPayments = new List<TransactionCreateRequestPayment>();
         var remaining = provisional.Total;
 
         var balance = customer is null ? 0 : pointBalances.GetValueOrDefault(customer.Id);
@@ -375,7 +375,7 @@ internal sealed class SampleGenerator
         var input = new SalesInput { TaxRounding = taxRounding, PointBasis = pointBasis, Lines = lines, Discounts = inputDiscounts, Payments = payments };
         var result = SalesLogic.Calculate(input);
 
-        var request = new TransactionRequest
+        var request = new TransactionCreateRequest
         {
             Id = Guid.NewGuid(),
             Type = TransactionType.Sale,
@@ -406,7 +406,7 @@ internal sealed class SampleGenerator
             PointsEarned = result.PointsEarned,
             PointsRedeemed = result.PointsRedeemed,
             Delivery = lineProducts.Any(static x => x.Kind == ProductKind.Service) && (random.Next(100) < 50)
-                ? new TransactionRequestDelivery { RecipientName = Pick(Recipients), Address = "東京都千代田区千代田 1-1", RequestedDate = date.AddDays(3), TimeSlot = "14-16 時" }
+                ? new TransactionCreateRequestDelivery { RecipientName = Pick(Recipients), Address = "東京都千代田区千代田 1-1", RequestedDate = date.AddDays(3), TimeSlot = "14-16 時" }
                 : null
         };
         return (request, cashDelta);
@@ -416,7 +416,7 @@ internal sealed class SampleGenerator
     // Return
     //--------------------------------------------------------------------------------
 
-    private (TransactionRequest? Request, decimal CashRefund) BuildReturn(TransactionResponseItem original, StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
+    private (TransactionCreateRequest? Request, decimal CashRefund) BuildReturn(TransactionResponseItem original, StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
     {
         if (original.Status != TransactionStatus.Completed)
         {
@@ -456,7 +456,7 @@ internal sealed class SampleGenerator
 
         // ポイント返還 + 残りは現金
         var payments = new List<SalesInputPayment>();
-        var requestPayments = new List<TransactionRequestPayment>();
+        var requestPayments = new List<TransactionCreateRequestPayment>();
         var pointsRefund = -provisional.PointsRedeemed;
         if (pointsRefund > 0)
         {
@@ -478,7 +478,7 @@ internal sealed class SampleGenerator
         var result = ReturnLogic.Calculate(input);
         var product = products.FirstOrDefault(x => x.Id == line.ProductId);
 
-        var request = new TransactionRequest
+        var request = new TransactionCreateRequest
         {
             Id = Guid.NewGuid(),
             Type = TransactionType.Return,
@@ -494,7 +494,7 @@ internal sealed class SampleGenerator
             OriginalTransactionId = original.Id,
             Lines =
             [
-                new TransactionRequestLine
+                new TransactionCreateRequestLine
                 {
                     Id = input.Lines[0].Id,
                     LineNo = 1,
@@ -539,7 +539,7 @@ internal sealed class SampleGenerator
     // Post
     //--------------------------------------------------------------------------------
 
-    private async Task<TransactionResponseItem?> PostTransactionAsync(TransactionRequest request)
+    private async Task<TransactionResponseItem?> PostTransactionAsync(TransactionCreateRequest request)
     {
         try
         {
@@ -584,14 +584,14 @@ internal sealed class SampleGenerator
     // Helper
     //--------------------------------------------------------------------------------
 
-    private static void AddPayment(List<SalesInputPayment> payments, List<TransactionRequestPayment> requestPayments, PaymentMethodResponseItem method, decimal amount, decimal tendered, string? reference)
+    private static void AddPayment(List<SalesInputPayment> payments, List<TransactionCreateRequestPayment> requestPayments, PaymentMethodResponseItem method, decimal amount, decimal tendered, string? reference)
     {
         var id = Guid.NewGuid();
         payments.Add(new SalesInputPayment { Id = id, Kind = method.Kind, Amount = amount, TenderedAmount = tendered, AllowsChange = method.AllowsChange });
-        requestPayments.Add(new TransactionRequestPayment { Id = id, SeqNo = requestPayments.Count + 1, PaymentMethodId = method.Id, Kind = method.Kind, Amount = amount, TenderedAmount = tendered, Reference = reference });
+        requestPayments.Add(new TransactionCreateRequestPayment { Id = id, SeqNo = requestPayments.Count + 1, PaymentMethodId = method.Id, Kind = method.Kind, Amount = amount, TenderedAmount = tendered, Reference = reference });
     }
 
-    private static TransactionRequestLine ToRequestLine(SalesInputLine line, ProductResponseItem product, SalesResultLine calculated, List<string>? serials, Guid? originalLineId) => new()
+    private static TransactionCreateRequestLine ToRequestLine(SalesInputLine line, ProductResponseItem product, SalesResultLine calculated, List<string>? serials, Guid? originalLineId) => new()
     {
         Id = line.Id,
         LineNo = line.LineNo,
@@ -617,8 +617,8 @@ internal sealed class SampleGenerator
         OriginalLineId = originalLineId
     };
 
-    private static List<TransactionRequestTaxSummary> ToTaxSummaries(SalesResult result) =>
-        result.TaxSummaries.Select(static x => new TransactionRequestTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList();
+    private static List<TransactionCreateRequestTaxSummary> ToTaxSummaries(SalesResult result) =>
+        result.TaxSummaries.Select(static x => new TransactionCreateRequestTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList();
 
     // ローカル時刻 (店舗の営業時間) を UTC に
     private static DateTime ToUtc(DateOnly date, int hour, int minute) =>

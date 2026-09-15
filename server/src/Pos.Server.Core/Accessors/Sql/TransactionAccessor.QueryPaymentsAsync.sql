@@ -1,1 +1,8 @@
-SELECT * FROM TransactionPayments WHERE TransactionId = /*@ transactionId */'' ORDER BY SeqNo
+SELECT
+    *
+FROM
+    TransactionPayments
+WHERE
+    TransactionId = /*@ transactionId */''
+ORDER BY
+    SeqNo

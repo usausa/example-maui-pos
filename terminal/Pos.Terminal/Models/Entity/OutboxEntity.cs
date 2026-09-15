@@ -1,5 +1,7 @@
 namespace Pos.Terminal.Models.Entity;
 
+using Smart.Data.Accessor.Attributes;
+
 // 送信待ちの種類 (送信順は発生順。シフト開設 → 取引 / 入出金 → 精算)
 public enum OutboxKind
 {
@@ -20,6 +22,7 @@ public enum OutboxStatus
 }
 
 // 送信待ち。Payload は XxxRequest の JSON
+[Name("Outbox")]
 public sealed class OutboxEntity
 {
     [Key]

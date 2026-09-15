@@ -19,6 +19,6 @@ public sealed class ShiftOpenRequest
     [Range(0, double.MaxValue)]
     public decimal OpeningCash { get; set; }
 
-    [MaxLength(500)]
+    [MaxLength(Length.Note)]
     public string? Note { get; set; }
 }

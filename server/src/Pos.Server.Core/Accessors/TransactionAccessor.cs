@@ -15,7 +15,7 @@ public sealed partial class TransactionAccessor
     //--------------------------------------------------------------------------------
 
     [QueryFirst]
-    [SelectSingle(typeof(TransactionEntity), Table = "Transactions")]
+    [SelectSingle(typeof(TransactionEntity))]
     public partial ValueTask<TransactionEntity?> QueryAsync(Guid id, CancellationToken cancellationToken);
 
     [QueryFirst]
@@ -45,7 +45,8 @@ public sealed partial class TransactionAccessor
         DateOnly? to,
         TransactionType? type,
         TransactionStatus? status,
-        string sort,
+        TransactionSort sort,
+        bool desc,
         int limit,
         int offset,
         CancellationToken cancellationToken);
@@ -81,31 +82,31 @@ public sealed partial class TransactionAccessor
     //--------------------------------------------------------------------------------
 
     [Execute]
-    [Insert(typeof(TransactionEntity), Table = "Transactions")]
+    [Insert(typeof(TransactionEntity))]
     public partial ValueTask<int> InsertAsync(DbTransaction tx, TransactionEntity entity, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(TransactionLineEntity), Table = "TransactionLines")]
+    [Insert(typeof(TransactionLineEntity))]
     public partial ValueTask<int> InsertLineAsync(DbTransaction tx, TransactionLineEntity entity, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(TransactionLineSerialEntity), Table = "TransactionLineSerials")]
+    [Insert(typeof(TransactionLineSerialEntity))]
     public partial ValueTask<int> InsertLineSerialAsync(DbTransaction tx, TransactionLineSerialEntity entity, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(TransactionDiscountEntity), Table = "TransactionDiscounts")]
+    [Insert(typeof(TransactionDiscountEntity))]
     public partial ValueTask<int> InsertDiscountAsync(DbTransaction tx, TransactionDiscountEntity entity, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(TransactionTaxSummaryEntity), Table = "TransactionTaxSummaries")]
+    [Insert(typeof(TransactionTaxSummaryEntity))]
     public partial ValueTask<int> InsertTaxSummaryAsync(DbTransaction tx, TransactionTaxSummaryEntity entity, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(TransactionPaymentEntity), Table = "TransactionPayments")]
+    [Insert(typeof(TransactionPaymentEntity))]
     public partial ValueTask<int> InsertPaymentAsync(DbTransaction tx, TransactionPaymentEntity entity, CancellationToken cancellationToken);
 
     [Execute]
-    [Insert(typeof(TransactionDeliveryEntity), Table = "TransactionDeliveries")]
+    [Insert(typeof(TransactionDeliveryEntity))]
     public partial ValueTask<int> InsertDeliveryAsync(DbTransaction tx, TransactionDeliveryEntity entity, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------

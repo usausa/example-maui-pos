@@ -1,19 +1,28 @@
-SELECT * FROM Shifts
-WHERE 1 = 1
+SELECT
+    *
+FROM
+    Shifts
+WHERE
+    1 = 1
 /*% if (storeId != null) { */
-  AND StoreId = /*@ storeId */''
+    AND StoreId = /*@ storeId */''
 /*% } */
 /*% if (terminalId != null) { */
-  AND TerminalId = /*@ terminalId */''
+    AND TerminalId = /*@ terminalId */''
 /*% } */
 /*% if (status != null) { */
-  AND Status = /*@ status */''
+    AND Status = /*@ status */''
 /*% } */
 /*% if (from != null) { */
-  AND BusinessDate >= /*@ from */''
+    AND BusinessDate >= /*@ from */''
 /*% } */
 /*% if (to != null) { */
-  AND BusinessDate <= /*@ to */''
+    AND BusinessDate <= /*@ to */''
 /*% } */
-ORDER BY /*# sort */Id
+ORDER BY
+/*% if (desc) { */
+    /*# sort.ToString() */OpenedAt DESC
+/*% } else { */
+    /*# sort.ToString() */OpenedAt
+/*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

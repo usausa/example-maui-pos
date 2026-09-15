@@ -72,7 +72,7 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
         UnsentText = session.FailedCount > 0
             ? $"⚠ 未送信 {session.UnsentCount} 件 (要確認 {session.FailedCount} 件)。精算前に「未送信」で確認してください。"
             : $"⚠ 未送信 {session.UnsentCount} 件があります。送信完了を待ってから精算することを推奨します。";
-        ShiftText = $"営業日 {DisplayText.Date(shift.BusinessDate)}  {DisplayText.Time(shift.OpenedAt)} 開設";
+        ShiftText = $"営業日 {ViewHelper.Date(shift.BusinessDate)}  {ViewHelper.Time(shift.OpenedAt)} 開設";
         UpdateDifference();
 
         await Navigator.PostActionAsync(() => LoadAsync(shift));
@@ -85,15 +85,15 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
         var totals = summary.Shift.Totals;
         Rows.Replace(
         [
-            new SummaryRow("🛒 販売", $"{totals.SalesCount} 件  {DisplayText.Yen(totals.SalesTotal)}"),
-            new SummaryRow("↩ 返品", $"{totals.ReturnCount} 件  {DisplayText.Yen(totals.ReturnsTotal)}"),
+            new SummaryRow("🛒 販売", $"{totals.SalesCount} 件  {ViewHelper.Yen(totals.SalesTotal)}"),
+            new SummaryRow("↩ 返品", $"{totals.ReturnCount} 件  {ViewHelper.Yen(totals.ReturnsTotal)}"),
             new SummaryRow("🚫 取消", $"{totals.VoidCount} 件"),
-            new SummaryRow("釣銭準備金", DisplayText.Yen(summary.Cash.OpeningCash)),
-            new SummaryRow("現金売上", DisplayText.Yen(summary.Cash.CashSales)),
-            new SummaryRow("現金返品", DisplayText.MinusYen(summary.Cash.CashReturns)),
-            new SummaryRow("入金", DisplayText.Yen(summary.Cash.PaidIn)),
-            new SummaryRow("出金", DisplayText.MinusYen(summary.Cash.PaidOut)),
-            new SummaryRow("予想現金", DisplayText.Yen(expectedCash))
+            new SummaryRow("釣銭準備金", ViewHelper.Yen(summary.Cash.OpeningCash)),
+            new SummaryRow("現金売上", ViewHelper.Yen(summary.Cash.CashSales)),
+            new SummaryRow("現金返品", ViewHelper.MinusYen(summary.Cash.CashReturns)),
+            new SummaryRow("入金", ViewHelper.Yen(summary.Cash.PaidIn)),
+            new SummaryRow("出金", ViewHelper.MinusYen(summary.Cash.PaidOut)),
+            new SummaryRow("予想現金", ViewHelper.Yen(expectedCash))
         ]);
         UpdateDifference();
     }
@@ -108,18 +108,18 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
         }
 
         var difference = actualCash.Value - expectedCash;
-        DifferenceText = DisplayText.SignedYen(difference);
+        DifferenceText = ViewHelper.SignedYen(difference);
         HasDifference = difference != 0;
     }
 
     private async Task InputActualAsync()
     {
-        var text = await popupNavigator.InputNumberAsync("実査金額", (actualCash ?? 0m).ToString("0", CultureInfo.InvariantCulture), 9);
+        var text = await popupNavigator.InputCashAsync("実査金額", actualCash ?? 0m);
         if ((text is not null) && Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
         {
             actualCash = value;
             denominations = [];
-            ActualCashText = DisplayText.Yen(value);
+            ActualCashText = ViewHelper.Yen(value);
             UpdateDifference();
         }
     }
@@ -135,7 +135,7 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
         {
             actualCash = result.Total;
             denominations = result.Denominations;
-            ActualCashText = DisplayText.Yen(result.Total);
+            ActualCashText = ViewHelper.Yen(result.Total);
             UpdateDifference();
         }
     }
@@ -156,7 +156,7 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
             return;
         }
 
-        var message = $"予想現金 {DisplayText.Yen(expectedCash)}\n実査金額 {DisplayText.Yen(actualCash.Value)}\n過不足 {DifferenceText}\n精算しますか？";
+        var message = $"予想現金 {ViewHelper.Yen(expectedCash)}\n実査金額 {ViewHelper.Yen(actualCash.Value)}\n過不足 {DifferenceText}\n精算しますか？";
         if (HasUnsent)
         {
             message = $"⚠ 未送信 {session.UnsentCount} 件があります。精算後も送信は続きます。\n\n" + message;

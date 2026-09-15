@@ -22,7 +22,7 @@ public sealed partial class ShiftOpenViewModel : AppViewModelBase
     public partial string StaffName { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string OpeningCashText { get; set; } = DisplayText.Yen(0);
+    public partial string OpeningCashText { get; set; } = ViewHelper.Yen(0);
 
     public IObserveCommand InputCashCommand { get; }
 
@@ -43,7 +43,7 @@ public sealed partial class ShiftOpenViewModel : AppViewModelBase
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
         returnTo = context.Parameter.GetReturnTo(ViewId.Menu);
-        BusinessDateText = DisplayText.Date(session.BusinessDate);
+        BusinessDateText = ViewHelper.Date(session.BusinessDate);
         StaffName = session.Staff?.Name ?? string.Empty;
         await Navigator.PostActionAsync(AdoptAsync);
     }
@@ -60,11 +60,11 @@ public sealed partial class ShiftOpenViewModel : AppViewModelBase
 
     private async Task InputCashAsync()
     {
-        var text = await popupNavigator.InputNumberAsync("釣銭準備金", openingCash.ToString("0", CultureInfo.InvariantCulture), 8);
+        var text = await popupNavigator.InputAmountAsync("釣銭準備金", openingCash);
         if ((text is not null) && Decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
         {
             openingCash = value;
-            OpeningCashText = DisplayText.Yen(value);
+            OpeningCashText = ViewHelper.Yen(value);
         }
     }
 
@@ -79,7 +79,7 @@ public sealed partial class ShiftOpenViewModel : AppViewModelBase
             return;
         }
 
-        if (!await dialog.AskAsync($"釣銭準備金 {DisplayText.Yen(openingCash)} でレジを開設しますか？", null, "開設"))
+        if (!await dialog.AskAsync($"釣銭準備金 {ViewHelper.Yen(openingCash)} でレジを開設しますか？", null, "開設"))
         {
             return;
         }

@@ -34,10 +34,11 @@
     [CascadingParameter]
     public HttpContext HttpContext { get; set; } = default!;
 
-    // Prerendering is disabled to avoid loading data twice
+    // プリレンダリングは無効 (データを 2 回読み込まないため)
     private static readonly IComponentRenderMode InteractiveServerWithoutPrerender = new InteractiveServerRenderMode(prerender: false);
 
-    // Static SSR for pages with [ExcludeFromInteractiveRouting] (error etc.)
+    // エラーと 404 のページ ([ExcludeFromInteractiveRouting]) は例外や 404 の再実行で描画されるので静的 SSR にする。
+    // 常に対話型にすると、回線のない再実行では (プリレンダリングもないため) 空の HTML になる
     private IComponentRenderMode? PageRenderMode =>
         HttpContext.AcceptsInteractiveRouting() ? InteractiveServerWithoutPrerender : null;
 }

@@ -1,5 +1,6 @@
 namespace Pos.Server.Models.Entity;
 
+[Name("InventoryLevels")]
 public sealed class InventoryLevelEntity
 {
     [Key]

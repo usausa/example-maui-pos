@@ -1,6 +1,6 @@
 namespace Pos.Domain.Logic;
 
-// 返品の計算入力 (api-design §4.5)。値引は元取引から導出するので持たない
+// 返品の計算入力。値引は元取引から導出するので持たない
 public sealed record ReturnInput
 {
     public required TaxRounding TaxRounding { get; init; }

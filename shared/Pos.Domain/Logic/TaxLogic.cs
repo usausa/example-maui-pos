@@ -10,7 +10,7 @@ internal sealed class TaxResult
     public required decimal[] AllocatedTaxes { get; init; }
 }
 
-// api-design §4.3。税率 × 内税/外税 のグループごとに合計してから税額を計算する
+// 税計算。税率 × 内税/外税 のグループごとに合計してから税額を計算する
 internal static class TaxLogic
 {
     public static TaxResult Calculate(IReadOnlyList<TaxLine> lines, TaxRounding rounding)

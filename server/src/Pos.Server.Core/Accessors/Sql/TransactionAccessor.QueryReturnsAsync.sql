@@ -1,1 +1,8 @@
-SELECT * FROM Transactions WHERE OriginalTransactionId = /*@ originalTransactionId */'' ORDER BY TransactedAt
+SELECT
+    *
+FROM
+    Transactions
+WHERE
+    OriginalTransactionId = /*@ originalTransactionId */''
+ORDER BY
+    TransactedAt
