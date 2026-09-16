@@ -71,7 +71,7 @@ public sealed class StockUsecase
             {
                 if (change.Type == InventoryChangeType.PhysicalCount)
                 {
-                    await accessor.SetInventoryQuantityAsync(tx, storeId, change.Product.Id, change.Quantity, now);
+                    await accessor.UpdateInventoryQuantityAsync(tx, storeId, change.Product.Id, change.Quantity, now);
                 }
                 else
                 {

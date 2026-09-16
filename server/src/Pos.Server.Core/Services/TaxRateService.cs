@@ -37,7 +37,7 @@ public sealed class TaxRateService
         var status = await ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertTaxRateAsync(entity, cancellationToken));
         if ((status == DataWriteStatus.Success) && entity.IsDefault)
         {
-            await masterAccessor.ClearDefaultTaxRateAsync(entity.Id, now, cancellationToken);
+            await masterAccessor.UpdateTaxRateDefaultClearedAsync(entity.Id, now, cancellationToken);
         }
 
         return status;
@@ -52,7 +52,7 @@ public sealed class TaxRateService
             async () => await masterAccessor.QueryTaxRateAsync(entity.Id, cancellationToken) is { IsDeleted: false });
         if ((result.Status == DataWriteStatus.Success) && entity.IsDefault)
         {
-            await masterAccessor.ClearDefaultTaxRateAsync(entity.Id, entity.UpdatedAt, cancellationToken);
+            await masterAccessor.UpdateTaxRateDefaultClearedAsync(entity.Id, entity.UpdatedAt, cancellationToken);
         }
 
         return result;

@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Pos.Server.Accessors;
 using Pos.Server.Models.Entity;
-using Pos.Server.Services;
 
 using Smart.Data;
 
@@ -34,8 +33,8 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(PointBasis.TaxIncluded, settings.PointBasis);
 
         var masters = Resolve<MasterAccessor>();
-        Assert.NotNull(await masters.QueryStoreAsync(InitialData.MainStoreId, Token));
-        Assert.NotNull(await masters.QueryStoreAsync(InitialData.BranchStoreId, Token));
+        Assert.NotNull(await masters.QueryStoreAsync(TestData.MainStoreId, Token));
+        Assert.NotNull(await masters.QueryStoreAsync(TestData.BranchStoreId, Token));
         Assert.Equal(3, await masters.CountTerminalsAsync(null, null, false, Token));
         Assert.Equal(4, await masters.CountStaffAsync(null, null, false, Token));
         Assert.Equal(13, await masters.CountCategoriesAsync(null, false, Token));
@@ -50,7 +49,7 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
         // 販売例の商品 (JAN で引ける)
         var camera = await Resolve<ProductAccessor>().QueryByBarcodeAsync("4901234567894", Token);
         Assert.NotNull(camera);
-        Assert.Equal(InitialData.CameraProductId, camera.Id);
+        Assert.Equal(TestData.CameraProductId, camera.Id);
         Assert.Equal(80000m, camera.Price);
         Assert.Equal(0.10m, camera.PointRate);
         Assert.Equal(ProductKind.Goods, camera.Kind);
@@ -69,7 +68,7 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
         await using var reader = await command.ExecuteReaderAsync(Token);
         Assert.True(await reader.ReadAsync(Token));
         Assert.Equal("text", reader.GetString(0));
-        Assert.Equal(InitialData.CameraProductId.ToString("D").ToUpperInvariant(), reader.GetString(1));
+        Assert.Equal(TestData.CameraProductId.ToString("D").ToUpperInvariant(), reader.GetString(1));
         Assert.Equal("text", reader.GetString(2));
         Assert.Equal("Goods", reader.GetString(3));
         Assert.Equal("integer", reader.GetString(4));
@@ -88,11 +87,11 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
     {
         var accessor = Resolve<InventoryAccessor>();
         var provider = Resolve<IDbProvider>();
-        var storeId = InitialData.BranchStoreId;
-        var productId = InitialData.SdCardProductId;
+        var storeId = TestData.BranchStoreId;
+        var productId = TestData.SdCardProductId;
         var now = DateTime.UtcNow;
 
-        var before = (await accessor.QueryLevelsByProductAsync(productId, Token)).Single(x => x.StoreId == storeId).Quantity;
+        var before = (await accessor.QueryLevelListByProductAsync(productId, Token)).Single(x => x.StoreId == storeId).Quantity;
         await provider.UsingTxAsync(async (_, tx) =>
         {
             var after = await accessor.AddQuantityAsync(tx, storeId, productId, 1.5m, now, Token);
@@ -112,7 +111,7 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
         command.Parameters.Add(parameter);
         var sum = Convert.ToDecimal(await command.ExecuteScalarAsync(Token), System.Globalization.CultureInfo.InvariantCulture);
 
-        var levels = await accessor.QueryLevelsByProductAsync(productId, Token);
+        var levels = await accessor.QueryLevelListByProductAsync(productId, Token);
         Assert.Equal(levels.Sum(static x => x.Quantity), sum);
         Assert.Equal(before + 3.75m, levels.Single(x => x.StoreId == storeId).Quantity);
     }
@@ -122,7 +121,7 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
     public async Task DateTimeRoundTripsAsUtc()
     {
         var accessor = Resolve<MasterAccessor>();
-        var store = await accessor.QueryStoreAsync(InitialData.MainStoreId, Token);
+        var store = await accessor.QueryStoreAsync(TestData.MainStoreId, Token);
 
         Assert.NotNull(store);
         Assert.Equal(DateTimeKind.Utc, store.CreatedAt.Kind);

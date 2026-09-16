@@ -9,9 +9,6 @@ using Pos.Server.Models.Views;
 [ExecuteConfig(typeof(DataProfile))]
 public sealed partial class MasterAccessor
 {
-    [Execute]
-    public partial void Create();
-
     //--------------------------------------------------------------------------------
     // Settings (1 行、Id = 1)
     //--------------------------------------------------------------------------------
@@ -238,7 +235,7 @@ public sealed partial class MasterAccessor
 
     // 既定は 1 件だけ: 指定 ID 以外の IsDefault を落とす
     [Execute]
-    public partial ValueTask<int> ClearDefaultTaxRateAsync(Guid exceptId, DateTime updatedAt, CancellationToken cancellationToken);
+    public partial ValueTask<int> UpdateTaxRateDefaultClearedAsync(Guid exceptId, DateTime updatedAt, CancellationToken cancellationToken);
 
     // 削除可否 (使用中商品があれば IN_USE)
     [ExecuteScalar]

@@ -7,9 +7,6 @@ using Pos.Server.Models.Views;
 [ExecuteConfig(typeof(DataProfile))]
 public sealed partial class ProductAccessor
 {
-    [Execute]
-    public partial void Create();
-
     // keyword は呼び出し側でエスケープ済みの LIKE パターン (%...%)
     [ExecuteScalar]
     public partial ValueTask<long> CountAsync(Guid? categoryId, string? keyword, bool? isActive, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
@@ -37,7 +34,7 @@ public sealed partial class ProductAccessor
 
     // 取引検証用 (明細の商品をまとめて取得)
     [Query]
-    public partial ValueTask<List<ProductEntity>> QueryByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken);
+    public partial ValueTask<List<ProductEntity>> QueryListByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken);
 
     [Execute]
     [Insert(typeof(ProductEntity))]

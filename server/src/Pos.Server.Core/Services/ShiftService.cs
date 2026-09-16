@@ -259,7 +259,7 @@ public sealed class ShiftService
         {
             Shift = entity,
             Totals = totals,
-            Denominations = await shiftAccessor.QueryDenominationsAsync(entity.Id, cancellationToken),
+            Denominations = await shiftAccessor.QueryDenominationListAsync(entity.Id, cancellationToken),
             ExpectedCash = entity.Status == ShiftStatus.Closed ? entity.ExpectedCash : ExpectedCash(entity.OpeningCash, totals)
         };
     }

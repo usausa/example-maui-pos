@@ -1,3 +1,5 @@
+-- ローカル DB のスキーマ (起動時に DataAccessor.ExecuteSchemaAsync で実行する。CREATE TABLE IF NOT EXISTS なので何度実行してもよい)
+
 CREATE TABLE IF NOT EXISTS Settings (
     CompanyName TEXT NOT NULL,
     Currency TEXT NOT NULL,

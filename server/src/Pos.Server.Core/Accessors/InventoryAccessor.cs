@@ -7,9 +7,6 @@ using Pos.Server.Models.Views;
 [ExecuteConfig(typeof(DataProfile))]
 public sealed partial class InventoryAccessor
 {
-    [Execute]
-    public partial void Create();
-
     //--------------------------------------------------------------------------------
     // Level
     //--------------------------------------------------------------------------------
@@ -27,7 +24,7 @@ public sealed partial class InventoryAccessor
 
     // 商品の全店舗在庫 (他店在庫照会)
     [Query]
-    public partial ValueTask<List<ProductInventoryLevelView>> QueryLevelsByProductAsync(Guid productId, CancellationToken cancellationToken);
+    public partial ValueTask<List<ProductInventoryLevelView>> QueryLevelListByProductAsync(Guid productId, CancellationToken cancellationToken);
 
     // 管理画面の現在庫一覧 (店舗名・商品名付き)。keyword は LIKE パターン
     [ExecuteScalar]

@@ -31,7 +31,7 @@
 template-maui-pos/
 ├─ .editorconfig / .gitattributes / .gitignore / Directory.Build.props / Directory.Build.targets
 ├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md (AI 向け: 進め方と共通の規則) / CLAUDE.md / LICENSE / README.md
-├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 共有プロジェクト、server / terminal / sql / docs は paths で対象を絞る)
+├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 全体と共有プロジェクト、server / terminal / sql / tests / docs は paths で対象を絞る)
 │                                    ↑ ルートに 1 セット (MAUI 用の NoWarn NU1608 を含む)
 ├─ docs/                             本設計
 ├─ shared/                           両ソリューションに含める共有プロジェクト
@@ -90,7 +90,7 @@ Accessors/
   MasterAccessor.cs                  マスタ (設定・店舗・端末・スタッフ・部門・税率・値引・支払方法・調整理由) の一覧 / 取得 / 登録 / 更新 / 論理削除 / 件数
   ProductAccessor.cs, CustomerAccessor.cs, TransactionAccessor.cs, ShiftAccessor.cs, InventoryAccessor.cs, ReportAccessor.cs
   GenericAccessor.cs                 テーブルに紐付かない処理: PRAGMA、後から増えた列の初期値、SQL ファイルの実行 ([DirectSql]。初期データ)
-  Sql/{Accessor}.{Method}.sql       2-way SQL。Create.sql に DDL
+  Sql/{Accessor}.{Method}.sql       2-way SQL (DDL は Host の Assets/Data/Schema.sql)
   SqlHelper.cs                       2-way SQL の /*# */ から呼ぶ SQL 断片だけ (集計の GROUP BY 式、商品別売上の並び順の列)。/*!helper */ で参照する
   SchemaHelper.cs                    後から増えた列の追加 (EnsureColumnAsync)
   DataProfile.cs                     [AccessorProfile]: 列挙型ごとの EnumTextConverter<T> と DateOnly / DateTime のコンバータ
@@ -109,7 +109,6 @@ Services/                            業務の手順 (サブジェクトごと):
   DataWriteResult.cs                 更新の結果 (Status + 更新後の行)
   RuleViolationException.cs          DB トランザクション内の業務ルール違反
   ServiceHelper.cs                   重複 (IDialect.IsDuplicate) と楽観ロック (更新後の行が返らない) の判定、LIKE のエスケープ
-  InitialData.cs                     初期データ (§6) の固定 ID (InitialData.MainStoreId など)。テストと設定 QR で使う
 Infrastructure/Data/                 EnumTextConverter<T> (列挙型 ↔ TEXT)、DateOnlyTextConverter、DateTimeTextConverter (UTC)
 Infrastructure/Json/                 JsonDateTimeConverter (yyyy-MM-ddTHH:mm:ss.fffZ。Host の JSON 設定で使う)
 ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistration で Services/ の XxxService を Singleton 登録)
@@ -159,7 +158,7 @@ Components/
   Controls/ (ErrorBanner, ProgressOverlay, StoreSelect (店舗セレクタ), StatusChip (ViewHelper の文言 + 色))
   Dialogs/ (EditDialogBase<TForm>, DialogServiceExtensions (情報・確認), AppMessageBox, XxxEditDialog (マスタ 10 種 + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31),
             ProductInventoryDialog (S-41), InventoryChangeDialog (S-43), PointAdjustDialog (S-62), TerminalQrDialog (S-71))
-Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート)、Data/InitialData.sql (初期データ。起動時に読んで実行する。出力ディレクトリへコピー)
+Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート)、Data/Schema.sql (DDL) と Data/InitialData.sql (初期データ)。起動時に読んで実行する (出力ディレクトリへコピー)
 Settings/                            LogSetting / ProfilerSetting
 wwwroot/                             css/app.css, js/reconnect.js
 ```
@@ -284,7 +283,7 @@ Models/
   Input/      NumberInputParameter, NumberInputModel
   SummaryRow.cs (集計・詳細画面の行と節), StockChange.cs, SelectItem.cs
 Services/                            単機能の部品
-  DataAccessor.cs + Sql/            ローカル SQLite (Smart.Data.Accessor、2-way SQL。ローカルのエンティティのキーによる取得・削除は [SelectSingle] / [Delete])、DataProfile (型変換)
+  DataAccessor.cs + Sql/            ローカル SQLite (Smart.Data.Accessor、2-way SQL。DDL は Resources/Raw/Schema.sql。ローカルのエンティティのキーによる取得・削除は [SelectSingle] / [Delete])、DataProfile (型変換)
   DatabaseService.cs                 ローカル DB の初期化 (PRAGMA、テーブル作成、後から増えた列の追加)
   HttpService.cs / ApiResult.cs / ApiContext.cs / ApiNames.cs / ProblemResponse.cs   HttpClient による API 呼び出し (Pos.Contract の Request / Response、失敗時は Problem Details、D-40)
   NetworkService.cs                  オンライン限定操作の接続確認・インジケータ・エラー通知

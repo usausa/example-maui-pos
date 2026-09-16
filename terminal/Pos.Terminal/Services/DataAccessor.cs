@@ -16,8 +16,10 @@ public sealed partial class DataAccessor
     [Execute]
     public partial ValueTask<int> ExecutePragmaAsync(DbConnection con);
 
+    // スキーマ (Resources/Raw/Schema.sql の複数文) をそのまま実行する
+    [DirectSql]
     [Execute]
-    public partial ValueTask<int> CreateTablesAsync(DbConnection con);
+    public partial ValueTask<int> ExecuteSchemaAsync(DbConnection con, string sql);
 
     //--------------------------------------------------------------------------------
     // Settings
@@ -168,7 +170,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<int> AddInventoryQuantityAsync(DbTransaction tx, Guid storeId, Guid productId, decimal delta, DateTime updatedAt);
 
     [Execute]
-    public partial ValueTask<int> SetInventoryQuantityAsync(DbTransaction tx, Guid storeId, Guid productId, decimal quantity, DateTime updatedAt);
+    public partial ValueTask<int> UpdateInventoryQuantityAsync(DbTransaction tx, Guid storeId, Guid productId, decimal quantity, DateTime updatedAt);
 
     //--------------------------------------------------------------------------------
     // Transactions

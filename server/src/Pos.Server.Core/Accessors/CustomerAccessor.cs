@@ -6,9 +6,6 @@ using Pos.Server.Models.Entity;
 [ExecuteConfig(typeof(DataProfile))]
 public sealed partial class CustomerAccessor
 {
-    [Execute]
-    public partial void Create();
-
     //--------------------------------------------------------------------------------
     // Customer
     //--------------------------------------------------------------------------------

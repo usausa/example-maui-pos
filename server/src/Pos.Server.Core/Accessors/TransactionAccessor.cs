@@ -7,9 +7,6 @@ using Pos.Server.Models.Entity;
 [ExecuteConfig(typeof(DataProfile))]
 public sealed partial class TransactionAccessor
 {
-    [Execute]
-    public partial void Create();
-
     //--------------------------------------------------------------------------------
     // Query
     //--------------------------------------------------------------------------------
@@ -52,19 +49,19 @@ public sealed partial class TransactionAccessor
         CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<TransactionLineEntity>> QueryLinesAsync(Guid transactionId, CancellationToken cancellationToken);
+    public partial ValueTask<List<TransactionLineEntity>> QueryLineListAsync(Guid transactionId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<TransactionLineSerialEntity>> QueryLineSerialsAsync(Guid transactionId, CancellationToken cancellationToken);
+    public partial ValueTask<List<TransactionLineSerialEntity>> QueryLineSerialListAsync(Guid transactionId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<TransactionDiscountEntity>> QueryDiscountsAsync(Guid transactionId, CancellationToken cancellationToken);
+    public partial ValueTask<List<TransactionDiscountEntity>> QueryDiscountListAsync(Guid transactionId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<TransactionTaxSummaryEntity>> QueryTaxSummariesAsync(Guid transactionId, CancellationToken cancellationToken);
+    public partial ValueTask<List<TransactionTaxSummaryEntity>> QueryTaxSummaryListAsync(Guid transactionId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<TransactionPaymentEntity>> QueryPaymentsAsync(Guid transactionId, CancellationToken cancellationToken);
+    public partial ValueTask<List<TransactionPaymentEntity>> QueryPaymentListAsync(Guid transactionId, CancellationToken cancellationToken);
 
     [QueryFirst]
     public partial ValueTask<TransactionDeliveryEntity?> QueryDeliveryAsync(Guid transactionId, CancellationToken cancellationToken);
@@ -75,7 +72,7 @@ public sealed partial class TransactionAccessor
 
     // 元取引に紐付く返品取引 (取消済みも含む。管理画面の関連取引)
     [Query]
-    public partial ValueTask<List<TransactionEntity>> QueryReturnsAsync(Guid originalTransactionId, CancellationToken cancellationToken);
+    public partial ValueTask<List<TransactionEntity>> QueryReturnListAsync(Guid originalTransactionId, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Insert

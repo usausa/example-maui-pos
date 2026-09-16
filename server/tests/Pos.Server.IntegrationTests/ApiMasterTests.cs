@@ -8,7 +8,6 @@ using Pos.Contract.Products;
 using Pos.Contract.Settings;
 using Pos.Contract.Sync;
 using Pos.Server.Host.Endpoints;
-using Pos.Server.Services;
 
 // マスタ・設定・同期・顧客の API
 public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
@@ -114,10 +113,10 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
 
         var camera = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/lookup?barcode=4901234567894", options);
         Assert.Equal("CAM-X100", camera.Code);
-        Assert.Equal(InitialData.CameraProductId, camera.Id);
+        Assert.Equal(TestData.CameraProductId, camera.Id);
 
         var sdCard = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/lookup?code=SD-64", options);
-        Assert.Equal(InitialData.SdCardProductId, sdCard.Id);
+        Assert.Equal(TestData.SdCardProductId, sdCard.Id);
 
         using var missing = await client.GetAsync(new Uri($"{ApiRoutes.Products}/lookup?barcode=0000000000000", UriKind.Relative), Token);
         await missing.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
@@ -155,7 +154,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         var customer = await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/lookup?code=M0003", options);
         Assert.Equal(500, customer.PointBalance);
 
-        using var adjustResponse = await client.PostJsonAsync($"{ApiRoutes.Customers}/{customer.Id}/points/adjust", new CustomerPointAdjustRequest { Points = 100, Reason = "キャンペーン", StaffId = InitialData.ManagerStaffId }, options);
+        using var adjustResponse = await client.PostJsonAsync($"{ApiRoutes.Customers}/{customer.Id}/points/adjust", new CustomerPointAdjustRequest { Points = 100, Reason = "キャンペーン", StaffId = TestData.ManagerStaffId }, options);
         var adjusted = await adjustResponse.ReadAsAsync<CustomerPointHistoryResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(PointHistoryType.Adjust, adjusted.Type);
         Assert.Equal(600, adjusted.BalanceAfter);

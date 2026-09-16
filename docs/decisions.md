@@ -913,11 +913,21 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
 
 **決定**: `docs/` は人間向けの設計文書として現状 (何を・なぜ) だけを書き、どう実装すべきかの規則は AI 向けに `AGENTS.md` と `.claude/rules/` に置く (AI がコードを書く前提)。
 
-- `AGENTS.md`: 仕事の進め方と全体に共通する規則 (スタイル・構成と層・検証・進め方)。  
-  `CLAUDE.md` が取り込む
+- `AGENTS.md`: 仕事の進め方 (コーディングスタイル・検証・進め方)。  
+  `CLAUDE.md` が取り込む。  
+  構成と層のようなコードの規則は書かない
 - `.claude/rules/`: コードの書き方を領域別に。  
-  `common.md` は共有プロジェクト (`Pos.Domain` / `Pos.Contract`) の規則で常時読み込み、`server.md` / `terminal.md` / `sql.md` / `docs.md` は `paths` フロントマターで対象のファイルを扱うときだけ読み込む
+  `common.md` は全体と共有プロジェクト (`Pos.Domain` / `Pos.Contract`) の規則で常時読み込み、`server.md` / `terminal.md` / `sql.md` / `tests.md` / `docs.md` は `paths` フロントマターで対象のファイルを扱うときだけ読み込む
 - `sql.md` は SQL ファイルの書き方だけにし、Accessor の C# 側の規則 (`[Name]`、`RETURNING` の受け取り、コンバータの登録) は `server.md` / `terminal.md` に置く
 - `docs/guidelines.md` は規則に統合して削除し、設計文書にあった実装規則 (命名・null チェック・引数の渡し方など) も規則へ移す
 - 分割の目安: 常時読み込む規則が 100〜150 行を超えたとき、規則の半分以上が特定の領域にしか当てはまらないとき、ファイル種別に固有の規則 (SQL の書き方など) があるとき
-- 規則も文書と同じく日本語で書く
+- 規則も日本語で書く。  
+  規則ファイルは 1 項目 1 行 (文書の「。」+ 2 スペースの改行規則は適用しない)
+
+### D-53. DDL と固定 ID を製品コードから外す
+
+| 指摘 | 決定 |
+| --- | --- |
+| DDL が Accessor ごとの 2-way SQL (`{Accessor}.Create.sql`) に埋め込まれている | 初期データと同じ外部の SQL ファイルにする。サーバは `Host/Assets/Data/Schema.sql`、端末は `Resources/Raw/Schema.sql` (MauiAsset)。起動時に読んで `ExecuteSchemaAsync` (`[DirectSql]`) で実行する (`CREATE TABLE IF NOT EXISTS` なので何度実行してもよい) |
+| 初期データの固定 ID を持つ `InitialData` クラスが Core にある | テストしか使わないので削除し、必要な定数はテスト側 (`TestData`) に定義する |
+| 複数件を返す Accessor のメソッド名が `QueryLines` / `QueryPayments` のように揺れている | `QueryXxxList` に統一し、絶対値の設定や既定の解除も `UpdateXxx` にする (`UpdateInventoryQuantity`、`UpdateTaxRateDefaultCleared`)。名前の規則は `.claude/rules/sql.md` の表 |

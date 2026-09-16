@@ -18,7 +18,7 @@
 | --- | --- |
 | RDBMS | **SQLite** (`Microsoft.Data.Sqlite`)。接続文字列は `Data Source=pos.db;Cache=Shared;Pooling=True`。WAL と `busy_timeout` を起動時の PRAGMA で設定する |
 | データアクセス | `Usa.Smart.Data.Accessor` の `[DataAccessor]` + 2-way SQL ファイル (`Accessors/Sql/{Accessor}.{Method}.sql`)。ORM は使わない。SQL は Accessor だけが持ち、Accessor を使うのは `Services/` の Service だけ ([D-45](decisions.md#d-45-サーバの-service-層)) |
-| スキーマ作成 | 起動時に `{Accessor}.Create.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を実行する。後から増えた列は `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確認して `ALTER TABLE ADD COLUMN`) で既存の DB に足す |
+| スキーマ作成 | 起動時に `Host/Assets/Data/Schema.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を読んで実行する。後から増えた列は `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確認して `ALTER TABLE ADD COLUMN`) で既存の DB に足す |
 | 命名 | テーブル = 複数形 PascalCase (`Transactions`)、列 = PascalCase。FK は `〜Id`。エンティティクラスは `{Table 単数}Entity` (`TransactionEntity`) |
 | 主キー | `guid` を **TEXT (36 文字。`Microsoft.Data.Sqlite` の既定で大文字)** で保存。端末発のデータは端末が GUID v7 を採番 ([D-10](decisions.md#d-10-冪等性-クライアント採番-id)) |
 | 列挙型 | TEXT (列挙名)。汎用 `EnumTextConverter<T>` を `DataProfile` (`[AccessorProfile]`) に列挙型ごとに宣言し、各 Accessor が `[ExecuteConfig(typeof(DataProfile))]` で参照する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。値は API の enum と同じ |
@@ -646,11 +646,11 @@ erDiagram
 
 ## 4. DDL 例
 
-`Accessors/Sql/{Accessor}.Create.sql` に置く SQLite の DDL。  
+`Host/Assets/Data/Schema.sql` に置く SQLite の DDL (端末は `Resources/Raw/Schema.sql`)。  
 他のテーブルも同じ規則 (guid = TEXT、money = INTEGER、enum = TEXT、datetime = TEXT) で書く。
 
 ```sql
--- TransactionAccessor.Create.sql
+-- Schema.sql (抜粋)
 CREATE TABLE IF NOT EXISTS Transactions (
     Id                     TEXT     NOT NULL,
     Type                   TEXT     NOT NULL,   -- Sale / Return
@@ -730,7 +730,7 @@ CREATE TABLE IF NOT EXISTS TransactionLines (
 CREATE INDEX IF NOT EXISTS IX_TransactionLines_ProductId ON TransactionLines (ProductId);
 CREATE INDEX IF NOT EXISTS IX_TransactionLines_OriginalLineId ON TransactionLines (OriginalLineId);
 
--- 部分ユニークインデックスの例 (ShiftAccessor.Create.sql)
+-- 部分ユニークインデックスの例
 CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_Open ON Shifts (TerminalId) WHERE Status = 'Open';
 ```
 

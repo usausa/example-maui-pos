@@ -6,37 +6,25 @@ paths:
 
 ## Core
 
-- Endpoints と Blazor ページは `Services/` の `XxxService` を呼び、Service が Accessor と `Pos.Domain` を使う。  
-  Service は `AddCoreServices()` で一括登録する
-- DB から読んだ結果は `Models/Views` の `XxxView` に統一する。  
-  列挙型 (並び順など) は `Views` や `Parameters` に混ぜず `Models/Enums` に置く。  
-  Service への入力は `Models/Parameters` (一覧は `PagedParameter<TSort>` を基底にした `XxxQueryParameter`。`Sort` は資源ごとの列挙型)
-- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`RETURNING` で行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す。  
-  「読んでから更新」で判定しない
-- LIKE のエスケープと既定値の補完は Service で行う。  
-  複数テーブルにまたがる書き込みは Service の中で `IDbProvider.UsingTxAsync` を使う
-- 現在時刻 (`TimeProvider`) を扱うのは Service と帳票だけ。  
-  「今日」「既定の期間」「通信中とみなす条件」「登録時刻」は業務の規則なので Service が持つ (`ReportService.Today` / `ResolvePeriod`、`TerminalService.IsOnline`、省略された `OccurredAt` の補完)
+- Endpoints と Blazor ページは `Services/` の `XxxService` を呼び、Service が Accessor と `Pos.Domain` を使う。Service は `AddCoreServices()` で一括登録する
+- DB から読んだ結果は `Models/Views` の `XxxView` に統一する。列挙型 (並び順など) は `Views` や `Parameters` に混ぜず `Models/Enums` に置く。Service への入力は `Models/Parameters` (一覧は `PagedParameter<TSort>` を基底にした `XxxQueryParameter`。`Sort` は資源ごとの列挙型)
+- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`RETURNING` で行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す。「読んでから更新」で判定しない
+- LIKE のエスケープと既定値の補完は Service で行う。複数テーブルにまたがる書き込みは Service の中で `IDbProvider.UsingTxAsync` を使う
+- 現在時刻 (`TimeProvider`) を扱うのは Service と帳票だけ。「今日」「既定の期間」「通信中とみなす条件」「登録時刻」は業務の規則なので Service が持つ (`ReportService.Today` / `ResolvePeriod`、`TerminalService.IsOnline`、省略された `OccurredAt` の補完)
 - 省略された期間の既定値は逆転しないように補う (`to` は今日、`from` が未来ならその日、`from` は `to` の 30 日前)
 - Host だけが使う部品でも、アプリに依存しない基盤 (`JsonDateTimeConverter` など) は Core の `Infrastructure/` に置く
 
 ## Accessor
 
-- Accessor は処理の単位でまとめる (`MasterAccessor` にマスタ全種、`ProductAccessor` / `CustomerAccessor` / `TransactionAccessor` / `ShiftAccessor` / `InventoryAccessor` / `ReportAccessor`)。  
-  テーブルに紐付かない処理 (PRAGMA、後から増えた列、SQL ファイルの実行) は `GenericAccessor`
+- Accessor は処理の単位でまとめる (`MasterAccessor` にマスタ全種、`ProductAccessor` / `CustomerAccessor` / `TransactionAccessor` / `ShiftAccessor` / `InventoryAccessor` / `ReportAccessor`)。テーブルに紐付かない処理 (PRAGMA、後から増えた列、スキーマと初期データの SQL ファイルの実行) は `GenericAccessor`
 - `DataProfile` / `SqlHelper` / `SchemaHelper` は `Accessors/` に置く
-- メソッド名は DB の操作 (`Query` / `Count` / `Insert` / `Update` / `Delete`) で付ける。  
-  取消や精算のような業務の動詞は Service の名前にし、Accessor は状態を変える UPDATE として `UpdateVoidedAsync` / `UpdateClosedAsync` と呼ぶ
+- メソッド名は DB の操作 (`Query` / `Count` / `Insert` / `Update` / `Delete`) で付ける。取消や精算のような業務の動詞は Service の名前にし、Accessor は状態を変える UPDATE として `UpdateVoidedAsync` / `UpdateClosedAsync` と呼ぶ
 - テーブル名は Entity クラスの `[Name("Stores")]` で持ち、Builder 属性 (`[SelectSingle]` / `[Insert]` / `[Delete]`) に `Table` を書かない
-- 更新は `UPDATE ... RETURNING *` を `[QueryFirst]` で受けて更新後の行を返し、更新してから読み直さない (読み直す間に削除される余地がある)。  
-  更新の引数は列ごとに渡す (`/*@ entity.Prop */` にはコンバータが効かない)
-- 列挙型は `DataProfile` の `EnumTextConverter<T>` で文字列として保存する (新しい列挙型は `DataProfile` に登録する)。  
-  日付・日時は `DateOnlyTextConverter` / `DateTimeTextConverter`
-- `SqlHelper` に置くのは 2-way SQL の `/*# */` から呼ぶ SQL 断片 (集計の GROUP BY 式など) だけ。  
-  SQL に関係しない処理 (列の追加、タイムゾーンの修飾子) は `SchemaHelper` や Service に置く
+- 更新は `UPDATE ... RETURNING *` を `[QueryFirst]` で受けて更新後の行を返し、更新してから読み直さない (読み直す間に削除される余地がある)。更新の引数は列ごとに渡す (`/*@ entity.Prop */` にはコンバータが効かない)
+- 列挙型は `DataProfile` の `EnumTextConverter<T>` で文字列として保存する (新しい列挙型は `DataProfile` に登録する)。日付・日時は `DateOnlyTextConverter` / `DateTimeTextConverter`
+- `SqlHelper` に置くのは 2-way SQL の `/*# */` から呼ぶ SQL 断片 (集計の GROUP BY 式など) だけ。SQL に関係しない処理 (列の追加、タイムゾーンの修飾子) は `SchemaHelper` や Service に置く
 - 後から増えた列は `SchemaHelper.EnsureColumnAsync` で起動時に足して初期値を補完し、既存の DB を壊さない
-- 初期データは Host の `Assets/Data/InitialData.sql` を起動時に読み、`GenericAccessor.ExecuteScriptAsync` (`[DirectSql]` + `[Execute]`。第 1 引数の文字列が SQL、残りの引数が `@name` のパラメータ) で会社設定がない DB へ投入する。  
-  C# で初期データを組み立てず、`InitialData` クラスは固定 ID だけを持つ
+- 初期データは Host の `Assets/Data/InitialData.sql` を起動時に読み、`GenericAccessor.ExecuteScriptAsync` (`[DirectSql]` + `[Execute]`。第 1 引数の文字列が SQL、残りの引数が `@name` のパラメータ) で会社設定がない DB へ投入する。C# で初期データを組み立てない
 
 ## Host
 
@@ -60,20 +48,15 @@ paths:
 
 ### エンドポイント
 
-- ハンドラは Request → Entity / Parameter の変換 (`[Mapper]`) → Service → Response の変換だけを持つ。  
-  静的なユーティリティ (`TryParse` など) はエンドポイントのクラスに書かず、`Helpers/` に置く
+- ハンドラは Request → Entity / Parameter の変換 (`[Mapper]`) → Service → Response の変換だけを持つ。静的なユーティリティ (`TryParse` など) はエンドポイントのクラスに書かず、`Helpers/` に置く
 - 更新の応答は `DataWriteResult<T>` の行から作る
-- 大小比較 (`from` ≤ `to`) のような入力の検証は `[AsParameters]` のクエリ型の `IValidatableObject` で行い、ハンドラの中の `if` にしない。  
-  API の入力検証は DataAnnotations で統一し、FluentValidation は管理画面のフォームだけに使う
-- 一覧の `sort` は文字列で受けて列挙型に解析し、不正な値は既定の列にする。  
-  レポートの `sort` / `groupBy` の不正な値は 400 にする
+- 大小比較 (`from` ≤ `to`) のような入力の検証は `[AsParameters]` のクエリ型の `IValidatableObject` で行い、ハンドラの中の `if` にしない。API の入力検証は DataAnnotations で統一し、FluentValidation は管理画面のフォームだけに使う
+- 一覧の `sort` は文字列で受けて列挙型に解析し、不正な値は既定の列にする。レポートの `sort` / `groupBy` の不正な値は 400 にする
 
 ### 管理画面
 
 - razor の表示用の加工は `Application/ViewHelper` と `ViewExtensions` だけに置く
 - CSV / PDF などのダウンロード URL はページで組み立てず、`Application/Urls/ExportUrls` で作る
-- 描画モードは対話型 (プリレンダリングなし)。  
-  エラーと 404 のページは再実行で描画されるため静的 SSR のままにし、常に対話型にはしない
+- 描画モードは対話型 (プリレンダリングなし)。エラーと 404 のページは再実行で描画されるため静的 SSR のままにし、常に対話型にはしない
 - フォームの検証の長さは `Length` の定数を使う
-- ページは `TimeProvider` を注入しない。  
-  期間の既定は `ReportService.Today` / `ResolvePeriod`、通信中の表示は `TerminalService.IsOnline`、登録時刻は Service に任せる
+- ページは `TimeProvider` を注入しない。期間の既定は `ReportService.Today` / `ResolvePeriod`、通信中の表示は `TerminalService.IsOnline`、登録時刻は Service に任せる

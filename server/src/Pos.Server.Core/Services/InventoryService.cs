@@ -52,7 +52,7 @@ public sealed class InventoryService
             return null;
         }
 
-        return await inventoryAccessor.QueryLevelsByProductAsync(productId, cancellationToken);
+        return await inventoryAccessor.QueryLevelListByProductAsync(productId, cancellationToken);
     }
 
     // 現在庫一覧 (店舗名・商品名付き)

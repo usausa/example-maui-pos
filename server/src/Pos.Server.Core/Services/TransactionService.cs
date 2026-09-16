@@ -139,17 +139,17 @@ public sealed class TransactionService
 
     // 元取引に紐付く返品取引 (取消済みも含む)
     public ValueTask<List<TransactionEntity>> QueryReturnsAsync(Guid originalTransactionId, CancellationToken cancellationToken) =>
-        transactionAccessor.QueryReturnsAsync(originalTransactionId, cancellationToken);
+        transactionAccessor.QueryReturnListAsync(originalTransactionId, cancellationToken);
 
     private async ValueTask<TransactionDetailView> LoadDetailAsync(TransactionEntity entity, CancellationToken cancellationToken) =>
         new()
         {
             Transaction = entity,
-            Lines = await transactionAccessor.QueryLinesAsync(entity.Id, cancellationToken),
-            Serials = await transactionAccessor.QueryLineSerialsAsync(entity.Id, cancellationToken),
-            Discounts = await transactionAccessor.QueryDiscountsAsync(entity.Id, cancellationToken),
-            TaxSummaries = await transactionAccessor.QueryTaxSummariesAsync(entity.Id, cancellationToken),
-            Payments = await transactionAccessor.QueryPaymentsAsync(entity.Id, cancellationToken),
+            Lines = await transactionAccessor.QueryLineListAsync(entity.Id, cancellationToken),
+            Serials = await transactionAccessor.QueryLineSerialListAsync(entity.Id, cancellationToken),
+            Discounts = await transactionAccessor.QueryDiscountListAsync(entity.Id, cancellationToken),
+            TaxSummaries = await transactionAccessor.QueryTaxSummaryListAsync(entity.Id, cancellationToken),
+            Payments = await transactionAccessor.QueryPaymentListAsync(entity.Id, cancellationToken),
             Delivery = await transactionAccessor.QueryDeliveryAsync(entity.Id, cancellationToken)
         };
 
@@ -170,7 +170,7 @@ public sealed class TransactionService
         var paymentMethods = await QueryPaymentMethodsAsync(cancellationToken);
         if (type == TransactionType.Return)
         {
-            var originalLines = originalTransactionId is null ? [] : await transactionAccessor.QueryLinesAsync(originalTransactionId.Value, cancellationToken);
+            var originalLines = originalTransactionId is null ? [] : await transactionAccessor.QueryLineListAsync(originalTransactionId.Value, cancellationToken);
             if (originalLines.Count == 0)
             {
                 return new TransactionCalculation(null, new RuleError(ErrorCode.OriginalNotFound, RuleReason.OriginalNotFound));
@@ -209,7 +209,7 @@ public sealed class TransactionService
         var paymentMethods = await QueryPaymentMethodsAsync(cancellationToken);
         var shift = await shiftAccessor.QueryAsync(entity.ShiftId, cancellationToken);
         var receiptNoInUse = await transactionAccessor.QueryByReceiptNoAsync(entity.ReceiptNo, cancellationToken) is not null;
-        var products = (await productAccessor.QueryByIdsAsync(detail.Lines.Select(static x => x.ProductId).Distinct().ToList(), cancellationToken)).ToDictionary(static x => x.Id);
+        var products = (await productAccessor.QueryListByIdsAsync(detail.Lines.Select(static x => x.ProductId).Distinct().ToList(), cancellationToken)).ToDictionary(static x => x.Id);
         var customer = entity.CustomerId is null ? null : await customerAccessor.QueryAsync(entity.CustomerId.Value, cancellationToken);
         var claimed = ToClaimedResult(detail);
         var shiftFact = shift is null ? null : new ShiftFact { Id = shift.Id, Status = shift.Status, TerminalId = shift.TerminalId };
@@ -218,7 +218,7 @@ public sealed class TransactionService
         if (entity.Type == TransactionType.Return)
         {
             var original = entity.OriginalTransactionId is null ? null : await transactionAccessor.QueryAsync(entity.OriginalTransactionId.Value, cancellationToken);
-            var originalLines = original is null ? [] : await transactionAccessor.QueryLinesAsync(original.Id, cancellationToken);
+            var originalLines = original is null ? [] : await transactionAccessor.QueryLineListAsync(original.Id, cancellationToken);
             var input = ToReturnInput(settings, originalLines, detail.Lines, detail.Payments, paymentMethods);
             var context = new ReturnContext
             {
@@ -456,8 +456,8 @@ public sealed class TransactionService
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var lines = await transactionAccessor.QueryLinesAsync(id, cancellationToken);
-        var products = (await productAccessor.QueryByIdsAsync(lines.Select(static x => x.ProductId).Distinct().ToList(), cancellationToken)).ToDictionary(static x => x.Id);
+        var lines = await transactionAccessor.QueryLineListAsync(id, cancellationToken);
+        var products = (await productAccessor.QueryListByIdsAsync(lines.Select(static x => x.ProductId).Distinct().ToList(), cancellationToken)).ToDictionary(static x => x.Id);
         var sale = entity.Type == TransactionType.Sale;
         try
         {

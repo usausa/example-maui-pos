@@ -7,9 +7,6 @@ using Pos.Server.Models.Views;
 [ExecuteConfig(typeof(DataProfile))]
 public sealed partial class ShiftAccessor
 {
-    [Execute]
-    public partial void Create();
-
     //--------------------------------------------------------------------------------
     // Shift
     //--------------------------------------------------------------------------------
@@ -53,7 +50,7 @@ public sealed partial class ShiftAccessor
     public partial ValueTask<int> InsertDenominationAsync(DbTransaction tx, ShiftDenominationEntity entity, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<ShiftDenominationEntity>> QueryDenominationsAsync(Guid shiftId, CancellationToken cancellationToken);
+    public partial ValueTask<List<ShiftDenominationEntity>> QueryDenominationListAsync(Guid shiftId, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // CashEvent

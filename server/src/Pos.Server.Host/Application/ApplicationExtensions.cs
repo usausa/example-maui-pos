@@ -37,6 +37,7 @@ using Smart.Data;
 
 public static class ApplicationExtensions
 {
+    private const string SchemaPath = "Assets/Data/Schema.sql";
     private const string InitialDataPath = "Assets/Data/InitialData.sql";
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
@@ -405,7 +406,7 @@ public static class ApplicationExtensions
     //--------------------------------------------------------------------------------
 
     public static ValueTask InitializeApplicationAsync(this WebApplication app) =>
-        app.Services.GetRequiredService<DatabaseService>().InitializeAsync(InitialDataPath, CancellationToken.None);
+        app.Services.GetRequiredService<DatabaseService>().InitializeAsync(SchemaPath, InitialDataPath, CancellationToken.None);
 
     //--------------------------------------------------------------------------------
     // Profiler
