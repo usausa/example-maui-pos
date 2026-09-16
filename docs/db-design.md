@@ -765,15 +765,10 @@ public sealed partial class TransactionAccessor
 }
 ```
 
-- 2-way SQL の POCO 引数 (`/*@ entity.Prop */`) にはコンバータが効かないので、列挙型・日付を渡す UPDATE はスカラー引数で書く (`UpdateAsync(id, code, ..., kind, updatedAt, version)`)。  
-  INSERT は Builder (`[Insert]`) を使う
-- 生 SQL (`/*# sort */Code`) のプレースホルダは 1 トークン (`StringBuilder.Append` で展開されるので列挙型をそのまま書く)。  
-  並び替えは列挙型 (`StoreSort` など。列挙名 = 列名、先頭が既定) を受け取り、`/*% if (desc) { */` で `DESC` を付ける (差分同期の `UpdatedAt, Id` 順も SQL 側の分岐)
-- 更新は `UPDATE ... RETURNING *` で更新後の行を返す (`[QueryFirst]`。null = 競合または削除済み)
-- メソッド名は DB の操作で付ける (取消は `UpdateVoidedAsync`、精算は `UpdateClosedAsync`。業務の動詞は Service / Usecase だけが使う)
+- 更新は `UPDATE ... RETURNING *` で更新後の行を返す (`[QueryFirst]`。null = 競合または削除済み)。  
+  並び替えは資源ごとの列挙型 (`StoreSort` など。列挙名 = 列名、先頭が既定) を受け取り、2-way SQL の中で列に展開する
 - 集計は `Models/Views` の `XxxView` (`ShiftTotalsView` / `SalesSummaryView` など) に列名で写す
-- SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列・条件を次の行に字下げする (`UPDATE` の次の行に表名)。  
-  初期データは Host の `Assets/Data/InitialData.sql` (複数の `INSERT`。`@now` は投入時刻) を起動時に読み、`GenericAccessor.ExecuteScriptAsync` (`[DirectSql]`) で会社設定がない DB へ 1 トランザクションで投入する
+- 初期データは Host の `Assets/Data/InitialData.sql` (複数の `INSERT`。`@now` は投入時刻) を起動時に読み、`GenericAccessor.ExecuteScriptAsync` (`[DirectSql]`) で会社設定がない DB へ 1 トランザクションで投入する
 
 起動時の PRAGMA (`GenericAccessor.ExecutePragmaAsync.sql`。WAL は DB ファイルに永続化される):
 

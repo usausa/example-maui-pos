@@ -30,7 +30,8 @@
 ```
 template-maui-pos/
 ├─ .editorconfig / .gitattributes / .gitignore / Directory.Build.props / Directory.Build.targets
-├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md / CLAUDE.md / LICENSE / README.md
+├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md (AI 向け: 進め方と共通の規則) / CLAUDE.md / LICENSE / README.md
+├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 共有プロジェクト、server / terminal / sql / docs は paths で対象を絞る)
 │                                    ↑ ルートに 1 セット (MAUI 用の NoWarn NU1608 を含む)
 ├─ docs/                             本設計
 ├─ shared/                           両ソリューションに含める共有プロジェクト
@@ -114,20 +115,11 @@ Infrastructure/Json/                 JsonDateTimeConverter (yyyy-MM-ddTHH:mm:ss.
 ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistration で Services/ の XxxService を Singleton 登録)
 ```
 
-- 特定の Service だけが返す結果 (TransactionResult / ShiftResult / CashEventResult / InventoryChangeResult) は、その Service のファイルの先頭で定義する
 - SQL は Accessor だけが持つ。  
   Service が Accessor を束ね、複数テーブルにまたがる書き込み (取引登録・取消・精算) は Service の中で `IDbProvider.UsingTxAsync` を使う ([db-design.md §5](db-design.md#5-整合性と更新の単位))
-- 現在時刻 (`TimeProvider`) を扱うのは Service と帳票 (`Reports/`) だけ。  
-  ページとエンドポイントは時計を持たず、今日と既定の期間は `ReportService.Today` / `ResolvePeriod`、端末の通信中の判定は `TerminalService.IsOnline`、登録時刻は Service が付ける (省略された `OccurredAt` など)
-- 業務ルールは `Pos.Domain`、LIKE のエスケープと既定値は Service が行う。  
-  並び替えは `Models/Enums` の列挙型で受け取り、2-way SQL の中で `/*# sort */` と `/*% if (desc) */` で列に展開する (差分同期の `UpdatedAt, Id` 順も SQL 側)
-- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`UPDATE ... RETURNING *` で更新後の行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す (API と管理画面で同じ規則)。  
-  更新の応答は `RETURNING` で返った行から作る (更新後に読み直さない)
+- 業務ルールは `Pos.Domain`、LIKE のエスケープ・既定値・現在時刻 (`TimeProvider`) は Service が扱う
+- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`UPDATE ... RETURNING *` で更新後の行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す (API と管理画面で同じ規則)
 - Accessor の DI 登録は Host の `AddDataAccessors(typeof(DataProfile).Assembly)`、Service は `AddCoreServices()`
-- 更新の引数は列ごとに渡す (2-way SQL の `/*@ entity.Prop */` にはコンバータが効かないため)
-- 引数の null チェック (`ArgumentNullException.ThrowIfNull`) は書かない (CA1062 は無効)
-- Accessor のメソッド名は DB の操作 (`Query` / `Count` / `Insert` / `Update` / `Delete`) で付ける。  
-  取消や精算のような業務の動詞は Service の名前にし、Accessor は状態を変える UPDATE として `UpdateVoidedAsync` / `UpdateClosedAsync` と呼ぶ
 
 ### 3.2 `Pos.Server.Host`
 
@@ -326,16 +318,11 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CA
 - 使用者に常に紐付く情報 (店舗・端末・担当・シフト) は `Session` に集約する
 - 通信は HttpClient + `System.Text.Json` (`HttpService.JsonOptions`: camelCase / null 省略 / 列挙型は文字列 / `JsonDateTimeConverter`) ([D-40](decisions.md#d-40-端末の通信-rester-ではなく-httpclient))
 - 画面遷移は `Navigator.ForwardAsync` のみ (スタックは使わない)。  
-  ナビゲーションイベントの中では遷移と非同期処理を `PostForwardAsync` / `PostActionAsync` で後回しにする。  
   複数の画面から使う画面 (スキャン、会員選択、レシートなど) は `Parameters.WithReturnTo` で戻り先を受け取る
-- 一覧は `ObservableCollection<T>`、列挙型の文言・色・選択マークなどの表示の切り替えは ViewModel ではなく Converter (Smart.Maui の部品 + `DisplayNameConverter`) と Trigger で行う
-- 数値・番号は `PopupNavigatorExtensions` の入力の種類ごとの電卓 (`InputPhoneAsync` / `InputQuantityAsync` など) で入力する。  
-  理由 (取消・入出金・値引) は定型の選択 (`ReasonSelect`) で、キーボードは会員・配送先の文字項目、検索、設定に限る
-- 物理キーボードは前提にしない (物理キー向けの `Input` 名前空間は持たない)。  
-  数値・番号は電卓ボタン ([D-44](decisions.md#d-44-入力はキーボードに依存しない-数値番号は電卓ボタン))
+- 物理キーボードは前提にしない ([D-44](decisions.md#d-44-入力はキーボードに依存しない-数値番号は電卓ボタン))。  
+  数値・番号は電卓 (`PopupNavigatorExtensions` の入力の種類ごとのメソッド)、理由は定型の選択 (`ReasonSelect`) で入力し、キーボードは会員・配送先の文字項目、検索、設定に限る
 - 販売・会計画面は `Styles.xaml` の POS 節 (白い行 + 区切り線、名称は太字、金額は青、[D-43](decisions.md#d-43-端末シェルのデザイン-pos-画面に合わせる)) を使う。  
-  ポップアップは画面の下端に寄せたシート (CommunityToolkit の Popup を `VerticalOptions=End` / 幅いっぱいで表示し、`PopupOptions.Shape` で上角を丸める。下段の ✕ / ✔ は F キーと同じ位置と配色)。  
-  ポップアップの中から開くのは電卓 (`InputNumber`)・理由 (`ReasonSelect`)・一覧からの選択 (`Select`) のシートだけにし、一覧からの選択に OS のダイアログ (`IDialog.SelectAsync`) は使わない
+  ポップアップは画面の下端に寄せたシート (CommunityToolkit の Popup。下段の ✕ / ✔ は F キーと同じ位置と配色) で、電卓 (`InputNumber`)・理由 (`ReasonSelect`)・一覧からの選択 (`Select`) は重ねて開ける ([D-50](decisions.md#d-50-端末のポップアップは下端に寄せたシート))
 
 ---
 

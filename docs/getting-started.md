@@ -1,7 +1,7 @@
 # 起動と開発
 
 サーバと端末の起動手順、サンプル取引の生成、テストと静的解析。  
-プロジェクト構成は [architecture.md](architecture.md)、設計判断は [decisions.md](decisions.md)、コーディング規約は [AGENTS.md](../AGENTS.md)。
+プロジェクト構成は [architecture.md](architecture.md)、設計判断は [decisions.md](decisions.md)、AI 向けの規則は [AGENTS.md](../AGENTS.md) と `.claude/rules/`。
 
 ## 構成
 

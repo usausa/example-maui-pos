@@ -1,30 +1,52 @@
-# Coding Style
+# プロジェクトの規則
 
-- **General:** Follow the rules defined in .editorconfig
-- **Instance field:** Do not use `_` prefix for member variables
-- **Warnings:** Ensure there are no build warnings
-- **Suppress warnings:** If warning suppression is needed, ask before applying the fix
-- **Line endings:** Never change existing line endings, use CRLF for newly created text files
+仕事の進め方と全体に共通する規則。  
+コードの書き方は領域ごとに `.claude/rules/` にある。
 
-# Project Rules
+## コーディングスタイル
 
-- **Structure:** Monorepo. `server/Pos.Server.slnx` (ASP.NET Core) and `terminal/Pos.Terminal.slnx` (MAUI) are opened separately, both include the `shared/` projects. See `docs/architecture.md`
-- **Layers:** SQL lives only in Accessors. Server: Endpoints and Blazor pages call `Services/` (`XxxService`), which use Accessors and `Pos.Domain`; Razor display formatting lives only in `ViewHelper` / `ViewExtensions`; `TimeProvider` is used only by Services and report builders (pages and endpoints never read the clock: today / default period come from `ReportService`, online state from `TerminalService.IsOnline`, timestamps are stamped by Services). Terminal: ViewModels call `Services/` (`XxxService`, a single function) and `Usecases/` (`XxxUsecase`, a sequence); `XxxBuilder` only builds text or images (data conversion is `XxxMapper` / `XxxCalculator`); no `IDbProvider` in ViewModels; state shared between the screens of one feature is a `[Scope]` property (Smart.Navigation Scope plugin), not a navigation parameter
-- **Naming:** Communication data is `XxxRequest` / `XxxResponse` named after the endpoint class and method (`TransactionCreateRequest`, `ReportSalesSummaryResponse`); a list is `XxxResponse` whose `Items` are `XxxResponseItem` (nested elements append the element name: `TransactionResponseItemLine`). Server read models are `XxxView`, sort orders are enums in `Models/Enums`. Accessor methods are named after the database operation (`Query` / `Count` / `Insert` / `Update` / `Delete`, e.g. `UpdateVoidedAsync`, `UpdateClosedAsync`); business verbs such as Void / Close / Import belong to Services and Usecases only. Never use the word "DTO" in code, namespaces or documents
-- **Source comments:** Source is the source of truth: do not reference design documents (section numbers, `§`, screen IDs, decision numbers) from source code
-- **JSON:** camelCase, `null` properties omitted, UTC datetime as `yyyy-MM-ddTHH:mm:ss.fffZ`
-- **Database:** SQLite with `Usa.Smart.Data.Accessor` (2-way SQL files), no ORM. Design in `docs/db-design.md`
-- **SQL format:** `SELECT` / `FROM` / `WHERE` / `ORDER BY` / `UPDATE` / `SET` each on its own line, table names, columns and conditions indented on the following lines (`AND` at the start of the line). Sort columns come from an enum expanded inside the 2-way SQL (`/*# sort */`), never from a caller-built string
-- **Lengths:** String lengths (contract `MaxLength`, form validators, terminal digit counts) are the constants in `Pos.Domain.Length`
-- **No null guards:** Do not write `ArgumentNullException.ThrowIfNull`
-- **Terminal input:** No physical keyboard; numbers are entered with the calculator popups in `PopupNavigatorExtensions` (one method per kind of input), reasons are chosen from presets; the software keyboard is only for text fields (customer, delivery, search) and settings. Popups are sheets anchored to the bottom of the screen (CommunityToolkit Popup with `VerticalOptions=End`, stackable); list selection uses the `Select` sheet (`IPopupNavigator.ChooseAsync`), never `IDialog.SelectAsync`
-- **UI language:** Japanese only, no localization resources
-- **Design docs:** Record decisions in `docs/decisions.md` and update the affected design document before closing a phase (`docs/implementation-plan.md`)
-- **Guidelines:** `docs/guidelines.md` holds the rules learned from reviews (how things should be, no history). When a review comment comes in, add or update the rule there, then fix the affected design document and this file
+- `.editorconfig` の規則に従う
+- メンバー変数に `_` 接頭辞を付けない
+- ビルドの警告を出さない。  
+  警告の抑止は理由のあるものだけにし、抑止する前に確認する
+- 既存ファイルの改行コードは変えない。  
+  新しく作るテキストファイルは CRLF
+- ソースのコメントは日本語で、意図や制約を書く (コードの言い換えは書かない)
+- ソースから設計文書 (節番号・`§`・画面 ID・決定番号) を参照しない (ソースが正)
+- `ArgumentNullException.ThrowIfNull` は書かない (CA1062 は無効)
+- UI の文言は日本語だけ (ローカライズ資源は持たない)
+- 「DTO」という語はコード・名前空間・文書に使わない
 
-# Documents
+## 構成と層
 
-- **Line breaks:** In Markdown, end each sentence at `。` with two spaces so that it renders as a line break (not inside tables, headings or code)
-- **Background:** Keep background and decision history only in `docs/decisions.md`, without dates. Design documents describe the current state only; deferred items go to `docs/implementation-plan.md`
-- **README:** The root `README.md` has only the main screens and links to the documents (no screen IDs, no setup instructions)
-- **References:** Do not link to external reference materials
+- モノレポ。  
+  `server/Pos.Server.slnx` (ASP.NET Core) と `terminal/Pos.Terminal.slnx` (MAUI) は別々に開き、どちらも `shared/` (`Pos.Domain` / `Pos.Contract`) を含む。  
+  構成は `docs/architecture.md`
+- SQL は Accessor だけが持つ。  
+  業務の手順はサーバは `Services/` の `XxxService`、端末は `Usecases/` の `XxxUsecase` に置き、Endpoints / Blazor ページ / ViewModel は入力の検証と表示だけを担う
+- フォルダ直下には共通の部品だけを置く。  
+  機能に属するもの (名称の辞書、絞り込みの状態、URL の生成、帳票) はサブフォルダか専用のフォルダに、あるフォルダの中でしか使わないものはそのフォルダに置く
+- 1 つの Service だけが返す結果型 (`XxxResult`) は、その Service のファイルの先頭で定義する。  
+  複数で使う型 (`DataWriteStatus` / `DataWriteResult<T>`) は独自のファイルにする
+- `Builder` はテキストや画像の組み立てだけに使う。  
+  データの変換は `XxxMapper`、計算は `XxxCalculator`
+- 拡張メソッドは複数の項目を意味でまとめて判定するもの (`IsReturnable`) だけに使い、型と同じファイルに書く。  
+  単一の値との比較 (`status == TransactionStatus.Voided`) は拡張メソッドにしない
+- 文言が入り得るプロパティは `EmptyText` ではなく `Message`
+- JSON は camelCase、`null` のプロパティは省略、UTC の日時は `yyyy-MM-ddTHH:mm:ss.fffZ`
+
+## 検証
+
+- 作業の単位ごとに、Release ビルド (サーバ・端末とも警告 0。端末は Debug も)、テスト、InspectCode (両ソリューション、ソリューション全体解析、新しい `--caches-home`、0 件) を通す
+- テストは `dotnet run --project` で実行する (`shared/Pos.Domain.Tests` / `server/tests/Pos.Server.UnitTests` / `server/tests/Pos.Server.IntegrationTests`)。  
+  `dotnet test` は使わない
+- テストは実行順に依存させない (同じフィクスチャを使うテストが登録・削除した行を、件数の検証に含めない)
+- 端末の UI の変更はエミュレータで動作を確認する
+
+## 進め方
+
+- コミットとプッシュは指示があったときだけ行う。  
+  メッセージは日本語で、要約 1 行と変更点の箇条書き
+- パッケージの追加・更新は事前に確認する
+- レビューの指摘は「どうあるべきか」の形で規則 (本ファイルと `.claude/rules/`) に追記し、該当する設計文書も直す。  
+  経緯は `docs/decisions.md` に書く

@@ -905,3 +905,19 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
 - 端末の通信中は `TerminalService.IsOnline(lastSeenAt)` で判定し、`ViewHelper.OnlineChip` は結果を受け取るだけ
 - 在庫調整の `OccurredAt` は省略可にし、省略時は Service が登録時刻を入れる (端末は実施時刻を送る)
 - `PageComponentBase` の `TimeProvider` / `UtcNow` は削除
+
+### D-52. 文書は人間向け、規則は AI 向け (`AGENTS.md` と `.claude/rules/`)
+
+`AGENTS.md` にレビューの規則を足し続けた結果、1 行が 800 文字を超える箇条書きになり、人にもエージェントにも読みにくくなっていた。  
+レビューの知見を `docs/guidelines.md` にもまとめていたため、同じ規則が 2 か所にあった (利用者指摘)。
+
+**決定**: `docs/` は人間向けの設計文書として現状 (何を・なぜ) だけを書き、どう実装すべきかの規則は AI 向けに `AGENTS.md` と `.claude/rules/` に置く (AI がコードを書く前提)。
+
+- `AGENTS.md`: 仕事の進め方と全体に共通する規則 (スタイル・構成と層・検証・進め方)。  
+  `CLAUDE.md` が取り込む
+- `.claude/rules/`: コードの書き方を領域別に。  
+  `common.md` は共有プロジェクト (`Pos.Domain` / `Pos.Contract`) の規則で常時読み込み、`server.md` / `terminal.md` / `sql.md` / `docs.md` は `paths` フロントマターで対象のファイルを扱うときだけ読み込む
+- `sql.md` は SQL ファイルの書き方だけにし、Accessor の C# 側の規則 (`[Name]`、`RETURNING` の受け取り、コンバータの登録) は `server.md` / `terminal.md` に置く
+- `docs/guidelines.md` は規則に統合して削除し、設計文書にあった実装規則 (命名・null チェック・引数の渡し方など) も規則へ移す
+- 分割の目安: 常時読み込む規則が 100〜150 行を超えたとき、規則の半分以上が特定の領域にしか当てはまらないとき、ファイル種別に固有の規則 (SQL の書き方など) があるとき
+- 規則も文書と同じく日本語で書く
