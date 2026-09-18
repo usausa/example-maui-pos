@@ -7,7 +7,7 @@ public sealed class ReturnContext
 {
     public TransactionResponseItem? Original { get; set; }
 
-    public Collection<(TransactionResponseItemLine Line, decimal Quantity)> Lines { get; } = [];
+    public Collection<(TransactionResponseLine Line, decimal Quantity)> Lines { get; } = [];
 
     public string? Reason { get; set; }
 

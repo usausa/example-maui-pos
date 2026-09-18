@@ -24,7 +24,7 @@
         <MudTh>釣銭</MudTh>
         <MudTh>参照要</MudTh>
         <MudTh>状態</MudTh>
-        <MudTh Style="text-align: right;">並び順</MudTh>
+        <MudTh Class="text-right">並び順</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -35,7 +35,7 @@
         <MudTd>@ViewHelper.ChangeMark(context.AllowsChange)</MudTd>
         <MudTd>@ViewHelper.ReferenceMark(context.RequiresReference)</MudTd>
         <MudTd><StatusChip Value="@(context.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.IsActive))" /></MudTd>
-        <MudTd Style="text-align: right;">@context.SortOrder</MudTd>
+        <MudTd Class="text-right">@context.SortOrder</MudTd>
         <MudTd Class="no-wrap">
             @if (!context.IsDeleted)
             {

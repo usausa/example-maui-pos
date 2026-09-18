@@ -17,19 +17,19 @@
     <HeaderContent>
         <MudTh>コード</MudTh>
         <MudTh>名称</MudTh>
-        <MudTh Style="text-align: right;">税率</MudTh>
+        <MudTh Class="text-right">税率</MudTh>
         <MudTh>種別</MudTh>
         <MudTh>既定</MudTh>
-        <MudTh Style="text-align: right;">並び順</MudTh>
+        <MudTh Class="text-right">並び順</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.Code</MudTd>
         <MudTd>@context.Name @ViewHelper.DeletedMark(context.IsDeleted)</MudTd>
-        <MudTd Style="text-align: right;">@context.Rate.ToPercentText()</MudTd>
+        <MudTd Class="text-right">@context.Rate.ToPercentText()</MudTd>
         <MudTd>@context.Kind.ToDisplayName()</MudTd>
         <MudTd>@ViewHelper.DefaultMark(context.IsDefault)</MudTd>
-        <MudTd Style="text-align: right;">@context.SortOrder</MudTd>
+        <MudTd Class="text-right">@context.SortOrder</MudTd>
         <MudTd Class="no-wrap">
             @if (!context.IsDeleted)
             {

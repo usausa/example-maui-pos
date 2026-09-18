@@ -184,7 +184,7 @@ public sealed class ShiftService
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var totals = await shiftAccessor.QueryTotalsAsync(id, cancellationToken) ?? ShiftTotalsView.Empty;
+        var totals = await shiftAccessor.QuerySummaryAsync(id, cancellationToken) ?? ShiftTotalsView.Empty;
         var expectedCash = ExpectedCash(shift.OpeningCash, totals);
         await provider.UsingTxAsync(async (_, tx) =>
         {
@@ -254,7 +254,7 @@ public sealed class ShiftService
     {
         var totals = entity.Status == ShiftStatus.Closed
             ? new ShiftTotalsView(entity.CashSales, entity.CashReturns, entity.PaidIn, entity.PaidOut, entity.SalesCount, entity.ReturnCount, entity.VoidCount, entity.SalesTotal, entity.ReturnsTotal)
-            : await shiftAccessor.QueryTotalsAsync(entity.Id, cancellationToken) ?? ShiftTotalsView.Empty;
+            : await shiftAccessor.QuerySummaryAsync(entity.Id, cancellationToken) ?? ShiftTotalsView.Empty;
         return new ShiftDetailView
         {
             Shift = entity,
@@ -268,9 +268,9 @@ public sealed class ShiftService
         new()
         {
             Shift = await LoadDetailAsync(entity, cancellationToken),
-            ByPaymentMethod = await shiftAccessor.QueryPaymentMethodTotalsAsync(entity.Id, cancellationToken),
-            ByTaxRate = await shiftAccessor.QueryTaxRateTotalsAsync(entity.Id, cancellationToken),
-            ByCategory = await shiftAccessor.QueryCategoryTotalsAsync(entity.Id, cancellationToken),
-            Points = await shiftAccessor.QueryPointTotalsAsync(entity.Id, cancellationToken) ?? PointTotalsView.Empty
+            ByPaymentMethod = await shiftAccessor.QueryPaymentMethodSummaryAsync(entity.Id, cancellationToken),
+            ByTaxRate = await shiftAccessor.QueryTaxRateSummaryAsync(entity.Id, cancellationToken),
+            ByCategory = await shiftAccessor.QueryCategorySummaryAsync(entity.Id, cancellationToken),
+            Points = await shiftAccessor.QueryPointSummaryAsync(entity.Id, cancellationToken) ?? PointTotalsView.Empty
         };
 }

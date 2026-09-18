@@ -5,7 +5,7 @@ using Pos.Terminal.Modules.Dialogs;
 
 public sealed class ReturnLineItem : NotificationObject
 {
-    public TransactionResponseItemLine Line { get; }
+    public TransactionResponseLine Line { get; }
 
     public string Name => Line.ProductName;
 
@@ -29,7 +29,7 @@ public sealed class ReturnLineItem : NotificationObject
 
     public string QuantityText => ViewHelper.Quantity(Quantity);
 
-    public ReturnLineItem(TransactionResponseItemLine line)
+    public ReturnLineItem(TransactionResponseLine line)
     {
         Line = line;
     }

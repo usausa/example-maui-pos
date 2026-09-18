@@ -10,26 +10,26 @@
 
 <MudPaper Class="pa-2 mb-2">
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-        <MudDateRangePicker @bind-DateRange="period" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" Style="min-width: 260px;" />
+        <MudDateRangePicker Class="min-w-260" @bind-DateRange="period" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
         <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
-        <MudSelect T="Guid?" @bind-Value="terminalId" Label="端末" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 160px;">
+        <MudSelect Class="min-w-160" T="Guid?" @bind-Value="terminalId" Label="端末" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
             <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
             @foreach (var terminal in names.TerminalsOf(storeId))
             {
                 <MudSelectItem T="Guid?" Value="terminal.Id">@terminal.Name</MudSelectItem>
             }
         </MudSelect>
-        <MudSelect T="TransactionType?" @bind-Value="type" Label="種別" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 120px;">
+        <MudSelect Class="min-w-120" T="TransactionType?" @bind-Value="type" Label="種別" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
             <MudSelectItem T="TransactionType?" Value="null">すべて</MudSelectItem>
             <MudSelectItem T="TransactionType?" Value="TransactionType.Sale">🛒 販売</MudSelectItem>
             <MudSelectItem T="TransactionType?" Value="TransactionType.Return">↩️ 返品</MudSelectItem>
         </MudSelect>
-        <MudSelect T="TransactionStatus?" @bind-Value="status" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 120px;">
+        <MudSelect Class="min-w-120" T="TransactionStatus?" @bind-Value="status" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
             <MudSelectItem T="TransactionStatus?" Value="null">すべて</MudSelectItem>
             <MudSelectItem T="TransactionStatus?" Value="TransactionStatus.Completed">✅ 完了</MudSelectItem>
             <MudSelectItem T="TransactionStatus?" Value="TransactionStatus.Voided">❌ 取消</MudSelectItem>
         </MudSelect>
-        <MudTextField @bind-Value="receiptNo" Label="レシート番号" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 180px;" />
+        <MudTextField Class="min-w-180" @bind-Value="receiptNo" Label="レシート番号" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
         @if (ShiftId is not null)
         {
@@ -58,10 +58,10 @@
         <TemplateColumn Title="状態" Sortable="false">
             <CellTemplate><StatusChip Value="@ViewHelper.StatusChip(context.Item.Status)" /></CellTemplate>
         </TemplateColumn>
-        <PropertyColumn Property="x => x.Total" Title="合計" CellStyle="text-align: right;" HeaderStyle="text-align: right;">
+        <PropertyColumn Property="x => x.Total" Title="合計" CellClass="text-right" HeaderClass="text-right">
             <CellTemplate>@context.Item.Total.ToYen()</CellTemplate>
         </PropertyColumn>
-        <TemplateColumn Title="ポイント" Sortable="false" CellStyle="text-align: right;">
+        <TemplateColumn Title="ポイント" Sortable="false" CellClass="text-right">
             <CellTemplate>
                 @if (context.Item.PointsEarned != 0 || context.Item.PointsRedeemed != 0)
                 {

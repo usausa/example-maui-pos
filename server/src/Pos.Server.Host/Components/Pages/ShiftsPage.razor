@@ -10,16 +10,16 @@
 
 <MudPaper Class="pa-2 mb-2">
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-        <MudDateRangePicker @bind-DateRange="period" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" Style="min-width: 260px;" />
+        <MudDateRangePicker Class="min-w-260" @bind-DateRange="period" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
         <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
-        <MudSelect T="Guid?" @bind-Value="terminalId" Label="端末" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 160px;">
+        <MudSelect Class="min-w-160" T="Guid?" @bind-Value="terminalId" Label="端末" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
             <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
             @foreach (var terminal in names.TerminalsOf(storeId))
             {
                 <MudSelectItem T="Guid?" Value="terminal.Id">@terminal.Name</MudSelectItem>
             }
         </MudSelect>
-        <MudSelect T="ShiftStatus?" @bind-Value="status" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 130px;">
+        <MudSelect Class="min-w-130" T="ShiftStatus?" @bind-Value="status" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
             <MudSelectItem T="ShiftStatus?" Value="null">すべて</MudSelectItem>
             <MudSelectItem T="ShiftStatus?" Value="ShiftStatus.Open">🟢 開設中</MudSelectItem>
             <MudSelectItem T="ShiftStatus?" Value="ShiftStatus.Closed">🔒 精算済み</MudSelectItem>
@@ -50,13 +50,13 @@
         <PropertyColumn Property="x => x.Shift.ClosedAt" Title="精算">
             <CellTemplate>@context.Item.Shift.ClosedAt.ToDateTimeText()</CellTemplate>
         </PropertyColumn>
-        <TemplateColumn Title="売上" Sortable="false" CellStyle="text-align: right;">
+        <TemplateColumn Title="売上" Sortable="false" CellClass="text-right">
             <CellTemplate>@context.Item.Totals.SalesTotal.ToYen() (@context.Item.Totals.SalesCount 件)</CellTemplate>
         </TemplateColumn>
-        <TemplateColumn Title="予想現金" Sortable="false" CellStyle="text-align: right;">
+        <TemplateColumn Title="予想現金" Sortable="false" CellClass="text-right">
             <CellTemplate>@context.Item.ExpectedCash.ToYen()</CellTemplate>
         </TemplateColumn>
-        <TemplateColumn Title="実査" Sortable="false" CellStyle="text-align: right;">
+        <TemplateColumn Title="実査" Sortable="false" CellClass="text-right">
             <CellTemplate>@context.Item.Shift.ActualCash.ToYen()</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="過不足" Sortable="false">

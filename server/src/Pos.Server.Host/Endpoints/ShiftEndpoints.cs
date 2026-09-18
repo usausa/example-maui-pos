@@ -19,7 +19,7 @@ public static partial class ShiftEndpoints
 
     public static void MapShiftEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Shifts);
+        var group = app.MapApiGroup(ApiRoutes.Shifts);
         group.MapPost("/", HandleOpenAsync);
         group.MapGet("/current", HandleCurrentAsync);
         group.MapGet("/", HandleListAsync);
@@ -54,10 +54,10 @@ public static partial class ShiftEndpoints
     private static partial ShiftResponseItem ToResponseCore(ShiftEntity entity);
 
     [Mapper]
-    private static partial ShiftResponseItemDenomination ToResponse(ShiftDenominationEntity entity);
+    private static partial ShiftResponseDenomination ToResponse(ShiftDenominationEntity entity);
 
     [Mapper]
-    private static partial ShiftResponseItemTotals ToResponse(ShiftTotalsView totals);
+    private static partial ShiftResponseTotals ToResponse(ShiftTotalsView totals);
 
     [Mapper]
     private static partial ShiftCashEventResponseItem ToResponse(CashEventEntity entity);

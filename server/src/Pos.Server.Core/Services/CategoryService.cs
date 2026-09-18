@@ -48,7 +48,7 @@ public sealed class CategoryService
 
     // 部門ごとの所属商品数
     public async ValueTask<Dictionary<Guid, long>> QueryProductCountsAsync(CancellationToken cancellationToken) =>
-        (await masterAccessor.QueryCategoryProductCountsAsync(cancellationToken)).ToDictionary(static x => x.CategoryId, static x => x.Count);
+        (await masterAccessor.QueryCategoryProductSummaryAsync(cancellationToken)).ToDictionary(static x => x.CategoryId, static x => x.Count);
 
     public ValueTask<DataWriteStatus> InsertAsync(CategoryEntity entity, CancellationToken cancellationToken)
     {

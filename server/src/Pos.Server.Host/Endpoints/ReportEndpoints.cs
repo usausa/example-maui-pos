@@ -22,7 +22,7 @@ public static partial class ReportEndpoints
 
     public static void MapReportEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Reports);
+        var group = app.MapApiGroup(ApiRoutes.Reports);
         group.MapGet("/sales/summary", HandleSalesSummaryAsync);
         group.MapGet("/sales/summary/csv", HandleSalesSummaryCsvAsync);
         group.MapGet("/sales/products", HandleProductSalesAsync);

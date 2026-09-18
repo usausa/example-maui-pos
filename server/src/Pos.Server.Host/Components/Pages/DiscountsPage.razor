@@ -18,22 +18,22 @@
         <MudTh>コード</MudTh>
         <MudTh>名称</MudTh>
         <MudTh>種別</MudTh>
-        <MudTh Style="text-align: right;">値</MudTh>
+        <MudTh Class="text-right">値</MudTh>
         <MudTh>適用範囲</MudTh>
         <MudTh>承認</MudTh>
         <MudTh>状態</MudTh>
-        <MudTh Style="text-align: right;">並び順</MudTh>
+        <MudTh Class="text-right">並び順</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.Code</MudTd>
         <MudTd>@context.Name</MudTd>
         <MudTd>@context.Type.ToDisplayName()</MudTd>
-        <MudTd Style="text-align: right;">@(context.Type == DiscountType.Percent ? context.Value.ToPercentText() : context.Value.ToYen() + " 円")</MudTd>
+        <MudTd Class="text-right">@(context.Type == DiscountType.Percent ? context.Value.ToPercentText() : context.Value.ToYen() + " 円")</MudTd>
         <MudTd>@context.Scope.ToDisplayName()</MudTd>
         <MudTd>@ViewHelper.ApprovalMark(context.RequiresApproval)</MudTd>
         <MudTd><StatusChip Value="@(context.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.IsActive))" /></MudTd>
-        <MudTd Style="text-align: right;">@context.SortOrder</MudTd>
+        <MudTd Class="text-right">@context.SortOrder</MudTd>
         <MudTd Class="no-wrap">
             @if (!context.IsDeleted)
             {

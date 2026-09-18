@@ -103,7 +103,7 @@ public sealed class TransactionUsecase
         var deltas = await ResolveInventoryDeltasAsync(transaction.Lines.Select(x => (x.ProductId, x.Quantity * sign)));
 
         transaction.Status = TransactionStatus.Voided;
-        transaction.Void = new TransactionResponseItemVoid { VoidedAt = request.VoidedAt, VoidedByStaffId = request.StaffId, Reason = request.Reason };
+        transaction.Void = new TransactionResponseVoid { VoidedAt = request.VoidedAt, VoidedByStaffId = request.StaffId, Reason = request.Reason };
 
         await provider.UsingTxAsync(async (_, tx) =>
         {

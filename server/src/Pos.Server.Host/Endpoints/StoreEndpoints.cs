@@ -15,7 +15,7 @@ public static partial class StoreEndpoints
 
     public static void MapStoreEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Stores);
+        var group = app.MapApiGroup(ApiRoutes.Stores);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);

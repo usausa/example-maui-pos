@@ -18,9 +18,16 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.11" />
     <PackageReference Include="MiniDataProfiler" Version="1.7.0" />
     <PackageReference Include="MiniDataProfiler.Listener.Logging" Version="1.7.0" />
+    <PackageReference Include="MiniDataProfiler.Listener.OpenTelemetry" Version="1.7.0" />
     <PackageReference Include="MudBlazor" Version="9.9.0" />
     <PackageReference Include="NSwag.AspNetCore" Version="14.7.1" />
     <PackageReference Include="OysterReport" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.18.0-beta.1" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
     <PackageReference Include="QRCoder" Version="1.8.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />

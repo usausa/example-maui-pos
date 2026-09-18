@@ -12,7 +12,7 @@ public static class SyncEndpoints
 
     public static void MapSyncEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Sync);
+        var group = app.MapApiGroup(ApiRoutes.Sync);
         group.MapGet("/masters", HandleMastersAsync);
     }
 

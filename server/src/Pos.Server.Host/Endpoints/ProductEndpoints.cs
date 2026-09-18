@@ -21,7 +21,7 @@ public static partial class ProductEndpoints
 
     public static void MapProductEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Products);
+        var group = app.MapApiGroup(ApiRoutes.Products);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/lookup", HandleLookupAsync);
         group.MapGet("/csv", HandleExportCsvAsync);

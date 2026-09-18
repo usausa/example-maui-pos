@@ -20,7 +20,7 @@ public static class ShiftSummaryCalculator
         var byMethod = new Dictionary<Guid, ShiftSummaryResponsePaymentMethod>();
         var byTax = new Dictionary<Guid, ShiftSummaryResponseTaxRate>();
         var byCategory = new Dictionary<Guid, ShiftSummaryResponseCategory>();
-        var totals = new ShiftResponseItemTotals();
+        var totals = new ShiftResponseTotals();
         var pointsEarned = 0;
         var pointsRedeemed = 0;
 

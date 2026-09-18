@@ -15,7 +15,7 @@ public static partial class StaffEndpoints
 
     public static void MapStaffEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Staff);
+        var group = app.MapApiGroup(ApiRoutes.Staff);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);

@@ -75,17 +75,17 @@ public sealed partial class ShiftAccessor
     //--------------------------------------------------------------------------------
 
     [QueryFirst]
-    public partial ValueTask<ShiftTotalsView?> QueryTotalsAsync(Guid shiftId, CancellationToken cancellationToken);
+    public partial ValueTask<ShiftTotalsView?> QuerySummaryAsync(Guid shiftId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<PaymentMethodTotalView>> QueryPaymentMethodTotalsAsync(Guid shiftId, CancellationToken cancellationToken);
+    public partial ValueTask<List<PaymentMethodTotalView>> QueryPaymentMethodSummaryAsync(Guid shiftId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<TaxRateTotalView>> QueryTaxRateTotalsAsync(Guid shiftId, CancellationToken cancellationToken);
+    public partial ValueTask<List<TaxRateTotalView>> QueryTaxRateSummaryAsync(Guid shiftId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<CategoryTotalView>> QueryCategoryTotalsAsync(Guid shiftId, CancellationToken cancellationToken);
+    public partial ValueTask<List<CategoryTotalView>> QueryCategorySummaryAsync(Guid shiftId, CancellationToken cancellationToken);
 
     [QueryFirst]
-    public partial ValueTask<PointTotalsView?> QueryPointTotalsAsync(Guid shiftId, CancellationToken cancellationToken);
+    public partial ValueTask<PointTotalsView?> QueryPointSummaryAsync(Guid shiftId, CancellationToken cancellationToken);
 }

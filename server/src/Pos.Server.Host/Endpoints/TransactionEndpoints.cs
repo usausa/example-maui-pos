@@ -19,7 +19,7 @@ public static partial class TransactionEndpoints
 
     public static void MapTransactionEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Transactions);
+        var group = app.MapApiGroup(ApiRoutes.Transactions);
         group.MapPost("/", HandleCreateAsync);
         group.MapPost("/calculate", HandleCalculateAsync);
         group.MapGet("/", HandleListAsync);
@@ -81,19 +81,19 @@ public static partial class TransactionEndpoints
     private static partial TransactionResponseItem ToResponseCore(TransactionEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseItemLine ToResponse(TransactionLineEntity entity);
+    private static partial TransactionResponseLine ToResponse(TransactionLineEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseItemDiscount ToResponse(TransactionDiscountEntity entity);
+    private static partial TransactionResponseDiscount ToResponse(TransactionDiscountEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseItemTaxSummary ToResponse(TransactionTaxSummaryEntity entity);
+    private static partial TransactionResponseTaxSummary ToResponse(TransactionTaxSummaryEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseItemPayment ToResponse(TransactionPaymentEntity entity);
+    private static partial TransactionResponsePayment ToResponse(TransactionPaymentEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseItemDelivery ToResponse(TransactionDeliveryEntity entity);
+    private static partial TransactionResponseDelivery ToResponse(TransactionDeliveryEntity entity);
 
     // 明細・値引・税・支払・配送・シリアルを集めて応答にする
     internal static TransactionResponseItem ToResponse(TransactionDetailView detail, IReadOnlyList<RuleWarning>? warnings = null)
@@ -113,10 +113,10 @@ public static partial class TransactionEndpoints
         response.Delivery = detail.Delivery is null ? null : ToResponse(detail.Delivery);
         response.Void = entity.VoidedAt is null
             ? null
-            : new TransactionResponseItemVoid { VoidedAt = entity.VoidedAt.Value, VoidedByStaffId = entity.VoidedByStaffId ?? Guid.Empty, Reason = entity.VoidReason ?? String.Empty };
+            : new TransactionResponseVoid { VoidedAt = entity.VoidedAt.Value, VoidedByStaffId = entity.VoidedByStaffId ?? Guid.Empty, Reason = entity.VoidReason ?? String.Empty };
         if (warnings is not null)
         {
-            response.Warnings = warnings.Select(static x => new TransactionResponseItemWarning { Code = x.Code.ToCode(), Message = ApiRuleText.Of(x.Code), LineId = x.LineId }).ToList();
+            response.Warnings = warnings.Select(static x => new TransactionResponseWarning { Code = x.Code.ToCode(), Message = ApiRuleText.Of(x.Code), LineId = x.LineId }).ToList();
         }
 
         return response;

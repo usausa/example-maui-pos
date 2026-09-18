@@ -29,11 +29,11 @@ public sealed class TransactionResponseItem
 
     public Guid? OriginalTransactionId { get; set; }
 
-    public IReadOnlyList<TransactionResponseItemLine> Lines { get; set; } = default!;
+    public IReadOnlyList<TransactionResponseLine> Lines { get; set; } = default!;
 
-    public IReadOnlyList<TransactionResponseItemDiscount> Discounts { get; set; } = default!;
+    public IReadOnlyList<TransactionResponseDiscount> Discounts { get; set; } = default!;
 
-    public IReadOnlyList<TransactionResponseItemTaxSummary> TaxSummaries { get; set; } = default!;
+    public IReadOnlyList<TransactionResponseTaxSummary> TaxSummaries { get; set; } = default!;
 
     public decimal Subtotal { get; set; }
 
@@ -45,7 +45,7 @@ public sealed class TransactionResponseItem
 
     public decimal Total { get; set; }
 
-    public IReadOnlyList<TransactionResponseItemPayment> Payments { get; set; } = default!;
+    public IReadOnlyList<TransactionResponsePayment> Payments { get; set; } = default!;
 
     public decimal TenderedTotal { get; set; }
 
@@ -58,21 +58,21 @@ public sealed class TransactionResponseItem
     // 処理後残高 (サーバ)
     public int? PointsBalanceAfter { get; set; }
 
-    public TransactionResponseItemDelivery? Delivery { get; set; }
+    public TransactionResponseDelivery? Delivery { get; set; }
 
     public string? Note { get; set; }
 
-    public TransactionResponseItemVoid? Void { get; set; }
+    public TransactionResponseVoid? Void { get; set; }
 
     // 受理したが確認が必要な事項
-    public IReadOnlyList<TransactionResponseItemWarning> Warnings { get; set; } = [];
+    public IReadOnlyList<TransactionResponseWarning> Warnings { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
 }
 
-public sealed class TransactionResponseItemLine
+public sealed class TransactionResponseLine
 {
     public Guid Id { get; set; }
 
@@ -124,7 +124,7 @@ public sealed class TransactionResponseItemLine
     public string? Note { get; set; }
 }
 
-public sealed class TransactionResponseItemDiscount
+public sealed class TransactionResponseDiscount
 {
     public Guid Id { get; set; }
 
@@ -145,7 +145,7 @@ public sealed class TransactionResponseItemDiscount
     public Guid? ApprovedByStaffId { get; set; }
 }
 
-public sealed class TransactionResponseItemTaxSummary
+public sealed class TransactionResponseTaxSummary
 {
     public Guid TaxRateId { get; set; }
 
@@ -158,7 +158,7 @@ public sealed class TransactionResponseItemTaxSummary
     public decimal TaxAmount { get; set; }
 }
 
-public sealed class TransactionResponseItemPayment
+public sealed class TransactionResponsePayment
 {
     public Guid Id { get; set; }
 
@@ -177,7 +177,7 @@ public sealed class TransactionResponseItemPayment
     public string? Note { get; set; }
 }
 
-public sealed class TransactionResponseItemDelivery
+public sealed class TransactionResponseDelivery
 {
     public string RecipientName { get; set; } = default!;
 
@@ -194,7 +194,7 @@ public sealed class TransactionResponseItemDelivery
     public string? Note { get; set; }
 }
 
-public sealed class TransactionResponseItemVoid
+public sealed class TransactionResponseVoid
 {
     public DateTime VoidedAt { get; set; }
 
@@ -203,7 +203,7 @@ public sealed class TransactionResponseItemVoid
     public string Reason { get; set; } = default!;
 }
 
-public sealed class TransactionResponseItemWarning
+public sealed class TransactionResponseWarning
 {
     // WarningCode.ToCode() (UPPER_SNAKE_CASE)
     public string Code { get; set; } = default!;

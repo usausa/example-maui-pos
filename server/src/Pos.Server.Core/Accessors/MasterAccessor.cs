@@ -200,7 +200,7 @@ public sealed partial class MasterAccessor
 
     // 部門ごとの所属商品数 (管理画面のツリー)
     [Query]
-    public partial ValueTask<List<CategoryProductCountView>> QueryCategoryProductCountsAsync(CancellationToken cancellationToken);
+    public partial ValueTask<List<CategoryProductCountView>> QueryCategoryProductSummaryAsync(CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // TaxRate (少数なのでページングなし。SortOrder, Code 順)

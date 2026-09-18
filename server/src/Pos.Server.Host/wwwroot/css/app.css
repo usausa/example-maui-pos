@@ -46,6 +46,62 @@ body {
     max-width: 300px;
 }
 
+.wide-card {
+    max-width: 720px;
+}
+
+.kpi-card {
+    height: 110px;
+}
+
+.qr-text {
+    margin: 0;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* 絞り込みの入力欄の最小幅 */
+.min-w-120 {
+    min-width: 120px;
+}
+
+.min-w-130 {
+    min-width: 130px;
+}
+
+.min-w-140 {
+    min-width: 140px;
+}
+
+.min-w-150 {
+    min-width: 150px;
+}
+
+.min-w-160 {
+    min-width: 160px;
+}
+
+.min-w-180 {
+    min-width: 180px;
+}
+
+.min-w-200 {
+    min-width: 200px;
+}
+
+.min-w-260 {
+    min-width: 260px;
+}
+
+.min-w-280 {
+    min-width: 280px;
+}
+
+.min-w-320 {
+    min-width: 320px;
+}
+
 .hidden-input {
     display: none;
 }

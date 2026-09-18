@@ -14,7 +14,7 @@ public static partial class TaxRateEndpoints
 
     public static void MapTaxRateEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.TaxRates);
+        var group = app.MapApiGroup(ApiRoutes.TaxRates);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);

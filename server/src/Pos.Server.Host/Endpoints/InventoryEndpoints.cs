@@ -17,7 +17,7 @@ public static partial class InventoryEndpoints
 
     public static void MapInventoryEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Inventory);
+        var group = app.MapApiGroup(ApiRoutes.Inventory);
         group.MapGet("/", HandleLevelListAsync);
         group.MapPost("/changes", HandleChangesAsync);
         group.MapGet("/changes", HandleChangeListAsync);

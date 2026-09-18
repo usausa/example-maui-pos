@@ -56,14 +56,14 @@ public sealed class ReturnUsecase
         return await transaction.QueryByReceiptNoAsync(receiptNo);
     }
 
-    public SalesResult Calculate(TransactionResponseItem original, IEnumerable<(TransactionResponseItemLine Line, decimal Quantity)> lines, IEnumerable<CartPayment> payments) =>
+    public SalesResult Calculate(TransactionResponseItem original, IEnumerable<(TransactionResponseLine Line, decimal Quantity)> lines, IEnumerable<CartPayment> payments) =>
         ReturnLogic.Calculate(TransactionMapper.ToReturnInput(original, lines, payments, session.TaxRounding));
 
-    public IReadOnlyList<RuleError> Validate(TransactionResponseItem original, IEnumerable<(TransactionResponseItemLine Line, decimal Quantity)> lines, IEnumerable<CartPayment> payments) =>
+    public IReadOnlyList<RuleError> Validate(TransactionResponseItem original, IEnumerable<(TransactionResponseLine Line, decimal Quantity)> lines, IEnumerable<CartPayment> payments) =>
         TransactionLogic.ValidateInput(TransactionMapper.ToReturnInput(original, lines, payments, session.TaxRounding));
 
     // 返品の確定 (Validate が通った入力を渡す)。Session.CanTransact のときだけ呼ぶ
-    public async ValueTask<TransactionResponseItem> CompleteAsync(TransactionResponseItem original, IReadOnlyList<(TransactionResponseItemLine Line, decimal Quantity)> lines, IReadOnlyList<CartPayment> payments, string? reason)
+    public async ValueTask<TransactionResponseItem> CompleteAsync(TransactionResponseItem original, IReadOnlyList<(TransactionResponseLine Line, decimal Quantity)> lines, IReadOnlyList<CartPayment> payments, string? reason)
     {
         var result = Calculate(original, lines, payments);
         var receiptNo = await sync.NextReceiptNoAsync();

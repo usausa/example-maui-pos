@@ -18,14 +18,14 @@
         <MudTh>コード</MudTh>
         <MudTh>名称</MudTh>
         <MudTh>状態</MudTh>
-        <MudTh Style="text-align: right;">並び順</MudTh>
+        <MudTh Class="text-right">並び順</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.Code</MudTd>
         <MudTd>@context.Name</MudTd>
         <MudTd><StatusChip Value="@(context.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.IsActive))" /></MudTd>
-        <MudTd Style="text-align: right;">@context.SortOrder</MudTd>
+        <MudTd Class="text-right">@context.SortOrder</MudTd>
         <MudTd Class="no-wrap">
             @if (!context.IsDeleted)
             {

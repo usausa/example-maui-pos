@@ -45,7 +45,7 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
             TaxSummaries = [new TransactionCalculateResponseTaxSummary { TaxRateId = Guid.Empty, Rate = 0.10m, TaxIncluded = true, TaxableAmount = 80100m, TaxAmount = 7281m }],
             Total = 80100m
         };
-        var delivery = new TransactionResponseItemDelivery { RecipientName = "山田 太郎", Address = "東京都", RequestedDate = new DateOnly(2026, 9, 14) };
+        var delivery = new TransactionResponseDelivery { RecipientName = "山田 太郎", Address = "東京都", RequestedDate = new DateOnly(2026, 9, 14) };
 
         var json = JsonSerializer.Serialize(response, Options);
         var deliveryJson = JsonSerializer.Serialize(delivery, Options);

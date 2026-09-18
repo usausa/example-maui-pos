@@ -14,7 +14,7 @@ public static partial class DiscountEndpoints
 
     public static void MapDiscountEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Discounts);
+        var group = app.MapApiGroup(ApiRoutes.Discounts);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);

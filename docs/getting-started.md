@@ -31,7 +31,9 @@ dotnet run --project server/src/Pos.Server.Host
 - API 仕様 (開発時): http://localhost:8080/swagger 、http://localhost:8080/redoc 、`/openapi/v1.json`
 - データベース (SQLite `pos.db`、実行ディレクトリ) は起動時に自動作成され、初期データ (店舗 2 / 端末 3 / スタッフ / 税率 / 支払方法 / 部門・商品 33 / 値引 / 会員 5 / 在庫) が投入される ([architecture.md §6](architecture.md#6-初期データ))。  
   後から増えた列は起動時に既存の DB へ足す (`SchemaHelper.EnsureColumnAsync`)
-- Aspire で起動する場合は `dotnet run --project server/src/Pos.Server.AppHost` (ダッシュボードは http://localhost:15000)
+- Aspire で起動する場合は `dotnet run --project server/src/Pos.Server.AppHost` (ダッシュボードは http://localhost:15000 。ログ・メトリクス・トレースが OTLP で送られる)
+- メトリクスは http://localhost:9464/metrics (Prometheus 形式。`Prometheus:Uri` を空にすると止まる)。  
+  API の要求ログは `Log:HttpLog`、本文のダンプは `Log:HttpDump`、W3C 形式のアクセスログは `Log:W3CLog`、SQL のログとトレースは `Profiler` で切り替える (Development は HTTP ログと SQL が既定で有効)
 - Visual Studio では `server/Pos.Server.slnx` を開いて `Pos.Server.Host` を実行
 
 ## 端末

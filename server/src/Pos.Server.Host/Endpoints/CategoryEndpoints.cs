@@ -15,7 +15,7 @@ public static partial class CategoryEndpoints
 
     public static void MapCategoryEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Categories);
+        var group = app.MapApiGroup(ApiRoutes.Categories);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);

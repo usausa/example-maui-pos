@@ -931,3 +931,27 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
 | DDL が Accessor ごとの 2-way SQL (`{Accessor}.Create.sql`) に埋め込まれている | 初期データと同じ外部の SQL ファイルにする。サーバは `Host/Assets/Data/Schema.sql`、端末は `Resources/Raw/Schema.sql` (MauiAsset)。起動時に読んで `ExecuteSchemaAsync` (`[DirectSql]`) で実行する (`CREATE TABLE IF NOT EXISTS` なので何度実行してもよい) |
 | 初期データの固定 ID を持つ `InitialData` クラスが Core にある | テストしか使わないので削除し、必要な定数はテスト側 (`TestData`) に定義する |
 | 複数件を返す Accessor のメソッド名が `QueryLines` / `QueryPayments` のように揺れている | `QueryXxxList` に統一し、絶対値の設定や既定の解除も `UpdateXxx` にする (`UpdateInventoryQuantity`、`UpdateTaxRateDefaultCleared`)。名前の規則は `.claude/rules/sql.md` の表 |
+
+### D-54. 規則は「追加・変更のときに手が入る項目」だけ
+
+規則ファイルの見直しで、一度決めたら変わらない要素 (モノレポの構成、DDL や初期データを読み込む仕組み、シェルの配色など) が規則に混ざっていた (利用者指摘)。
+
+**決定**: `AGENTS.md` と `.claude/rules/` には、処理を追加・変更するときに判断が要る項目だけを書く。  
+変わらない要素は設計文書 (`docs/`) に書く。
+
+- Service / Usecase / ViewModel / Endpoint の役割はそれぞれの領域の規則に書き、`common.md` は全体と共有プロジェクトの規則だけにする
+- 集計の Accessor メソッドは `QueryXxxSummary` に統一する (`QueryTotals` → `QuerySummary` など 6 件)
+- Contract の子要素は `Item` を重ねず親の名前 + 要素名にする (`TransactionResponseItemLine` → `TransactionResponseLine` など 9 型)
+
+### D-55. テンプレートの基盤に揃える (テレメトリ・アクセスログ・ログの文脈・スタイル)
+
+`template-blazor-server` の最新版と比べ、こちらに無かった基盤を取り込んだ (利用者指示。認証・ファイル保管・ワーカー・DB ヘルスチェック・FeatureManagement は POS に用途がないので取り込まない)。
+
+- テレメトリ: OpenTelemetry (ログ・メトリクス・トレース)。  
+  OTLP は `OTEL_EXPORTER_OTLP_ENDPOINT` があるときだけ、Prometheus は `Prometheus:Uri` で有効化。  
+  独自の計測 (`ApplicationInstrument`: 稼働時間、API の要求数と長時間実行) は `MapApiGroup` のエンドポイントフィルタで配線し、SQL のトレース (`Profiler:SqlTelemetry`) も同じ経路に載せる
+- ログ: HTTP 本文のダンプ (`Log:HttpDump`) と W3C アクセスログ (`Log:W3CLog`) を設定で切り替える。  
+  接続元アドレスを `LoggingContext` (AsyncLocal) + `CallbackEnricher` で全ログ行に付ける。  
+  `Microsoft.AspNetCore.HttpLogging` の Override を足し、`Log:HttpLog` が実際に出るようにした
+- 管理画面のスタイル: `wwwroot/css/app.css` のクラスに集約し、要素の `Style=` は列幅だけにする (`text-right`、`min-w-*`、`kpi-card` など)
+- 規則: `tmpl-guide.md` の作業ルールと技術方針のうち、追加・変更のときに判断が要るものを AGENTS.md と rules に取り込んだ (コンストラクタ引数の順序、設定・ログ・計測・マッピングの書き方、テストの AAA、パッケージの固定)

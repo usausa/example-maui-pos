@@ -11,7 +11,7 @@
 
 <MudPaper Class="pa-2 mb-2">
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-        <MudTextField @bind-Value="keyword" Label="会員番号 / 名前 / かな / 電話" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 320px;" />
+        <MudTextField Class="min-w-320" @bind-Value="keyword" Label="会員番号 / 名前 / かな / 電話" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
         <MudSwitch T="bool" @bind-Value="includeDeleted" Label="削除済みを表示" Color="Color.Primary" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
     </MudStack>
@@ -27,7 +27,7 @@
         <TemplateColumn Title="電話" Sortable="false">
             <CellTemplate>@context.Item.Phone</CellTemplate>
         </TemplateColumn>
-        <PropertyColumn Property="x => x.PointBalance" Title="ポイント残高" CellStyle="text-align: right;" HeaderStyle="text-align: right;">
+        <PropertyColumn Property="x => x.PointBalance" Title="ポイント残高" CellClass="text-right" HeaderClass="text-right">
             <CellTemplate><StatusChip Value="@ViewHelper.PointBalanceChip(context.Item.PointBalance)" /></CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.CreatedAt" Title="登録日">

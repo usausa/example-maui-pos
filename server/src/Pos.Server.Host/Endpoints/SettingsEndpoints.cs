@@ -14,7 +14,7 @@ public static partial class SettingsEndpoints
 
     public static void MapSettingsEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Settings);
+        var group = app.MapApiGroup(ApiRoutes.Settings);
         group.MapGet("/", HandleGetAsync);
         group.MapPut("/", HandleUpdateAsync);
     }

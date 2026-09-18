@@ -33,6 +33,8 @@ builder.ConfigureBlazor();
 
 // Health
 builder.ConfigureHealth();
+// Metrics
+builder.ConfigureTelemetry();
 
 // Components
 builder.ConfigureComponents();
@@ -59,6 +61,9 @@ app.UseLogging();
 
 // Antiforgery
 app.UseAntiforgery();
+
+// Logging context
+app.UseLoggingContext();
 
 // End point
 app.MapEndpoints();

@@ -51,7 +51,7 @@ else
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudPaper Class="pa-3 d-flex flex-column align-center justify-center" Style="height: 100%;">
+            <MudPaper Class="pa-3 d-flex flex-column align-center justify-center mud-height-full">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">ポイント残高</MudText>
                 <MudText Typo="Typo.h4" Color="@ViewHelper.PointBalanceColor(customer.PointBalance)">@customer.PointBalance.ToPointText() pt</MudText>
                 @if (customer.PointBalance < 0)
@@ -68,16 +68,16 @@ else
                 <HeaderContent>
                     <MudTh>日時</MudTh>
                     <MudTh>種別</MudTh>
-                    <MudTh Style="text-align: right;">増減</MudTh>
-                    <MudTh Style="text-align: right;">残高</MudTh>
+                    <MudTh Class="text-right">増減</MudTh>
+                    <MudTh Class="text-right">残高</MudTh>
                     <MudTh>理由 / 取引</MudTh>
                     <MudTh>担当</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd Class="no-wrap">@context.OccurredAt.ToDateTimeText()</MudTd>
                     <MudTd><StatusChip Value="@ViewHelper.PointTypeChip(context.Type)" /></MudTd>
-                    <MudTd Style="text-align: right;">@context.Points.ToDeltaText()</MudTd>
-                    <MudTd Style="text-align: right;">@context.BalanceAfter.ToPointText()</MudTd>
+                    <MudTd Class="text-right">@context.Points.ToDeltaText()</MudTd>
+                    <MudTd Class="text-right">@context.BalanceAfter.ToPointText()</MudTd>
                     <MudTd>
                         @context.Reason
                         @if (context.TransactionId is not null)
@@ -99,18 +99,18 @@ else
                     <MudTh>レシート番号</MudTh>
                     <MudTh>種別</MudTh>
                     <MudTh>状態</MudTh>
-                    <MudTh Style="text-align: right;">合計</MudTh>
-                    <MudTh Style="text-align: right;">付与</MudTh>
-                    <MudTh Style="text-align: right;">利用</MudTh>
+                    <MudTh Class="text-right">合計</MudTh>
+                    <MudTh Class="text-right">付与</MudTh>
+                    <MudTh Class="text-right">利用</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd Class="no-wrap">@context.TransactedAt.ToDateTimeText()</MudTd>
                     <MudTd><MudLink Href="@($"transactions?id={context.Id}")" Typo="Typo.body2">@context.ReceiptNo</MudLink></MudTd>
                     <MudTd><StatusChip Value="@ViewHelper.TypeChip(context.Type)" /></MudTd>
                     <MudTd><StatusChip Value="@ViewHelper.StatusChip(context.Status)" /></MudTd>
-                    <MudTd Style="text-align: right;">@context.Total.ToYen()</MudTd>
-                    <MudTd Style="text-align: right;">@context.PointsEarned.ToPointText()</MudTd>
-                    <MudTd Style="text-align: right;">@context.PointsRedeemed.ToPointText()</MudTd>
+                    <MudTd Class="text-right">@context.Total.ToYen()</MudTd>
+                    <MudTd Class="text-right">@context.PointsEarned.ToPointText()</MudTd>
+                    <MudTd Class="text-right">@context.PointsRedeemed.ToPointText()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText>購入履歴がありません。</MudText>

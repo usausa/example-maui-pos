@@ -15,7 +15,7 @@ public static partial class AdjustmentReasonEndpoints
 
     public static void MapAdjustmentReasonEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.AdjustmentReasons);
+        var group = app.MapApiGroup(ApiRoutes.AdjustmentReasons);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);

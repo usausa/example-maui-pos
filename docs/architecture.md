@@ -127,20 +127,21 @@ Application/                         アプリ固有の部品
   ApplicationExtensions.cs           起動構成 (camelCase JSON、Problem Details、Serilog、ヘルスチェック、MudBlazor、OpenAPI (開発時 /swagger, /redoc))
   ViewHelper.cs                      画面の部品の文言と色 (チップ・マーク・見出し)
   ViewExtensions.cs                  表示用の書式 (金額・数量・日時・列挙型の日本語名) の拡張メソッド
-  SnackbarExtensions.cs, Styles.cs, Log.cs, NamingPolicy.cs
+  SnackbarExtensions.cs, Styles.cs, Log.cs ([LoggerMessage] の集約), NamingPolicy.cs
+  Telemetry/                         ApplicationInstrument (Meter / ActivitySource: 稼働時間、API の要求数と長時間実行)、Source、TelemetryExtensions
   Lookup/NameLookup.cs               ID → 名称 (店舗・端末・スタッフ・支払方法)
   State/StoreFilterState.cs          一覧ページ間で共有する店舗の絞り込み (scoped)
   Urls/ExportUrls.cs                 管理画面から開くダウンロード URL (CSV / PDF)
 Reports/                             OysterReport の帳票: ShiftReportBuilder (精算レポート)、DailySalesReportBuilder (売上日報)、ReportText (D-37)
-Endpoints/                           静的クラス + MapGroup (ハンドラは private static)。Request → Entity / Parameter の変換 ([Mapper]) と Service の呼び出しだけを担う
+Endpoints/                           静的クラス + MapApiGroup (計測フィルタ付きのグループ。ハンドラは private static)。Request → Entity / Parameter の変換 ([Mapper]) と Service の呼び出しだけを担う
   ApiRoutes.cs (/api/v1), ApiDefaults.cs (ページサイズ), ApiProblems.cs (errorCode / errors / expected 付き Problem Details と DataWriteStatus からの変換),
   ApiRuleText.cs (業務ルール違反と警告の文言)
   SettingsEndpoints, StoreEndpoints, TerminalEndpoints, StaffEndpoints, CategoryEndpoints, TaxRateEndpoints,
   ProductEndpoints, DiscountEndpoints, PaymentMethodEndpoints, SyncEndpoints, CustomerEndpoints,
   TransactionEndpoints, ShiftEndpoints (+ summary/pdf), InventoryEndpoints, AdjustmentReasonEndpoints (/inventory/adjustment-reasons), ReportEndpoints (+ daily/pdf)
 Helpers/EnumHelper.cs                クエリ文字列や並び順ラベルの列挙値 (大文字小文字を区別せず、数値や未定義の値は受け付けない)
-Infrastructure/                      アプリに依存しない部品: Csv (CsvExport)、Logging (ErrorBoundaryLogger)、ExceptionHandling (GlobalExceptionHandler)、
-                                     Reports (EmbeddedFontResolver: 同梱 IPAex ゴシック)
+Infrastructure/                      アプリに依存しない部品: Csv (CsvExport)、Logging (ErrorBoundaryLogger、LoggingContext + CallbackEnricher + LoggingContextMiddleware: 接続元アドレスを全ログ行に付ける)、
+                                     ExceptionHandling (GlobalExceptionHandler)、Filters (RequestMetricsEndpointFilter: API の要求数と長時間実行の警告)、Reports (EmbeddedFontResolver: 同梱 IPAex ゴシック)
 Models/Forms/                        管理画面のフォーム + FluentValidation (FormValidator<T> を基底に XxxForm / XxxFormValidator。マスタ 10 種 + Customer / InventoryChange / PointAdjust)。
                                      Entity ↔ Form の変換 ([Mapper]。Guid? / DateOnly の変換は [MapUsing]) はフォームが持つ。
                                      1 つのページだけで使うフォーム (SettingsForm) はそのページの内部クラス。文字列の長さは Pos.Domain.Length の定数
@@ -159,7 +160,7 @@ Components/
   Dialogs/ (EditDialogBase<TForm>, DialogServiceExtensions (情報・確認), AppMessageBox, XxxEditDialog (マスタ 10 種 + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31),
             ProductInventoryDialog (S-41), InventoryChangeDialog (S-43), PointAdjustDialog (S-62), TerminalQrDialog (S-71))
 Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート)、Data/Schema.sql (DDL) と Data/InitialData.sql (初期データ)。起動時に読んで実行する (出力ディレクトリへコピー)
-Settings/                            LogSetting / ProfilerSetting
+Settings/                            LogSetting (HTTP ログ・本文ダンプ・W3C アクセスログ) / ProfilerSetting (SQL のログとトレース) / TelemetrySetting (長時間実行のしきい値)
 wwwroot/                             css/app.css, js/reconnect.js
 ```
 
@@ -169,6 +170,9 @@ wwwroot/                             css/app.css, js/reconnect.js
 - Blazor ページも同じ Service を `[Inject]` して使う。  
   Razor の表示用の加工は `ViewHelper` / `ViewExtensions` に集約し、Accessor / `IDbProvider` はページから使わない
 - `InitializeApplicationAsync` で `DatabaseService.InitializeAsync` (スキーマ作成、後から増えた列の追加、初期データ) を行う
+- テレメトリは OpenTelemetry。  
+  `OTEL_EXPORTER_OTLP_ENDPOINT` があるとき (Aspire から起動したときなど) だけログ・メトリクス・トレースを OTLP で送り、`Prometheus:Uri` が設定されていればメトリクスを HTTP で公開する (既定 9464)。  
+  SQL のトレース (`Profiler:SqlTelemetry`) と API の要求数・長時間実行 (`Telemetry:LongExecutionThreshold`) も同じ経路
 - 一覧の `sort` / レポートの `groupBy` は文字列で受け取り `EnumHelper` で列挙型にする (一覧の不正な値は既定、`groupBy` / レポートの `sort` は 400)。  
   レポートの期間 (`ReportPeriodQuery`) の `from > to` は `IValidatableObject` で 400 にする (API の入力検証は DataAnnotations、FluentValidation は管理画面のフォームだけ)
 - 描画モードは対話型 (プリレンダリングなし)。  

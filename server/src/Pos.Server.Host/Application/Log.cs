@@ -19,6 +19,14 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Information, Message = "ThreadPool: workerThreads=[{workerThreads}], completionPortThreads=[{completionPortThreads}]")]
     public static partial void InfoServiceSettingsThreadPool(this ILogger logger, int workerThreads, int completionPortThreads);
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "Telemetry: otelEndPoint=[{otelEndPoint}], prometheusUri=[{prometheusUri}]")]
+    public static partial void InfoServiceSettingsTelemetry(this ILogger logger, string otelEndPoint, string prometheusUri);
+
+    // Request
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Long execution. method=[{method}], route=[{route}], elapsed=[{elapsed}]")]
+    public static partial void WarnLongExecution(this ILogger logger, string method, string route, long elapsed);
+
     // Error
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception.")]

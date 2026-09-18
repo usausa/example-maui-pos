@@ -160,7 +160,7 @@ public static class TransactionMapper
     // Return
     //--------------------------------------------------------------------------------
 
-    public static ReturnInput ToReturnInput(TransactionResponseItem original, IEnumerable<(TransactionResponseItemLine Line, decimal Quantity)> returns, IEnumerable<CartPayment> payments, TaxRounding taxRounding)
+    public static ReturnInput ToReturnInput(TransactionResponseItem original, IEnumerable<(TransactionResponseLine Line, decimal Quantity)> returns, IEnumerable<CartPayment> payments, TaxRounding taxRounding)
     {
         return new ReturnInput
         {
@@ -184,7 +184,7 @@ public static class TransactionMapper
         };
     }
 
-    public static TransactionCreateRequest ToReturnRequest(TransactionResponseItem original, IReadOnlyList<(TransactionResponseItemLine Line, decimal Quantity)> returns, IEnumerable<CartPayment> payments, SalesResult result, TransactionContext context, string? note)
+    public static TransactionCreateRequest ToReturnRequest(TransactionResponseItem original, IReadOnlyList<(TransactionResponseLine Line, decimal Quantity)> returns, IEnumerable<CartPayment> payments, SalesResult result, TransactionContext context, string? note)
     {
         var lines = new List<TransactionCreateRequestLine>(returns.Count);
         for (var i = 0; i < returns.Count; i++)
@@ -275,7 +275,7 @@ public static class TransactionMapper
             BusinessDate = request.BusinessDate,
             TransactedAt = request.TransactedAt,
             OriginalTransactionId = request.OriginalTransactionId,
-            Lines = request.Lines.Select(static x => new TransactionResponseItemLine
+            Lines = request.Lines.Select(static x => new TransactionResponseLine
             {
                 Id = x.Id,
                 LineNo = x.LineNo,
@@ -301,19 +301,19 @@ public static class TransactionMapper
                 OriginalLineId = x.OriginalLineId,
                 Note = x.Note
             }).ToList(),
-            Discounts = request.Discounts.Select(static x => new TransactionResponseItemDiscount { Id = x.Id, LineId = x.LineId, DiscountId = x.DiscountId, Name = x.Name, Type = x.Type, Value = x.Value, Amount = x.Amount, Reason = x.Reason, ApprovedByStaffId = x.ApprovedByStaffId }).ToList(),
-            TaxSummaries = request.TaxSummaries.Select(static x => new TransactionResponseItemTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList(),
+            Discounts = request.Discounts.Select(static x => new TransactionResponseDiscount { Id = x.Id, LineId = x.LineId, DiscountId = x.DiscountId, Name = x.Name, Type = x.Type, Value = x.Value, Amount = x.Amount, Reason = x.Reason, ApprovedByStaffId = x.ApprovedByStaffId }).ToList(),
+            TaxSummaries = request.TaxSummaries.Select(static x => new TransactionResponseTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList(),
             Subtotal = request.Subtotal,
             DiscountTotal = request.DiscountTotal,
             NetSubtotal = request.NetSubtotal,
             TaxTotal = request.TaxTotal,
             Total = request.Total,
-            Payments = request.Payments.Select(static x => new TransactionResponseItemPayment { Id = x.Id, SeqNo = x.SeqNo, PaymentMethodId = x.PaymentMethodId, Kind = x.Kind, Amount = x.Amount, TenderedAmount = x.TenderedAmount, Reference = x.Reference, Note = x.Note }).ToList(),
+            Payments = request.Payments.Select(static x => new TransactionResponsePayment { Id = x.Id, SeqNo = x.SeqNo, PaymentMethodId = x.PaymentMethodId, Kind = x.Kind, Amount = x.Amount, TenderedAmount = x.TenderedAmount, Reference = x.Reference, Note = x.Note }).ToList(),
             TenderedTotal = request.TenderedTotal,
             ChangeAmount = request.ChangeAmount,
             PointsEarned = request.PointsEarned,
             PointsRedeemed = request.PointsRedeemed,
-            Delivery = request.Delivery is null ? null : new TransactionResponseItemDelivery
+            Delivery = request.Delivery is null ? null : new TransactionResponseDelivery
             {
                 RecipientName = request.Delivery.RecipientName,
                 Phone = request.Delivery.Phone,

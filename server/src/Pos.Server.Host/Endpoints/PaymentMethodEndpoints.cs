@@ -14,7 +14,7 @@ public static partial class PaymentMethodEndpoints
 
     public static void MapPaymentMethodEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.PaymentMethods);
+        var group = app.MapApiGroup(ApiRoutes.PaymentMethods);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);

@@ -340,7 +340,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     }
 
     // 返品: ポイント返還分 (−pointsRedeemed) をポイント、残りを現金で返金する
-    private static TransactionCreateRequest CreateReturnRequest(Guid shiftId, Guid originalId, TransactionResponseItemLine original, decimal quantity, string receiptNo)
+    private static TransactionCreateRequest CreateReturnRequest(Guid shiftId, Guid originalId, TransactionResponseLine original, decimal quantity, string receiptNo)
     {
         var refundPoints = (int)Math.Floor(original.PointsRedeemed * quantity / original.Quantity);
         var netAmount = Math.Floor(original.UnitPrice * quantity) - Math.Floor(original.DiscountAmount * quantity / original.Quantity) - Math.Floor(original.AllocatedDiscountAmount * quantity / original.Quantity);

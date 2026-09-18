@@ -19,7 +19,7 @@ public static partial class CustomerEndpoints
 
     public static void MapCustomerEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Customers);
+        var group = app.MapApiGroup(ApiRoutes.Customers);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/lookup", HandleLookupAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);

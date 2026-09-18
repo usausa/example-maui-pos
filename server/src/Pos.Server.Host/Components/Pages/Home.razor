@@ -14,7 +14,7 @@
 
 <MudGrid Spacing="2" Class="mb-2">
     <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="pa-3 d-flex flex-column" Style="height: 110px;" Elevation="1">
+        <MudPaper Class="pa-3 d-flex flex-column kpi-card" Elevation="1">
             <div class="d-flex align-center gap-2 mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Color="Color.Primary" />
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">本日売上 (純)</MudText>
@@ -24,7 +24,7 @@
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="pa-3 d-flex flex-column" Style="height: 110px;" Elevation="1">
+        <MudPaper Class="pa-3 d-flex flex-column kpi-card" Elevation="1">
             <div class="d-flex align-center gap-2 mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Info" />
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">本日客数</MudText>
@@ -34,7 +34,7 @@
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="pa-3 d-flex flex-column" Style="height: 110px;" Elevation="1">
+        <MudPaper Class="pa-3 d-flex flex-column kpi-card" Elevation="1">
             <div class="d-flex align-center gap-2 mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.AssignmentReturn" Color="Color.Warning" />
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">本日返品</MudText>
@@ -44,7 +44,7 @@
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="pa-3 d-flex flex-column" Style="height: 110px;" Elevation="1">
+        <MudPaper Class="pa-3 d-flex flex-column kpi-card" Elevation="1">
             <div class="d-flex align-center gap-2 mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.Warning" Color="@(WarningCount > 0 ? Color.Error : Color.Default)" />
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">要確認</MudText>
@@ -64,15 +64,15 @@
                 </ToolBarContent>
                 <HeaderContent>
                     <MudTh>店舗</MudTh>
-                    <MudTh Style="text-align: right;">件数</MudTh>
-                    <MudTh Style="text-align: right;">純売上</MudTh>
-                    <MudTh Style="text-align: right;">返品</MudTh>
+                    <MudTh Class="text-right">件数</MudTh>
+                    <MudTh Class="text-right">純売上</MudTh>
+                    <MudTh Class="text-right">返品</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.GroupLabel</MudTd>
-                    <MudTd Style="text-align: right;">@context.TransactionCount</MudTd>
-                    <MudTd Style="text-align: right;">¥@context.NetSales.ToYen()</MudTd>
-                    <MudTd Style="text-align: right;">¥@context.ReturnsTotal.ToYen()</MudTd>
+                    <MudTd Class="text-right">@context.TransactionCount</MudTd>
+                    <MudTd Class="text-right">¥@context.NetSales.ToYen()</MudTd>
+                    <MudTd Class="text-right">¥@context.ReturnsTotal.ToYen()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText Class="pa-4 mud-text-secondary">本日の売上はまだありません。</MudText>
@@ -138,12 +138,12 @@
                 <HeaderContent>
                     <MudTh>商品</MudTh>
                     <MudTh>店舗</MudTh>
-                    <MudTh Style="text-align: right;">数量</MudTh>
+                    <MudTh Class="text-right">数量</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.ProductCode @context.ProductName</MudTd>
                     <MudTd>@context.StoreName</MudTd>
-                    <MudTd Style="text-align: right;"><StatusChip Value="@ViewHelper.NegativeQuantityChip(context.Quantity)" /></MudTd>
+                    <MudTd Class="text-right"><StatusChip Value="@ViewHelper.NegativeQuantityChip(context.Quantity)" /></MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText Class="pa-4 mud-text-secondary">✅ 在庫がマイナスの商品はありません。</MudText>
@@ -159,11 +159,11 @@
                 </ToolBarContent>
                 <HeaderContent>
                     <MudTh>会員</MudTh>
-                    <MudTh Style="text-align: right;">残高</MudTh>
+                    <MudTh Class="text-right">残高</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd><MudLink Href="@($"customers/{context.Id}")" Typo="Typo.body2">@context.Code @context.Name</MudLink></MudTd>
-                    <MudTd Style="text-align: right;"><StatusChip Value="@ViewHelper.PointBalanceChip(context.PointBalance)" /></MudTd>
+                    <MudTd Class="text-right"><StatusChip Value="@ViewHelper.PointBalanceChip(context.PointBalance)" /></MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText Class="pa-4 mud-text-secondary">✅ 残高がマイナスの会員はいません。</MudText>

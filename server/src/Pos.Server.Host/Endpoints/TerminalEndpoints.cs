@@ -15,7 +15,7 @@ public static partial class TerminalEndpoints
 
     public static void MapTerminalEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(ApiRoutes.Terminals);
+        var group = app.MapApiGroup(ApiRoutes.Terminals);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);

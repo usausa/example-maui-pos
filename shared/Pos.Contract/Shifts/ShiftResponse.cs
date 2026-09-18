@@ -29,7 +29,7 @@ public sealed class ShiftResponseItem
     // 実査金額
     public decimal? ActualCash { get; set; }
 
-    public IReadOnlyList<ShiftResponseItemDenomination> Denominations { get; set; } = [];
+    public IReadOnlyList<ShiftResponseDenomination> Denominations { get; set; } = [];
 
     // openingCash + cashSales − cashReturns + paidIn − paidOut
     public decimal? ExpectedCash { get; set; }
@@ -37,7 +37,7 @@ public sealed class ShiftResponseItem
     // actualCash − expectedCash
     public decimal? Difference { get; set; }
 
-    public ShiftResponseItemTotals Totals { get; set; } = default!;
+    public ShiftResponseTotals Totals { get; set; } = default!;
 
     public string? Note { get; set; }
 
@@ -46,7 +46,7 @@ public sealed class ShiftResponseItem
     public DateTime UpdatedAt { get; set; }
 }
 
-public sealed class ShiftResponseItemDenomination
+public sealed class ShiftResponseDenomination
 {
     public int Denomination { get; set; }
 
@@ -54,7 +54,7 @@ public sealed class ShiftResponseItemDenomination
 }
 
 // 取消済みを除く集計
-public sealed class ShiftResponseItemTotals
+public sealed class ShiftResponseTotals
 {
     public decimal CashSales { get; set; }
 
