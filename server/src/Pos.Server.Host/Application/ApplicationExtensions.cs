@@ -149,6 +149,7 @@ public static class ApplicationExtensions
         return app;
     }
 
+    // X-Forwarded-For の反映後、エラー処理と HTTP ログより前に通す (外側のミドルウェアのログにも接続元アドレスを付けるため)
     public static WebApplication UseLoggingContext(this WebApplication app)
     {
         app.UseMiddleware<LoggingContextMiddleware>();

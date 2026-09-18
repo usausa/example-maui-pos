@@ -50,6 +50,9 @@ app.LogStartupInformation();
 // Forwarded headers
 app.UseForwardedHeaders();
 
+// Logging context
+app.UseLoggingContext();
+
 // Error handler
 app.UseErrorHandler();
 
@@ -61,9 +64,6 @@ app.UseLogging();
 
 // Antiforgery
 app.UseAntiforgery();
-
-// Logging context
-app.UseLoggingContext();
 
 // End point
 app.MapEndpoints();
