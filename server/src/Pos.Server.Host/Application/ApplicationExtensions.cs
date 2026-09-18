@@ -90,11 +90,13 @@ public static class ApplicationExtensions
 
         // Application log
         builder.Logging.ClearProviders();
+        // 接続元アドレスはログ出力時点の HttpContext から読む (ミドルウェアの位置に依存せず、例外処理や HTTP ログの行にも付く)
         builder.Services.AddSerilog(
-            options =>
+            (provider, options) =>
             {
+                var accessor = provider.GetRequiredService<IHttpContextAccessor>();
                 options.ReadFrom.Configuration(builder.Configuration);
-                options.Enrich.With(new CallbackEnricher("RemoteIpAddress", static () => LoggingContext.RemoteIpAddress));
+                options.Enrich.With(new CallbackEnricher("RemoteIpAddress", () => accessor.HttpContext?.Connection.RemoteIpAddress?.ToString()));
             },
             writeToProviders: useOtlpExporter);
 
@@ -149,20 +151,15 @@ public static class ApplicationExtensions
         return app;
     }
 
-    // X-Forwarded-For の反映後、エラー処理と HTTP ログより前に通す (外側のミドルウェアのログにも接続元アドレスを付けるため)
-    public static WebApplication UseLoggingContext(this WebApplication app)
-    {
-        app.UseMiddleware<LoggingContextMiddleware>();
-
-        return app;
-    }
-
     //--------------------------------------------------------------------------------
     // Http
     //--------------------------------------------------------------------------------
 
     public static IHostApplicationBuilder ConfigureHttp(this IHostApplicationBuilder builder)
     {
+        // ログの文脈 (接続元アドレス) の取得元
+        builder.Services.AddHttpContextAccessor();
+
         // XForward
         builder.Services.Configure<ForwardedHeadersOptions>(static options =>
         {
@@ -234,7 +231,7 @@ public static class ApplicationExtensions
                 });
             });
 
-        // Page: error page
+        // Page: error page (UseWhen 内の再実行は暗黙のルーティングに乗らないため、Program.cs で UseErrorHandler の直後に UseRouting を明示する)
         app.UseWhen(
             static context => !context.Request.Path.StartsWithSegments(ApiPathPrefix, StringComparison.OrdinalIgnoreCase),
             static b => b.UseExceptionHandler("/error", createScopeForErrors: true));

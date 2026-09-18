@@ -140,7 +140,7 @@ Endpoints/                           静的クラス + MapApiGroup (計測フィ
   ProductEndpoints, DiscountEndpoints, PaymentMethodEndpoints, SyncEndpoints, CustomerEndpoints,
   TransactionEndpoints, ShiftEndpoints (+ summary/pdf), InventoryEndpoints, AdjustmentReasonEndpoints (/inventory/adjustment-reasons), ReportEndpoints (+ daily/pdf)
 Helpers/EnumHelper.cs                クエリ文字列や並び順ラベルの列挙値 (大文字小文字を区別せず、数値や未定義の値は受け付けない)
-Infrastructure/                      アプリに依存しない部品: Csv (CsvExport)、Logging (ErrorBoundaryLogger、LoggingContext + CallbackEnricher + LoggingContextMiddleware: 接続元アドレスを全ログ行に付ける)、
+Infrastructure/                      アプリに依存しない部品: Csv (CsvExport)、Logging (ErrorBoundaryLogger、CallbackEnricher: IHttpContextAccessor から読んだ接続元アドレスを全ログ行に付ける)、
                                      ExceptionHandling (GlobalExceptionHandler)、Filters (RequestMetricsEndpointFilter: API の要求数と長時間実行の警告)、Reports (EmbeddedFontResolver: 同梱 IPAex ゴシック)
 Models/Forms/                        管理画面のフォーム + FluentValidation (FormValidator<T> を基底に XxxForm / XxxFormValidator。マスタ 10 種 + Customer / InventoryChange / PointAdjust)。
                                      Entity ↔ Form の変換 ([Mapper]。Guid? / DateOnly の変換は [MapUsing]) はフォームが持つ。

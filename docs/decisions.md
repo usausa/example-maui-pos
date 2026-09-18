@@ -955,3 +955,17 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
   `Microsoft.AspNetCore.HttpLogging` の Override を足し、`Log:HttpLog` が実際に出るようにした
 - 管理画面のスタイル: `wwwroot/css/app.css` のクラスに集約し、要素の `Style=` は列幅だけにする (`text-right`、`min-w-*`、`kpi-card` など)
 - 規則: `tmpl-guide.md` の作業ルールと技術方針のうち、追加・変更のときに判断が要るものを AGENTS.md と rules に取り込んだ (コンストラクタ引数の順序、設定・ログ・計測・マッピングの書き方、テストの AAA、パッケージの固定)
+
+### D-56. ログの文脈はアクセサーから読み、アクセスログは例外ハンドラーの外に置く
+
+テンプレート側 (tmpl-record §4-33) の見直しに合わせた (利用者指示)。
+
+- 接続元アドレスは `LoggingContextMiddleware` で捕捉せず、`CallbackEnricher` がログ出力時点の `IHttpContextAccessor.HttpContext` から読む。  
+  `AsyncLocal` は下流にしか流れないため、ミドルウェアで捕捉する方式ではその外側 (例外ハンドラー・HTTP ログ) の行に付かない。  
+  アクセサーは要求完了後に null になるので、要求から派生した処理が古い `HttpContext` を読むこともない
+- ミドルウェアの順序を ForwardedHeaders → Compression → Logging → ErrorHandler → UseRouting → Antiforgery → Endpoints にした。  
+  HTTP ログと W3C ログが例外ハンドラーの内側にあると、未処理例外の応答を状態 200 (HttpLogging) / 状態なし (W3C) で記録する
+- 画面の未処理例外は `/error` ページに出す。  
+  `GlobalExceptionHandler` (DI 登録の `IExceptionHandler`) は再実行より先に呼ばれ、画面の例外も ProblemDetails で返していたため、API のパス以外では処理せず (`false`) 再実行に任せる。  
+  `UseWhen` 内の `UseExceptionHandler("/error")` の再実行は暗黙のルーティングに乗らないため、`UseErrorHandler` の直後に `UseRouting()` を明示する (`/not-found` を `UseWhen` の外に出したのと同じ理由)
+
