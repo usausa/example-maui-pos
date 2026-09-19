@@ -5,7 +5,12 @@ FROM
 WHERE
     1 = 1
 /*% if (keyword != null) { */
-    AND (Code LIKE /*@ keyword */'' ESCAPE '\' OR Name LIKE /*@ keyword */'' ESCAPE '\' OR Kana LIKE /*@ keyword */'' ESCAPE '\' OR Phone LIKE /*@ keyword */'' ESCAPE '\')
+    AND (
+        Code LIKE /*@ keyword */'' ESCAPE '\'
+        OR Name LIKE /*@ keyword */'' ESCAPE '\'
+        OR Kana LIKE /*@ keyword */'' ESCAPE '\'
+        OR Phone LIKE /*@ keyword */'' ESCAPE '\'
+    )
 /*% } */
 /*% if (code != null) { */
     AND Code = /*@ code */''

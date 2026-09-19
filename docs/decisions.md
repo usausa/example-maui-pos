@@ -860,7 +860,9 @@ OS のソフトキーボードは画面の半分を隠し、機種やキーボ�
 | `TransactionResponseItem` の拡張メソッド | 型と同じファイルに置く (`IsReturnable` / `HasReturnableLine`) |
 | Accessor の `VoidAsync` / `CloseAsync` (業務の動詞) | Accessor は DB の操作で名付ける。取消は `UpdateVoidedAsync`、精算は `UpdateClosedAsync` (端末は `UpdateShiftClosedAsync`、サーバに残ったシフトの登録は `InsertServerShiftAsync`)。Void / Close / Import のような業務の動詞は Service / Usecase の名前にだけ使う |
 
-SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列・条件を次の行に字下げする書き方に統一した (サーバ・端末とも)。
+SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列・条件を次の行に字下げする書き方に統一した (サーバ・端末とも)。  
+`OR` で並べる条件は 1 行に書かず `AND (` の中で 1 条件 1 行にし、副問い合わせも 1 行に書かない。  
+精算の集計 (`ShiftAccessor.QuerySummaryAsync`) は 1 行のスカラー副問い合わせ 9 つを、表ごと (取引・支払・入出金) の派生表 3 つの `CROSS JOIN` に書き直した (各表を 1 回ずつ読む)。
 
 ### D-49. 端末の見直し: Scope プラグイン、入力の種類ごとの電卓、ヘルパーの置き場所
 

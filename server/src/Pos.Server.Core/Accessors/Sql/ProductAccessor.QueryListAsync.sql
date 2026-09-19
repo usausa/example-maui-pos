@@ -8,7 +8,13 @@ WHERE
     AND CategoryId = /*@ categoryId */''
 /*% } */
 /*% if (keyword != null) { */
-    AND (Code LIKE /*@ keyword */'' ESCAPE '\' OR Barcode LIKE /*@ keyword */'' ESCAPE '\' OR Name LIKE /*@ keyword */'' ESCAPE '\' OR Kana LIKE /*@ keyword */'' ESCAPE '\' OR ModelNo LIKE /*@ keyword */'' ESCAPE '\')
+    AND (
+        Code LIKE /*@ keyword */'' ESCAPE '\'
+        OR Barcode LIKE /*@ keyword */'' ESCAPE '\'
+        OR Name LIKE /*@ keyword */'' ESCAPE '\'
+        OR Kana LIKE /*@ keyword */'' ESCAPE '\'
+        OR ModelNo LIKE /*@ keyword */'' ESCAPE '\'
+    )
 /*% } */
 /*% if (isActive != null) { */
     AND IsActive = /*@ isActive */1

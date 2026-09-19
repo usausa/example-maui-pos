@@ -5,7 +5,10 @@ FROM
 WHERE
     1 = 1
 /*% if (storeId != null) { */
-    AND (StoreId = /*@ storeId */'' OR StoreId IS NULL)
+    AND (
+        StoreId = /*@ storeId */''
+        OR StoreId IS NULL
+    )
 /*% } */
 /*% if (updatedSince != null) { */
     AND UpdatedAt > /*@ updatedSince */''

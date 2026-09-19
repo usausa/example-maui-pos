@@ -12,7 +12,12 @@ WHERE
     AND p.CategoryId = /*@ categoryId */''
 /*% } */
 /*% if (keyword != null) { */
-    AND (p.Code LIKE /*@ keyword */'' ESCAPE '\' OR p.Name LIKE /*@ keyword */'' ESCAPE '\' OR p.Kana LIKE /*@ keyword */'' ESCAPE '\' OR p.Barcode LIKE /*@ keyword */'' ESCAPE '\')
+    AND (
+        p.Code LIKE /*@ keyword */'' ESCAPE '\'
+        OR p.Name LIKE /*@ keyword */'' ESCAPE '\'
+        OR p.Kana LIKE /*@ keyword */'' ESCAPE '\'
+        OR p.Barcode LIKE /*@ keyword */'' ESCAPE '\'
+    )
 /*% } */
 /*% if (negativeOnly) { */
     AND i.Quantity < 0
