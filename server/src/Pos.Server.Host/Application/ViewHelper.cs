@@ -91,7 +91,7 @@ public static class ViewHelper
     {
         null => ("⚪ 未接続", Color.Default),
         _ when online => ("🟢 通信中", Color.Success),
-        _ => ("⚪ " + lastSeenAt.ToDateTimeText(), Color.Default)
+        { } seen => ("⚪ 通信なし " + seen.ToShortDateTimeText(), Color.Default)
     };
 
     public static (string Text, Color Color) PointBalanceChip(int balance) =>

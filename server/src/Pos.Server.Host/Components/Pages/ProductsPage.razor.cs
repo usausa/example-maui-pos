@@ -46,7 +46,8 @@ public sealed partial class ProductsPage
 
     private string CategoryName(Guid id) => categoryMap.TryGetValue(id, out var category) ? category.Name : "-";
 
-    private string TaxRateName(Guid id) => taxRates.TryGetValue(id, out var taxRate) ? taxRate.Name : "-";
+    // 一覧は率だけ (名称は編集で見る)
+    private string TaxRateText(Guid id) => taxRates.TryGetValue(id, out var taxRate) ? taxRate.Rate.ToPercentText() : "-";
 
     //--------------------------------------------------------------------------------
     // Grid

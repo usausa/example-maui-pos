@@ -21,7 +21,7 @@
                     <MudText Typo="Typo.subtitle2">💴 現金</MudText>
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
-                            <tr><td class="mud-text-secondary" style="width: 120px;">開設 / 精算</td><td>@summary.Shift.Shift.OpenedAt.ToDateTimeText() @Names.StaffName(summary.Shift.Shift.OpenedByStaffId) / @summary.Shift.Shift.ClosedAt.ToDateTimeText() @Names.StaffName(summary.Shift.Shift.ClosedByStaffId)</td></tr>
+                            <tr><td class="mud-text-secondary w-120">開設 / 精算</td><td>@summary.Shift.Shift.OpenedAt.ToDateTimeText() @Names.StaffName(summary.Shift.Shift.OpenedByStaffId) / @summary.Shift.Shift.ClosedAt.ToDateTimeText() @Names.StaffName(summary.Shift.Shift.ClosedByStaffId)</td></tr>
                             <tr><td class="mud-text-secondary">釣銭準備金</td><td class="text-right">@summary.Shift.Shift.OpeningCash.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">現金売上 / 返金</td><td class="text-right">@summary.Shift.Totals.CashSales.ToYen() / -@summary.Shift.Totals.CashReturns.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">入金 / 出金</td><td class="text-right">@summary.Shift.Totals.PaidIn.ToYen() / -@summary.Shift.Totals.PaidOut.ToYen()</td></tr>
@@ -35,7 +35,7 @@
                     <MudText Typo="Typo.subtitle2">📈 件数・売上</MudText>
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
-                            <tr><td class="mud-text-secondary" style="width: 120px;">販売 / 返品 / 取消</td><td class="text-right">@summary.Shift.Totals.SalesCount / @summary.Shift.Totals.ReturnCount / @summary.Shift.Totals.VoidCount 件</td></tr>
+                            <tr><td class="mud-text-secondary w-120">販売 / 返品 / 取消</td><td class="text-right">@summary.Shift.Totals.SalesCount / @summary.Shift.Totals.ReturnCount / @summary.Shift.Totals.VoidCount 件</td></tr>
                             <tr><td class="mud-text-secondary">売上 / 返品</td><td class="text-right">@summary.Shift.Totals.SalesTotal.ToYen() / -@summary.Shift.Totals.ReturnsTotal.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">ポイント</td><td class="text-right">付与 @summary.Points.Earned.ToPointText() / 利用 @summary.Points.Redeemed.ToPointText()</td></tr>
                             <tr><td class="mud-text-secondary">備考</td><td>@summary.Shift.Shift.Note</td></tr>

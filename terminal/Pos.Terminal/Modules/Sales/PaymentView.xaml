@@ -54,8 +54,14 @@
                    Text="{Binding RemainingText}" />
         </Grid>
 
-        <!-- 支払リスト -->
-        <ScrollView Grid.Row="1">
+        <!-- 支払リスト (空のときは案内) -->
+        <Label Grid.Row="1"
+               Style="{StaticResource PosMessageLabel}"
+               VerticalOptions="Center"
+               IsVisible="{Binding HasPayments, Converter={StaticResource ReverseConverter}}"
+               Text="預り金を入力して支払方法を選んでください。&#10;現金以外は残り全額になります。" />
+        <ScrollView Grid.Row="1"
+                    IsVisible="{Binding HasPayments}">
             <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
                                  BindableLayout.ItemsSource="{Binding Payments}">
                 <BindableLayout.ItemTemplate>

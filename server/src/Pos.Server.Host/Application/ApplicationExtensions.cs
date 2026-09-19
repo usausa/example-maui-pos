@@ -133,7 +133,7 @@ public static class ApplicationExtensions
         return builder;
     }
 
-    public static WebApplication UseLogging(this WebApplication app)
+    public static WebApplication UseW3CLog(this WebApplication app)
     {
         var setting = app.Services.GetRequiredService<LogSetting>();
         if (setting.W3CLog.Enable)
@@ -141,6 +141,12 @@ public static class ApplicationExtensions
             app.UseW3CLogging();
         }
 
+        return app;
+    }
+
+    public static WebApplication UseHttpLog(this WebApplication app)
+    {
+        var setting = app.Services.GetRequiredService<LogSetting>();
         if (setting.HttpLog)
         {
             app.UseWhen(

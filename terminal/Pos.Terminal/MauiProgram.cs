@@ -22,6 +22,7 @@ using Pos.Terminal.Components;
 using Pos.Terminal.Extender;
 using Pos.Terminal.Helpers;
 using Pos.Terminal.Modules;
+using Pos.Terminal.Modules.Dialogs;
 using Pos.Terminal.Modules.Inquiry;
 using Pos.Terminal.Modules.Inventory;
 using Pos.Terminal.Modules.Returns;
@@ -222,6 +223,9 @@ public static partial class MauiProgram
         services.AddViewModels();
 
         // MauiComponents
+        // 確認と情報のダイアログはシート (SheetDialog)。それ以外は標準の DialogImplementation に委ねる
+        services.AddSingleton<DialogImplementation>();
+        services.AddSingleton<IDialog, SheetDialog>();
         services.AddComponentsDialog(static c =>
         {
             ConfigureDialogDesign(c);

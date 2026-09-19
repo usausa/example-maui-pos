@@ -10,7 +10,7 @@
 
 <MudPaper Class="pa-2 mb-2">
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-        <MudDateRangePicker Class="min-w-260" @bind-DateRange="period" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
+        <MudDateRangePicker Class="filter-range" @bind-DateRange="period" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
         <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
         <MudSelect Class="min-w-160" T="Guid?" @bind-Value="terminalId" Label="端末" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
             <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
@@ -35,20 +35,20 @@
         <PropertyColumn Property="x => x.Shift.BusinessDate" Title="営業日" InitialDirection="SortDirection.Descending">
             <CellTemplate>@context.Item.Shift.BusinessDate.ToDateText()</CellTemplate>
         </PropertyColumn>
-        <TemplateColumn Title="店舗 / 端末" Sortable="false">
+        <TemplateColumn Title="店舗 / 端末" Sortable="false" CellClass="cell-wrap">
             <CellTemplate>@names.Store(context.Item.Shift.StoreId) / @names.Terminal(context.Item.Shift.TerminalId)</CellTemplate>
         </TemplateColumn>
-        <TemplateColumn Title="担当" Sortable="false">
+        <TemplateColumn Title="担当" Sortable="false" CellClass="cell-wrap">
             <CellTemplate>@names.StaffName(context.Item.Shift.OpenedByStaffId)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="状態" Sortable="false">
             <CellTemplate><StatusChip Value="@ViewHelper.StatusChip(context.Item.Shift.Status)" /></CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.Shift.OpenedAt" Title="開設">
-            <CellTemplate>@context.Item.Shift.OpenedAt.ToDateTimeText()</CellTemplate>
+            <CellTemplate>@context.Item.Shift.OpenedAt.ToShortDateTimeText()</CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.Shift.ClosedAt" Title="精算">
-            <CellTemplate>@context.Item.Shift.ClosedAt.ToDateTimeText()</CellTemplate>
+            <CellTemplate>@context.Item.Shift.ClosedAt.ToShortDateTimeText()</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="売上" Sortable="false" CellClass="text-right">
             <CellTemplate>@context.Item.Totals.SalesTotal.ToYen() (@context.Item.Totals.SalesCount 件)</CellTemplate>

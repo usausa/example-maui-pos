@@ -45,8 +45,12 @@
                         IsVisible="{Binding HasCustomer, Converter={StaticResource ReverseConverter}}"
                         ItemsSource="{Binding Items}">
             <CollectionView.EmptyView>
-                <Label Style="{StaticResource PosMessageLabel}"
-                       Text="{Binding Message}" />
+                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
+                    <Label Style="{StaticResource PosEmptyIconLabel}"
+                           Text="👤" />
+                    <Label Style="{StaticResource PosMessageLabel}"
+                           Text="{Binding Message}" />
+                </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="{x:Type sales:CustomerItem}">

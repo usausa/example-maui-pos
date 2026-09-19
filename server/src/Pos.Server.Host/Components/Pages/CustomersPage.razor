@@ -34,12 +34,7 @@
             <CellTemplate>@context.Item.CreatedAt.ToDateTimeText()</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="状態" Sortable="false">
-            <CellTemplate>
-                @if (context.Item.IsDeleted)
-                {
-                    <StatusChip Value="@ViewHelper.DeletedChip()" />
-                }
-            </CellTemplate>
+            <CellTemplate><StatusChip Value="@(context.Item.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(true))" /></CellTemplate>
         </TemplateColumn>
     </Columns>
     <NoRecordsContent>

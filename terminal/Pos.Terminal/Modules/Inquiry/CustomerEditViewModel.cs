@@ -169,7 +169,6 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
             Code.Text = scanned;
         }
 
-        (original is null ? Code : Name).Focus();
         return Task.CompletedTask;
     }
 

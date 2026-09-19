@@ -35,8 +35,12 @@
                         Style="{StaticResource PosListCollectionView}"
                         ItemsSource="{Binding Items}">
             <CollectionView.EmptyView>
-                <Label Style="{StaticResource PosMessageLabel}"
-                       Text="商品をスキャンして数量を入力してください。" />
+                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
+                    <Label Style="{StaticResource PosEmptyIconLabel}"
+                           Text="📦" />
+                    <Label Style="{StaticResource PosMessageLabel}"
+                           Text="商品をスキャンして数量を入力してください。" />
+                </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="{x:Type module:StockChangeItem}">

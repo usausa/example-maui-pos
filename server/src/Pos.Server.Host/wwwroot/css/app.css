@@ -16,6 +16,16 @@ body {
     white-space: nowrap;
 }
 
+/* Data grid: 名称のように折り返してよい列 (幅が足りないときだけ折り返す) */
+.grid-nowrap .mud-table-cell.cell-wrap {
+    white-space: normal;
+}
+
+/* Data grid: HorizontalScrollbar は表をインラインの width: max-content にするので、枠の幅に収めてから溢れさせる */
+.grid-nowrap .mud-table-root {
+    width: 100% !important;
+}
+
 
 /* Page layout */
 .page-card {
@@ -32,6 +42,12 @@ body {
 
 .filter-select {
     max-width: 160px;
+}
+
+/* 期間 (MudDateRangePicker): 他の入力欄と幅を揃える */
+.filter-range {
+    min-width: 260px;
+    max-width: 320px;
 }
 
 .search-field {
@@ -96,6 +112,19 @@ body {
 
 .min-w-280 {
     min-width: 280px;
+}
+
+/* テーブルの列幅 */
+.w-100 {
+    width: 100px;
+}
+
+.w-110 {
+    width: 110px;
+}
+
+.w-120 {
+    width: 120px;
 }
 
 .min-w-320 {

@@ -230,6 +230,13 @@ public sealed partial class SalesViewModel : AppViewModelBase
         if (missing is not null)
         {
             await dialog.InformationAsync($"{missing.Product.Name} のシリアル番号を入力してください。");
+
+            // 案内した明細をそのまま開く
+            var item = Lines.FirstOrDefault(x => x.Line == missing);
+            if (item is not null)
+            {
+                await EditLineAsync(item);
+            }
             return;
         }
 

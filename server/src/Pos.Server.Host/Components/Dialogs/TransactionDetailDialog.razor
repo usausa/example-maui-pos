@@ -21,7 +21,7 @@
                 <MudItem xs="12" md="6">
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
-                            <tr><td style="width: 110px;" class="mud-text-secondary">日時</td><td>@transaction.TransactedAt.ToDateTimeText() (営業日 @transaction.BusinessDate.ToDateText())</td></tr>
+                            <tr><td class="mud-text-secondary w-110">日時</td><td>@transaction.TransactedAt.ToDateTimeText() (営業日 @transaction.BusinessDate.ToDateText())</td></tr>
                             <tr><td class="mud-text-secondary">店舗 / 端末</td><td>@Names.Store(transaction.StoreId) / @Names.Terminal(transaction.TerminalId)</td></tr>
                             <tr><td class="mud-text-secondary">担当</td><td>@Names.StaffName(transaction.StaffId)</td></tr>
                             <tr><td class="mud-text-secondary">会員</td><td>@(customer is null ? "-" : customer.ToDisplayText())</td></tr>
@@ -32,7 +32,7 @@
                 <MudItem xs="12" md="6">
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
-                            <tr><td style="width: 110px;" class="mud-text-secondary">小計</td><td class="text-right">@transaction.Subtotal.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary w-110">小計</td><td class="text-right">@transaction.Subtotal.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">値引</td><td class="text-right">-@transaction.DiscountTotal.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">合計 (内税 @transaction.TaxTotal.ToYen())</td><td class="text-right"><strong>@transaction.Total.ToYen()</strong></td></tr>
                             <tr><td class="mud-text-secondary">預り / 釣銭</td><td class="text-right">@transaction.TenderedTotal.ToYen() / @transaction.ChangeAmount.ToYen()</td></tr>

@@ -109,7 +109,8 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             {
                 var discount = x.DiscountAmount + x.AllocatedDiscountAmount;
                 var detail = $"{ViewHelper.Yen(x.UnitPrice)} × {ViewHelper.Quantity(x.Quantity)}{(discount != 0m ? $"  -{ViewHelper.Yen(discount)}" : string.Empty)}{(x.ReturnedQuantity > 0 ? $"  返品済 {ViewHelper.Quantity(x.ReturnedQuantity)}" : string.Empty)}";
-                return new SummaryRow($"{x.ProductName}\n{detail}", ViewHelper.Yen(x.NetAmount));
+                var serial = x.SerialNumbers.Count > 0 ? $"\nS/N {String.Join(", ", x.SerialNumbers)}" : string.Empty;
+                return new SummaryRow($"{x.ProductName}\n{detail}{serial}", ViewHelper.Yen(x.NetAmount));
             }).ToList()),
             new("💰 金額",
             [

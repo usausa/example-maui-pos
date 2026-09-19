@@ -37,6 +37,11 @@ public static class ViewExtensions
 
     public static string ToDateTimeText(this DateTime? utc) => utc is null ? "-" : utc.Value.ToDateTimeText();
 
+    // 一覧の日時 (営業日の列があるので年を省く)
+    public static string ToShortDateTimeText(this DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime().ToString("MM/dd HH:mm", CultureInfo.InvariantCulture);
+
+    public static string ToShortDateTimeText(this DateTime? utc) => utc is null ? "-" : utc.Value.ToShortDateTimeText();
+
     public static string ToTimeText(this DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
 
     public static string ToTimeText(this DateTime? utc) => utc is null ? "-" : utc.Value.ToTimeText();

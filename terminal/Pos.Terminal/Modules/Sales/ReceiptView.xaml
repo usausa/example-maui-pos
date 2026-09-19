@@ -45,13 +45,17 @@
             <BoxView Style="{StaticResource PosSeparatorBoxView}" />
         </VerticalStackLayout>
 
-        <!-- プレビュー (画像) -->
+        <!-- プレビュー (画像)。描画が終わるまでインジケータ -->
         <ScrollView Grid.Row="1">
             <Image Margin="8"
                    Aspect="AspectFit"
                    HorizontalOptions="Fill"
                    Source="{Binding ReceiptImage}" />
         </ScrollView>
+        <ActivityIndicator Grid.Row="1"
+                           Style="{StaticResource PosLoadingIndicator}"
+                           IsRunning="{Binding IsRendering}"
+                           IsVisible="{Binding IsRendering}" />
     </Grid>
 
 </ContentView>

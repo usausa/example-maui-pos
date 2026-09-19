@@ -44,10 +44,10 @@
             <CellTemplate>@context.Item.Kind.ToDisplayName()</CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.Price" Title="価格" CellClass="text-right" HeaderClass="text-right">
-            <CellTemplate>@context.Item.Price.ToYen() (@context.Item.TaxIncluded.ToTaxIncludedText())</CellTemplate>
+            <CellTemplate>@context.Item.Price.ToYen()@(context.Item.TaxIncluded ? string.Empty : " (外税)")</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="税率" Sortable="false">
-            <CellTemplate>@TaxRateName(context.Item.TaxRateId)</CellTemplate>
+            <CellTemplate>@TaxRateText(context.Item.TaxRateId)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="還元率" Sortable="false" CellClass="text-right">
             <CellTemplate>@context.Item.PointRate.ToPercentText()</CellTemplate>
@@ -71,7 +71,7 @@
         <TemplateColumn Title="状態" Sortable="false">
             <CellTemplate><StatusChip Value="@(context.Item.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.Item.IsActive))" /></CellTemplate>
         </TemplateColumn>
-        <TemplateColumn Title="" Sortable="false" CellStyle="width: 100px;" CellClass="no-wrap">
+        <TemplateColumn Title="" Sortable="false" CellClass="no-wrap w-100" StickyRight="true">
             <CellTemplate>
                 @if (!context.Item.IsDeleted)
                 {

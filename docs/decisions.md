@@ -953,7 +953,7 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
 - ログ: HTTP 本文のダンプ (`Log:HttpDump`) と W3C アクセスログ (`Log:W3CLog`) を設定で切り替える。  
   接続元アドレスを `LoggingContext` (AsyncLocal) + `CallbackEnricher` で全ログ行に付ける。  
   `Microsoft.AspNetCore.HttpLogging` の Override を足し、`Log:HttpLog` が実際に出るようにした
-- 管理画面のスタイル: `wwwroot/css/app.css` のクラスに集約し、要素の `Style=` は列幅だけにする (`text-right`、`min-w-*`、`kpi-card` など)
+- 管理画面のスタイル: `wwwroot/css/app.css` のクラスに集約し、要素の `Style=` は列幅だけにする (`text-right`、`min-w-*`、`kpi-card` など。列幅の例外は D-57 で廃止)
 - 規則: `tmpl-guide.md` の作業ルールと技術方針のうち、追加・変更のときに判断が要るものを AGENTS.md と rules に取り込んだ (コンストラクタ引数の順序、設定・ログ・計測・マッピングの書き方、テストの AAA、パッケージの固定)
 
 ### D-56. ログの文脈はアクセサーから読み、アクセスログは例外ハンドラーの外に置く
@@ -963,9 +963,40 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
 - 接続元アドレスは `LoggingContextMiddleware` で捕捉せず、`CallbackEnricher` がログ出力時点の `IHttpContextAccessor.HttpContext` から読む。  
   `AsyncLocal` は下流にしか流れないため、ミドルウェアで捕捉する方式ではその外側 (例外ハンドラー・HTTP ログ) の行に付かない。  
   アクセサーは要求完了後に null になるので、要求から派生した処理が古い `HttpContext` を読むこともない
-- ミドルウェアの順序を ForwardedHeaders → Compression → Logging → ErrorHandler → UseRouting → Antiforgery → Endpoints にした。  
-  HTTP ログと W3C ログが例外ハンドラーの内側にあると、未処理例外の応答を状態 200 (HttpLogging) / 状態なし (W3C) で記録する
+- ミドルウェアの順序を ForwardedHeaders → W3CLog → ErrorHandler → UseRouting → Compression → HttpLog → Antiforgery → Endpoints にした (`UseLogging` を `UseW3CLog` / `UseHttpLog` に分割)。  
+  HTTP ログと W3C ログが例外ハンドラーの内側にあると、未処理例外の応答を状態 200 (HttpLogging) / 状態なし (W3C) で記録する。  
+  運用のアクセスログである W3C は例外ハンドラーの外に置き、HTTP ログは本文ダンプを展開後で読むために圧縮の内 (= 例外ハンドラーの内。未処理例外は 200 と記録される開発用) に置く。  
+  例外ハンドラーは標準どおり圧縮の外に残す
 - 画面の未処理例外は `/error` ページに出す。  
   `GlobalExceptionHandler` (DI 登録の `IExceptionHandler`) は再実行より先に呼ばれ、画面の例外も ProblemDetails で返していたため、API のパス以外では処理せず (`false`) 再実行に任せる。  
   `UseWhen` 内の `UseExceptionHandler("/error")` の再実行は暗黙のルーティングに乗らないため、`UseErrorHandler` の直後に `UseRouting()` を明示する (`/not-found` を `UseWhen` の外に出したのと同じ理由)
 
+### D-57. テーブルの列幅も幅クラスにする
+
+テンプレート側の方針変更 (利用者指示) に合わせ、D-55 で残していた「要素の `Style=` は列幅だけ」の例外を廃止した。
+
+- 列幅は `w-100` / `w-110` / `w-120` を `app.css` に定義し (`min-w-*` と同じ並び)、`<td class="… w-120">` や `TemplateColumn CellClass="… w-100"` で指定する。  
+  要素に `Style=` / `style=` を書く箇所は無くなった
+
+### D-58. 端末の確認・情報もシートにし、空の状態と描画待ちを見せる
+
+デザインの見直し (利用者指示) で、端末と管理画面の細部を揃えた。
+
+- 確認 (`ConfirmAsync` / `AskAsync`) と情報 (`InformationAsync`) は OS のダイアログではなく `Confirm` / `Message` のシートで出す。  
+  `IDialog` を実装する `SheetDialog` がこの 2 つだけをシートに変換し、他 (トースト・ローディング・インジケータ) は `DialogImplementation` に委ねる。  
+  呼び出し側 (ViewModel) は `IDialog` のまま変えない
+- レシート画像の描画 (SkiaSharp) は UI スレッドを塞いで初回表示が空白になるため、`Task.Run` で背景に回し、終わるまでインジケータを出す
+- 一覧やスキャン待ちの空の状態は案内文だけでなく絵文字と案内文を中央に出す (`PosEmptyStack`)。  
+  会計の支払リストが空のときも案内を出す
+- 会員照会・会員登録は遷移時に `Focus()` しない (キーボードが出て一覧を隠す。D-44 の方針に合わせる)
+- シリアル番号が未入力なら案内のあとにその明細の編集を開き、取引詳細の明細に S/N を表示する
+- アプリアイコンとスプラッシュはテンプレートの画像をやめ、紺の背景に白いレジのグリフにする
+- 管理画面: `MudTable` の `FooterContent` は既に `<tr>` の中なので `MudTFootRow` を重ねない (列幅が崩れる)。  
+  グラフの描画領域は 650×400 の比率で高さに合わせて拡大されるため、幅は `Height` (360px) で決める。  
+  金額の軸は `YAxisFormat`、日別のラベルは月日だけ、13 本以上は 45° 回転。  
+  横スクロールする商品一覧の操作列は `StickyRight`、税率は率だけ。  
+  名称のように折り返してよい列は `cell-wrap` にし、幅が足りないときだけ折り返して表の横幅を収める (シフト一覧の店舗 / 端末と担当)。  
+  商品一覧は列が多く折り返すと崩れるので、折り返さずに横スクロールし、価格の「内税」は省いて外税のときだけ注記する。  
+  シフト一覧の開設・精算は年なし (`ToShortDateTimeText`)。  
+  期間の入力欄は `filter-range` (最小 260px・最大 320px) で他の入力欄と幅を揃える。  
+  会員一覧の状態は有効のチップを出し、端末の最終通信は「通信なし」と時刻にする

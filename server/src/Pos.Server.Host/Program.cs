@@ -50,17 +50,20 @@ app.LogStartupInformation();
 // Forwarded headers
 app.UseForwardedHeaders();
 
-// Compression
-app.UseCompression();
-
-// Logging
-app.UseLogging();
+// W3C log
+app.UseW3CLog();
 
 // Error handler
 app.UseErrorHandler();
 
 // Routing (explicit call to route re-executed error page requests)
 app.UseRouting();
+
+// Compression
+app.UseCompression();
+
+// HTTP log
+app.UseHttpLog();
 
 // Antiforgery
 app.UseAntiforgery();

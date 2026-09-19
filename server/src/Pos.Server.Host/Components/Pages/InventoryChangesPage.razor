@@ -10,7 +10,7 @@
 
 <MudPaper Class="pa-2 mb-2">
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-        <MudDateRangePicker Class="min-w-260" @bind-DateRange="period" Label="期間" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
+        <MudDateRangePicker Class="filter-range" @bind-DateRange="period" Label="期間" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
         <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
         <MudAutocomplete Class="min-w-280" T="ProductEntity" @bind-Value="product" Label="商品" SearchFunc="SearchProductsAsync" ToStringFunc="@(x => x is null ? string.Empty : x.ToDisplayText())" ResetValueOnEmptyText="true" Clearable="true" MinCharacters="1" Margin="Margin.Dense" Variant="Variant.Outlined" />
         <MudSelect Class="min-w-130" T="InventoryChangeType?" @bind-Value="type" Label="種別" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">

@@ -12,8 +12,8 @@ using Pos.Server.Services;
 // 売上集計 (グラフ・CSV・売上日報 PDF)
 public sealed partial class SalesSummaryPage
 {
-    // 目盛は 10 本まで
-    private readonly BarChartOptions chartOptions = new() { YAxisTicks = 10000, MaxNumYAxisTicks = 10 };
+    // 目盛は 10 本まで、金額は 3 桁区切り
+    private readonly BarChartOptions chartOptions = new() { YAxisTicks = 10000, MaxNumYAxisTicks = 10, YAxisFormat = "#,0" };
 
     private List<SalesSummaryView> rows = [];
     private SalesSummaryView total = ReportService.Sum([], false);
@@ -57,9 +57,17 @@ public sealed partial class SalesSummaryPage
             var (start, end) = Period;
             rows = await ReportService.QuerySalesSummaryAsync(storeId, start, end, groupBy, CancellationToken);
             total = ReportService.Sum(rows, groupBy == SalesSummaryGroupBy.TaxRate);
-            chartLabels = rows.Select(static x => x.GroupLabel).ToArray();
+            chartLabels = rows.Select(x => ToChartLabel(x.GroupLabel)).ToArray();
+            // 本数が多いときはラベルを斜めにする
+            chartOptions.XAxisLabelRotation = rows.Count > 12 ? 45 : 0;
             chartSeries = [new ChartSeries<double> { Name = "純売上", Data = rows.Select(static x => (double)x.NetSales).ToArray() }];
         });
+
+    // 日別のラベルは月日だけにする (yyyy-MM-dd → MM/dd)
+    private string ToChartLabel(string label) =>
+        (groupBy == SalesSummaryGroupBy.Day) && DateOnly.TryParseExact(label, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+            ? date.ToString("MM/dd", CultureInfo.InvariantCulture)
+            : label;
 
     private Task OnStoreChanged(Guid? value)
     {

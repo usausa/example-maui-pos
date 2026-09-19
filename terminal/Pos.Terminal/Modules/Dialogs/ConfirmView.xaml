@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<mct:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+           xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+           xmlns:s="http://smart/maui"
+           xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+           xmlns:module="clr-namespace:Pos.Terminal.Modules.Dialogs"
+           x:Class="Pos.Terminal.Modules.Dialogs.ConfirmView"
+           x:DataType="{x:Type module:ConfirmViewModel}"
+           s:BindingContextResolver.Type="{x:Type module:ConfirmViewModel}">
+
+    <Grid Style="{StaticResource FillGrid}"
+          RowDefinitions="Auto,Auto,Auto"
+          BackgroundColor="White">
+        <Label Grid.Row="0"
+               Style="{StaticResource DialogTitleLabel}"
+               FontSize="24"
+               IsVisible="{Binding HasTitle}"
+               Text="{Binding Title}" />
+
+        <Label Grid.Row="1"
+               Style="{StaticResource DialogMessageLabel}"
+               Text="{Binding Message}" />
+
+        <Grid Grid.Row="2"
+              Style="{StaticResource FunctionGrid}"
+              ColumnDefinitions="*,*">
+            <Button Grid.Column="0"
+                    Style="{StaticResource InputCancelButton}"
+                    Command="{Binding CancelCommand}"
+                    Text="{Binding CancelText}" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource InputConfirmButton}"
+                    Command="{Binding OkCommand}"
+                    Text="{Binding OkText}" />
+        </Grid>
+    </Grid>
+
+</mct:Popup>

@@ -22,6 +22,9 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
     public partial bool QrVisible { get; set; }
 
     [ObservableProperty]
+    public partial bool IsRendering { get; set; }
+
+    [ObservableProperty]
     public partial ImageSource? ReceiptImage { get; set; }
 
     public ReceiptViewModel(
@@ -59,7 +62,16 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
         ReceiptNo = transaction.ReceiptNo;
 
-        png = await receipt.BuildAsync(transaction);
+        IsRendering = true;
+        try
+        {
+            png = await receipt.BuildAsync(transaction);
+        }
+        finally
+        {
+            IsRendering = false;
+        }
+
         ReceiptImage = ImageSource.FromStream(() => new MemoryStream(png));
     }
 

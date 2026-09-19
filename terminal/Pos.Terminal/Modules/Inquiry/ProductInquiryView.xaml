@@ -18,66 +18,71 @@
              shell:ShellProperty.Function3Enabled="True"
              shell:ShellProperty.Function4Enabled="{Binding HasProduct}">
 
-    <ScrollView>
-        <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                             BackgroundColor="{StaticResource GrayLighten3}">
+    <Grid Style="{StaticResource PosPageGrid}">
+        <!-- スキャン・検索の前 (案内) -->
+        <VerticalStackLayout Style="{StaticResource PosEmptyStack}"
+                             IsVisible="{Binding HasProduct, Converter={StaticResource ReverseConverter}}">
+            <Label Style="{StaticResource PosEmptyIconLabel}"
+                   Text="🔍" />
             <Label Style="{StaticResource PosMessageLabel}"
-                   IsVisible="{Binding HasProduct, Converter={StaticResource ReverseConverter}}"
                    Text="{Binding Message}" />
-
-            <Grid Style="{StaticResource PosListRowGrid}"
-                  IsVisible="{Binding HasProduct}"
-                  RowDefinitions="Auto,Auto,Auto"
-                  ColumnDefinitions="*,Auto">
-                <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                       Style="{StaticResource PosListNameLabel}"
-                       FontSize="20"
-                       LineBreakMode="WordWrap"
-                       Text="{Binding Name}" />
-                <Label Grid.Row="1" Grid.Column="0"
-                       Style="{StaticResource PosCaptionLabel}"
-                       Text="{Binding Code}" />
-                <Label Grid.Row="1" Grid.Column="1"
-                       Style="{StaticResource PosLargeValueLabel}"
-                       Text="{Binding PriceText}" />
-                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                       Style="{StaticResource PosCaptionLabel}"
-                       Text="{Binding PriceDetail}" />
-            </Grid>
-
-            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                 IsVisible="{Binding HasProduct}"
-                                 BindableLayout.ItemsSource="{Binding Sections}">
-                <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="{x:Type models:SummarySection}">
-                        <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
-                            <Label Style="{StaticResource PosSectionLabel}"
-                                   Text="{Binding Title}" />
-                            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                                 BackgroundColor="White"
-                                                 BindableLayout.ItemsSource="{Binding Rows}">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="{x:Type models:SummaryRow}">
-                                        <Grid Style="{StaticResource PosListRowGrid}"
-                                              Padding="16,6"
-                                              ColumnDefinitions="*,Auto">
-                                            <Label Grid.Column="0"
-                                                   Style="{StaticResource PosCaptionLabel}"
-                                                   FontSize="15"
-                                                   TextColor="{StaticResource PrimaryTextColor}"
-                                                   Text="{Binding Label}" />
-                                            <Label Grid.Column="1"
-                                                   Style="{StaticResource PosListValueLabel}"
-                                                   Text="{Binding Value}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </VerticalStackLayout>
-                        </VerticalStackLayout>
-                    </DataTemplate>
-                </BindableLayout.ItemTemplate>
-            </VerticalStackLayout>
         </VerticalStackLayout>
-    </ScrollView>
+
+        <!-- 商品 -->
+        <ScrollView IsVisible="{Binding HasProduct}">
+            <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
+                <Grid Style="{StaticResource PosListRowGrid}"
+                      RowDefinitions="Auto,Auto,Auto"
+                      ColumnDefinitions="*,Auto">
+                    <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                           Style="{StaticResource PosListNameLabel}"
+                           FontSize="20"
+                           LineBreakMode="WordWrap"
+                           Text="{Binding Name}" />
+                    <Label Grid.Row="1" Grid.Column="0"
+                           Style="{StaticResource PosCaptionLabel}"
+                           Text="{Binding Code}" />
+                    <Label Grid.Row="1" Grid.Column="1"
+                           Style="{StaticResource PosLargeValueLabel}"
+                           Text="{Binding PriceText}" />
+                    <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                           Style="{StaticResource PosCaptionLabel}"
+                           Text="{Binding PriceDetail}" />
+                </Grid>
+
+                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                     BindableLayout.ItemsSource="{Binding Sections}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="{x:Type models:SummarySection}">
+                            <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
+                                <Label Style="{StaticResource PosSectionLabel}"
+                                       Text="{Binding Title}" />
+                                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                                                     BackgroundColor="White"
+                                                     BindableLayout.ItemsSource="{Binding Rows}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                                            <Grid Style="{StaticResource PosListRowGrid}"
+                                                  Padding="16,6"
+                                                  ColumnDefinitions="*,Auto">
+                                                <Label Grid.Column="0"
+                                                       Style="{StaticResource PosCaptionLabel}"
+                                                       FontSize="15"
+                                                       TextColor="{StaticResource PrimaryTextColor}"
+                                                       Text="{Binding Label}" />
+                                                <Label Grid.Column="1"
+                                                       Style="{StaticResource PosListValueLabel}"
+                                                       Text="{Binding Value}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
 
 </ContentView>

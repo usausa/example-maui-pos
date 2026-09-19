@@ -20,9 +20,20 @@
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,*,Auto">
+        <!-- 元取引を呼び出す前は案内を中央に、呼び出した後は返品可否を上に -->
         <Label Grid.Row="0"
                Style="{StaticResource PosMessageLabel}"
+               IsVisible="{Binding HasOriginal}"
                Text="{Binding Message}" />
+
+        <VerticalStackLayout Grid.Row="1"
+                             Style="{StaticResource PosEmptyStack}"
+                             IsVisible="{Binding HasOriginal, Converter={StaticResource ReverseConverter}}">
+            <Label Style="{StaticResource PosEmptyIconLabel}"
+                   Text="↩️" />
+            <Label Style="{StaticResource PosMessageLabel}"
+                   Text="{Binding Message}" />
+        </VerticalStackLayout>
 
         <ScrollView Grid.Row="1"
                     IsVisible="{Binding HasOriginal}">

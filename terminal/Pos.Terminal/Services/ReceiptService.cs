@@ -22,6 +22,7 @@ public sealed class ReceiptService
         var staff = await accessor.QueryStaffAsync(transaction.StaffId);
         var methods = (await accessor.QueryPaymentMethodListAsync()).ToDictionary(static x => x.Id, static x => x.Name);
         var text = ReceiptTextBuilder.Build(transaction, session.Store, session.Terminal?.Name ?? string.Empty, staff?.Name ?? string.Empty, methods);
-        return ReceiptImageBuilder.Build(text);
+        // SkiaSharp の描画は UI スレッドを塞ぐので背景で行う
+        return await Task.Run(() => ReceiptImageBuilder.Build(text));
     }
 }

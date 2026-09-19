@@ -7,5 +7,7 @@ public enum DialogId
     Discount,
     ReasonSelect,
     Select,
-    Denominations
+    Denominations,
+    Message,
+    Confirm
 }

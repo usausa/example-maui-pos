@@ -66,6 +66,9 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     [ObservableProperty]
     public partial bool CanConfirm { get; set; }
 
+    [ObservableProperty]
+    public partial bool HasPayments { get; set; }
+
     public IObserveCommand PushCommand { get; }
 
     public IObserveCommand PopCommand { get; }
@@ -161,6 +164,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         PointsEnabled = (customer is not null) && (pointsMethod is not null) && (customer.PointBalance > 0);
         PaidText = ViewHelper.Yen(paid);
         Payments.Replace(payments.Select(static x => new PaymentItem(x, x.Reference is null ? x.Method.Name : $"{x.Method.Name} {x.Reference}", ViewHelper.Yen(x.Amount))));
+        HasPayments = payments.Count > 0;
 
         // 支払が済んだら「残り」の行にお釣りを出す
         var change = result.ChangeAmount;

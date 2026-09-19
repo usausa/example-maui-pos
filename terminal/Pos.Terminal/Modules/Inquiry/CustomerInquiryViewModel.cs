@@ -70,10 +70,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         if (scanned is not null)
         {
             await Navigator.PostActionAsync(() => LookupAsync(scanned));
-            return;
         }
-
-        Keyword.Focus();
     }
 
     private async Task LoadAsync(Guid id)
