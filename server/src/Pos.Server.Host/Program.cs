@@ -56,7 +56,7 @@ app.UseW3CLog();
 // Error handler
 app.UseErrorHandler();
 
-// Routing (explicit call to route re-executed error page requests)
+// Routing
 app.UseRouting();
 
 // Compression
@@ -65,7 +65,7 @@ app.UseCompression();
 // HTTP log
 app.UseHttpLog();
 
-// Antiforgery
+// Authentication
 app.UseAntiforgery();
 
 // End point

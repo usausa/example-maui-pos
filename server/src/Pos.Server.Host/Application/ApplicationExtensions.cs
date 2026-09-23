@@ -90,7 +90,6 @@ public static class ApplicationExtensions
 
         // Application log
         builder.Logging.ClearProviders();
-        // 接続元アドレスはログ出力時点の HttpContext から読む (ミドルウェアの位置に依存せず、例外処理や HTTP ログの行にも付く)
         builder.Services.AddSerilog(
             (provider, options) =>
             {

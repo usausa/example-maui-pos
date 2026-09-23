@@ -353,7 +353,7 @@ ViewModel は `DataAccessor` / `HttpService` / `Pos.Domain` を直接使い、�
       サーバは並び順の列挙型と SQL 側の展開、`[Name]`、`RETURNING`、`Assets/Data/InitialData.sql` (`[DirectSql]` で実行)、`XxxView`、Host の置き場所の整理、`EnumHelper` / `ReportPeriodQuery` / `ExportUrls`。  
       端末は Scope プラグイン、`Usecases/`、`ViewHelper`、入力の種類ごとの電卓、理由の定型選択
 - [x] 全体: ソースから `§` と設計文書への参照を除く
-- [x] サーバの SQL ファイルも端末と同じ書き方 (`SELECT` / `FROM` / `WHERE` / `ORDER BY` を行頭) に揃える (1 行に並べた `OR` の分割、精算集計のスカラー副問い合わせを派生表の結合に)
+- [x] サーバの SQL ファイルも端末と同じ書き方 (`SELECT` / `FROM` / `WHERE` / `ORDER BY` を行頭) に揃える (長い `OR` 条件の分割、精算集計のスカラー副問い合わせを派生表の結合に)
 
 ---
 
