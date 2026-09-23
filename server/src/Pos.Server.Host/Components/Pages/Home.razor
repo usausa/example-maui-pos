@@ -84,7 +84,7 @@
         <MudPaper Elevation="1">
             <MudTable T="ShiftEntity" Items="openShifts" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
                 <ToolBarContent>
-                    <MudBadge Content="openShifts.Count" Color="Color.Success" Overlap="true" Visible="openShifts.Count > 0">
+                    <MudBadge Content="openShifts.Count" Color="Color.Success" Origin="Origin.CenterRight" BadgeClass="ml-1" Visible="openShifts.Count > 0">
                         <MudText Typo="Typo.subtitle1" Class="pa-2">🟢 開設中シフト</MudText>
                     </MudBadge>
                 </ToolBarContent>
@@ -129,7 +129,7 @@
         <MudPaper Elevation="1" Class="mb-2">
             <MudTable T="InventoryLevelDetailView" Items="negativeInventory" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
                 <ToolBarContent>
-                    <MudBadge Content="NegativeInventoryCount" Color="Color.Error" Overlap="true" Visible="NegativeInventoryCount > 0">
+                    <MudBadge Content="NegativeInventoryCount" Color="Color.Error" Origin="Origin.CenterRight" BadgeClass="ml-1" Visible="NegativeInventoryCount > 0">
                         <MudText Typo="Typo.subtitle1" Class="pa-2">⚠️ 在庫マイナス</MudText>
                     </MudBadge>
                     <MudSpacer />
@@ -153,7 +153,7 @@
         <MudPaper Elevation="1">
             <MudTable T="CustomerEntity" Items="negativeCustomers" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
                 <ToolBarContent>
-                    <MudBadge Content="negativeCustomers.Count" Color="Color.Error" Overlap="true" Visible="negativeCustomers.Count > 0">
+                    <MudBadge Content="negativeCustomers.Count" Color="Color.Error" Origin="Origin.CenterRight" BadgeClass="ml-1" Visible="negativeCustomers.Count > 0">
                         <MudText Typo="Typo.subtitle1" Class="pa-2">⚠️ ポイント残高マイナス</MudText>
                     </MudBadge>
                 </ToolBarContent>
