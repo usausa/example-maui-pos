@@ -2,7 +2,9 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
+             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
              x:Class="Pos.Terminal.Modules.Sales.HoldView"
              x:DataType="{x:Type module:HoldViewModel}"
@@ -19,16 +21,24 @@
 
     <Grid Style="{StaticResource PosPageGrid}">
         <CollectionView Style="{StaticResource PosListCollectionView}"
+                        behaviors:AnimationOption.EnterAnimation="FadeUp"
+                        behaviors:AnimationOption.EnterTrigger="{Binding Items.Count}"
                         ItemsSource="{Binding Items}">
             <CollectionView.EmptyView>
-                <Label Style="{StaticResource PosMessageLabel}"
-                       Text="保留中の会計はありません。" />
+                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
+                    <Label Style="{StaticResource PosEmptyIconLabel}"
+                           Text="⏸" />
+                    <Label Style="{StaticResource PosMessageLabel}"
+                           Text="保留中の会計はありません。" />
+                </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
+                <!-- タップで選択 (帯と背景を青に)。F3 破棄 / F4 呼出 -->
                 <DataTemplate x:DataType="{x:Type module:HoldItem}">
-                    <Grid Style="{StaticResource PosListRowGrid}"
-                          RowDefinitions="Auto,Auto"
-                          ColumnDefinitions="*,Auto">
+                    <Grid Style="{StaticResource PosStripRowGrid}"
+                          RowDefinitions="*,Auto"
+                          ColumnDefinitions="Auto,*"
+                          BackgroundColor="White">
                         <Grid.Triggers>
                             <DataTrigger TargetType="Grid"
                                          Binding="{Binding IsSelected}"
@@ -36,21 +46,46 @@
                                 <Setter Property="BackgroundColor" Value="{StaticResource BlueLighten5}" />
                             </DataTrigger>
                         </Grid.Triggers>
-                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                        <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:HoldViewModel}}, Path=SelectCommand, x:DataType={x:Type module:HoldViewModel}}"
-                                                  CommandParameter="{Binding .}" />
-                        </Grid.GestureRecognizers>
-                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                        <Label Grid.Row="0" Grid.Column="0"
-                               Style="{StaticResource PosListNameLabel}"
-                               Text="{Binding Summary}" />
-                        <Label Grid.Row="0" Grid.Column="1"
-                               Style="{StaticResource PosListValueLabel}"
-                               Text="{Binding TotalText}" />
-                        <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                               Style="{StaticResource PosCaptionLabel}"
-                               Text="{Binding TimeText}" />
+
+                        <BoxView Grid.Row="0" Grid.Column="0"
+                                 Style="{StaticResource PosStripBoxView}"
+                                 Color="{StaticResource BlueGrayLighten2}">
+                            <BoxView.Triggers>
+                                <DataTrigger TargetType="BoxView"
+                                             Binding="{Binding IsSelected}"
+                                             Value="True">
+                                    <Setter Property="Color" Value="{StaticResource BlueDarken1}" />
+                                </DataTrigger>
+                            </BoxView.Triggers>
+                        </BoxView>
+
+                        <effects:SfEffectsView Grid.Row="0" Grid.Column="1"
+                                               Style="{StaticResource PosRippleView}">
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <effects:SfEffectsView.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:HoldViewModel}}, Path=SelectCommand, x:DataType={x:Type module:HoldViewModel}}"
+                                                      CommandParameter="{Binding .}" />
+                            </effects:SfEffectsView.GestureRecognizers>
+                            <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                            <VerticalStackLayout Style="{StaticResource PosStripBodyStack}"
+                                                 Padding="12,10,16,10">
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <Label Grid.Column="0"
+                                           Style="{StaticResource PosListNameLabel}"
+                                           Text="{Binding Summary}" />
+                                    <Label Grid.Column="1"
+                                           Style="{StaticResource PosListValueLabel}"
+                                           FontAttributes="Bold"
+                                           Text="{Binding TotalText}" />
+                                </Grid>
+                                <Label Style="{StaticResource PosInfoLabel}"
+                                       Text="{Binding TimeText}" />
+                            </VerticalStackLayout>
+                        </effects:SfEffectsView>
+
+                        <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                 Style="{StaticResource PosRowSeparator}" />
                     </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

@@ -23,11 +23,15 @@ public sealed class ReturnLineItem : NotificationObject
             if (SetProperty(ref field, value))
             {
                 RaisePropertyChanged(nameof(QuantityText));
+                RaisePropertyChanged(nameof(IsSelected));
             }
         }
     }
 
     public string QuantityText => ViewHelper.Quantity(Quantity);
+
+    // 返品する明細 (帯と背景の色は画面側のトリガーで変える)
+    public bool IsSelected => Quantity > 0;
 
     public ReturnLineItem(TransactionResponseLine line)
     {

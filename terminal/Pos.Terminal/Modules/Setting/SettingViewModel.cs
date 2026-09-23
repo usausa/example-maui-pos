@@ -2,8 +2,27 @@ namespace Pos.Terminal.Modules.Setting;
 
 using Pos.Terminal.Models.Entity;
 
-// 状態・種類の文言と色は画面側の Converter で付ける
-public sealed record OutboxItem(OutboxEntity Entity, OutboxStatus Status, OutboxKind Kind, string TimeText, string Error);
+// 未送信の 1 件。状態・種類の文言と色は画面側の Converter で付け、エラーの全文と試行回数は展開したときに見せる
+public sealed class OutboxItem : NotificationObject
+{
+    public required OutboxEntity Entity { get; init; }
+
+    public required OutboxStatus Status { get; init; }
+
+    public required OutboxKind Kind { get; init; }
+
+    public required string TimeText { get; init; }
+
+    public required int Attempts { get; init; }
+
+    public required string Error { get; init; }
+
+    public bool IsExpanded
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+}
 
 // 設定・同期: 端末情報、手動同期、未送信一覧 (要確認の再送・破棄)、ログイン後の画面、スタッフ切替、接続設定
 public sealed partial class SettingViewModel : AppViewModelBase
@@ -46,6 +65,8 @@ public sealed partial class SettingViewModel : AppViewModelBase
 
     public IObserveCommand OutboxCommand { get; }
 
+    public IObserveCommand ExpandCommand { get; }
+
     public IObserveCommand SwitchStaffCommand { get; }
 
     public IObserveCommand SetupCommand { get; }
@@ -68,6 +89,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
         this.sync = sync;
 
         OutboxCommand = MakeAsyncCommand<OutboxItem>(HandleOutboxAsync);
+        ExpandCommand = MakeDelegateCommand<OutboxItem>(static x => x.IsExpanded = !x.IsExpanded);
         SwitchStaffCommand = MakeAsyncCommand(() => Navigator.ForwardAsync(ViewId.StaffSelect));
         SetupCommand = MakeAsyncCommand(async () =>
         {
@@ -106,12 +128,15 @@ public sealed partial class SettingViewModel : AppViewModelBase
 
     private async Task LoadOutboxAsync()
     {
-        Outbox.Replace((await accessor.QueryOutboxListAsync(null, 200)).Select(static x => new OutboxItem(
-            x,
-            x.Status,
-            x.Kind,
-            ViewHelper.DateTime(x.CreatedAt),
-            x.LastError ?? string.Empty)));
+        Outbox.Replace((await accessor.QueryOutboxListAsync(null, 200)).Select(static x => new OutboxItem
+        {
+            Entity = x,
+            Status = x.Status,
+            Kind = x.Kind,
+            TimeText = ViewHelper.DateTime(x.CreatedAt),
+            Attempts = x.Attempts,
+            Error = x.LastError ?? string.Empty
+        }));
     }
 
     private async Task HandleOutboxAsync(OutboxItem item)

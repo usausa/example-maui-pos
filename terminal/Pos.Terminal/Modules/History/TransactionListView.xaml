@@ -2,7 +2,11 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
+             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
+             xmlns:models="clr-namespace:Pos.Terminal.Models"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.History"
              x:Class="Pos.Terminal.Modules.History.TransactionListView"
              x:DataType="{x:Type module:TransactionListViewModel}"
@@ -18,7 +22,8 @@
              shell:ShellProperty.Function4Enabled="True">
 
     <Grid Style="{StaticResource PosPageGrid}"
-          RowDefinitions="Auto,*">
+          RowDefinitions="Auto,Auto,*">
+        <!-- 絞り込み (期間・種別) -->
         <Grid Grid.Row="0"
               Padding="8"
               ColumnDefinitions="*,*,Auto"
@@ -36,8 +41,31 @@
                    Text="{Binding CountText}" />
         </Grid>
 
-        <CollectionView Grid.Row="1"
+        <!-- 件数の内訳 -->
+        <FlexLayout Grid.Row="1"
+                    Style="{StaticResource PosSummaryFlexLayout}">
+            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                 ChipColor="{StaticResource BlueDarken1}"
+                                 IsVisible="{Binding SaleCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
+                                 Text="{Binding SaleCount, StringFormat='販売 {0}'}" />
+            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                 ChipColor="{StaticResource OrangeDarken1}"
+                                 IsVisible="{Binding ReturnCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
+                                 Text="{Binding ReturnCount, StringFormat='返品 {0}'}" />
+            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                 ChipColor="{StaticResource RedDarken1}"
+                                 IsVisible="{Binding VoidCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
+                                 Text="{Binding VoidCount, StringFormat='取消 {0}'}" />
+            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                 ChipColor="{StaticResource BlueGrayDefault}"
+                                 IsVisible="{Binding UnsentCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
+                                 Text="{Binding UnsentCount, StringFormat='未送信 {0}'}" />
+        </FlexLayout>
+
+        <CollectionView Grid.Row="2"
                         Style="{StaticResource PosListCollectionView}"
+                        behaviors:AnimationOption.EnterAnimation="FadeUp"
+                        behaviors:AnimationOption.EnterTrigger="{Binding Items.Count}"
                         ItemsSource="{Binding Items}">
             <CollectionView.EmptyView>
                 <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
@@ -48,52 +76,135 @@
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
+                <!-- 左端の帯と行の背景で種別 (販売 / 返品 / 取消) を示す。タップで詳細、右端で明細と支払を展開 -->
                 <DataTemplate x:DataType="{x:Type module:TransactionItem}">
-                    <Grid Style="{StaticResource PosListRowGrid}"
-                          RowDefinitions="Auto,Auto"
-                          ColumnDefinitions="Auto,*,Auto">
-                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                        <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:TransactionListViewModel}}, Path=SelectCommand, x:DataType={x:Type module:TransactionListViewModel}}"
-                                                  CommandParameter="{Binding .}" />
-                        </Grid.GestureRecognizers>
-                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                        <Border Grid.Row="0" Grid.Column="0"
-                                Style="{StaticResource PosChipBorder}"
-                                Margin="0,0,8,0"
-                                BackgroundColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}">
-                            <Border.Triggers>
-                                <DataTrigger TargetType="Border"
+                    <Grid Style="{StaticResource PosStripRowGrid}"
+                          RowDefinitions="*,Auto"
+                          ColumnDefinitions="Auto,*,Auto"
+                          BackgroundColor="{Binding Type, Converter={StaticResource TransactionRowColorConverter}}">
+                        <Grid.Triggers>
+                            <DataTrigger TargetType="Grid"
+                                         Binding="{Binding IsVoided}"
+                                         Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource RedLighten5}" />
+                            </DataTrigger>
+                        </Grid.Triggers>
+
+                        <BoxView Grid.Row="0" Grid.Column="0"
+                                 Style="{StaticResource PosStripBoxView}"
+                                 Color="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}">
+                            <BoxView.Triggers>
+                                <DataTrigger TargetType="BoxView"
                                              Binding="{Binding IsVoided}"
                                              Value="True">
-                                    <Setter Property="BackgroundColor" Value="{StaticResource GrayDefault}" />
+                                    <Setter Property="Color" Value="{StaticResource RedDarken1}" />
                                 </DataTrigger>
-                            </Border.Triggers>
-                            <Label Style="{StaticResource PosChipLabel}"
-                                   Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}">
-                                <Label.Triggers>
-                                    <DataTrigger TargetType="Label"
-                                                 Binding="{Binding IsVoided}"
-                                                 Value="True">
-                                        <Setter Property="Text" Value="取消" />
-                                    </DataTrigger>
-                                </Label.Triggers>
-                            </Label>
-                        </Border>
-                        <Label Grid.Row="0" Grid.Column="1"
-                               Style="{StaticResource PosListNameLabel}"
-                               Text="{Binding ReceiptNo}" />
-                        <Label Grid.Row="0" Grid.Column="2"
-                               Style="{StaticResource PosListValueLabel}"
-                               Text="{Binding TotalText}" />
-                        <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                               Style="{StaticResource PosCaptionLabel}"
-                               Text="{Binding Detail}" />
-                        <Label Grid.Row="1" Grid.Column="2"
-                               Style="{StaticResource PosCaptionLabel}"
-                               HorizontalTextAlignment="End"
-                               TextColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}"
-                               Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}" />
+                            </BoxView.Triggers>
+                        </BoxView>
+
+                        <effects:SfEffectsView Grid.Row="0" Grid.Column="1"
+                                               Style="{StaticResource PosRippleView}">
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <effects:SfEffectsView.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:TransactionListViewModel}}, Path=SelectCommand, x:DataType={x:Type module:TransactionListViewModel}}"
+                                                      CommandParameter="{Binding .}" />
+                            </effects:SfEffectsView.GestureRecognizers>
+                            <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                            <VerticalStackLayout Style="{StaticResource PosStripBodyStack}">
+                                <!-- レシート番号と合計 -->
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <Label Grid.Column="0"
+                                           Style="{StaticResource PosListNameLabel}"
+                                           Text="{Binding ReceiptNo}" />
+                                    <Label Grid.Column="1"
+                                           Style="{StaticResource PosListValueLabel}"
+                                           FontAttributes="Bold"
+                                           Text="{Binding TotalText}" />
+                                </Grid>
+
+                                <!-- 種別・送信状態・会員 -->
+                                <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                         ChipColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}"
+                                                         Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}">
+                                        <controls:StatusChip.Triggers>
+                                            <DataTrigger TargetType="controls:StatusChip"
+                                                         Binding="{Binding IsVoided}"
+                                                         Value="True">
+                                                <Setter Property="ChipColor" Value="{StaticResource RedDarken1}" />
+                                                <Setter Property="Text" Value="取消" />
+                                            </DataTrigger>
+                                        </controls:StatusChip.Triggers>
+                                    </controls:StatusChip>
+                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                         ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}"
+                                                         Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}" />
+                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                         ChipColor="{StaticResource BlueGrayDefault}"
+                                                         IsVisible="{Binding HasCustomer}"
+                                                         Text="👤 会員" />
+                                </FlexLayout>
+
+                                <!-- 時刻・担当・支払 -->
+                                <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                    <Label Style="{StaticResource PosInfoLabel}"
+                                           Text="{Binding TimeText, StringFormat='🕒 {0}'}" />
+                                    <Label Style="{StaticResource PosInfoLabel}"
+                                           Text="{Binding StaffName, StringFormat='🧑 {0}'}" />
+                                    <Label Style="{StaticResource PosInfoLabel}"
+                                           Text="{Binding PaymentText, StringFormat='💳 {0}'}" />
+                                </FlexLayout>
+
+                                <!-- 展開: 明細と支払 -->
+                                <VerticalStackLayout Style="{StaticResource PosDetailStack}"
+                                                     IsVisible="{Binding IsExpanded}">
+                                    <BoxView Style="{StaticResource PosRowSeparator}" />
+                                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Lines}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                                                <Grid Style="{StaticResource PosDetailRowGrid}"
+                                                      ColumnDefinitions="*,Auto">
+                                                    <Label Grid.Column="0"
+                                                           Style="{StaticResource PosDetailLabel}"
+                                                           Text="{Binding Label}" />
+                                                    <Label Grid.Column="1"
+                                                           Style="{StaticResource PosDetailValueLabel}"
+                                                           Text="{Binding Value}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+                                    <BoxView Style="{StaticResource PosRowSeparator}" />
+                                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Payments}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                                                <Grid Style="{StaticResource PosDetailRowGrid}"
+                                                      ColumnDefinitions="*,Auto">
+                                                    <Label Grid.Column="0"
+                                                           Style="{StaticResource PosDetailLabel}"
+                                                           Text="{Binding Label, StringFormat='💳 {0}'}" />
+                                                    <Label Grid.Column="1"
+                                                           Style="{StaticResource PosDetailValueLabel}"
+                                                           Text="{Binding Value}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </effects:SfEffectsView>
+
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Button Grid.Row="0" Grid.Column="2"
+                                Style="{StaticResource PosExpandButton}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type module:TransactionListViewModel}}, Path=ExpandCommand, x:DataType={x:Type module:TransactionListViewModel}}"
+                                CommandParameter="{Binding .}"
+                                Text="{Binding IsExpanded, Converter={StaticResource ExpandGlyphConverter}}" />
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+
+                        <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                 Style="{StaticResource PosRowSeparator}" />
                     </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

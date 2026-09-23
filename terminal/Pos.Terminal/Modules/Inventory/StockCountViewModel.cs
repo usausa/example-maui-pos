@@ -2,7 +2,8 @@ namespace Pos.Terminal.Modules.Inventory;
 
 using Pos.Terminal.Modules.Dialogs;
 
-public sealed record StockChangeItem(StockChange Change, string Name, string QuantityText, string Detail);
+// 入力した 1 件 (種別の文言と帯の色は画面側の Converter で付ける)
+public sealed record StockChangeItem(StockChange Change, string Name, string Code, string QuantityText, string Detail);
 
 // 棚卸・在庫調整: スキャン → 現在庫 → 実数 (棚卸) or 増減 + 理由 (調整) → リスト → 送信 (StockUsecase)
 public sealed partial class StockCountViewModel : AppViewModelBase
@@ -65,8 +66,9 @@ public sealed partial class StockCountViewModel : AppViewModelBase
         Items.Replace(StockContext.Changes.Select(static x => new StockChangeItem(
             x,
             x.Product.Name,
+            x.Product.Code,
             x.Type == InventoryChangeType.PhysicalCount ? $"実数 {ViewHelper.Quantity(x.Quantity)}" : $"{(x.Quantity >= 0 ? "+" : string.Empty)}{ViewHelper.Quantity(x.Quantity)}",
-            $"{x.Product.Code}  現在庫 {ViewHelper.Quantity(x.Before)}{(x.Reason is null ? string.Empty : "  " + x.Reason)}")));
+            $"現在庫 {ViewHelper.Quantity(x.Before)}{(x.Reason is null ? string.Empty : "  " + x.Reason)}")));
     }
 
     // コードは電卓で入力する (キーボードに依存しない)

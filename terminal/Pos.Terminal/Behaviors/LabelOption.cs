@@ -27,4 +27,101 @@ public static partial class LabelOption
     public static double GetMaxSize(BindableObject bindable) => (double)bindable.GetValue(MaxSizeProperty);
 
     public static void SetMaxSize(BindableObject bindable, double value) => bindable.SetValue(MaxSizeProperty, value);
+
+    //--------------------------------------------------------------------------------
+    // CountUp (合計や釣銭を数え上げて見せる。Text は書式で組み立てるので Text のバインドと併用しない)
+    //--------------------------------------------------------------------------------
+
+    private const string CountUpAnimationName = "LabelOptionCountUpAnimation";
+
+    public static readonly BindableProperty CountUpDurationProperty = BindableProperty.CreateAttached(
+        "CountUpDuration",
+        typeof(int),
+        typeof(LabelOption),
+        800);
+
+    public static int GetCountUpDuration(BindableObject bindable) => (int)bindable.GetValue(CountUpDurationProperty);
+
+    public static void SetCountUpDuration(BindableObject bindable, int value) => bindable.SetValue(CountUpDurationProperty, value);
+
+    // 既定値と同じ値では変更が通知されないため、既定値を NaN にして最初の値が 0 でも表示する
+    public static readonly BindableProperty CountUpValueProperty = BindableProperty.CreateAttached(
+        "CountUpValue",
+        typeof(double),
+        typeof(LabelOption),
+        double.NaN,
+        propertyChanged: OnCountUpValueChanged);
+
+    public static double GetCountUpValue(BindableObject bindable) => (double)bindable.GetValue(CountUpValueProperty);
+
+    public static void SetCountUpValue(BindableObject bindable, double value) => bindable.SetValue(CountUpValueProperty, value);
+
+    public static readonly BindableProperty CountUpFormatProperty = BindableProperty.CreateAttached(
+        "CountUpFormat",
+        typeof(string),
+        typeof(LabelOption),
+        "{0:N0}");
+
+    public static string GetCountUpFormat(BindableObject bindable) => (string)bindable.GetValue(CountUpFormatProperty);
+
+    public static void SetCountUpFormat(BindableObject bindable, string value) => bindable.SetValue(CountUpFormatProperty, value);
+
+    // 表示中の値 (途中で値が変わったときはそこから続ける)
+    private static readonly BindableProperty CountUpDisplayValueProperty = BindableProperty.CreateAttached(
+        "CountUpDisplayValue",
+        typeof(double),
+        typeof(LabelOption),
+        0d);
+
+    private static void OnCountUpValueChanged(BindableObject bindable, object oldValue, object newValue)
+    {
+        if (bindable is not Label label)
+        {
+            return;
+        }
+
+        if (label.IsLoaded)
+        {
+            StartCountUp(label, (double)newValue);
+        }
+        else
+        {
+            // 表示前に値が決まったときは Loaded で 0 から数え上げる
+            label.Loaded -= OnCountUpLabelLoaded;
+            label.Loaded += OnCountUpLabelLoaded;
+        }
+    }
+
+    private static void OnCountUpLabelLoaded(object? sender, EventArgs e)
+    {
+        if (sender is Label label)
+        {
+            label.Loaded -= OnCountUpLabelLoaded;
+            StartCountUp(label, GetCountUpValue(label));
+        }
+    }
+
+    private static void StartCountUp(Label label, double to)
+    {
+        var from = (double)label.GetValue(CountUpDisplayValueProperty);
+        var format = GetCountUpFormat(label);
+
+        label.AbortAnimation(CountUpAnimationName);
+        label.Animate(
+            CountUpAnimationName,
+            v =>
+            {
+                var current = from + ((to - from) * v);
+                label.SetValue(CountUpDisplayValueProperty, current);
+                label.Text = String.Format(CultureInfo.InvariantCulture, format, current);
+            },
+            16,
+            (uint)GetCountUpDuration(label),
+            Easing.CubicOut,
+            (_, _) =>
+            {
+                label.SetValue(CountUpDisplayValueProperty, to);
+                label.Text = String.Format(CultureInfo.InvariantCulture, format, to);
+            });
+    }
 }

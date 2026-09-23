@@ -31,6 +31,15 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
 
     public ObservableCollection<SummarySection> Sections { get; } = [];
 
+    // 他店在庫 (F4 で取得したときだけ見出しと面を出す。取得中・取得できない・在庫なしは案内文で示す)
+    [ObservableProperty]
+    public partial bool HasOtherStores { get; set; }
+
+    [ObservableProperty]
+    public partial string OtherStoresMessage { get; set; } = string.Empty;
+
+    public ObservableCollection<SummaryRow> OtherStores { get; } = [];
+
     public ProductInquiryViewModel(
         Session session,
         DataAccessor accessor,
@@ -58,6 +67,8 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
     private async Task UpdateProductAsync(ProductResponseItem? value, string key)
     {
         product = value;
+        HasOtherStores = false;
+        OtherStores.Clear();
         if (value is null)
         {
             HasProduct = false;
@@ -111,17 +122,18 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
             return;
         }
 
+        HasOtherStores = true;
+        OtherStores.Clear();
+        OtherStoresMessage = "取得しています。";
         var result = await network.ExecuteAsync(h => h.GetProductInventoryAsync(product.Id), notifyNotFound: true);
         if (!result.IsSuccess)
         {
+            OtherStoresMessage = "📡 取得できませんでした。オンラインで「他店在庫」を押してください。";
             return;
         }
 
-        var rows = result.Content!.Levels
-            .Select(x => new SummaryRow((x.StoreId == session.StoreId ? "🏪 " : string.Empty) + x.StoreName, ViewHelper.Quantity(x.Quantity)))
-            .ToList();
-        Sections.Replace(Sections.Where(static x => !x.Title.StartsWith("🌐", StringComparison.Ordinal))
-            .Append(new SummarySection("🌐 他店在庫", rows.Count == 0 ? [new SummaryRow("在庫なし", string.Empty)] : rows))
-            .ToList());
+        OtherStores.Replace(result.Content!.Levels
+            .Select(x => new SummaryRow((x.StoreId == session.StoreId ? "🏪 " : string.Empty) + x.StoreName, ViewHelper.Quantity(x.Quantity))));
+        OtherStoresMessage = OtherStores.Count == 0 ? "在庫のある店舗はありません。" : string.Empty;
     }
 }

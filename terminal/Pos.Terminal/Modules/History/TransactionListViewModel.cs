@@ -2,8 +2,39 @@ namespace Pos.Terminal.Modules.History;
 
 using Pos.Terminal.Models.Entity;
 
-// 種別・送信状態の文言と色は画面側の Converter で付ける
-public sealed record TransactionItem(LocalTransactionEntity Entity, TransactionType Type, bool IsVoided, string ReceiptNo, string TotalText, string Detail, OutboxStatus SyncStatus);
+// 取引履歴の 1 件。種別・送信状態の文言と色は画面側の Converter で付け、明細と支払は展開したときに見せる
+public sealed class TransactionItem : NotificationObject
+{
+    public required Guid Id { get; init; }
+
+    public required TransactionType Type { get; init; }
+
+    public required bool IsVoided { get; init; }
+
+    public required string ReceiptNo { get; init; }
+
+    public required string TotalText { get; init; }
+
+    public required string TimeText { get; init; }
+
+    public required string StaffName { get; init; }
+
+    public required string PaymentText { get; init; }
+
+    public required bool HasCustomer { get; init; }
+
+    public required OutboxStatus SyncStatus { get; init; }
+
+    public required IReadOnlyList<SummaryRow> Lines { get; init; }
+
+    public required IReadOnlyList<SummaryRow> Payments { get; init; }
+
+    public bool IsExpanded
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+}
 
 // 取引履歴: ローカルの取引を期間・種別で絞り込む。送信状態は Outbox から
 public sealed partial class TransactionListViewModel : AppViewModelBase
@@ -17,6 +48,8 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
     private readonly IPopupNavigator popupNavigator;
 
     private readonly Session session;
+
+    private readonly DataAccessor accessor;
 
     private readonly TransactionUsecase transactions;
 
@@ -35,6 +68,19 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string CountText { get; set; } = string.Empty;
 
+    // 件数の内訳 (0 件のチップは画面側で隠す)
+    [ObservableProperty]
+    public partial int SaleCount { get; set; }
+
+    [ObservableProperty]
+    public partial int ReturnCount { get; set; }
+
+    [ObservableProperty]
+    public partial int VoidCount { get; set; }
+
+    [ObservableProperty]
+    public partial int UnsentCount { get; set; }
+
     public ObservableCollection<TransactionItem> Items { get; } = [];
 
     public IObserveCommand PeriodCommand { get; }
@@ -43,16 +89,20 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
 
     public IObserveCommand SelectCommand { get; }
 
+    public IObserveCommand ExpandCommand { get; }
+
     public TransactionListViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
         Session session,
+        DataAccessor accessor,
         TransactionUsecase transactions,
         SyncService sync)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
         this.session = session;
+        this.accessor = accessor;
         this.transactions = transactions;
         this.sync = sync;
 
@@ -68,7 +118,8 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
             }
         });
         SelectCommand = MakeAsyncCommand<TransactionItem>(x =>
-            Navigator.ForwardAsync(ViewId.TransactionDetail, Parameters.Make().WithTransactionId(x.Entity.Id)));
+            Navigator.ForwardAsync(ViewId.TransactionDetail, Parameters.Make().WithTransactionId(x.Id)));
+        ExpandCommand = MakeDelegateCommand<TransactionItem>(static x => x.IsExpanded = !x.IsExpanded);
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
@@ -110,15 +161,44 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         };
 
         var list = await transactions.QueryListAsync(shiftId, businessDate, transactionType, type == 3, 200);
-        Items.Replace(list.Select(static x => new TransactionItem(
-            x.Transaction,
-            x.Transaction.Type,
-            x.Transaction.Status == TransactionStatus.Voided,
-            x.Transaction.ReceiptNo,
-            ViewHelper.Yen(x.Transaction.Total),
-            $"{ViewHelper.DateTime(x.Transaction.TransactedAt)}  {(x.Transaction.CustomerId is null ? string.Empty : "👤")}",
-            x.SyncStatus)));
+
+        // 担当 (数人) と支払方法の名前はまとめて引く
+        var staff = new Dictionary<Guid, string>();
+        foreach (var staffId in list.Select(static x => x.Detail.StaffId).Distinct())
+        {
+            staff[staffId] = (await accessor.QueryStaffAsync(staffId))?.Name ?? "-";
+        }
+        var methods = (await accessor.QueryPaymentMethodListAsync()).ToDictionary(static x => x.Id, static x => x.Name);
+
+        Items.Replace(list.Select(x => ToItem(x, staff, methods)));
+        SaleCount = Items.Count(static x => !x.IsVoided && (x.Type == TransactionType.Sale));
+        ReturnCount = Items.Count(static x => !x.IsVoided && (x.Type == TransactionType.Return));
+        VoidCount = Items.Count(static x => x.IsVoided);
+        UnsentCount = Items.Count(static x => x.SyncStatus != OutboxStatus.Sent);
         CountText = $"{Items.Count} 件";
+    }
+
+    private static TransactionItem ToItem(TransactionSummary summary, Dictionary<Guid, string> staff, Dictionary<Guid, string> methods)
+    {
+        var detail = summary.Detail;
+        var payments = detail.Payments
+            .Select(x => new SummaryRow(methods.GetValueOrDefault(x.PaymentMethodId) ?? ViewHelper.Name(x.Kind), ViewHelper.Yen(x.Amount)))
+            .ToList();
+        return new TransactionItem
+        {
+            Id = summary.Transaction.Id,
+            Type = detail.Type,
+            IsVoided = detail.Status == TransactionStatus.Voided,
+            ReceiptNo = detail.ReceiptNo,
+            TotalText = ViewHelper.Yen(detail.Total),
+            TimeText = ViewHelper.DateTime(detail.TransactedAt),
+            StaffName = staff.GetValueOrDefault(detail.StaffId, "-"),
+            PaymentText = payments.Count == 0 ? "-" : String.Join("・", payments.Select(static x => x.Label).Distinct()),
+            HasCustomer = detail.CustomerId is not null,
+            SyncStatus = summary.SyncStatus,
+            Lines = detail.Lines.Select(static x => new SummaryRow($"{x.ProductName} × {ViewHelper.Quantity(x.Quantity)}", ViewHelper.Yen(x.NetAmount))).ToList(),
+            Payments = payments
+        };
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Menu);

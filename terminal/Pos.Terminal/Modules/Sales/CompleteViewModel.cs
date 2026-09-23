@@ -18,11 +18,19 @@ public sealed partial class CompleteViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string ChangeCaption { get; set; } = string.Empty;
 
+    // お釣り (返品は返金額)。画面で数え上げて見せる
     [ObservableProperty]
-    public partial string ChangeText { get; set; } = string.Empty;
+    public partial double ChangeValue { get; set; }
+
+    // 合計・お預りのタイルは販売のときだけ
+    [ObservableProperty]
+    public partial bool IsSale { get; set; }
 
     [ObservableProperty]
     public partial string TotalText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string TenderedText { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string PointsText { get; set; } = string.Empty;
@@ -60,8 +68,10 @@ public sealed partial class CompleteViewModel : AppViewModelBase
         Title = isReturn ? "返品完了" : "会計完了";
         Message = isReturn ? "✅ 返品を登録しました" : "✅ ありがとうございました";
         ChangeCaption = isReturn ? "返金額" : "お釣り";
-        ChangeText = ViewHelper.Yen(isReturn ? transaction.Total : transaction.ChangeAmount);
-        TotalText = $"合計 {ViewHelper.Yen(transaction.Total)}  お預り {ViewHelper.Yen(transaction.TenderedTotal)}";
+        ChangeValue = (double)(isReturn ? transaction.Total : transaction.ChangeAmount);
+        IsSale = !isReturn;
+        TotalText = ViewHelper.Yen(transaction.Total);
+        TenderedText = ViewHelper.Yen(transaction.TenderedTotal);
         if ((transaction.PointsEarned != 0) || (transaction.PointsRedeemed != 0))
         {
             var balance = transaction.PointsBalanceAfter is null ? string.Empty : $"  残高 {ViewHelper.Points(transaction.PointsBalanceAfter.Value)}";

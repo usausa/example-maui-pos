@@ -7,7 +7,7 @@ using Pos.Terminal.Models.Entity;
 
 using Smart.Data;
 
-public sealed record TransactionSummary(LocalTransactionEntity Transaction, OutboxStatus SyncStatus);
+public sealed record TransactionSummary(LocalTransactionEntity Transaction, TransactionResponseItem Detail, OutboxStatus SyncStatus);
 
 // 取引の保存 (ローカル取引 + Outbox + 自店在庫キャッシュを 1 トランザクションで書く)、取消、履歴
 public sealed class TransactionUsecase
@@ -44,7 +44,7 @@ public sealed class TransactionUsecase
         return entity is null ? null : Deserialize(entity.Payload);
     }
 
-    // 送信状態付きの一覧 (voidedOnly は取消済みだけ)
+    // 送信状態と内容 (担当・明細・支払を一覧で見せるため) 付きの一覧 (voidedOnly は取消済みだけ)
     public async ValueTask<List<TransactionSummary>> QueryListAsync(Guid? shiftId, DateOnly? businessDate, TransactionType? type, bool voidedOnly, int limit)
     {
         var list = await accessor.QueryTransactionListAsync(shiftId, businessDate, type, limit);
@@ -54,7 +54,17 @@ public sealed class TransactionUsecase
         }
 
         var outbox = await QueryOutboxStatusAsync();
-        return list.Select(x => new TransactionSummary(x, outbox.GetValueOrDefault(x.Id, OutboxStatus.Sent))).ToList();
+        var result = new List<TransactionSummary>(list.Count);
+        foreach (var entity in list)
+        {
+            var detail = Deserialize(entity.Payload);
+            if (detail is not null)
+            {
+                result.Add(new TransactionSummary(entity, detail, outbox.GetValueOrDefault(entity.Id, OutboxStatus.Sent)));
+            }
+        }
+
+        return result;
     }
 
     public async ValueTask<OutboxStatus> QuerySyncStatusAsync(Guid transactionId) =>

@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
+             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
@@ -48,33 +49,60 @@
                IsVisible="{Binding CurrentText, Converter={StaticResource NotEmptyConverter}}"
                Text="{Binding CurrentText}" />
 
+        <!-- 検索結果 (読み込むたびに浮き上がらせる) -->
         <CollectionView Grid.Row="2"
                         Style="{StaticResource PosListCollectionView}"
+                        behaviors:AnimationOption.EnterAnimation="FadeUp"
+                        behaviors:AnimationOption.EnterTrigger="{Binding Items.Count}"
                         ItemsSource="{Binding Items}">
             <CollectionView.EmptyView>
-                <Label Style="{StaticResource PosMessageLabel}"
-                       Text="{Binding Message}" />
+                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
+                    <Label Style="{StaticResource PosEmptyIconLabel}"
+                           Text="👤" />
+                    <Label Style="{StaticResource PosMessageLabel}"
+                           Text="{Binding Message}" />
+                </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="{x:Type module:CustomerItem}">
-                    <Grid Style="{StaticResource PosListRowGrid}"
-                          RowDefinitions="Auto,Auto"
-                          ColumnDefinitions="*,Auto">
-                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                        <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:CustomerSelectViewModel}}, Path=SelectCommand, x:DataType={x:Type module:CustomerSelectViewModel}}"
-                                                  CommandParameter="{Binding .}" />
-                        </Grid.GestureRecognizers>
-                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                        <Label Grid.Row="0" Grid.Column="0"
-                               Style="{StaticResource PosListNameLabel}"
-                               Text="{Binding Name}" />
-                        <Label Grid.Row="0" Grid.Column="1"
-                               Style="{StaticResource PosListValueLabel}"
-                               Text="{Binding PointsText}" />
-                        <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                               Style="{StaticResource PosCaptionLabel}"
-                               Text="{Binding Detail}" />
+                    <Grid Style="{StaticResource PosStripRowGrid}"
+                          RowDefinitions="*,Auto">
+                        <effects:SfEffectsView Grid.Row="0"
+                                               Style="{StaticResource PosRippleView}">
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <effects:SfEffectsView.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:CustomerSelectViewModel}}, Path=SelectCommand, x:DataType={x:Type module:CustomerSelectViewModel}}"
+                                                      CommandParameter="{Binding .}" />
+                            </effects:SfEffectsView.GestureRecognizers>
+                            <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                            <Grid Style="{StaticResource PosAvatarRowGrid}"
+                                  ColumnDefinitions="Auto,*,Auto">
+                                <Border Grid.Column="0"
+                                        Style="{StaticResource PosAvatarBorder}"
+                                        BackgroundColor="{Binding Code, Converter={StaticResource AvatarColorConverter}}">
+                                    <Label Style="{StaticResource PosAvatarLabel}"
+                                           Text="{Binding Name, Converter={StaticResource InitialConverter}}" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Style="{StaticResource PosAvatarTextStack}">
+                                    <Label Style="{StaticResource PosListNameLabel}"
+                                           Text="{Binding Name}" />
+                                    <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                        <Label Style="{StaticResource PosCodeLabel}"
+                                               Text="{Binding Code}" />
+                                        <Label Style="{StaticResource PosInfoLabel}"
+                                               IsVisible="{Binding Phone, Converter={StaticResource NotEmptyConverter}}"
+                                               Text="{Binding Phone, StringFormat='📞 {0}'}" />
+                                    </FlexLayout>
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2"
+                                       Style="{StaticResource PosListValueLabel}"
+                                       FontAttributes="Bold"
+                                       Text="{Binding PointsText}" />
+                            </Grid>
+                        </effects:SfEffectsView>
+                        <BoxView Grid.Row="1"
+                                 Style="{StaticResource PosRowSeparator}" />
                     </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

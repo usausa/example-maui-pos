@@ -19,6 +19,10 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string Message { get; set; } = "会員番号・電話番号・名前で検索するか、会員証をスキャンしてください。";
 
+    // 検索中 / 取得できない / 結果 (空文字) を切り替える
+    [ObservableProperty]
+    public partial string CurrentState { get; set; } = string.Empty;
+
     [ObservableProperty]
     public partial bool HasCustomer { get; set; }
 
@@ -107,16 +111,20 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
 
         HasCustomer = false;
         customer = null;
+        CurrentState = ViewHelper.LoadingState;
 
         var result = await network.ExecuteAsync(h => h.SearchCustomersAsync(keyword));
         if (!result.IsSuccess)
         {
+            Message = "取得できませんでした。\nオンラインで検索してください。";
+            CurrentState = ViewHelper.OfflineState;
             return;
         }
 
         Items.Replace(result.Content!.Items
-            .Select(static x => new CustomerItem(x, x.Name, ViewHelper.Points(x.PointBalance), $"{x.Code}  {x.Phone}".Trim())));
+            .Select(static x => new CustomerItem(x, x.Name, x.Code, x.Phone ?? string.Empty, ViewHelper.Points(x.PointBalance))));
         Message = "該当する会員がいません。";
+        CurrentState = string.Empty;
     }
 
     private async Task UpdateCustomerAsync(CustomerResponseItem value)

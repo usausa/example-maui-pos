@@ -3,7 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
-             xmlns:models="clr-namespace:Pos.Terminal.Models"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
+             xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Report"
              x:Class="Pos.Terminal.Modules.Report.SalesReportView"
              x:DataType="{x:Type module:SalesReportViewModel}"
@@ -20,6 +22,7 @@
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,*">
+        <!-- 期間・範囲・集計軸 -->
         <Grid Grid.Row="0"
               Padding="8"
               ColumnDefinitions="*,*,*"
@@ -38,44 +41,136 @@
                     Text="{Binding GroupText}" />
         </Grid>
 
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
-                <Label Style="{StaticResource PosMessageLabel}"
-                       IsVisible="{Binding Message, Converter={StaticResource NotEmptyConverter}}"
-                       Text="{Binding Message}" />
-                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                     BindableLayout.ItemsSource="{Binding Sections}">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="{x:Type models:SummarySection}">
-                            <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
-                                <Label Style="{StaticResource PosSectionLabel}"
-                                       Text="{Binding Title}" />
-                                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                                     BackgroundColor="White"
-                                                     BindableLayout.ItemsSource="{Binding Rows}">
-                                    <BindableLayout.ItemTemplate>
-                                        <DataTemplate x:DataType="{x:Type models:SummaryRow}">
-                                            <Grid Style="{StaticResource PosListRowGrid}"
-                                                  Padding="16,6"
-                                                  ColumnDefinitions="*,Auto">
-                                                <Label Grid.Column="0"
-                                                       Style="{StaticResource PosCaptionLabel}"
-                                                       FontSize="15"
-                                                       TextColor="{StaticResource PrimaryTextColor}"
-                                                       Text="{Binding Label}" />
-                                                <Label Grid.Column="1"
-                                                       Style="{StaticResource PosListValueLabel}"
-                                                       Text="{Binding Value}" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </BindableLayout.ItemTemplate>
-                                </VerticalStackLayout>
+        <!-- 結果。集計中と取得できないときは上に重ねて隠す -->
+        <Grid Grid.Row="1">
+            <ScrollView>
+                <VerticalStackLayout Style="{StaticResource PosPanelStack}">
+                    <!-- 純売上と、件数・値引・税・会員・ポイントの表 (集計結果が入れ替わったときに浮き上がらせる) -->
+                    <VerticalStackLayout behaviors:AnimationOption.EnterAnimation="FadeUp"
+                                         behaviors:AnimationOption.EnterTrigger="{Binding RangeText}">
+                        <Border Style="{StaticResource PosHeroBorder}">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Style="{StaticResource PosHeroCaptionLabel}"
+                                       Text="純売上" />
+                                <Label Style="{StaticResource PosHeroValueLabel}"
+                                       behaviors:LabelOption.CountUpDuration="450"
+                                       behaviors:LabelOption.CountUpFormat="{}{0:¥#,##0;-¥#,##0}"
+                                       behaviors:LabelOption.CountUpValue="{Binding NetSales}" />
+                                <Label Style="{StaticResource PosHeroCaptionLabel}"
+                                       Text="{Binding RangeText}" />
                             </VerticalStackLayout>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
+                        </Border>
+                        <BoxView Style="{StaticResource PosRowSeparator}" />
+                        <Grid Style="{StaticResource PosStatGrid}"
+                              RowDefinitions="Auto,Auto,Auto"
+                              ColumnDefinitions="*,*">
+                            <VerticalStackLayout Grid.Row="0" Grid.Column="0"
+                                                 Style="{StaticResource PosStatStack}">
+                                <Label Style="{StaticResource PosStatCaptionLabel}"
+                                       Text="売上" />
+                                <Label Style="{StaticResource PosStatValueLabel}"
+                                       Text="{Binding Totals.SalesCount}" />
+                                <Label Style="{StaticResource PosStatSubLabel}"
+                                       Text="{Binding Totals.SalesTotal}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Row="0" Grid.Column="1"
+                                                 Style="{StaticResource PosStatStack}">
+                                <Label Style="{StaticResource PosStatCaptionLabel}"
+                                       Text="返品" />
+                                <Label Style="{StaticResource PosStatValueLabel}"
+                                       Text="{Binding Totals.ReturnCount}" />
+                                <Label Style="{StaticResource PosStatSubLabel}"
+                                       Text="{Binding Totals.ReturnsTotal}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Row="1" Grid.Column="0"
+                                                 Style="{StaticResource PosStatStack}">
+                                <Label Style="{StaticResource PosStatCaptionLabel}"
+                                       Text="値引" />
+                                <Label Style="{StaticResource PosStatValueLabel}"
+                                       Text="{Binding Totals.Discount}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Row="1" Grid.Column="1"
+                                                 Style="{StaticResource PosStatStack}">
+                                <Label Style="{StaticResource PosStatCaptionLabel}"
+                                       Text="消費税" />
+                                <Label Style="{StaticResource PosStatValueLabel}"
+                                       Text="{Binding Totals.Tax}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Row="2" Grid.Column="0"
+                                                 Style="{StaticResource PosStatStack}">
+                                <Label Style="{StaticResource PosStatCaptionLabel}"
+                                       Text="会員取引" />
+                                <Label Style="{StaticResource PosStatValueLabel}"
+                                       Text="{Binding Totals.CustomerCount}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Row="2" Grid.Column="1"
+                                                 Style="{StaticResource PosStatStack}">
+                                <Label Style="{StaticResource PosStatCaptionLabel}"
+                                       Text="ポイント付与" />
+                                <Label Style="{StaticResource PosStatValueLabel}"
+                                       Text="{Binding Totals.PointsEarned}" />
+                                <Label Style="{StaticResource PosStatSubLabel}"
+                                       Text="{Binding Totals.PointsRedeemed, StringFormat='利用 {0}'}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <!-- 集計軸ごとの内訳 (純売上の割合をバーで) -->
+                    <controls:SectionPanel IsVisible="{Binding HasGroups}"
+                                           behaviors:AnimationOption.EnterAnimation="FadeUp"
+                                           behaviors:AnimationOption.EnterTrigger="{Binding RangeText}"
+                                           behaviors:AnimationOption.EnterDelay="80"
+                                           Title="{Binding GroupTitle, StringFormat='📊 {0}'}">
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding GroupRows}">
+                            <BindableLayout.EmptyView>
+                                <Label Style="{StaticResource PosMessageLabel}"
+                                       Text="データがありません。" />
+                            </BindableLayout.EmptyView>
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="{x:Type module:ReportGroupRow}">
+                                    <VerticalStackLayout>
+                                        <Grid Style="{StaticResource PosPanelRowGrid}"
+                                              ColumnDefinitions="*,Auto,Auto">
+                                            <Label Grid.Column="0"
+                                                   Style="{StaticResource PosPanelRowLabel}"
+                                                   Text="{Binding Label}" />
+                                            <Label Grid.Column="1"
+                                                   Style="{StaticResource PosCaptionLabel}"
+                                                   FontSize="13"
+                                                   Text="{Binding CountText}" />
+                                            <Label Grid.Column="2"
+                                                   Style="{StaticResource PosPanelRowValueLabel}"
+                                                   Text="{Binding AmountText}" />
+                                        </Grid>
+                                        <ProgressBar Style="{StaticResource PosRatioProgressBar}"
+                                                     Progress="{Binding Ratio}" />
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </controls:SectionPanel>
                 </VerticalStackLayout>
-            </VerticalStackLayout>
-        </ScrollView>
+            </ScrollView>
+
+            <Grid Style="{StaticResource PosPageGrid}"
+                  IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.LoadingState}}">
+                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
+                    <Label Style="{StaticResource PosEmptyIconLabel}"
+                           Text="📊" />
+                    <Label Style="{StaticResource PosMessageLabel}"
+                           Text="集計しています。" />
+                </VerticalStackLayout>
+            </Grid>
+            <Grid Style="{StaticResource PosPageGrid}"
+                  IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.OfflineState}}">
+                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
+                    <Label Style="{StaticResource PosEmptyIconLabel}"
+                           Text="📡" />
+                    <Label Style="{StaticResource PosMessageLabel}"
+                           Text="{Binding Message}" />
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
     </Grid>
 
 </ContentView>

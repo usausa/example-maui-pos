@@ -5,6 +5,7 @@
              xmlns:navigation="http://smart/navigation"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:local="clr-namespace:Pos.Terminal"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              x:Class="Pos.Terminal.MainPage"
              x:DataType="{x:Type local:MainPageViewModel}"
@@ -38,10 +39,11 @@
             <Label Grid.Column="1"
                    Style="{StaticResource HeaderStatusLabel}"
                    Text="{Binding HeaderText}" />
-            <!-- 未送信バッジ (要確認があれば赤) -->
+            <!-- 未送信バッジ (要確認があれば赤で脈打つ) -->
             <Border Grid.Column="2"
                     Style="{StaticResource HeaderBadgeBorder}"
                     BackgroundColor="{Binding HasFailed, Converter={StaticResource FailedBadgeColorConverter}}"
+                    behaviors:AnimationOption.Pulse="{Binding HasFailed}"
                     IsVisible="{Binding BadgeVisible}">
                 <Label Style="{StaticResource HeaderBadgeLabel}"
                        Text="{Binding UnsentCount}" />

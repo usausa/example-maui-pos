@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
              xmlns:models="clr-namespace:Pos.Terminal.Models"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Inquiry"
              x:Class="Pos.Terminal.Modules.Inquiry.ProductInquiryView"
@@ -30,57 +32,64 @@
 
         <!-- 商品 -->
         <ScrollView IsVisible="{Binding HasProduct}">
-            <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
-                <Grid Style="{StaticResource PosListRowGrid}"
-                      RowDefinitions="Auto,Auto,Auto"
-                      ColumnDefinitions="*,Auto">
-                    <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                           Style="{StaticResource PosListNameLabel}"
-                           FontSize="20"
-                           LineBreakMode="WordWrap"
-                           Text="{Binding Name}" />
-                    <Label Grid.Row="1" Grid.Column="0"
-                           Style="{StaticResource PosCaptionLabel}"
-                           Text="{Binding Code}" />
-                    <Label Grid.Row="1" Grid.Column="1"
-                           Style="{StaticResource PosLargeValueLabel}"
-                           Text="{Binding PriceText}" />
-                    <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                           Style="{StaticResource PosCaptionLabel}"
-                           Text="{Binding PriceDetail}" />
-                </Grid>
+            <VerticalStackLayout Style="{StaticResource PosPanelStack}">
+                <!-- 名称・コード・売価 -->
+                <Border Style="{StaticResource PosHeroBorder}"
+                        behaviors:AnimationOption.EnterAnimation="FadeUp">
+                    <Grid RowDefinitions="Auto,Auto,Auto"
+                          ColumnDefinitions="*,Auto"
+                          RowSpacing="4">
+                        <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                               Style="{StaticResource PosListNameLabel}"
+                               FontSize="20"
+                               LineBreakMode="WordWrap"
+                               Text="{Binding Name}" />
+                        <Label Grid.Row="1" Grid.Column="0"
+                               Style="{StaticResource PosCodeLabel}"
+                               VerticalOptions="Center"
+                               Text="{Binding Code}" />
+                        <Label Grid.Row="1" Grid.Column="1" Grid.RowSpan="2"
+                               Style="{StaticResource PosHeroValueLabel}"
+                               FontSize="30"
+                               VerticalOptions="Center"
+                               Text="{Binding PriceText}" />
+                        <Label Grid.Row="2" Grid.Column="0"
+                               Style="{StaticResource PosHeroCaptionLabel}"
+                               Text="{Binding PriceDetail}" />
+                    </Grid>
+                </Border>
 
-                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                     BindableLayout.ItemsSource="{Binding Sections}">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="{x:Type models:SummarySection}">
-                            <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
-                                <Label Style="{StaticResource PosSectionLabel}"
-                                       Text="{Binding Title}" />
-                                <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                                     BackgroundColor="White"
-                                                     BindableLayout.ItemsSource="{Binding Rows}">
-                                    <BindableLayout.ItemTemplate>
-                                        <DataTemplate x:DataType="{x:Type models:SummaryRow}">
-                                            <Grid Style="{StaticResource PosListRowGrid}"
-                                                  Padding="16,6"
-                                                  ColumnDefinitions="*,Auto">
-                                                <Label Grid.Column="0"
-                                                       Style="{StaticResource PosCaptionLabel}"
-                                                       FontSize="15"
-                                                       TextColor="{StaticResource PrimaryTextColor}"
-                                                       Text="{Binding Label}" />
-                                                <Label Grid.Column="1"
-                                                       Style="{StaticResource PosListValueLabel}"
-                                                       Text="{Binding Value}" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </BindableLayout.ItemTemplate>
-                                </VerticalStackLayout>
-                            </VerticalStackLayout>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
+                <!-- 自店在庫・商品情報 -->
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Sections}"
+                                     BindableLayout.ItemTemplate="{StaticResource PosSectionTemplate}" />
+
+                <!-- 他店在庫 (オンライン) -->
+                <controls:SectionPanel Title="🌐 他店在庫"
+                                       IsVisible="{Binding HasOtherStores}"
+                                       behaviors:AnimationOption.EnterAnimation="FadeUp">
+                    <VerticalStackLayout>
+                        <!-- 取得中・取得できない・在庫なし -->
+                        <Label Style="{StaticResource PosMessageLabel}"
+                               IsVisible="{Binding OtherStoresMessage, Converter={StaticResource NotEmptyConverter}}"
+                               Text="{Binding OtherStoresMessage}" />
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding OtherStores}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                                    <Grid Style="{StaticResource PosPanelRowGrid}"
+                                          ColumnDefinitions="*,Auto">
+                                        <Label Grid.Column="0"
+                                               Style="{StaticResource PosPanelRowLabel}"
+                                               Text="{Binding Label}" />
+                                        <Label Grid.Column="1"
+                                               Style="{StaticResource PosPanelRowValueLabel}"
+                                               FontAttributes="Bold"
+                                               Text="{Binding Value}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </controls:SectionPanel>
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

@@ -2,8 +2,12 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                     xmlns:s="http://smart/maui"
+                    xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
+                    xmlns:fonts="clr-namespace:Fonts"
                     xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+                    xmlns:controls="clr-namespace:Pos.Terminal.Controls"
                     xmlns:converters="clr-namespace:Pos.Terminal.Converters"
+                    xmlns:models="clr-namespace:Pos.Terminal.Models"
                     xmlns:enums="clr-namespace:Pos.Domain.Enums;assembly=Pos.Domain"
                     xmlns:entity="clr-namespace:Pos.Terminal.Models.Entity">
 
@@ -38,6 +42,9 @@
     <s:CompareToBoolConverter x:Key="GreaterThanToBoolConverter"
                               Expression="{x:Static s:CompareExpressions.GreaterThan}" />
 
+    <s:CompareToBoolConverter x:Key="EqualsConverter"
+                              Expression="{x:Static s:CompareExpressions.Equal}" />
+
     <s:ColorToBrushConverter x:Key="ColorToBrushConverter" />
 
     <converters:EmptyTextConverter x:Key="EmptyTextConverter" />
@@ -62,10 +69,6 @@
                             TrueValue="{StaticResource RedDarken1}"
                             FalseValue="{StaticResource OrangeDarken1}" />
 
-    <s:BoolToColorConverter x:Key="DifferenceColorConverter"
-                            TrueValue="{StaticResource RedDarken1}"
-                            FalseValue="{StaticResource BlueDarken2}" />
-
     <s:MapToColorConverter x:Key="TransactionTypeColorConverter"
                            DefaultValue="{StaticResource GrayDefault}">
         <s:MapToColorConverter.Entries>
@@ -82,6 +85,49 @@
             <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Sent}" Value="{StaticResource GreenDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
+
+    <!-- 一覧の行の背景 (状態を薄い色で示す。取消は画面側のトリガーで赤にする) -->
+
+    <s:MapToColorConverter x:Key="TransactionRowColorConverter"
+                           DefaultValue="White">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static enums:TransactionType.Return}" Value="{StaticResource OrangeLighten5}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <s:MapToColorConverter x:Key="OutboxRowColorConverter"
+                           DefaultValue="White">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Failed}" Value="{StaticResource RedLighten5}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <s:MapToColorConverter x:Key="StockTypeColorConverter"
+                           DefaultValue="{StaticResource BlueGrayLighten2}">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}" Value="{StaticResource TealDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:InventoryChangeType.Adjustment}" Value="{StaticResource AmberDarken2}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <s:MapToTextConverter x:Key="StockTypeTextConverter">
+        <s:MapToTextConverter.Entries>
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}" Value="📋 棚卸" />
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}" Value="🔧 調整" />
+        </s:MapToTextConverter.Entries>
+    </s:MapToTextConverter>
+
+    <!-- アバター (名前の頭文字とコードで決まる色) -->
+
+    <converters:InitialConverter x:Key="InitialConverter" />
+
+    <converters:AvatarColorConverter x:Key="AvatarColorConverter" />
+
+    <!-- 展開・折りたたみ (Material アイコン) -->
+
+    <s:BoolToTextConverter x:Key="ExpandGlyphConverter"
+                           TrueValue="{x:Static fonts:MaterialIcons.Expand_less}"
+                           FalseValue="{x:Static fonts:MaterialIcons.Expand_more}" />
 
     <s:MapToColorConverter x:Key="StaffRoleColorConverter"
                            DefaultValue="{StaticResource BlueGrayLighten1}">
@@ -1402,6 +1448,304 @@
         <Setter Property="FontSize" Value="12" />
         <Setter Property="FontAttributes" Value="Bold" />
     </Style>
+
+    <!-- 件数や状態のチップを折り返して並べる (StatusChip) -->
+
+    <Style x:Key="PosChipFlexLayout"
+           TargetType="FlexLayout">
+        <Setter Property="Wrap" Value="Wrap" />
+        <Setter Property="AlignItems" Value="Center" />
+    </Style>
+
+    <Style x:Key="PosFlexStatusChip"
+           TargetType="controls:StatusChip">
+        <Setter Property="Margin" Value="0,0,6,2" />
+    </Style>
+
+    <!-- Panel (灰色の背景に見出しを置き、その下に幅いっぱいの白い面を並べる。角丸・枠・影は付けない) -->
+
+    <Style x:Key="PosPanelStack"
+           TargetType="VerticalStackLayout">
+        <Setter Property="Padding" Value="0,0,0,16" />
+        <Setter Property="Spacing" Value="0" />
+    </Style>
+
+    <Style x:Key="PosPanelGrid"
+           TargetType="Grid">
+        <Setter Property="Padding" Value="16,4" />
+        <Setter Property="BackgroundColor" Value="White" />
+    </Style>
+
+    <!-- 面の中の行 (名前 + 右寄せの値) -->
+
+    <Style x:Key="PosPanelRowGrid"
+           TargetType="Grid">
+        <Setter Property="MinimumHeightRequest" Value="36" />
+        <Setter Property="ColumnSpacing" Value="8" />
+    </Style>
+
+    <Style x:Key="PosPanelRowLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource GrayDarken3}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="VerticalOptions" Value="Center" />
+        <Setter Property="LineBreakMode" Value="TailTruncation" />
+    </Style>
+
+    <Style x:Key="PosPanelRowValueLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource BlueDarken2}" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="HorizontalTextAlignment" Value="End" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <Style x:Key="PosPanelRowStrongLabel"
+           TargetType="Label"
+           BasedOn="{StaticResource PosPanelRowValueLabel}">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontAttributes" Value="Bold" />
+    </Style>
+
+    <!-- 画面の主な値 (純売上・お釣り・合計) を大きく出す白い帯 -->
+
+    <Style x:Key="PosHeroBorder"
+           TargetType="Border">
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="BackgroundColor" Value="White" />
+        <Setter Property="StrokeThickness" Value="0" />
+    </Style>
+
+    <Style x:Key="PosHeroCaptionLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource GrayDarken1}" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <Style x:Key="PosHeroValueLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource BlueDarken2}" />
+        <Setter Property="FontSize" Value="36" />
+        <Setter Property="FontAttributes" Value="Bold" />
+    </Style>
+
+    <!-- 集計の表 (白い升目の間から Grid の背景色を見せて罫線にする) -->
+
+    <Style x:Key="PosStatGrid"
+           TargetType="Grid">
+        <Setter Property="ColumnSpacing" Value="1" />
+        <Setter Property="RowSpacing" Value="1" />
+        <Setter Property="BackgroundColor" Value="{StaticResource GrayLighten2}" />
+    </Style>
+
+    <Style x:Key="PosStatStack"
+           TargetType="VerticalStackLayout">
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="BackgroundColor" Value="White" />
+    </Style>
+
+    <Style x:Key="PosStatCaptionLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource GrayDarken1}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="LineBreakMode" Value="TailTruncation" />
+    </Style>
+
+    <Style x:Key="PosStatValueLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource BlueGrayDarken4}" />
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="LineBreakMode" Value="TailTruncation" />
+    </Style>
+
+    <Style x:Key="PosStatSubLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource GrayDarken1}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="LineBreakMode" Value="TailTruncation" />
+    </Style>
+
+    <!-- 内訳の割合 -->
+
+    <Style x:Key="PosRatioProgressBar"
+           TargetType="ProgressBar">
+        <Setter Property="Margin" Value="0,0,0,6" />
+        <Setter Property="ProgressColor" Value="{StaticResource BlueLighten1}" />
+    </Style>
+
+    <!-- 注意の帯 (未送信など) -->
+
+    <Style x:Key="PosNoticeBorder"
+           TargetType="Border">
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="BackgroundColor" Value="{StaticResource AmberLighten5}" />
+        <Setter Property="StrokeThickness" Value="0" />
+    </Style>
+
+    <Style x:Key="PosNoticeLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource OrangeDarken4}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <!-- 帯付きの行 (左端の帯と行の背景で状態を示す。区切り線で並べ、角丸にしない) -->
+
+    <Style x:Key="PosStripRowGrid"
+           TargetType="Grid">
+        <Setter Property="ColumnSpacing" Value="0" />
+        <Setter Property="RowSpacing" Value="0" />
+    </Style>
+
+    <Style x:Key="PosStripBoxView"
+           TargetType="BoxView">
+        <Setter Property="WidthRequest" Value="6" />
+    </Style>
+
+    <Style x:Key="PosStripBodyStack"
+           TargetType="VerticalStackLayout">
+        <Setter Property="Padding" Value="12,8,0,8" />
+        <Setter Property="Spacing" Value="4" />
+    </Style>
+
+    <!-- 絵文字付きの情報 (🕒 時刻 / 🧑 担当 / 💳 支払) -->
+    <Style x:Key="PosInfoLabel"
+           TargetType="Label">
+        <Setter Property="FlexLayout.Shrink" Value="0" />
+        <Setter Property="Margin" Value="0,0,12,0" />
+        <Setter Property="TextColor" Value="{StaticResource GrayDarken1}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="LineBreakMode" Value="TailTruncation" />
+    </Style>
+
+    <Style x:Key="PosRowSeparator"
+           TargetType="BoxView">
+        <Setter Property="HeightRequest" Value="1" />
+        <Setter Property="Color" Value="{StaticResource GrayLighten2}" />
+    </Style>
+
+    <Style x:Key="PosExpandButton"
+           TargetType="Button">
+        <Setter Property="WidthRequest" Value="48" />
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="24" />
+        <Setter Property="VerticalOptions" Value="Start" />
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{StaticResource BlueGrayDarken1}" />
+        <Setter Property="FontFamily" Value="{x:Static fonts:MaterialIcons.FontFamily}" />
+        <Setter Property="FontSize" Value="26" />
+    </Style>
+
+    <!-- 展開した部分 (明細・支払・エラー) -->
+
+    <Style x:Key="PosDetailStack"
+           TargetType="VerticalStackLayout">
+        <Setter Property="Padding" Value="0,4,0,0" />
+        <Setter Property="Spacing" Value="2" />
+    </Style>
+
+    <Style x:Key="PosDetailRowGrid"
+           TargetType="Grid">
+        <Setter Property="ColumnSpacing" Value="8" />
+    </Style>
+
+    <Style x:Key="PosDetailLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource GrayDarken3}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="LineBreakMode" Value="TailTruncation" />
+    </Style>
+
+    <Style x:Key="PosDetailValueLabel"
+           TargetType="Label"
+           BasedOn="{StaticResource PosDetailLabel}">
+        <Setter Property="HorizontalTextAlignment" Value="End" />
+        <Setter Property="TextColor" Value="{StaticResource BlueDarken2}" />
+    </Style>
+
+    <!-- 一覧の上の件数の内訳 (StatusChip を背景の上に並べる) -->
+
+    <Style x:Key="PosSummaryFlexLayout"
+           TargetType="FlexLayout"
+           BasedOn="{StaticResource PosChipFlexLayout}">
+        <Setter Property="Padding" Value="8,0,8,8" />
+    </Style>
+
+    <!-- アバター付きの行 (会員の検索結果) -->
+
+    <Style x:Key="PosAvatarRowGrid"
+           TargetType="Grid">
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="ColumnSpacing" Value="12" />
+    </Style>
+
+    <Style x:Key="PosAvatarBorder"
+           TargetType="Border">
+        <Setter Property="WidthRequest" Value="40" />
+        <Setter Property="HeightRequest" Value="40" />
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 20" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <Style x:Key="PosAvatarLabel"
+           TargetType="Label">
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+        <Setter Property="VerticalTextAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="PosAvatarTextStack"
+           TargetType="VerticalStackLayout">
+        <Setter Property="Spacing" Value="2" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <!-- コード (等幅で桁を揃える) -->
+    <Style x:Key="PosCodeLabel"
+           TargetType="Label">
+        <Setter Property="FlexLayout.Shrink" Value="0" />
+        <Setter Property="Margin" Value="0,0,12,0" />
+        <Setter Property="FontFamily" Value="monospace" />
+        <Setter Property="TextColor" Value="{StaticResource BlueGrayDarken1}" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <!-- タップできる行の波紋 -->
+
+    <Style x:Key="PosRippleView"
+           TargetType="effects:SfEffectsView">
+        <Setter Property="TouchDownEffects" Value="Ripple" />
+    </Style>
+
+    <!-- 見出し付きの集計・詳細 (SummarySection) を見出しと白い面で並べる。表示時に浮き上がらせる -->
+
+    <DataTemplate x:Key="PosSectionTemplate"
+                  x:DataType="{x:Type models:SummarySection}">
+        <controls:SectionPanel Title="{Binding Title}"
+                               behaviors:AnimationOption.EnterAnimation="FadeUp">
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="{x:Type models:SummaryRow}">
+                        <Grid Style="{StaticResource PosPanelRowGrid}"
+                              ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Style="{StaticResource PosPanelRowLabel}"
+                                   LineBreakMode="WordWrap"
+                                   Text="{Binding Label}" />
+                            <Label Grid.Column="1"
+                                   Style="{StaticResource PosPanelRowValueLabel}"
+                                   Text="{Binding Value}" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </controls:SectionPanel>
+    </DataTemplate>
 
     <!-- Keypad (会計画面の埋め込みテンキー) -->
 

@@ -46,8 +46,12 @@ public sealed partial class SalesViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string DiscountText { get; set; } = string.Empty;
 
+    // 合計 (画面で数え上げ、変わったときに行を光らせる)
     [ObservableProperty]
-    public partial string TotalText { get; set; } = string.Empty;
+    public partial double TotalValue { get; set; }
+
+    [ObservableProperty]
+    public partial string TaxText { get; set; } = string.Empty;
 
     public IObserveCommand CustomerCommand { get; }
 
@@ -119,7 +123,8 @@ public sealed partial class SalesViewModel : AppViewModelBase
         HasLines = items.Count > 0;
         SubtotalText = $"小計 {ViewHelper.Yen(result.Subtotal)}";
         DiscountText = result.DiscountTotal == 0m ? string.Empty : $"値引 -{ViewHelper.Yen(result.DiscountTotal)}";
-        TotalText = $"合計 {ViewHelper.Yen(result.Total)}  (内消費税 {ViewHelper.Yen(result.TaxTotal)})";
+        TotalValue = (double)result.Total;
+        TaxText = $"内消費税 {ViewHelper.Yen(result.TaxTotal)}";
     }
 
     private async Task EditLineAsync(CartLineItem item)

@@ -21,7 +21,8 @@ public sealed class CategoryItem : NotificationObject
     }
 }
 
-public sealed record ProductItem(ProductResponseItem Product, string Name, string PriceText, string Detail);
+// 検索結果の商品 (コードは等幅で見せ、シリアル必須はチップで示す)
+public sealed record ProductItem(ProductResponseItem Product, string Name, string Code, string Detail, string PriceText, bool RequiresSerial);
 
 // 商品検索: キーワードと部門 (2 階層) でローカルの商品を探す。販売からは追加して継続、照会からは選んで戻る
 public sealed partial class ProductSearchViewModel : AppViewModelBase
@@ -141,7 +142,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
         }
 
         var list = await accessor.QueryProductListAsync(categoryIds, pattern, 200);
-        Items.Replace(list.Select(static x => new ProductItem(x, x.Name, ViewHelper.Yen(x.Price), $"{x.Code}  {x.ModelNo}  {x.Brand}".Trim())));
+        Items.Replace(list.Select(static x => new ProductItem(x, x.Name, x.Code, $"{x.ModelNo}  {x.Brand}".Trim(), ViewHelper.Yen(x.Price), x.RequiresSerial)));
         Message = "該当する商品がありません。";
     }
 

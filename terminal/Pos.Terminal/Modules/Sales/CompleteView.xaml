@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
              x:Class="Pos.Terminal.Modules.Sales.CompleteView"
              x:DataType="{x:Type module:CompleteViewModel}"
@@ -19,35 +20,67 @@
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="*,Auto,*">
-        <VerticalStackLayout Grid.Row="1"
-                             Style="{StaticResource FillVerticalStack}"
-                             Spacing="8"
-                             Padding="24">
-            <Label Style="{StaticResource PosMessageLabel}"
-                   FontSize="20"
-                   Text="{Binding Message}" />
-            <Label Style="{StaticResource PosCaptionLabel}"
-                   HorizontalTextAlignment="Center"
-                   FontSize="18"
-                   Text="{Binding ChangeCaption}" />
-            <Label Style="{StaticResource PosHugeValueLabel}"
-                   HorizontalOptions="Center"
-                   FontSize="56"
-                   FontAttributes="Bold"
-                   Text="{Binding ChangeText}" />
-            <Label Style="{StaticResource PosCaptionLabel}"
-                   HorizontalTextAlignment="Center"
-                   FontSize="16"
-                   Text="{Binding TotalText}" />
-            <Label Style="{StaticResource PosCaptionLabel}"
-                   HorizontalTextAlignment="Center"
-                   FontSize="16"
-                   TextColor="{StaticResource BlueDarken2}"
-                   IsVisible="{Binding PointsText, Converter={StaticResource NotEmptyConverter}}"
-                   Text="{Binding PointsText}" />
-            <Label Style="{StaticResource PosCaptionLabel}"
-                   HorizontalTextAlignment="Center"
-                   Text="{Binding ReceiptNoText}" />
+        <VerticalStackLayout Grid.Row="1">
+            <!-- お釣り (返品は返金額) と、販売の合計・お預り -->
+            <VerticalStackLayout behaviors:AnimationOption.EnterAnimation="FadeUp">
+                <Border Style="{StaticResource PosHeroBorder}"
+                        Padding="16,20">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Style="{StaticResource PosHeroCaptionLabel}"
+                               HorizontalTextAlignment="Center"
+                               FontSize="20"
+                               TextColor="{StaticResource PrimaryTextColor}"
+                               Text="{Binding Message}" />
+                        <Label Style="{StaticResource PosHeroCaptionLabel}"
+                               HorizontalTextAlignment="Center"
+                               FontSize="18"
+                               Text="{Binding ChangeCaption}" />
+                        <Label Style="{StaticResource PosHeroValueLabel}"
+                               HorizontalTextAlignment="Center"
+                               FontSize="56"
+                               behaviors:LabelOption.CountUpDuration="450"
+                               behaviors:LabelOption.CountUpFormat="{}{0:¥#,##0}"
+                               behaviors:LabelOption.CountUpValue="{Binding ChangeValue}" />
+                    </VerticalStackLayout>
+                </Border>
+                <BoxView Style="{StaticResource PosRowSeparator}"
+                         IsVisible="{Binding IsSale}" />
+                <Grid Style="{StaticResource PosStatGrid}"
+                      ColumnDefinitions="*,*"
+                      IsVisible="{Binding IsSale}">
+                    <VerticalStackLayout Grid.Column="0"
+                                         Style="{StaticResource PosStatStack}">
+                        <Label Style="{StaticResource PosStatCaptionLabel}"
+                               Text="合計" />
+                        <Label Style="{StaticResource PosStatValueLabel}"
+                               Text="{Binding TotalText}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1"
+                                         Style="{StaticResource PosStatStack}">
+                        <Label Style="{StaticResource PosStatCaptionLabel}"
+                               Text="お預り" />
+                        <Label Style="{StaticResource PosStatValueLabel}"
+                               Text="{Binding TenderedText}" />
+                    </VerticalStackLayout>
+                </Grid>
+            </VerticalStackLayout>
+
+            <!-- ポイント (会員のみ) とレシート番号 -->
+            <VerticalStackLayout Padding="16,12"
+                                 Spacing="4"
+                                 behaviors:AnimationOption.EnterAnimation="FadeUp"
+                                 behaviors:AnimationOption.EnterDelay="120">
+                <Label Style="{StaticResource PosCaptionLabel}"
+                       HorizontalTextAlignment="Center"
+                       FontSize="16"
+                       TextColor="{StaticResource BlueDarken2}"
+                       LineBreakMode="WordWrap"
+                       IsVisible="{Binding PointsText, Converter={StaticResource NotEmptyConverter}}"
+                       Text="{Binding PointsText}" />
+                <Label Style="{StaticResource PosCaptionLabel}"
+                       HorizontalTextAlignment="Center"
+                       Text="{Binding ReceiptNoText}" />
+            </VerticalStackLayout>
         </VerticalStackLayout>
     </Grid>
 

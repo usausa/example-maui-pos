@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
-             xmlns:models="clr-namespace:Pos.Terminal.Models"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.History"
              x:Class="Pos.Terminal.Modules.History.TransactionDetailView"
              x:DataType="{x:Type module:TransactionDetailViewModel}"
@@ -18,86 +19,51 @@
              shell:ShellProperty.Function3Enabled="{Binding CanVoid}"
              shell:ShellProperty.Function4Enabled="{Binding CanReturn}">
 
-    <ScrollView>
-        <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                             BackgroundColor="{StaticResource GrayLighten3}">
-            <!-- 見出し -->
-            <Grid Style="{StaticResource PosListRowGrid}"
-                  RowDefinitions="Auto,Auto"
-                  ColumnDefinitions="Auto,Auto,*,Auto">
-                <Border Grid.Row="0" Grid.Column="0"
-                        Style="{StaticResource PosChipBorder}"
-                        Margin="0,0,6,0"
-                        BackgroundColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}">
-                    <Border.Triggers>
-                        <DataTrigger TargetType="Border"
-                                     Binding="{Binding IsVoided}"
-                                     Value="True">
-                            <Setter Property="BackgroundColor" Value="{StaticResource GrayDefault}" />
-                        </DataTrigger>
-                    </Border.Triggers>
-                    <Label Style="{StaticResource PosChipLabel}"
-                           Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}">
-                        <Label.Triggers>
-                            <DataTrigger TargetType="Label"
-                                         Binding="{Binding IsVoided}"
-                                         Value="True">
-                                <Setter Property="Text" Value="取消" />
-                            </DataTrigger>
-                        </Label.Triggers>
-                    </Label>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="1"
-                        Style="{StaticResource PosChipBorder}"
-                        Margin="0,0,6,0"
-                        BackgroundColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}">
-                    <Label Style="{StaticResource PosChipLabel}"
-                           Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}" />
-                </Border>
-                <Label Grid.Row="0" Grid.Column="2"
-                       Style="{StaticResource PosListNameLabel}"
-                       Text="{Binding ReceiptNo}" />
-                <Label Grid.Row="0" Grid.Column="3"
-                       Style="{StaticResource PosListValueLabel}"
-                       FontSize="20"
-                       Text="{Binding TotalText}" />
-                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
-                       Style="{StaticResource PosCaptionLabel}"
-                       Text="{Binding HeaderDetail}" />
-            </Grid>
+    <ScrollView BackgroundColor="{StaticResource GrayLighten3}">
+        <VerticalStackLayout Style="{StaticResource PosPanelStack}">
+            <!-- レシート番号・合計・種別・送信状態 -->
+            <Border Style="{StaticResource PosHeroBorder}"
+                    behaviors:AnimationOption.EnterAnimation="FadeUp">
+                <Grid RowDefinitions="Auto,Auto,Auto"
+                      ColumnDefinitions="*,Auto"
+                      RowSpacing="4">
+                    <Label Grid.Row="0" Grid.Column="0"
+                           Style="{StaticResource PosListNameLabel}"
+                           FontSize="18"
+                           Text="{Binding ReceiptNo}" />
+                    <Label Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                           Style="{StaticResource PosHeroValueLabel}"
+                           FontSize="28"
+                           VerticalOptions="Center"
+                           Text="{Binding TotalText}" />
+                    <FlexLayout Grid.Row="1" Grid.Column="0"
+                                Style="{StaticResource PosChipFlexLayout}">
+                        <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                             ChipColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}"
+                                             Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}">
+                            <controls:StatusChip.Triggers>
+                                <DataTrigger TargetType="controls:StatusChip"
+                                             Binding="{Binding IsVoided}"
+                                             Value="True">
+                                    <Setter Property="ChipColor" Value="{StaticResource RedDarken1}" />
+                                    <Setter Property="Text" Value="取消" />
+                                </DataTrigger>
+                            </controls:StatusChip.Triggers>
+                        </controls:StatusChip>
+                        <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                             ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}"
+                                             Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}" />
+                    </FlexLayout>
+                    <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                           Style="{StaticResource PosHeroCaptionLabel}"
+                           LineBreakMode="WordWrap"
+                           Text="{Binding HeaderDetail}" />
+                </Grid>
+            </Border>
 
-            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                 BindableLayout.ItemsSource="{Binding Sections}">
-                <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="{x:Type models:SummarySection}">
-                        <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
-                            <Label Style="{StaticResource PosSectionLabel}"
-                                   Text="{Binding Title}" />
-                            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                                 BackgroundColor="White"
-                                                 BindableLayout.ItemsSource="{Binding Rows}">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="{x:Type models:SummaryRow}">
-                                        <Grid Style="{StaticResource PosListRowGrid}"
-                                              Padding="16,6"
-                                              ColumnDefinitions="*,Auto">
-                                            <Label Grid.Column="0"
-                                                   Style="{StaticResource PosCaptionLabel}"
-                                                   FontSize="15"
-                                                   TextColor="{StaticResource PrimaryTextColor}"
-                                                   LineBreakMode="WordWrap"
-                                                   Text="{Binding Label}" />
-                                            <Label Grid.Column="1"
-                                                   Style="{StaticResource PosListValueLabel}"
-                                                   Text="{Binding Value}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </VerticalStackLayout>
-                        </VerticalStackLayout>
-                    </DataTemplate>
-                </BindableLayout.ItemTemplate>
-            </VerticalStackLayout>
+            <!-- 明細・金額・支払・ポイント・配送 -->
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Sections}"
+                                 BindableLayout.ItemTemplate="{StaticResource PosSectionTemplate}" />
         </VerticalStackLayout>
     </ScrollView>
 

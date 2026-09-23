@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
-             xmlns:models="clr-namespace:Pos.Terminal.Models"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Shift"
              x:Class="Pos.Terminal.Modules.Shift.ShiftReportView"
              x:DataType="{x:Type module:ShiftReportViewModel}"
@@ -18,47 +18,23 @@
              shell:ShellProperty.Function3Enabled="False"
              shell:ShellProperty.Function4Enabled="True">
 
-    <ScrollView>
-        <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                             BackgroundColor="{StaticResource GrayLighten3}">
-            <Label Style="{StaticResource PosSectionLabel}"
-                   Text="{Binding HeaderText}" />
-            <Label Style="{StaticResource PosMessageLabel}"
-                   Padding="16,0,16,8"
-                   FontSize="13"
-                   HorizontalTextAlignment="Start"
-                   Text="{Binding SourceText}" />
+    <ScrollView BackgroundColor="{StaticResource GrayLighten3}">
+        <VerticalStackLayout Style="{StaticResource PosPanelStack}">
+            <!-- 営業日と集計元 (サーバ / 端末) -->
+            <Border Style="{StaticResource PosHeroBorder}"
+                    behaviors:AnimationOption.EnterAnimation="FadeUp">
+                <VerticalStackLayout Spacing="4">
+                    <Label Style="{StaticResource PosListNameLabel}"
+                           FontSize="18"
+                           Text="{Binding HeaderText}" />
+                    <Label Style="{StaticResource PosHeroCaptionLabel}"
+                           Text="{Binding SourceText}" />
+                </VerticalStackLayout>
+            </Border>
 
-            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                 BindableLayout.ItemsSource="{Binding Sections}">
-                <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="{x:Type models:SummarySection}">
-                        <VerticalStackLayout Style="{StaticResource FillVerticalStack}">
-                            <Label Style="{StaticResource PosSectionLabel}"
-                                   Text="{Binding Title}" />
-                            <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                                 BackgroundColor="White"
-                                                 BindableLayout.ItemsSource="{Binding Rows}">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="{x:Type models:SummaryRow}">
-                                        <Grid Style="{StaticResource PosListRowGrid}"
-                                              Padding="16,6"
-                                              ColumnDefinitions="*,Auto">
-                                            <Label Grid.Column="0"
-                                                   Style="{StaticResource PosCaptionLabel}"
-                                                   FontSize="16"
-                                                   Text="{Binding Label}" />
-                                            <Label Grid.Column="1"
-                                                   Style="{StaticResource PosListValueLabel}"
-                                                   Text="{Binding Value}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </VerticalStackLayout>
-                        </VerticalStackLayout>
-                    </DataTemplate>
-                </BindableLayout.ItemTemplate>
-            </VerticalStackLayout>
+            <!-- 現金・取引・支払方法別・税率別・部門別・ポイント -->
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Sections}"
+                                 BindableLayout.ItemTemplate="{StaticResource PosSectionTemplate}" />
         </VerticalStackLayout>
     </ScrollView>
 

@@ -3,6 +3,12 @@ namespace Pos.Terminal.Modules.Shift;
 using Pos.Contract.Shifts;
 using Pos.Terminal.Models.Entity;
 
+// シフトの件数 (表示用の文字列)
+public sealed record ShiftCounts(string SalesCount, string SalesTotal, string ReturnCount, string ReturnsTotal, string VoidCount)
+{
+    public static ShiftCounts Empty { get; } = new("-", "-", "-", "-", "-");
+}
+
 // 精算: ローカルの取引・入出金から予想現金を出し、実査金額との過不足を確認してシフトを閉じる
 public sealed partial class ShiftCloseViewModel : AppViewModelBase
 {
@@ -31,7 +37,14 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string ShiftText { get; set; } = string.Empty;
 
-    public ObservableCollection<SummaryRow> Rows { get; } = [];
+    [ObservableProperty]
+    public partial ShiftCounts Counts { get; set; } = ShiftCounts.Empty;
+
+    // 現金の内訳 (釣銭準備金・現金売上・現金返品・入金・出金)
+    public ObservableCollection<SummaryRow> CashRows { get; } = [];
+
+    [ObservableProperty]
+    public partial string ExpectedCashText { get; set; } = "-";
 
     [ObservableProperty]
     public partial string ActualCashText { get; set; } = "未入力";
@@ -39,7 +52,10 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string DifferenceText { get; set; } = "-";
 
-    // 過不足があるとき (色は画面側の Converter で変える)
+    // 実査金額が予想現金と一致 / 過不足あり (色は画面側のトリガーで変える。未入力はどちらも false)
+    [ObservableProperty]
+    public partial bool IsMatched { get; set; }
+
     [ObservableProperty]
     public partial bool HasDifference { get; set; }
 
@@ -83,18 +99,21 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
         var summary = await shifts.BuildSummaryAsync(target);
         expectedCash = summary.Cash.ExpectedCash ?? 0m;
         var totals = summary.Shift.Totals;
-        Rows.Replace(
+        Counts = new ShiftCounts(
+            $"{totals.SalesCount} 件",
+            ViewHelper.Yen(totals.SalesTotal),
+            $"{totals.ReturnCount} 件",
+            ViewHelper.Yen(totals.ReturnsTotal),
+            $"{totals.VoidCount} 件");
+        CashRows.Replace(
         [
-            new SummaryRow("🛒 販売", $"{totals.SalesCount} 件  {ViewHelper.Yen(totals.SalesTotal)}"),
-            new SummaryRow("↩ 返品", $"{totals.ReturnCount} 件  {ViewHelper.Yen(totals.ReturnsTotal)}"),
-            new SummaryRow("🚫 取消", $"{totals.VoidCount} 件"),
             new SummaryRow("釣銭準備金", ViewHelper.Yen(summary.Cash.OpeningCash)),
             new SummaryRow("現金売上", ViewHelper.Yen(summary.Cash.CashSales)),
             new SummaryRow("現金返品", ViewHelper.MinusYen(summary.Cash.CashReturns)),
             new SummaryRow("入金", ViewHelper.Yen(summary.Cash.PaidIn)),
-            new SummaryRow("出金", ViewHelper.MinusYen(summary.Cash.PaidOut)),
-            new SummaryRow("予想現金", ViewHelper.Yen(expectedCash))
+            new SummaryRow("出金", ViewHelper.MinusYen(summary.Cash.PaidOut))
         ]);
+        ExpectedCashText = ViewHelper.Yen(expectedCash);
         UpdateDifference();
     }
 
@@ -103,12 +122,14 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
         if (actualCash is null)
         {
             DifferenceText = "-";
+            IsMatched = false;
             HasDifference = false;
             return;
         }
 
         var difference = actualCash.Value - expectedCash;
         DifferenceText = ViewHelper.SignedYen(difference);
+        IsMatched = difference == 0;
         HasDifference = difference != 0;
     }
 

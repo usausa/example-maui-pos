@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Inventory"
              x:Class="Pos.Terminal.Modules.Inventory.StockCountView"
              x:DataType="{x:Type module:StockCountViewModel}"
@@ -55,18 +56,39 @@
                             </SwipeItems>
                         </SwipeView.RightItems>
                         <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                        <Grid Style="{StaticResource PosListRowGrid}"
-                              RowDefinitions="Auto,Auto"
-                              ColumnDefinitions="*,Auto">
-                            <Label Grid.Row="0" Grid.Column="0"
-                                   Style="{StaticResource PosListNameLabel}"
-                                   Text="{Binding Name}" />
-                            <Label Grid.Row="0" Grid.Column="1"
-                                   Style="{StaticResource PosListValueLabel}"
-                                   Text="{Binding QuantityText}" />
-                            <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                   Style="{StaticResource PosCaptionLabel}"
-                                   Text="{Binding Detail}" />
+                        <!-- 左端の帯で種別 (棚卸 / 調整) を示す -->
+                        <Grid Style="{StaticResource PosStripRowGrid}"
+                              RowDefinitions="*,Auto"
+                              ColumnDefinitions="Auto,*"
+                              BackgroundColor="White">
+                            <BoxView Grid.Row="0" Grid.Column="0"
+                                     Style="{StaticResource PosStripBoxView}"
+                                     Color="{Binding Change.Type, Converter={StaticResource StockTypeColorConverter}}" />
+                            <VerticalStackLayout Grid.Row="0" Grid.Column="1"
+                                                 Style="{StaticResource PosStripBodyStack}"
+                                                 Padding="12,10,16,10">
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <Label Grid.Column="0"
+                                           Style="{StaticResource PosListNameLabel}"
+                                           Text="{Binding Name}" />
+                                    <Label Grid.Column="1"
+                                           Style="{StaticResource PosListValueLabel}"
+                                           FontAttributes="Bold"
+                                           Text="{Binding QuantityText}" />
+                                </Grid>
+                                <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                         ChipColor="{Binding Change.Type, Converter={StaticResource StockTypeColorConverter}}"
+                                                         Text="{Binding Change.Type, Converter={StaticResource StockTypeTextConverter}}" />
+                                    <Label Style="{StaticResource PosCodeLabel}"
+                                           Text="{Binding Code}" />
+                                    <Label Style="{StaticResource PosInfoLabel}"
+                                           Text="{Binding Detail}" />
+                                </FlexLayout>
+                            </VerticalStackLayout>
+                            <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                     Style="{StaticResource PosRowSeparator}" />
                         </Grid>
                     </SwipeView>
                 </DataTemplate>

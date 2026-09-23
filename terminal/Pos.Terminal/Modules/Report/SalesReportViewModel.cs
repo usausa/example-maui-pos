@@ -2,6 +2,24 @@ namespace Pos.Terminal.Modules.Report;
 
 using Pos.Contract.Reports;
 
+// 合計のタイル (件数・金額は表示用の文字列)
+public sealed record ReportTotals(
+    string SalesCount,
+    string SalesTotal,
+    string ReturnCount,
+    string ReturnsTotal,
+    string Discount,
+    string Tax,
+    string CustomerCount,
+    string PointsEarned,
+    string PointsRedeemed)
+{
+    public static ReportTotals Empty { get; } = new("-", "-", "-", "-", "-", "-", "-", "-", "-");
+}
+
+// 集計軸ごとの行。Ratio は純売上に占める割合 (0〜1)
+public sealed record ReportGroupRow(string Label, string CountText, string AmountText, double Ratio);
+
 // 売上照会: サーバの売上集計 (オンライン限定)。期間・範囲 (自端末 / 自店 / 全店)・集計軸を切り替える
 public sealed partial class SalesReportViewModel : AppViewModelBase
 {
@@ -39,10 +57,31 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string GroupText { get; set; } = Groups[0].Name;
 
+    // 読込中 / 取得できない / 結果 (空文字) を切り替える
+    [ObservableProperty]
+    public partial string CurrentState { get; set; } = ViewHelper.LoadingState;
+
     [ObservableProperty]
     public partial string Message { get; set; } = string.Empty;
 
-    public ObservableCollection<SummarySection> Sections { get; } = [];
+    [ObservableProperty]
+    public partial string RangeText { get; set; } = string.Empty;
+
+    // 純売上 (画面で数え上げて見せる)
+    [ObservableProperty]
+    public partial double NetSales { get; set; }
+
+    [ObservableProperty]
+    public partial ReportTotals Totals { get; set; } = ReportTotals.Empty;
+
+    // 自端末は集計軸を選べないので内訳を出さない
+    [ObservableProperty]
+    public partial bool HasGroups { get; set; }
+
+    [ObservableProperty]
+    public partial string GroupTitle { get; set; } = string.Empty;
+
+    public ObservableCollection<ReportGroupRow> GroupRows { get; } = [];
 
     public IObserveCommand PeriodCommand { get; }
 
@@ -119,8 +158,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         var result = await network.ExecuteAsync(h => h.GetSalesSummaryAsync(storeId, from, to, totalGroupBy));
         if (!result.IsSuccess)
         {
-            Message = "取得できませんでした。オンラインで「更新」してください。";
-            Sections.Clear();
+            ShowOffline();
             return;
         }
 
@@ -133,36 +171,49 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
             var rows = await network.ExecuteAsync(h => h.GetSalesSummaryAsync(storeId, from, to, Groups[group].GroupBy));
             if (!rows.IsSuccess)
             {
+                ShowOffline();
                 return;
             }
 
             summary = rows.Content!;
         }
 
-        Message = $"📅 {ViewHelper.Date(from)} 〜 {ViewHelper.Date(to)}  {Scopes[scope]}";
+        RangeText = $"{ViewHelper.Date(from)} 〜 {ViewHelper.Date(to)}  {Scopes[scope]}";
+        NetSales = (double)total.NetSales;
+        Totals = new ReportTotals(
+            $"{total.TransactionCount} 件",
+            ViewHelper.Yen(total.SalesTotal),
+            $"{total.ReturnCount} 件",
+            ViewHelper.Yen(total.ReturnsTotal),
+            ViewHelper.Yen(total.DiscountTotal),
+            ViewHelper.Yen(total.TaxTotal),
+            $"{total.CustomerCount} 件",
+            total.PointsEarned.ToString("#,##0", CultureInfo.InvariantCulture),
+            total.PointsRedeemed.ToString("#,##0", CultureInfo.InvariantCulture));
 
-        var sections = new List<SummarySection>
+        HasGroups = scope != 0;
+        if (HasGroups)
         {
-            new("💰 合計",
-            [
-                new SummaryRow("純売上", ViewHelper.Yen(total.NetSales)),
-                new SummaryRow("売上", $"{total.TransactionCount} 件  {ViewHelper.Yen(total.SalesTotal)}"),
-                new SummaryRow("返品", $"{total.ReturnCount} 件  {ViewHelper.Yen(total.ReturnsTotal)}"),
-                new SummaryRow("値引", ViewHelper.Yen(total.DiscountTotal)),
-                new SummaryRow("消費税", ViewHelper.Yen(total.TaxTotal)),
-                new SummaryRow("会員取引", $"{total.CustomerCount} 件"),
-                new SummaryRow("ポイント", $"付与 {total.PointsEarned:#,##0}  利用 {total.PointsRedeemed:#,##0}")
-            ])
-        };
-        if (scope != 0)
+            GroupTitle = Groups[group].Name;
+            var sum = summary.Rows.Sum(static x => Math.Max(0m, x.NetSales));
+            GroupRows.Replace(summary.Rows.Select(x =>
+            {
+                var ratio = sum > 0m ? Math.Max(0m, x.NetSales) / sum : 0m;
+                return new ReportGroupRow(x.Label, $"{x.TransactionCount} 件  {ViewHelper.Percent(Math.Round(ratio, 3))}", ViewHelper.Yen(x.NetSales), (double)ratio);
+            }));
+        }
+        else
         {
-            sections.Add(new SummarySection("📊 " + Groups[group].Name, summary.Rows
-                .Select(static x => new SummaryRow(x.Label, $"{x.TransactionCount} 件  {ViewHelper.Yen(x.NetSales)}"))
-                .DefaultIfEmpty(new SummaryRow("データなし", string.Empty))
-                .ToList()));
+            GroupRows.Clear();
         }
 
-        Sections.Replace(sections);
+        CurrentState = string.Empty;
+    }
+
+    private void ShowOffline()
+    {
+        Message = "取得できませんでした。\nオンラインで「更新」してください。";
+        CurrentState = ViewHelper.OfflineState;
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Menu);

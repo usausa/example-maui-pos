@@ -2,7 +2,9 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
+             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
              xmlns:models="clr-namespace:Pos.Terminal.Models"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Setting"
              x:Class="Pos.Terminal.Modules.Setting.SettingView"
@@ -82,35 +84,69 @@
                                Text="未送信はありません。" />
                     </BindableLayout.EmptyView>
                     <BindableLayout.ItemTemplate>
+                        <!-- 左端の帯と行の背景で状態 (未送信 / 要確認) を示す。タップで再送・破棄、右端でエラーの全文を展開 -->
                         <DataTemplate x:DataType="{x:Type module:OutboxItem}">
-                            <Grid Style="{StaticResource PosListRowGrid}"
-                                  RowDefinitions="Auto,Auto"
-                                  ColumnDefinitions="Auto,*,Auto">
+                            <Grid Style="{StaticResource PosStripRowGrid}"
+                                  RowDefinitions="*,Auto"
+                                  ColumnDefinitions="Auto,*,Auto"
+                                  BackgroundColor="{Binding Status, Converter={StaticResource OutboxRowColorConverter}}">
+                                <BoxView Grid.Row="0" Grid.Column="0"
+                                         Style="{StaticResource PosStripBoxView}"
+                                         Color="{Binding Status, Converter={StaticResource OutboxStatusColorConverter}}" />
+
+                                <effects:SfEffectsView Grid.Row="0" Grid.Column="1"
+                                                       Style="{StaticResource PosRippleView}">
+                                    <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                                    <effects:SfEffectsView.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:SettingViewModel}}, Path=OutboxCommand, x:DataType={x:Type module:SettingViewModel}}"
+                                                              CommandParameter="{Binding .}" />
+                                    </effects:SfEffectsView.GestureRecognizers>
+                                    <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                                    <VerticalStackLayout Style="{StaticResource PosStripBodyStack}">
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Style="{StaticResource PosListNameLabel}"
+                                                   Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}" />
+                                            <controls:StatusChip Grid.Column="1"
+                                                                 ChipColor="{Binding Status, Converter={StaticResource OutboxStatusColorConverter}}"
+                                                                 Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}" />
+                                        </Grid>
+                                        <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                            <Label Style="{StaticResource PosInfoLabel}"
+                                                   Text="{Binding TimeText, StringFormat='🕒 {0}'}" />
+                                            <Label Style="{StaticResource PosInfoLabel}"
+                                                   Text="{Binding Attempts, StringFormat='🔁 試行 {0} 回'}" />
+                                        </FlexLayout>
+                                        <!-- エラーは 1 行で見せ、展開すると全文 -->
+                                        <Label Style="{StaticResource PosDetailLabel}"
+                                               TextColor="{StaticResource RedDarken1}"
+                                               MaxLines="1"
+                                               IsVisible="{Binding Error, Converter={StaticResource NotEmptyConverter}}"
+                                               Text="{Binding Error}">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding IsExpanded}"
+                                                             Value="True">
+                                                    <Setter Property="MaxLines" Value="-1" />
+                                                    <Setter Property="LineBreakMode" Value="WordWrap" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                </effects:SfEffectsView>
+
                                 <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                                <Grid.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:SettingViewModel}}, Path=OutboxCommand, x:DataType={x:Type module:SettingViewModel}}"
-                                                          CommandParameter="{Binding .}" />
-                                </Grid.GestureRecognizers>
+                                <Button Grid.Row="0" Grid.Column="2"
+                                        Style="{StaticResource PosExpandButton}"
+                                        IsVisible="{Binding Error, Converter={StaticResource NotEmptyConverter}}"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type module:SettingViewModel}}, Path=ExpandCommand, x:DataType={x:Type module:SettingViewModel}}"
+                                        CommandParameter="{Binding .}"
+                                        Text="{Binding IsExpanded, Converter={StaticResource ExpandGlyphConverter}}" />
                                 <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                                <Border Grid.Row="0" Grid.Column="0"
-                                        Style="{StaticResource PosChipBorder}"
-                                        Margin="0,0,8,0"
-                                        BackgroundColor="{Binding Status, Converter={StaticResource OutboxStatusColorConverter}}">
-                                    <Label Style="{StaticResource PosChipLabel}"
-                                           Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}" />
-                                </Border>
-                                <Label Grid.Row="0" Grid.Column="1"
-                                       Style="{StaticResource PosListNameLabel}"
-                                       Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}" />
-                                <Label Grid.Row="0" Grid.Column="2"
-                                       Style="{StaticResource PosCaptionLabel}"
-                                       Text="{Binding TimeText}" />
-                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
-                                       Style="{StaticResource PosCaptionLabel}"
-                                       TextColor="{StaticResource RedDefault}"
-                                       LineBreakMode="WordWrap"
-                                       IsVisible="{Binding Error, Converter={StaticResource NotEmptyConverter}}"
-                                       Text="{Binding Error}" />
+
+                                <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                         Style="{StaticResource PosRowSeparator}" />
                             </Grid>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>

@@ -2,7 +2,8 @@ namespace Pos.Terminal.Modules.Sales;
 
 using Pos.Contract.Customers;
 
-public sealed record CustomerItem(CustomerResponseItem Customer, string Name, string PointsText, string Detail);
+// 検索結果の会員 (アバターは名前の頭文字と会員番号で決まる色)
+public sealed record CustomerItem(CustomerResponseItem Customer, string Name, string Code, string Phone, string PointsText);
 
 // 会員選択: 検索 (オンライン) またはスキャンで取引に会員を紐付ける
 public sealed partial class CustomerSelectViewModel : AppViewModelBase
@@ -110,7 +111,7 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
 
         Items.Replace(result.Content!.Items
             .Where(static x => !x.IsDeleted)
-            .Select(static x => new CustomerItem(x, x.Name, ViewHelper.Points(x.PointBalance), $"{x.Code}  {x.Phone}".Trim())));
+            .Select(static x => new CustomerItem(x, x.Name, x.Code, x.Phone ?? string.Empty, ViewHelper.Points(x.PointBalance))));
         Message = "該当する会員がいません。";
     }
 

@@ -5,6 +5,11 @@ using Pos.Terminal.Models.Entity;
 // 画面表示用の書式、列挙型の文言、業務ルールの文言 (XAML からは DisplayNameConverter で使う)
 public static class ViewHelper
 {
+    // StateContainer の状態 (結果を見せるときは空文字)
+    public const string LoadingState = "Loading";
+
+    public const string OfflineState = "Offline";
+
     public static string Yen(decimal value) =>
         value < 0 ? "-¥" + (-value).ToString("#,##0", CultureInfo.InvariantCulture) : "¥" + value.ToString("#,##0", CultureInfo.InvariantCulture);
 
