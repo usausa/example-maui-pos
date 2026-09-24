@@ -3,6 +3,8 @@ namespace Pos.Terminal.Modules.Shift;
 // 精算レポート: 送信済みならサーバの集計、未送信があれば端末の集計を表示する
 public sealed partial class ShiftReportViewModel : AppViewModelBase
 {
+    private readonly IDialog dialog;
+
     private readonly Session session;
 
     private readonly ShiftUsecase shifts;
@@ -18,9 +20,11 @@ public sealed partial class ShiftReportViewModel : AppViewModelBase
     public ObservableCollection<SummarySection> Sections { get; } = [];
 
     public ShiftReportViewModel(
+        IDialog dialog,
         Session session,
         ShiftUsecase shifts)
     {
+        this.dialog = dialog;
         this.session = session;
         this.shifts = shifts;
     }
@@ -92,6 +96,9 @@ public sealed partial class ShiftReportViewModel : AppViewModelBase
         loaded
             ? Share.Default.RequestAsync(new ShareTextRequest { Title = "精算レポート", Text = ShiftReportTextBuilder.Build(HeaderText, SourceText, Sections) })
             : Task.CompletedTask;
+
+    // 印刷は Bluetooth ラインプリンタを前提にしていて、まだ作っていない
+    protected override async Task OnNotifyFunction3() => await dialog.InformationAsync("印刷は未実装です。");
 
     protected override Task OnNotifyFunction4() => Navigator.ForwardAsync(ViewId.Menu);
 }

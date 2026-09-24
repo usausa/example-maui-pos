@@ -15,7 +15,7 @@
              shell:ShellProperty.Function4Text="ホーム"
              shell:ShellProperty.Function1Enabled="True"
              shell:ShellProperty.Function2Enabled="True"
-             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function3Enabled="True"
              shell:ShellProperty.Function4Enabled="True">
 
     <ScrollView BackgroundColor="{StaticResource GrayLighten3}">

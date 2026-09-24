@@ -92,6 +92,9 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
         await Share.Default.RequestAsync(new ShareFileRequest { Title = $"レシート {ReceiptNo}", File = new ShareFile(path) });
     }
 
+    // 印刷は Bluetooth ラインプリンタを前提にしていて、まだ作っていない
+    protected override async Task OnNotifyFunction3() => await dialog.InformationAsync("印刷は未実装です。");
+
     protected override async Task OnNotifyFunction4()
     {
         QrVisible = !QrVisible;
