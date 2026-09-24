@@ -30,7 +30,7 @@
 ```
 example-maui-pos/
 ├─ .editorconfig / .gitattributes / .gitignore / Directory.Build.props / Directory.Build.targets
-├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md (AI 向け: 進め方と共通の規則) / CLAUDE.md / LICENSE / README.md
+├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md (AI 向け: 進め方と共通の規則) / LICENSE / README.md
 ├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 全体と共有プロジェクト、server / terminal / sql / tests / docs は paths で対象を絞る)
 │                                    ↑ ルートに 1 セット (MAUI 用の NoWarn NU1608 を含む)
 ├─ docs/                             本設計

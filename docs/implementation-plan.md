@@ -26,7 +26,7 @@
 - [x] Jenkins のパイプライン (サーバと端末を 1 つでビルド / 検査 / テスト / 公開。Jenkins 側の設定)。  
       テストは `dotnet run --project` で実行し、`global.json` は置かない ([D-35](decisions.md#d-35-テストの実行方法))
 - [x] `AGENTS.md` を作成 (テンプレートの規約 + 本プロジェクト固有: 「DTO」不使用、Service / Usecase なし、camelCase、フォルダ構成)。  
-      `CLAUDE.md` は `AGENTS.md` を参照
+      `CLAUDE.md` は置かない (Claude も `AGENTS.md` を直接読む)
 - [x] ルート `README.md` に構成と起動方法
 
 ### shared/
@@ -714,3 +714,14 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 - [x] 入荷と店舗間移動が在庫と変動履歴に反映される (管理画面と端末で受領し、他店在庫・変動履歴で確認)。  
       統合テスト (`ApiInventoryMovementTests`、`InventoryMovementLogicTests`)、警告ゼロ、InspectCode ゼロ
+
+---
+
+## AI 向けの規則の整理 (未着手)
+
+`.claude/rules/` はこれまでの変更をいったんそのままコミットし、あとで整理する (利用者指示)。  
+あわせて skills の整備も検討する。  
+何をどう変えるかは着手時に決める。
+
+- [ ] `.claude/rules/` を整理する
+- [ ] skills (`.claude/skills/`) の整備を検討する

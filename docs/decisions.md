@@ -926,7 +926,7 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
 **決定**: `docs/` は人間向けの設計文書として現状 (何を・なぜ) だけを書き、どう実装すべきかの規則は AI 向けに `AGENTS.md` と `.claude/rules/` に置く (AI がコードを書く前提)。
 
 - `AGENTS.md`: 仕事の進め方 (コーディングスタイル・検証・進め方)。  
-  `CLAUDE.md` が取り込む。  
+  Claude も `AGENTS.md` を直接読むので `CLAUDE.md` は置かない (取り込むだけだったので削除した。利用者指示)。  
   構成と層のようなコードの規則は書かない
 - `.claude/rules/`: コードの書き方を領域別に。  
   `common.md` は全体と共有プロジェクト (`Pos.Domain` / `Pos.Contract`) の規則で常時読み込み、`server.md` / `terminal.md` / `sql.md` / `tests.md` / `docs.md` は `paths` フロントマターで対象のファイルを扱うときだけ読み込む
