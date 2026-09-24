@@ -4,7 +4,7 @@
 <PageTitle>POS 管理 - 税率</PageTitle>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-    <MudText Typo="Typo.h5">🏷 税率</MudText>
+    <MudText Typo="Typo.h5">🏷️ 税率</MudText>
     <MudSpacer />
     <MudSwitch T="bool" @bind-Value="includeDeleted" @bind-Value:after="LoadAsync" Label="削除済みを表示" Color="Color.Primary" />
     <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>

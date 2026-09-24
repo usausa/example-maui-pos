@@ -73,7 +73,7 @@ C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
 | 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxResponseItem`。端末発 (取引・シフト・入出金・在庫変動) は本文の `id` を必須とし、**同じ `id` が既に存在すれば `200 OK` で既存を返す**。本文が既存と一致しない場合は `409 Conflict` (`DUPLICATE_ID_MISMATCH`) |
 | 更新 | 管理系は `PUT /resources/{id}` (`XxxUpdateRequest`、全体置換)。本文の `version` で楽観ロック。不一致なら `409 Conflict` (`VERSION_MISMATCH`) |
 | 削除 | 管理系は `DELETE /resources/{id}` で論理削除 (`isDeleted = true`)。取引など履歴は削除しない。削除後も `GET /resources/{id}` は `isDeleted: true` で返し、更新・再削除は `404` |
-| 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422` |
+| 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422`。本文の JSON や引数の型が読めない要求も `400` (`VALIDATION_ERROR`、[D-61](decisions.md#d-61-要求の読み取りの失敗も-400-の-problem-details-にする)) |
 | 重複 | コード・バーコード等の一意制約違反は `409` (`DUPLICATE_CODE`)。`IDialect.IsDuplicate` で SQLite の制約違反を判定する |
 
 ### 2.4 エラー応答

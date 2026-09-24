@@ -26,9 +26,20 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             return ValueTask.FromResult(false);
         }
 
+        // 要求の読み取りの失敗 (壊れた JSON など。ThrowOnBadRequest で例外になる) は、その状態コード (400) で返し、未処理の例外として記録しない
+        if (exception is BadHttpRequestException badRequest)
+        {
+            return WriteProblemAsync(httpContext, exception, badRequest.StatusCode, null);
+        }
+
         logger.ErrorUnhandledException(exception);
 
-        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        return WriteProblemAsync(httpContext, exception, StatusCodes.Status500InternalServerError, "An unexpected error occurred.");
+    }
+
+    private ValueTask<bool> WriteProblemAsync(HttpContext httpContext, Exception exception, int status, string? title)
+    {
+        httpContext.Response.StatusCode = status;
 
         return problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
@@ -36,8 +47,8 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             Exception = exception,
             ProblemDetails = new ProblemDetails
             {
-                Status = StatusCodes.Status500InternalServerError,
-                Title = "An unexpected error occurred."
+                Status = status,
+                Title = title
             }
         });
     }

@@ -112,8 +112,15 @@
 
     <s:MapToTextConverter x:Key="StockTypeTextConverter">
         <s:MapToTextConverter.Entries>
-            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}" Value="📋 棚卸" />
-            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}" Value="🔧 調整" />
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}" Value="棚卸" />
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}" Value="調整" />
+        </s:MapToTextConverter.Entries>
+    </s:MapToTextConverter>
+
+    <s:MapToTextConverter x:Key="StockTypeIconConverter">
+        <s:MapToTextConverter.Entries>
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}" Value="{x:Static fonts:MaterialIcons.Assignment}" />
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}" Value="{x:Static fonts:MaterialIcons.Build}" />
         </s:MapToTextConverter.Entries>
     </s:MapToTextConverter>
 
@@ -1449,6 +1456,18 @@
         <Setter Property="FontAttributes" Value="Bold" />
     </Style>
 
+    <Style x:Key="PosChipStack"
+           TargetType="HorizontalStackLayout">
+        <Setter Property="Spacing" Value="3" />
+    </Style>
+
+    <Style x:Key="PosChipIconLabel"
+           TargetType="Label">
+        <Setter Property="FontFamily" Value="{x:Static fonts:MaterialIcons.FontFamily}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
     <!-- 件数や状態のチップを折り返して並べる (StatusChip) -->
 
     <Style x:Key="PosChipFlexLayout"
@@ -1787,6 +1806,36 @@
         <Setter Property="TextColor" Value="White" />
         <Setter Property="FontSize" Value="14" />
     </Style>
+
+    <!-- アイコンだけのボタン (番号入力) -->
+    <Style x:Key="PosMethodIconButton"
+           TargetType="Button"
+           BasedOn="{StaticResource PosMethodButton}">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="WidthRequest" Value="48" />
+        <Setter Property="FontFamily" Value="{x:Static fonts:MaterialIcons.FontFamily}" />
+        <Setter Property="FontSize" Value="22" />
+    </Style>
+
+    <!-- 濃い背景のボタンの記号は白い単色のアイコンにする (色付きの絵文字は背景に溶ける) -->
+
+    <FontImageSource x:Key="PosSearchIcon"
+                     FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
+                     Glyph="{x:Static fonts:MaterialIcons.Search}"
+                     Color="White"
+                     Size="18" />
+
+    <FontImageSource x:Key="PosDialpadIcon"
+                     FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
+                     Glyph="{x:Static fonts:MaterialIcons.Dialpad}"
+                     Color="White"
+                     Size="18" />
+
+    <FontImageSource x:Key="PosCartIcon"
+                     FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
+                     Glyph="{x:Static fonts:MaterialIcons.Shopping_cart}"
+                     Color="White"
+                     Size="30" />
 
     <!-- Field (フォーム入力) -->
 

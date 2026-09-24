@@ -10,7 +10,7 @@ public sealed class HoldItem : NotificationObject
 
     public string TotalText => ViewHelper.Yen(Entity.Total);
 
-    public string TimeText => "⏸ " + ViewHelper.DateTime(Entity.CreatedAt);
+    public string TimeText => "⏸️ " + ViewHelper.DateTime(Entity.CreatedAt);
 
     public bool IsSelected
     {

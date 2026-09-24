@@ -155,7 +155,7 @@
 
             <!-- 設定 -->
             <Label Style="{StaticResource PosSectionLabel}"
-                   Text="⚙ 設定" />
+                   Text="⚙️ 設定" />
             <Grid Style="{StaticResource PosListRowGrid}"
                   ColumnDefinitions="*,Auto">
                 <Label Grid.Column="0"

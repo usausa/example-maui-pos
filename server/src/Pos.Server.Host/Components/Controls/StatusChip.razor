@@ -1,7 +1,7 @@
-<MudChip T="string" Color="Value.Color" Size="Size.Small" Label="true" Class="ma-0">@Value.Text</MudChip>
+<MudChip T="string" Color="Value.Color" Size="Size.Small" Label="true" Icon="@Value.Icon" Class="ma-0">@Value.Text</MudChip>
 
 @code {
-    // ViewHelper のチップ (文言と色)
+    // ViewHelper のチップ (文言・色・アイコン)
     [Parameter]
-    public (string Text, Color Color) Value { get; set; }
+    public (string Text, Color Color, string? Icon) Value { get; set; }
 }

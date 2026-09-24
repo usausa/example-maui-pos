@@ -33,7 +33,7 @@
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
         @if (ShiftId is not null)
         {
-            <MudChip T="string" Color="Color.Info" Size="Size.Small" OnClose="ClearShiftAsync">💰 シフトで絞り込み中</MudChip>
+            <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.FilterAlt" OnClose="ClearShiftAsync">シフトで絞り込み中</MudChip>
         }
     </MudStack>
 </MudPaper>

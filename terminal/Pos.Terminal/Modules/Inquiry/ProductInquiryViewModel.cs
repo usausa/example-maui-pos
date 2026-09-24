@@ -93,7 +93,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
                 new SummaryRow(value.TrackInventory ? "在庫数" : "在庫管理対象外", value.TrackInventory ? ViewHelper.Quantity(level?.Quantity ?? 0m) + (value.Unit ?? string.Empty) : "-"),
                 new SummaryRow("更新", level is null ? "-" : ViewHelper.DateTime(level.UpdatedAt))
             ]),
-            new SummarySection("ℹ 商品情報",
+            new SummarySection("ℹ️ 商品情報",
             [
                 new SummaryRow("部門", category?.Name ?? "-"),
                 new SummaryRow("ブランド / 型番", $"{value.Brand} {value.ModelNo}".Trim()),

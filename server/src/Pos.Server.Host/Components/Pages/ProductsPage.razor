@@ -4,7 +4,7 @@
 <PageTitle>POS 管理 - 商品</PageTitle>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-    <MudText Typo="Typo.h5">🏷 商品</MudText>
+    <MudText Typo="Typo.h5">🏷️ 商品</MudText>
     <MudSpacer />
     <MudButton StartIcon="@Icons.Material.Filled.FileDownload" Variant="Variant.Outlined" Size="Size.Small" Href="@ExportUrls.ProductsCsv">CSV</MudButton>
     <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
@@ -23,7 +23,7 @@
         <MudSelect Class="min-w-140" T="bool?" @bind-Value="isActive" Label="販売状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
             <MudSelectItem T="bool?" Value="null">すべて</MudSelectItem>
             <MudSelectItem T="bool?" Value="true">✅ 販売中</MudSelectItem>
-            <MudSelectItem T="bool?" Value="false">⏸ 販売停止</MudSelectItem>
+            <MudSelectItem T="bool?" Value="false">⏸️ 販売停止</MudSelectItem>
         </MudSelect>
         <MudSwitch T="bool" @bind-Value="includeDeleted" Label="削除済みを表示" Color="Color.Primary" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>

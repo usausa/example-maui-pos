@@ -1,5 +1,6 @@
 namespace Pos.Server;
 
+using System.Text;
 using System.Text.Json;
 
 using Pos.Contract.Categories;
@@ -104,6 +105,21 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
 
         Assert.NotNull(problem.Errors);
         Assert.NotEmpty(problem.Errors);
+    }
+
+    // 壊れた JSON の本文も 400 + VALIDATION_ERROR (開発環境では読み取りの失敗が例外になっても 500 にしない)
+    [Fact]
+    public async Task MalformedJsonReturnsValidationProblem()
+    {
+        // Arrange
+        var client = factory.CreateClient();
+        using var content = new StringContent("{", Encoding.UTF8, "application/json");
+
+        // Act
+        using var response = await client.PostAsync(new Uri(ApiRoutes.Categories, UriKind.Relative), content, Token);
+
+        // Assert
+        await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
     }
 
     [Fact]

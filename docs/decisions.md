@@ -1028,3 +1028,34 @@ SQL は `UPDATE` / `SET` / `WHERE` などの句を行頭に置き、表名・列
   影は付けない
 - オンラインで取る画面 (売上照会・会員照会) の集計中と取得できないときは、結果の上に案内を重ねて隠す。  
   CommunityToolkit の `StateContainer` は、既定の中身が `CollectionView` のときに状態を戻しても一覧が描かれず、高さが自動の親の中では中身が空になったため使わない
+
+### D-60. 濃い背景の記号は白いアイコンにする
+
+Android の標準フォントに文字の形がある記号 (ℹ ⚙ ↩ ▶ ⬇ ⬆ ☁ など) は、U+FE0F が無いと細い文字で描かれ、隣の色付きの絵文字とそろわなかった (利用者指摘)。  
+一方、塗りつぶしのチップや色付きのボタン (管理画面の状態チップ、端末の検索・番号入力・削除・販売のキー) では、色付きの絵文字が背景に溶けて読みにくかった (赤いチップの 🔴、緑のチップの ✅ など。利用者指摘)。
+
+| 案 | 内容 |
+| --- | --- |
+| A. すべて色付きの絵文字 | U+FE0F を付ければ細い文字は無くなるが、濃い背景の上の絵文字は読みにくいまま |
+| B. すべて単色のアイコン | 見出しや一覧の絵文字 ([D-39](#d-39-管理画面の表現-絵文字チップバッジ) / [D-59](#d-59-端末の画面の表現-平らな面に状態と動きを足す) の表現) もやめることになる |
+| ✅ **C. 背景で分ける** | 明るい背景 (見出し・一覧・メニュー・ホームのキー・表のセル) は U+FE0F を付けて色付きの絵文字にそろえる。濃い背景 (塗りつぶしのチップ、色付きのボタン) は白い単色の Material Icons にする |
+
+**決定**: ✅ **C** (利用者指示)。
+
+- 管理画面: `ViewHelper` のチップを (文言, 色, アイコン) の組にし、`StatusChip` が `MudChip` の `Icon` で出す。  
+  チップの文言からは絵文字を外した (D-39 の「絵文字付きの文言」から変更)
+- 端末: `StatusChip` に `Icon` (Material Icons のグリフ) を足した。  
+  濃い背景のボタンは白い `FontImageSource` (`PosSearchIcon` / `PosDialpadIcon` / `PosCartIcon`) を文言と並べ、アイコンだけのボタン (番号入力・削除) は MaterialIcons のフォントで描く。  
+  選択で背景が濃くなる入出金の種別ボタンは、トリガーで選択中だけ白いアイコンに替える
+- シートの ✔ / ✕ は元から白い文字で描かれるので、そのままにする
+
+### D-61. 要求の読み取りの失敗も 400 の Problem Details にする
+
+最小 API は、本文の JSON や引数の型が読めない要求を、開発環境でだけ例外 (`BadHttpRequestException`) にし、本番では本文のない 400 を返す (`RouteHandlerOptions.ThrowOnBadRequest` の既定)。  
+例外処理 (`GlobalExceptionHandler`) はこの例外も 500 にしていたため、開発環境は 500、本番は `errorCode` の無い 400 となり、設計 (入力エラーは 400 + `VALIDATION_ERROR`) とも環境の間でも食い違っていた。
+
+**決定**: `ThrowOnBadRequest` をどの環境でも有効にし、`GlobalExceptionHandler` が `BadHttpRequestException` をその状態コード (400) の Problem Details で返す。  
+未処理の例外としては記録しない。  
+`errorCode` (`VALIDATION_ERROR`) と `traceId` は既存の `CustomizeProblemDetails` が付ける。
+
+- 統合テスト `MalformedJsonReturnsValidationProblem` で壊れた JSON の 400 を確かめる (テストは開発環境で動く)

@@ -37,7 +37,8 @@
                     Style="{StaticResource PosMethodButton}"
                     Margin="0"
                     Command="{Binding SearchCommand}"
-                    Text="🔍 検索" />
+                    ImageSource="{StaticResource PosSearchIcon}"
+                    Text="検索" />
         </Grid>
 
         <!-- 結果と詳細。検索中と取得できないときは上に重ねて隠す -->

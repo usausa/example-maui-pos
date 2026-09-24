@@ -213,6 +213,9 @@ public static class ApplicationExtensions
             };
         });
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+        // 要求の読み取りの失敗 (壊れた JSON・型の合わない引数) は既定では開発環境でだけ例外になり、本番は本文のない 400 になる。
+        // どの環境でも例外にし、GlobalExceptionHandler が Problem Details (400 + VALIDATION_ERROR) で返す
+        builder.Services.Configure<RouteHandlerOptions>(static options => options.ThrowOnBadRequest = true);
 
         return builder;
     }

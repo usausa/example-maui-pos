@@ -7,15 +7,17 @@ using Pos.Server.Host.Components.Controls;
 
 public sealed class StatusChipTests : MudBlazorTestBase
 {
+    // 塗りつぶしのチップは文言と単色のアイコン (絵文字は背景に溶けるので使わない)
     [Fact]
-    public void RenderShowsTextAndColor()
+    public void RenderShowsTextColorAndIcon()
     {
         // Arrange & Act
         var cut = Render<StatusChip>(parameters => parameters.Add(static x => x.Value, ViewHelper.StatusChip(TransactionStatus.Voided)));
 
         // Assert
-        Assert.Contains("❌ 取消", cut.Markup, StringComparison.Ordinal);
+        Assert.Contains("取消", cut.Markup, StringComparison.Ordinal);
         Assert.Contains("mud-chip-color-error", cut.Markup, StringComparison.Ordinal);
+        Assert.Contains("mud-chip-icon", cut.Markup, StringComparison.Ordinal);
     }
 
     [Fact]

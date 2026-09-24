@@ -49,7 +49,7 @@ public sealed partial class ShiftReportViewModel : AppViewModelBase
         HeaderText = $"営業日 {ViewHelper.Date(shift.BusinessDate)}  {ViewHelper.Time(shift.OpenedAt)} 〜 {(shift.ClosedAt is null ? string.Empty : ViewHelper.Time(shift.ClosedAt.Value))}";
 
         var (summary, fromServer) = await shifts.QuerySummaryAsync(shift);
-        SourceText = fromServer ? "☁ サーバの集計" : session.UnsentCount > 0 ? "📱 端末の集計 (未送信あり)" : "📱 端末の集計 (オフライン)";
+        SourceText = fromServer ? "☁️ サーバの集計" : session.UnsentCount > 0 ? "📱 端末の集計 (未送信あり)" : "📱 端末の集計 (オフライン)";
 
         var totals = summary.Shift.Totals;
         var cash = summary.Cash;
@@ -74,7 +74,7 @@ public sealed partial class ShiftReportViewModel : AppViewModelBase
             ]),
             new SummarySection("💳 支払方法別", summary.ByPaymentMethod.Select(static x => new SummaryRow(x.Name, $"{ViewHelper.Yen(x.SalesAmount - x.ReturnAmount)} ({x.SalesCount}/{x.ReturnCount})")).ToList()),
             new SummarySection("🧮 税率別", summary.ByTaxRate.Select(static x => new SummaryRow($"{(x.TaxIncluded ? "内税" : "外税")} {ViewHelper.Percent(x.Rate)}", $"対象 {ViewHelper.Yen(x.TaxableAmount)}  税 {ViewHelper.Yen(x.TaxAmount)}")).ToList()),
-            new SummarySection("🗂 部門別", summary.ByCategory.Select(static x => new SummaryRow(x.Name, $"{ViewHelper.Quantity(x.Quantity)} 点  {ViewHelper.Yen(x.NetAmount)}")).ToList()),
+            new SummarySection("🗂️ 部門別", summary.ByCategory.Select(static x => new SummaryRow(x.Name, $"{ViewHelper.Quantity(x.Quantity)} 点  {ViewHelper.Yen(x.NetAmount)}")).ToList()),
             new SummarySection("🎁 ポイント",
             [
                 new SummaryRow("付与", ViewHelper.Points(summary.Points.Earned)),

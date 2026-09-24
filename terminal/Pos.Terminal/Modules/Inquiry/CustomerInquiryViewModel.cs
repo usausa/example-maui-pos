@@ -137,7 +137,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
 
         var sections = new List<SummarySection>
         {
-            new("ℹ 基本情報",
+            new("ℹ️ 基本情報",
             [
                 new SummaryRow("電話", value.Phone ?? "-"),
                 new SummaryRow("メール", value.Email ?? "-"),

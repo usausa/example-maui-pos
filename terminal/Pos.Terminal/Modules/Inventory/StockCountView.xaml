@@ -24,7 +24,8 @@
                 Style="{StaticResource PosMethodButton}"
                 Margin="8"
                 Command="{Binding InputCodeCommand}"
-                Text="🔢 JAN / 商品コードを入力" />
+                ImageSource="{StaticResource PosDialpadIcon}"
+                Text="JAN / 商品コードを入力" />
 
         <Label Grid.Row="1"
                Style="{StaticResource PosMessageLabel}"
@@ -80,6 +81,7 @@
                                 <FlexLayout Style="{StaticResource PosChipFlexLayout}">
                                     <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
                                                          ChipColor="{Binding Change.Type, Converter={StaticResource StockTypeColorConverter}}"
+                                                         Icon="{Binding Change.Type, Converter={StaticResource StockTypeIconConverter}}"
                                                          Text="{Binding Change.Type, Converter={StaticResource StockTypeTextConverter}}" />
                                     <Label Style="{StaticResource PosCodeLabel}"
                                            Text="{Binding Code}" />

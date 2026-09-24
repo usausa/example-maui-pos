@@ -86,8 +86,8 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
 
         HasUnsent = session.UnsentCount > 0;
         UnsentText = session.FailedCount > 0
-            ? $"⚠ 未送信 {session.UnsentCount} 件 (要確認 {session.FailedCount} 件)。精算前に「未送信」で確認してください。"
-            : $"⚠ 未送信 {session.UnsentCount} 件があります。送信完了を待ってから精算することを推奨します。";
+            ? $"⚠️ 未送信 {session.UnsentCount} 件 (要確認 {session.FailedCount} 件)。精算前に「未送信」で確認してください。"
+            : $"⚠️ 未送信 {session.UnsentCount} 件があります。送信完了を待ってから精算することを推奨します。";
         ShiftText = $"営業日 {ViewHelper.Date(shift.BusinessDate)}  {ViewHelper.Time(shift.OpenedAt)} 開設";
         UpdateDifference();
 
@@ -180,7 +180,7 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
         var message = $"予想現金 {ViewHelper.Yen(expectedCash)}\n実査金額 {ViewHelper.Yen(actualCash.Value)}\n過不足 {DifferenceText}\n精算しますか？";
         if (HasUnsent)
         {
-            message = $"⚠ 未送信 {session.UnsentCount} 件があります。精算後も送信は続きます。\n\n" + message;
+            message = $"⚠️ 未送信 {session.UnsentCount} 件があります。精算後も送信は続きます。\n\n" + message;
         }
 
         if (!await dialog.AskAsync(message, "精算", "精算"))

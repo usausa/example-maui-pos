@@ -1,6 +1,6 @@
 namespace Pos.Terminal.Controls;
 
-// 状態を色と短い文言 (絵文字付き) で示すチップ。色は画面側の Converter で決める
+// 状態を色と短い文言で示すチップ。色は画面側の Converter で決める
 public sealed partial class StatusChip
 {
     public static readonly BindableProperty TextProperty = BindableProperty.Create(
@@ -13,6 +13,19 @@ public sealed partial class StatusChip
     {
         get => (string)GetValue(TextProperty);
         set => SetValue(TextProperty, value);
+    }
+
+    // 文言の前の記号 (Material Icons のグリフ)。塗りつぶしの上では色付きの絵文字が背景に溶けるため、文言と同じ色の単色にする。空なら出さない
+    public static readonly BindableProperty IconProperty = BindableProperty.Create(
+        nameof(Icon),
+        typeof(string),
+        typeof(StatusChip),
+        string.Empty);
+
+    public string Icon
+    {
+        get => (string)GetValue(IconProperty);
+        set => SetValue(IconProperty, value);
     }
 
     // 既定値は GrayLighten1 (PosChipBorder と同じ)

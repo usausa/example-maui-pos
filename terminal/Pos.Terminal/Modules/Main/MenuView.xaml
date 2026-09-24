@@ -37,12 +37,13 @@
                     Style="{StaticResource MenuPrimaryButton}"
                     Command="{Binding ForwardCommand}"
                     CommandParameter="{x:Static modules:ViewId.Sales}"
-                    Text="🛒 販売" />
+                    ImageSource="{StaticResource PosCartIcon}"
+                    Text="販売" />
             <Button Grid.Row="1" Grid.Column="0"
                     Style="{StaticResource MenuButton}"
                     Command="{Binding ForwardCommand}"
                     CommandParameter="{x:Static modules:ViewId.Return}"
-                    Text="↩ 返品" />
+                    Text="↩️ 返品" />
             <Button Grid.Row="1" Grid.Column="1"
                     Style="{StaticResource MenuButton}"
                     Command="{Binding ForwardCommand}"
@@ -82,7 +83,7 @@
                     Style="{StaticResource MenuButton}"
                     Command="{Binding ForwardCommand}"
                     CommandParameter="{x:Static modules:ViewId.Setting}"
-                    Text="⚙ 設定・同期" />
+                    Text="⚙️ 設定・同期" />
         </Grid>
 
         <Label Grid.Row="2"

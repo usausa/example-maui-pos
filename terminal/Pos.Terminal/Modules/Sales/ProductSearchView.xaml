@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
+             xmlns:fonts="clr-namespace:Fonts"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
@@ -35,15 +36,16 @@
                    Placeholder="名称 / 型番 / コード" />
             <!-- 番号は電卓で入力する (キーボードに依存しない) -->
             <Button Grid.Column="1"
-                    Style="{StaticResource PosMethodButton}"
+                    Style="{StaticResource PosMethodIconButton}"
                     Margin="0"
                     Command="{Binding InputNumberCommand}"
-                    Text="🔢" />
+                    Text="{x:Static fonts:MaterialIcons.Dialpad}" />
             <Button Grid.Column="2"
                     Style="{StaticResource PosMethodButton}"
                     Margin="0"
                     Command="{Binding SearchCommand}"
-                    Text="🔍 検索" />
+                    ImageSource="{StaticResource PosSearchIcon}"
+                    Text="検索" />
         </Grid>
 
         <!-- 部門 (2 階層) -->
@@ -154,7 +156,8 @@
                                     <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
                                                          ChipColor="{StaticResource BlueGrayDefault}"
                                                          IsVisible="{Binding RequiresSerial}"
-                                                         Text="🔢 S/N 必須" />
+                                                         Icon="{x:Static fonts:MaterialIcons.Numbers}"
+                                                         Text="S/N 必須" />
                                 </FlexLayout>
                             </Grid>
                         </effects:SfEffectsView>

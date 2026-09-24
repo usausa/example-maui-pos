@@ -144,10 +144,10 @@ public sealed partial class SalesViewModel : AppViewModelBase
         var cart = SalesContext.Cart;
         var actions = new List<(string Label, MoreAction Action)>
         {
-            ("🏷 取引値引", MoreAction.Discount),
+            ("🏷️ 取引値引", MoreAction.Discount),
             ("🚚 配送先", MoreAction.Delivery),
-            ("⏸ 保留する", MoreAction.Hold),
-            ("▶ 保留を呼び出す", MoreAction.Recall),
+            ("⏸️ 保留する", MoreAction.Hold),
+            ("▶️ 保留を呼び出す", MoreAction.Recall),
             ("🧹 クリア", MoreAction.Clear)
         };
         if (cart.Discounts.Count > 0)

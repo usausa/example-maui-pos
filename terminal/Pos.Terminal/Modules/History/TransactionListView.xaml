@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
+             xmlns:fonts="clr-namespace:Fonts"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
@@ -143,7 +144,8 @@
                                     <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
                                                          ChipColor="{StaticResource BlueGrayDefault}"
                                                          IsVisible="{Binding HasCustomer}"
-                                                         Text="👤 会員" />
+                                                         Icon="{x:Static fonts:MaterialIcons.Person}"
+                                                         Text="会員" />
                                 </FlexLayout>
 
                                 <!-- 時刻・担当・支払 -->

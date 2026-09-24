@@ -7,9 +7,15 @@
         <ControlTemplate>
             <Border Style="{StaticResource PosChipBorder}"
                     BackgroundColor="{TemplateBinding ChipColor}">
-                <Label Style="{StaticResource PosChipLabel}"
-                       TextColor="{TemplateBinding TextColor}"
-                       Text="{TemplateBinding Text}" />
+                <HorizontalStackLayout Style="{StaticResource PosChipStack}">
+                    <Label Style="{StaticResource PosChipIconLabel}"
+                           TextColor="{TemplateBinding TextColor}"
+                           IsVisible="{TemplateBinding Icon, Converter={StaticResource NotEmptyConverter}}"
+                           Text="{TemplateBinding Icon}" />
+                    <Label Style="{StaticResource PosChipLabel}"
+                           TextColor="{TemplateBinding TextColor}"
+                           Text="{TemplateBinding Text}" />
+                </HorizontalStackLayout>
             </Border>
         </ControlTemplate>
     </ContentView.ControlTemplate>

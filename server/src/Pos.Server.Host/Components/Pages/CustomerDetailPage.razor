@@ -56,7 +56,7 @@ else
                 <MudText Typo="Typo.h4" Color="@ViewHelper.PointBalanceColor(customer.PointBalance)">@customer.PointBalance.ToPointText() pt</MudText>
                 @if (customer.PointBalance < 0)
                 {
-                    <StatusChip Value="@(("🔴 残高がマイナスです", Color.Error))" />
+                    <StatusChip Value="@ViewHelper.NegativeBalanceChip()" />
                 }
             </MudPaper>
         </MudItem>

@@ -149,7 +149,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
             return;
         }
 
-        var index = await popupNavigator.ChooseAsync(["🔁 再送する", "🗑 破棄する (サーバには送らない)", "ℹ 詳細"], kind);
+        var index = await popupNavigator.ChooseAsync(["🔁 再送する", "🗑️ 破棄する (サーバには送らない)", "ℹ️ 詳細"], kind);
         switch (index)
         {
             case 0:

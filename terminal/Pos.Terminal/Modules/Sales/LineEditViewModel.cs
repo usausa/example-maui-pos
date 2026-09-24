@@ -52,9 +52,9 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
     [ObservableProperty]
     public partial string SerialCaption { get; set; } = string.Empty;
 
-    public EntryController Serial { get; } = new();
+    public EntryController Serial { get; }
 
-    public EntryController Note { get; } = new();
+    public EntryController Note { get; }
 
     public IObserveCommand DecrementCommand { get; }
 
@@ -96,6 +96,9 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
         });
         CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync(LineEditResult.Cancel));
         CommitCommand = MakeAsyncCommand(CommitAsync);
+        // キーボードの Enter でも確定する (キーボードが出ている間はシートの下段ボタンが隠れる)
+        Serial = new EntryController(CommitCommand);
+        Note = new EntryController(CommitCommand);
     }
 
     public void Initialize(LineEditParameter parameter)

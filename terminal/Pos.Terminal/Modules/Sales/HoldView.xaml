@@ -27,7 +27,7 @@
             <CollectionView.EmptyView>
                 <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
                     <Label Style="{StaticResource PosEmptyIconLabel}"
-                           Text="⏸" />
+                           Text="⏸️" />
                     <Label Style="{StaticResource PosMessageLabel}"
                            Text="保留中の会計はありません。" />
                 </VerticalStackLayout>
