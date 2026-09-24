@@ -19,9 +19,12 @@ public sealed class ReceiptService
 
     public async ValueTask<byte[]> BuildAsync(TransactionResponseItem transaction)
     {
+        // シリアル番号で探した他の店舗・端末の取引は、その店舗と端末で組み立てる
+        var store = transaction.StoreId == session.StoreId ? session.Store : await accessor.QueryStoreAsync(transaction.StoreId);
+        var terminal = transaction.TerminalId == session.TerminalId ? session.Terminal : await accessor.QueryTerminalAsync(transaction.TerminalId);
         var staff = await accessor.QueryStaffAsync(transaction.StaffId);
         var methods = (await accessor.QueryPaymentMethodListAsync()).ToDictionary(static x => x.Id, static x => x.Name);
-        var text = ReceiptTextBuilder.Build(transaction, session.Store, session.Terminal?.Name ?? string.Empty, staff?.Name ?? string.Empty, methods);
+        var text = ReceiptTextBuilder.Build(transaction, store, terminal?.Name ?? string.Empty, staff?.Name ?? string.Empty, methods);
         // SkiaSharp の描画は UI スレッドを塞ぐので背景で行う
         return await Task.Run(() => ReceiptImageBuilder.Build(text));
     }

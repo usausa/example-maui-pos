@@ -261,7 +261,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | `trackInventory` | bool | 在庫管理対象 (`Service` は false) |
 | `allowsPriceOverride` | bool | 売価変更可 (オープン価格・配送料など) |
 | `unit` | string(10)? | 単位 (個 / 本 / m) |
-| `imageUrl` | string? | 画像 URL (未使用。`ProductCreateRequest` / `ProductUpdateRequest` には含めない) |
+| `imageUrl` | string? | 画像の URL (`/api/v1/products/{id}/image?v={内容のハッシュ}`。画像がなければ `null`)。`ProductCreateRequest` / `ProductUpdateRequest` には含めず、画像の API でだけ変わる ([D-65](decisions.md#d-65-商品画像-db-に持ち内容のハッシュ付きの-url-で配る)) |
 | `isActive` | bool | 販売可否 (false = 販売停止だがマスタは残す) |
 | `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
@@ -274,6 +274,28 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | PUT | `/products/{id}` | 管理 | 更新 |
 | DELETE | `/products/{id}` | 管理 | 論理削除 |
 | GET | `/products/csv` | 管理 | CSV 出力 (BOM 付き UTF-8、削除済みを除く全件) |
+| POST | `/products/import?dryRun` | 管理 | CSV 取込 (本文に CSV、`Content-Type: text/csv`)。後述 |
+| GET | `/products/{id}/image?v=` | 端末 / 管理 | 画像 (JPEG / PNG)。`v` が今の画像と一致すれば `Cache-Control: private, max-age=31536000, immutable`、それ以外は `no-cache`。`ETag` で再検証できる (`304`)。画像がなければ `404` |
+| PUT | `/products/{id}/image` | 管理 | 画像の登録・置き換え。本文に画像そのもの (`Content-Type: image/jpeg` / `image/png`、2 MB まで。形式は先頭のバイトでも確かめる)。応答は商品 (`imageUrl` が変わり、`updatedAt` / `version` が進むので端末の差分同期に載る)。Content-Type が違えば `415`、2 MB を超えれば `413`、画像でなければ `422` |
+| DELETE | `/products/{id}/image` | 管理 | 画像の削除 (`204`。画像がなければ何もしない) |
+
+#### CSV 取込 (`POST /products/import`)
+
+列は CSV 出力と同じ (出力して編集して戻せる。参照用の「部門」は読まない)。  
+文字コードは UTF-8 (BOM の有無を問わない) と Shift_JIS を判別する。  
+コードが一致すれば更新、なければ登録し、変更のない行は書き込まない。  
+CSV にない商品は削除しない ([D-66](decisions.md#d-66-商品の-csv-取込-全行を検証してから-1-トランザクションで反映する))。
+
+| 項目 | 仕様 |
+| --- | --- |
+| 値 | 部門・税率はコード、種別は `Goods` / `Service`、真偽は `True` / `False` (`1` / `0` も可)、金額は 0 以上 (桁区切り可)、還元率は 0〜1 |
+| 誤り | 必須・長さ・値の形式、部門・税率のコードがない、ファイルの中のコード・JAN の重複、他の商品 (削除済みを含む) の JAN・削除済みの商品のコード |
+| `dryRun=true` | 検証だけ。誤りのある行も `200` で `ProductImportResponse` を返す |
+| 反映 | 1 行でも誤りがあれば何も反映せず `422` (`VALIDATION_ERROR`、`errors` は行番号ごとの文言)。全行が正しければ 1 トランザクションで反映して `200`。検証の後に他で変わっていれば `409` (`VERSION_MISMATCH`) |
+| 形式の誤り | 列が足りない・行がない `400`、`text/csv` 以外 `415`、5 MB 超 `413` |
+
+`ProductImportResponse`: `{ dryRun, insertCount, updateCount, unchangedCount, errorCount, items: [{ lineNo, code, name, action (Insert / Update / Unchanged / Error), errors[] }] }`。  
+`lineNo` はファイルの行番号 (見出しが 1 行目)。
 
 ### 3.8 値引 (Discounts)
 
@@ -337,7 +359,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
   "products": [ /* 3.7 */ ],                  // 論理削除済みも isDeleted: true で含む
   "discounts": [ /* 3.8 */ ],
   "paymentMethods": [ /* 3.9 */ ],
-  "adjustmentReasons": [ /* 3.14 */ ]
+  "adjustmentReasons": [ /* 3.16 */ ]
 }
 ```
 
@@ -420,6 +442,8 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | `delivery` | object? | 入力 | 配送情報 (下記、[D-08](decisions.md#d-08-配送情報)) |
 | `note` | string(500)? | 入力 | |
 | `void` | object? | 入力 / サーバ | `{ voidedAt, voidedByStaffId, reason }` |
+| `orderId` | guid? | 入力 | 受注から会計したとき (`Sale` のみ。[§3.15](#315-受注-orders)) |
+| `orderNo` | string? | サーバ | 受注番号 (受注から会計した取引) |
 | `warnings[]` | `{ code, message, lineId? }[]` | サーバ | 受理したが確認が必要な事項 ([§5](#5-エラーコード) の警告コード) |
 | `createdAt`, `updatedAt` | datetime | サーバ | |
 
@@ -549,8 +573,9 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | POST | `/transactions` | 端末 | 取引登録 (`TransactionCreateRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `422` 検証エラー |
-| GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&page&size` | 端末 / 管理 | 取引検索 (`transactedAt` 降順、`TransactionResponse`) |
+| GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&serialNumber&page&size` | 端末 / 管理 | 取引検索 (`transactedAt` 降順、`TransactionResponse`)。`serialNumber` は明細のシリアル番号の完全一致 (端末は全店の取引を探す) |
 | GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionResponse`) |
+| GET | `/transactions/{id}/receipt/pdf` | 管理 | レシートの控え (再発行) の PDF。項目は端末のレシートと同じ ([D-67](decisions.md#d-67-レシートの控え-pdf-サーバの帳票で端末と同じ項目を出す)) |
 | GET | `/transactions/lookup?receiptNo=` | 端末 | 返品時のレシート番号検索 |
 | POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, reason, voidedAt }` → `200` 取引 |
 | POST | `/transactions/calculate` | 端末 / 管理 | 入力項目 (`type`, `originalTransactionId`, `lines[]`, `discounts[]`, `payments[]`) を送り (`TransactionCalculateRequest`)、計算項目 (`TransactionCalculateResponse`) を返す (登録しない)。共有ライブラリの検証用 |
@@ -569,7 +594,10 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 7. `pointsEarned > 0` または `pointsRedeemed > 0` のとき `customerId` が必須 (`CUSTOMER_REQUIRED`)
 8. ポイント残高不足は**受理して警告**にとどめる (取引は店頭で成立済み)。  
    残高は負になり得るので管理画面で確認できるようにする
-9. 登録時の副作用: `trackInventory` の明細ごとに在庫変動 (`Sale`, −数量)、ポイント履歴 (`Redeem` → `Earn` の順)、`terminals.lastReceiptSeq` 更新
+9. 店舗 × 営業日が締め済みでも**受理して警告** (`DAY_ALREADY_CLOSED`) にとどめ、日次締めに締め後の取引の印を付ける ([§3.14](#314-日次締め-dailyclosings))
+10. `orderId` があれば、その受注が自店の引き渡し待ちであること (`ORDER_NOT_FOUND` / `ORDER_NOT_READY`)。  
+    登録と同じトランザクションで受注を完了にする ([§3.15](#315-受注-orders))
+11. 登録時の副作用: `trackInventory` の明細ごとに在庫変動 (`Sale`, −数量)、ポイント履歴 (`Redeem` → `Earn` の順)、`terminals.lastReceiptSeq` 更新
 
 **返品 (`type = Return`)**
 
@@ -578,13 +606,15 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 3. 明細金額・値引・ポイントは元明細から [§4.5](#45-返品) の式で導出した値と一致すること
 4. `payments` は返金方法。  
    Σ `amount = total`、`tenderedAmount = amount`、`changeAmount = 0`
-5. 副作用: 在庫変動 (`Return`, +数量)、ポイント履歴 (`Revoke` / `Refund`)、元明細の `returnedQuantity` 加算
+5. 締め済みの営業日は販売と同じく受理して警告 (`DAY_ALREADY_CLOSED`)
+6. 副作用: 在庫変動 (`Return`, +数量)、ポイント履歴 (`Revoke` / `Refund`)、元明細の `returnedQuantity` 加算
 
 **取消 (`POST /transactions/{id}/void`)**
 
 1. 対象が `Completed` で、そのシフトが `Open` であること (精算後は取消不可、返品で対応) (`SHIFT_CLOSED`)
 2. `Sale` に返品が紐付いていれば取消不可 (`HAS_RETURNS`)
-3. 副作用: 在庫変動 (`Void`, 逆方向)、ポイント履歴 (`Void`)、`Return` の取消なら元明細の `returnedQuantity` を戻す。  
+3. 取引の店舗 × 営業日が締め済みなら取消不可 (`DAY_CLOSED`。返品で対応)
+4. 副作用: 在庫変動 (`Void`, 逆方向)、ポイント履歴 (`Void`)、`Return` の取消なら元明細の `returnedQuantity` を戻し、受注から会計した `Sale` の取消なら受注を引き渡し待ちに戻す。  
    取消済み取引は集計から除外
 
 ### 3.13 レジ開閉・現金管理 (Shifts)
@@ -659,10 +689,122 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 - 精算後の再開はしない (翌営業日は新しいシフト)。  
   精算後の訂正は返品または手動調整で行う
 
-### 3.14 在庫 (Inventory)
+### 3.14 日次締め (DailyClosings)
+
+店舗 × 営業日の締め ([D-63](decisions.md#d-63-日次締め-締めた時点の日計を持ち締め後の取消を止める))。  
+締めた時点の日計と内訳を確定し、以後その営業日の取引は取消できない。  
+締めた後に届いた同じ営業日の取引は受け付けて印を付け、締めを解除して締め直すと日計に入る。
+
+#### 日次締めの項目 (`DailyClosingResponseItem`)
+
+一覧の要素は店舗 × 営業日 (シフト・取引・締めのある日) で、未締めの日も含む。  
+締め済みは締めた時点の日計、未締めは取引からの集計 (取消済みを除き、返品は負。[§3.17](#317-レポート-reports) の売上集計と同じ定義)。
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `id` | guid? | 締め済みのときだけ |
+| `storeId` | guid | |
+| `businessDate` | date | 営業日 |
+| `status` | enum | `Open` (未締め) / `Closed` (締め済み) |
+| `hasLateTransactions` | bool | 締めた後に同じ営業日の取引が届いた (締め直すまで日計に含まれない) |
+| `shiftCount` | int | その営業日のシフトと、その営業日の取引を含むシフト (営業日の切替時刻をまたいで開いていたシフト) の数 |
+| `openShiftCount` | int | そのうち未精算のシフト (現在の状態。1 件でもあれば締められない) |
+| `salesCount`, `returnCount`, `voidCount` | int | 販売・返品・取消の件数 |
+| `customerCount` | int | 客数 (会員の人数) |
+| `salesTotal`, `returnsTotal`, `netSales`, `discountTotal`, `taxTotal` | money | |
+| `pointsEarned`, `pointsRedeemed` | int | |
+| `closedAt` | datetime? | |
+| `closedBy` | string? | 締めた管理画面のアカウント名 (認証の導入までは `null`) |
+
+`DailyClosingSummaryResponse` (締めの内容。内訳は締め済みなら締めた時点、未締めなら取引からの集計。シフトは現在の状態):
+
+```jsonc
+{
+  "dailyClosing":    { /* DailyClosingResponseItem */ },
+  "byPaymentMethod": [ { "paymentMethodId": "...", "name": "現金", "kind": "Cash",
+                         "salesAmount": 125000, "salesCount": 40, "returnAmount": 2000, "returnCount": 1 } ],
+  "byTaxRate":       [ { "taxRateId": "...", "rate": 0.10, "taxIncluded": true, "taxableAmount": 300000, "taxAmount": 27272 } ],
+  "shifts":          [ { "id": "...", "terminalId": "...", "status": "Closed", "businessDate": "2026-09-11",
+                         "openedAt": "...", "openedByStaffId": "...", "closedAt": "...", "closedByStaffId": "...",
+                         "expectedCash": 143000, "actualCash": 142900, "difference": -100 } ]
+}
+```
+
+#### エンドポイント
+
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| POST | `/daily-closings` | 管理 | 締め `DailyClosingCreateRequest { storeId, businessDate }` → `201` + `DailyClosingSummaryResponse`。シフトのない日は `422` (`SHIFT_NOT_FOUND`)、未精算のシフトがあれば `422` (`SHIFT_STILL_OPEN`)、締め済みは `409` (`ALREADY_CLOSED`) |
+| GET | `/daily-closings?storeId&status&from&to&sort&desc&page&size` | 管理 | 店舗 × 営業日の一覧 (`DailyClosingResponse`)。営業日の降順、同じ日は店舗コード順。`sort` = `businessDate` / `netSales` |
+| GET | `/daily-closings/preview?storeId&businessDate` | 管理 | その日の内容 (`DailyClosingSummaryResponse`)。未締めの日は締める前の確認に使う |
+| GET | `/daily-closings/{id}` | 管理 | 締めた内容 (`DailyClosingSummaryResponse`) |
+| DELETE | `/daily-closings/{id}` | 管理 | 締め解除 (日計と内訳を消して未締めに戻す) → `204` |
+
+売上日報の PDF は [§3.17](#317-レポート-reports) の `/reports/sales/daily/pdf` (取引から都度集計) を使う。
+
+#### 業務ルール
+
+- 締めるには、その営業日にシフトがあり、関係するシフト (その営業日のシフトと、その営業日の取引を含むシフト) がすべて精算済みであること
+- 締めた営業日の取引は取消できない (`DAY_CLOSED`)。  
+  返品で対応する
+- 締めた後に届いた同じ営業日の取引 (オフラインだった端末の送信、締めた後に開設したシフト) は受理し、`warnings[]` に `DAY_ALREADY_CLOSED` を付けて `hasLateTransactions` を立てる。  
+  締めを解除して締め直すと日計に入る
+- 締め解除は認証の導入後 Administrator だけにする
+
+### 3.15 受注 (Orders)
+
+取り寄せ・取り置きの約束 ([D-64](decisions.md#d-64-受注-会計前の約束を別の資源で持ち会計で完了にする))。  
+会計は取引 ([§3.12](#312-取引-transactions)) で行い、`orderId` を付けた会計で受注が完了になる。  
+端末からの登録と状態の変更はオンライン限定。
+
+#### 受注の項目 (`OrderResponseItem`)
+
+| フィールド | 型 | 区分 | 説明 |
+| --- | --- | --- | --- |
+| `id` | guid | 入力 | 端末 / 管理画面が採番 |
+| `orderNo` | string | サーバ | `{店舗コード}-O-{連番:000000}` (店舗ごとの連番) |
+| `storeId` | guid | 入力 | |
+| `terminalId` | guid? | 入力 | 管理画面で登録したときは `null` |
+| `staffId` | guid | 入力 | 担当 |
+| `customerId` | guid? | 入力 | 会員 |
+| `customerName` | string(100) | 入力 | 宛名。会員のときは省略でき、会員の名前を使う (会員か宛名のどちらかが必要) |
+| `phone` | string(20)? | 入力 | 省略すると会員の電話 |
+| `type` | enum | 入力 | `BackOrder` (取り寄せ) / `Hold` (取り置き) |
+| `status` | enum | サーバ | `Ordered` (入荷待ち) / `Arrived` (引き渡し待ち) / `Completed` (完了) / `Cancelled` (キャンセル)。取り置きは `Arrived` から始まる |
+| `requestedDate` | date? | 入力 | 希望日 (入荷予定・取り置きの期限) |
+| `note` | string(500)? | 入力 | |
+| `total` | money | サーバ | 明細の金額の合計 (税・値引は会計で決まる) |
+| `transactionId` | guid? | サーバ | 会計した取引 (完了のとき) |
+| `orderedAt` | datetime | 入力 | 省略すると登録時刻 |
+| `arrivedAt`, `completedAt`, `cancelledAt` | datetime? | サーバ | |
+| `cancelReason` | string(200)? | 入力 (キャンセル時) | |
+| `lines[]` | object[] | 入力 | `{ id, lineNo, productId, productCode, productName, quantity, unitPrice, amount, note }`。`amount` はサーバが計算する (単価 × 数量の切り捨て) |
+| `createdAt`, `updatedAt`, `version` | | サーバ | |
+
+#### エンドポイント
+
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| POST | `/orders` | 端末 / 管理 | 登録 (`OrderCreateRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `400` 会員も宛名もない / `422` 商品・会員・店舗が見つからない |
+| GET | `/orders?storeId&status&open&type&customerId&keyword&from&to&sort&desc&page&size` | 端末 / 管理 | 一覧 (`OrderResponse`)。`open=true` は未完了だけ、`keyword` は受注番号・宛名・電話の部分一致、`from` / `to` は受注日。`sort` = `orderedAt` / `orderNo` / `requestedDate` |
+| GET | `/orders/{id}` | 端末 / 管理 | 詳細 |
+| PUT | `/orders/{id}` | 管理 | 変更 (`OrderUpdateRequest`: 会員・宛名・電話・希望日・備考・明細 (全体を置き換える)・`version`)。完了・キャンセル済みは `422` (`ORDER_STATUS_INVALID`)、版の不一致は `409` |
+| POST | `/orders/{id}/arrive` | 端末 / 管理 | 入荷 (入荷待ちのときだけ。それ以外は `422` `ORDER_STATUS_INVALID`) |
+| POST | `/orders/{id}/cancel` | 端末 / 管理 | キャンセル `OrderCancelRequest { reason }` (未完了のときだけ) |
+
+#### 業務ルール
+
+- 会計: `TransactionCreateRequest.orderId` の受注が自店の引き渡し待ちであること (`ORDER_NOT_FOUND` / `ORDER_NOT_READY`)。  
+  会計の明細は受注の明細と同じでなくてよい
+- 登録と同じトランザクションで受注を完了 (`transactionId`・`completedAt`) にし、その取引を取り消すと引き渡し待ちに戻す
+- 在庫は会計のときに減らす (受注では引き当てない)。  
+  取り寄せの入荷は状態だけ
+
+### 3.16 在庫 (Inventory)
 
 現在庫 (`InventoryLevelResponse`) と変動履歴 (`InventoryChangeResponse`)。  
-取引による変動はサーバが自動生成し、端末からは棚卸・調整だけを送る ([D-12](decisions.md#d-12-在庫-変動履歴ベース))。
+取引による変動はサーバが自動生成し、端末からは棚卸・調整だけを送る ([D-12](decisions.md#d-12-在庫-変動履歴ベース))。  
+仕入先からの入荷と店舗間移動は伝票で持ち、受領・出荷の操作で変動を記録する ([D-71](decisions.md#d-71-入荷と店舗間移動-伝票で持ち受領出荷で在庫を動かす))。
 
 | `InventoryLevelResponse` | 型 | 説明 |
 | --- | --- | --- |
@@ -672,14 +814,14 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 | `InventoryChangeResponse` | 型 | 説明 |
 | --- | --- | --- |
-| `id` | guid | 端末採番 (棚卸・調整) / サーバ採番 (取引由来) |
+| `id` | guid | 端末採番 (棚卸・調整) / サーバ採番 (取引・入荷・移動由来) |
 | `storeId`, `productId` | guid | |
-| `type` | enum | `Sale` / `Return` / `Void` (取引由来) / `PhysicalCount` (棚卸) / `Adjustment` (調整) |
+| `type` | enum | `Sale` / `Return` / `Void` (取引由来) / `PhysicalCount` (棚卸) / `Adjustment` (調整) / `Receive` (入荷の受領) / `TransferOut` (移動の出荷) / `TransferIn` (移動の受領) |
 | `quantityDelta` | qty | 増減 (符号付き) |
 | `quantityAfter` | qty | 処理後在庫 (サーバ計算) |
 | `reasonId` | guid? | 調整理由 (`adjustmentReasons`) |
-| `reason` | string? | 自由記述 |
-| `referenceType`, `referenceId`, `referenceLineId` | | 取引由来なら `Transaction` + 取引 ID + 明細 ID |
+| `reason` | string? | 自由記述 (入荷は納品書番号、移動は移動番号) |
+| `referenceType`, `referenceId`, `referenceLineId` | | 由来の伝票と明細。取引は `Transaction`、入荷は `InventoryReceipt`、移動は `InventoryTransfer` |
 | `staffId` | guid? | |
 | `occurredAt`, `createdAt` | datetime | |
 
@@ -691,6 +833,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | GET | `/inventory/changes?storeId&productId&type&from&to&page&size` | 端末 / 管理 | 変動履歴 |
 | GET | `/inventory/adjustment-reasons?updatedSince&includeDeleted` | 端末 / 管理 | 調整理由一覧 (破損 / 廃棄 / 万引き / 自家消費 / 棚卸差異 ...) |
 | POST / PUT / DELETE | `/inventory/adjustment-reasons`, `.../{id}` | 管理 | 登録 / 更新 / 論理削除 |
+| GET | `/inventory/suppliers?includeDeleted`, `.../{id}` | 管理 | 仕入先一覧 / 詳細 (`SupplierResponseItem`: コード・名称・電話・メール・備考・有効) |
+| POST / PUT / DELETE | `/inventory/suppliers`, `.../{id}` | 管理 | 登録 / 更新 (`version`) / 論理削除。コードの重複は `409` |
 
 `POST /inventory/changes`:
 
@@ -709,8 +853,66 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 - `PhysicalCount` は絶対数量。  
   `quantityDelta = quantity − 現在庫` をサーバが計算する
 - 同じ `id` は `Duplicate` として既存の結果を返す
+- `type` は `PhysicalCount` / `Adjustment` だけ (ほかは `400`)。  
+  入荷・移動の変動は下の伝票の受領・出荷で作る
 
-### 3.15 レポート (Reports)
+#### 入荷の項目 (`InventoryReceiptResponseItem`)
+
+| フィールド | 型 | 区分 | 説明 |
+| --- | --- | --- | --- |
+| `id` | guid | サーバ | |
+| `storeId` | guid | 入力 | 入荷する店舗 |
+| `supplierId` | guid | 入力 | 仕入先 |
+| `supplierName` | string | サーバ | 仕入先の名前 (削除済みでも引く) |
+| `slipNo` | string(50)? | 入力 | 仕入先の納品書番号 |
+| `expectedDate` | date? | 入力 | 入荷予定日 |
+| `status` | enum | サーバ | `Draft` (入荷予定) / `Received` (受領済み) / `Cancelled` (キャンセル) |
+| `note` | string(500)? | 入力 | |
+| `receivedAt`, `receivedByStaffId` | | 入力 (受領時) | 受領の日時 (省略すると受付時刻) と担当 |
+| `cancelledAt` | datetime? | サーバ | |
+| `lines[]` | object[] | 入力 | `{ id, lineNo, productId, productCode, productName, quantity, receivedQuantity, cost }`。`quantity` は予定の数、`receivedQuantity` は受領した数 (受領まで `null`)、`cost` は仕入単価 |
+| `createdAt`, `updatedAt`, `version` | | サーバ | |
+
+#### 店舗間移動の項目 (`InventoryTransferResponseItem`)
+
+| フィールド | 型 | 区分 | 説明 |
+| --- | --- | --- | --- |
+| `id` | guid | サーバ | |
+| `transferNo` | string | サーバ | `{出荷店コード}-T-{連番:000000}` (出荷店ごとの連番) |
+| `fromStoreId`, `fromStoreName` | | 入力 / サーバ | 出荷店 |
+| `toStoreId`, `toStoreName` | | 入力 / サーバ | 入荷店 (出荷店と別の店舗) |
+| `status` | enum | サーバ | `Requested` (出荷待ち) / `Shipped` (受領待ち) / `Received` (受領済み) / `Cancelled` (キャンセル) |
+| `note` | string(500)? | 入力 | |
+| `shippedAt`, `shippedByStaffId` | | 入力 (出荷時) | |
+| `receivedAt`, `receivedByStaffId` | | 入力 (受領時) | |
+| `cancelledAt` | datetime? | サーバ | |
+| `lines[]` | object[] | 入力 | `{ id, lineNo, productId, productCode, productName, quantity, receivedQuantity }`。`quantity` は依頼・出荷の数 |
+| `createdAt`, `updatedAt`, `version` | | サーバ | |
+
+#### 入荷・店舗間移動のエンドポイント
+
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/inventory/receipts?storeId&supplierId&status&from&to&sort&desc&page&size` | 端末 / 管理 | 入荷一覧 (`InventoryReceiptResponse`)。`from` / `to` は入荷予定日、`sort` = `createdAt` / `expectedDate` |
+| GET | `/inventory/receipts/{id}` | 端末 / 管理 | 詳細 |
+| POST | `/inventory/receipts` | 管理 | 入荷予定の登録 (`InventoryReceiptCreateRequest`: 店舗・仕入先・納品書番号・入荷予定日・備考・明細 `{ productId, quantity, cost }`)。`201`。店舗・仕入先がなければ `422` `VALIDATION_ERROR`、商品がなければ `422` `PRODUCT_NOT_FOUND` |
+| POST | `/inventory/receipts/{id}/receive` | 端末 / 管理 | 受領 (`InventoryReceiptReceiveRequest { staffId, receivedAt, lines: [{ lineId, quantity }] }`)。入荷予定のときだけ |
+| POST | `/inventory/receipts/{id}/cancel` | 管理 | キャンセル (入荷予定のときだけ) |
+| GET | `/inventory/transfers?storeId&fromStoreId&toStoreId&status&open&sort&desc&page&size` | 端末 / 管理 | 移動一覧 (`InventoryTransferResponse`)。`storeId` は出荷店か入荷店のどちらか、`open=true` は未受領 (出荷待ち・受領待ち) だけ。`sort` = `createdAt` / `transferNo` |
+| GET | `/inventory/transfers/{id}` | 端末 / 管理 | 詳細 |
+| POST | `/inventory/transfers` | 管理 | 依頼 (`InventoryTransferCreateRequest`: 出荷店・入荷店・備考・明細 `{ productId, quantity }`)。`201`。同じ店舗どうしは `400` |
+| POST | `/inventory/transfers/{id}/ship` | 管理 | 出荷 (`InventoryTransferShipRequest { staffId, shippedAt }`)。出荷待ちのときだけ |
+| POST | `/inventory/transfers/{id}/receive` | 端末 / 管理 | 受領 (`InventoryTransferReceiveRequest`、入荷の受領と同じ形)。受領待ちのときだけ |
+| POST | `/inventory/transfers/{id}/cancel` | 管理 | キャンセル (出荷待ちのときだけ) |
+
+- 状態に合わない受領・出荷・キャンセルは `422` (`INVENTORY_RECEIPT_STATUS_INVALID` / `INVENTORY_TRANSFER_STATUS_INVALID`)、伝票がなければ `404`
+- 受領の `lines` に含めない明細は、予定 (移動は出荷) の数で受け取る。  
+  数が `0` の明細は在庫を動かさない
+- 入荷の受領は入荷する店舗に `Receive` (+)、移動の出荷は出荷店に `TransferOut` (−依頼の数)、移動の受領は入荷店に `TransferIn` (+受領した数) を記録する。  
+  出荷と受領の差は移動の明細に残る
+- 端末の受領はオンライン限定 (自店の入荷予定と、自店宛に出荷済みの移動)
+
+### 3.17 レポート (Reports)
 
 取引テーブルからの集計。  
 取消済みは除外し、返品は負として扱う。  
@@ -855,12 +1057,20 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | HTTP | `errorCode` | 発生箇所 |
 | --- | --- | --- |
 | 400 | `VALIDATION_ERROR` | 入力形式・必須項目 (詳細は `errors`) |
+| 413 / 415 | `VALIDATION_ERROR` | 本文をそのまま送る API (商品画像・CSV 取込) の大きさ・`Content-Type` |
+| 422 | `VALIDATION_ERROR` | 商品画像の形式、CSV 取込の誤りのある行 (`errors` は行番号ごと) |
 | 404 | `NOT_FOUND` | 対象なし |
 | 409 | `DUPLICATE_ID_MISMATCH` | 同一 `id` で内容が異なる再送 |
 | 409 | `VERSION_MISMATCH` | 楽観ロック失敗 |
 | 409 | `DUPLICATE_CODE` | コード・バーコード・会員番号の重複 |
 | 409 | `TERMINAL_HAS_OPEN_SHIFT` | 開設中シフトがある端末で再開設 |
-| 422 | `SHIFT_NOT_FOUND` / `SHIFT_CLOSED` / `SHIFT_TERMINAL_MISMATCH` | 取引・入出金・取消 |
+| 409 | `ALREADY_CLOSED` | 締め済みの営業日の締め |
+| 422 | `SHIFT_NOT_FOUND` / `SHIFT_CLOSED` / `SHIFT_TERMINAL_MISMATCH` | 取引・入出金・取消。`SHIFT_NOT_FOUND` はシフトのない営業日の締めにも使う |
+| 422 | `SHIFT_STILL_OPEN` | 未精算のシフトがある営業日の締め |
+| 422 | `DAY_CLOSED` | 締め済みの営業日の取引の取消 |
+| 422 | `ORDER_NOT_FOUND` / `ORDER_NOT_READY` | 受注から会計したが、受注が見つからない (他店を含む) / 引き渡し待ちでない |
+| 422 | `ORDER_STATUS_INVALID` | 受注の状態に合わない変更・入荷・キャンセル |
+| 422 | `INVENTORY_RECEIPT_STATUS_INVALID` / `INVENTORY_TRANSFER_STATUS_INVALID` | 入荷・店舗間移動の状態に合わない受領・出荷・キャンセル |
 | 422 | `DUPLICATE_RECEIPT_NO` | レシート番号重複 |
 | 422 | `PRODUCT_NOT_FOUND` | 取引明細 |
 | 422 | `PRICE_OVERRIDE_NOT_ALLOWED` | 売価変更不可商品の単価相違 |
@@ -872,7 +1082,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 422 | `HAS_RETURNS` | 返品済み取引の取消 |
 | 422 | `IN_USE` | 使用中マスタの削除 |
 
-警告 (受理するが応答の `warnings[]` に含める): `POINT_BALANCE_NEGATIVE`、`PRODUCT_INACTIVE`、`INVENTORY_NEGATIVE`。
+警告 (受理するが応答の `warnings[]` に含める): `POINT_BALANCE_NEGATIVE`、`PRODUCT_INACTIVE`、`INVENTORY_NEGATIVE`、`DAY_ALREADY_CLOSED` (締め済みの営業日の取引)。
 
 ---
 

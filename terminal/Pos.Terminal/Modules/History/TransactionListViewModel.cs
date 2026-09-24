@@ -1,5 +1,6 @@
 namespace Pos.Terminal.Modules.History;
 
+using Pos.Contract.Transactions;
 using Pos.Terminal.Models.Entity;
 
 // 取引履歴の 1 件。種別・送信状態の文言と色は画面側の Converter で付け、明細と支払は展開したときに見せる
@@ -51,6 +52,8 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
 
     private readonly DataAccessor accessor;
 
+    private readonly NetworkService network;
+
     private readonly TransactionUsecase transactions;
 
     private readonly SyncService sync;
@@ -81,7 +84,14 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
     [ObservableProperty]
     public partial int UnsentCount { get; set; }
 
+    [ObservableProperty]
+    public partial string Message { get; set; } = "取引がありません。";
+
     public ObservableCollection<TransactionItem> Items { get; } = [];
+
+    public EntryController Serial { get; }
+
+    public IObserveCommand SerialSearchCommand { get; }
 
     public IObserveCommand PeriodCommand { get; }
 
@@ -96,6 +106,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         IPopupNavigator popupNavigator,
         Session session,
         DataAccessor accessor,
+        NetworkService network,
         TransactionUsecase transactions,
         SyncService sync)
     {
@@ -103,9 +114,12 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         this.popupNavigator = popupNavigator;
         this.session = session;
         this.accessor = accessor;
+        this.network = network;
         this.transactions = transactions;
         this.sync = sync;
 
+        SerialSearchCommand = MakeAsyncCommand(SearchSerialAsync);
+        Serial = new EntryController(SerialSearchCommand);
         PeriodCommand = MakeAsyncCommand(ChoosePeriodAsync);
         TypeCommand = MakeAsyncCommand(async () =>
         {
@@ -144,8 +158,10 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         }
     }
 
+    // 端末の履歴 (期間・種別で絞り込む)
     private async Task LoadAsync()
     {
+        Serial.Text = string.Empty;
         var shiftId = period == 0 ? session.CurrentShift?.Id : null;
         DateOnly? businessDate = period switch
         {
@@ -161,32 +177,65 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         };
 
         var list = await transactions.QueryListAsync(shiftId, businessDate, transactionType, type == 3, 200);
+        var (staff, methods) = await QueryNamesAsync(list.Select(static x => x.Detail));
+        Items.Replace(list.Select(x => ToItem(x.Detail, x.SyncStatus, staff, methods)));
+        Message = "取引がありません。";
+        UpdateCounts($"{Items.Count} 件");
+    }
 
-        // 担当 (数人) と支払方法の名前はまとめて引く
+    // シリアル番号 (完全一致) で全店の取引を探す (オンライン限定。送信済みの取引だけ)。空で検索すると端末の履歴に戻る
+    private async Task SearchSerialAsync()
+    {
+        var serial = Serial.Text?.Trim();
+        if (String.IsNullOrEmpty(serial))
+        {
+            await LoadAsync();
+            return;
+        }
+
+        var result = await network.ExecuteAsync(h => h.GetTransactionsBySerialAsync(serial));
+        if (!result.IsSuccess)
+        {
+            return;
+        }
+
+        var list = result.Content!.Items;
+        var (staff, methods) = await QueryNamesAsync(list);
+        Items.Replace(list.Select(x => ToItem(x, OutboxStatus.Sent, staff, methods)));
+        Message = $"シリアル番号 {serial} の取引はありません。";
+        UpdateCounts($"シリアル {Items.Count} 件");
+    }
+
+    // 担当 (数人) と支払方法の名前はまとめて引く
+    private async Task<(Dictionary<Guid, string> Staff, Dictionary<Guid, string> Methods)> QueryNamesAsync(IEnumerable<TransactionResponseItem> list)
+    {
         var staff = new Dictionary<Guid, string>();
-        foreach (var staffId in list.Select(static x => x.Detail.StaffId).Distinct())
+        foreach (var staffId in list.Select(static x => x.StaffId).Distinct())
         {
             staff[staffId] = (await accessor.QueryStaffAsync(staffId))?.Name ?? "-";
         }
-        var methods = (await accessor.QueryPaymentMethodListAsync()).ToDictionary(static x => x.Id, static x => x.Name);
 
-        Items.Replace(list.Select(x => ToItem(x, staff, methods)));
+        var methods = (await accessor.QueryPaymentMethodListAsync()).ToDictionary(static x => x.Id, static x => x.Name);
+        return (staff, methods);
+    }
+
+    private void UpdateCounts(string countText)
+    {
         SaleCount = Items.Count(static x => !x.IsVoided && (x.Type == TransactionType.Sale));
         ReturnCount = Items.Count(static x => !x.IsVoided && (x.Type == TransactionType.Return));
         VoidCount = Items.Count(static x => x.IsVoided);
         UnsentCount = Items.Count(static x => x.SyncStatus != OutboxStatus.Sent);
-        CountText = $"{Items.Count} 件";
+        CountText = countText;
     }
 
-    private static TransactionItem ToItem(TransactionSummary summary, Dictionary<Guid, string> staff, Dictionary<Guid, string> methods)
+    private static TransactionItem ToItem(TransactionResponseItem detail, OutboxStatus syncStatus, Dictionary<Guid, string> staff, Dictionary<Guid, string> methods)
     {
-        var detail = summary.Detail;
         var payments = detail.Payments
             .Select(x => new SummaryRow(methods.GetValueOrDefault(x.PaymentMethodId) ?? ViewHelper.Name(x.Kind), ViewHelper.Yen(x.Amount)))
             .ToList();
         return new TransactionItem
         {
-            Id = summary.Transaction.Id,
+            Id = detail.Id,
             Type = detail.Type,
             IsVoided = detail.Status == TransactionStatus.Voided,
             ReceiptNo = detail.ReceiptNo,
@@ -195,7 +244,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
             StaffName = staff.GetValueOrDefault(detail.StaffId, "-"),
             PaymentText = payments.Count == 0 ? "-" : String.Join("・", payments.Select(static x => x.Label).Distinct()),
             HasCustomer = detail.CustomerId is not null,
-            SyncStatus = summary.SyncStatus,
+            SyncStatus = syncStatus,
             Lines = detail.Lines.Select(static x => new SummaryRow($"{x.ProductName} × {ViewHelper.Quantity(x.Quantity)}", ViewHelper.Yen(x.NetAmount))).ToList(),
             Payments = payments
         };

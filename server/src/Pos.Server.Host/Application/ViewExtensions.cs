@@ -18,6 +18,8 @@ public static class ViewExtensions
 
     public static string ToQuantityText(this decimal value) => value.ToString("#,##0.##", CultureInfo.InvariantCulture);
 
+    public static string ToQuantityText(this decimal? value) => value is null ? "-" : value.Value.ToQuantityText();
+
     // ポイント数・件数 (3 桁区切り)
     public static string ToPointText(this int value) => value.ToString("N0", CultureInfo.InvariantCulture);
 
@@ -71,6 +73,16 @@ public static class ViewExtensions
     {
         return $"{customer.Code} {customer.Name}";
     }
+
+    // 受注・入荷・移動の明細の要約 (先頭の商品名と残りの点数)
+    public static string ToLineSummary(this OrderDetailView order) =>
+        LineSummary(order.Lines.Count == 0 ? null : order.Lines[0].ProductName, order.Lines.Count);
+
+    public static string ToLineSummary(this InventoryReceiptDetailView receipt) =>
+        LineSummary(receipt.Lines.Count == 0 ? null : receipt.Lines[0].ProductName, receipt.Lines.Count);
+
+    public static string ToLineSummary(this InventoryTransferDetailView transfer) =>
+        LineSummary(transfer.Lines.Count == 0 ? null : transfer.Lines[0].ProductName, transfer.Lines.Count);
 
     public static string ToProductText(this InventoryLevelDetailView level)
     {
@@ -173,6 +185,9 @@ public static class ViewExtensions
         InventoryChangeType.Void => "取消",
         InventoryChangeType.PhysicalCount => "棚卸",
         InventoryChangeType.Adjustment => "調整",
+        InventoryChangeType.Receive => "入荷",
+        InventoryChangeType.TransferOut => "移動出荷",
+        InventoryChangeType.TransferIn => "移動受領",
         _ => value.ToString()
     };
 
@@ -221,4 +236,11 @@ public static class ViewExtensions
         ProductSalesSort.Quantity => "数量順",
         _ => value.ToString()
     };
+
+    //--------------------------------------------------------------------------------
+    // Helper
+    //--------------------------------------------------------------------------------
+
+    private static string LineSummary(string? firstProductName, int count) =>
+        firstProductName is null ? "-" : $"{firstProductName}{(count > 1 ? $" 他 {count - 1} 点" : string.Empty)}";
 }

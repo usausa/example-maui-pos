@@ -2,63 +2,63 @@ namespace Pos.Server.Host.Models.Export;
 
 using CsvHelper.Configuration.Attributes;
 
-// 商品 CSV の 1 行 (GET /products/csv)
+// 商品 CSV の 1 行 (GET /products/csv。取込の ProductImportRow と同じ見出し)
 public sealed class ProductExportRow
 {
-    [Name("コード")]
+    [Name(ProductCsvHeader.Code)]
     public string Code { get; set; } = default!;
 
-    [Name("JAN")]
+    [Name(ProductCsvHeader.Barcode)]
     public string? Barcode { get; set; }
 
-    [Name("商品名")]
+    [Name(ProductCsvHeader.Name)]
     public string Name { get; set; } = default!;
 
-    [Name("かな")]
+    [Name(ProductCsvHeader.Kana)]
     public string? Kana { get; set; }
 
-    [Name("メーカー")]
+    [Name(ProductCsvHeader.Brand)]
     public string? Brand { get; set; }
 
-    [Name("型番")]
+    [Name(ProductCsvHeader.ModelNo)]
     public string? ModelNo { get; set; }
 
-    [Name("部門コード")]
+    [Name(ProductCsvHeader.CategoryCode)]
     public string CategoryCode { get; set; } = default!;
 
-    [Name("部門")]
+    [Name(ProductCsvHeader.CategoryName)]
     public string CategoryName { get; set; } = default!;
 
-    [Name("種別")]
+    [Name(ProductCsvHeader.Kind)]
     public ProductKind Kind { get; set; }
 
-    [Name("価格")]
+    [Name(ProductCsvHeader.Price)]
     public decimal Price { get; set; }
 
-    [Name("内税")]
+    [Name(ProductCsvHeader.TaxIncluded)]
     public bool TaxIncluded { get; set; }
 
-    [Name("税率コード")]
+    [Name(ProductCsvHeader.TaxRateCode)]
     public string TaxRateCode { get; set; } = default!;
 
-    [Name("原価")]
+    [Name(ProductCsvHeader.Cost)]
     public decimal? Cost { get; set; }
 
-    [Name("還元率")]
+    [Name(ProductCsvHeader.PointRate)]
     public decimal PointRate { get; set; }
 
-    [Name("シリアル要")]
+    [Name(ProductCsvHeader.RequiresSerial)]
     public bool RequiresSerial { get; set; }
 
-    [Name("在庫管理")]
+    [Name(ProductCsvHeader.TrackInventory)]
     public bool TrackInventory { get; set; }
 
-    [Name("売価変更可")]
+    [Name(ProductCsvHeader.AllowsPriceOverride)]
     public bool AllowsPriceOverride { get; set; }
 
-    [Name("単位")]
+    [Name(ProductCsvHeader.Unit)]
     public string? Unit { get; set; }
 
-    [Name("販売可")]
+    [Name(ProductCsvHeader.IsActive)]
     public bool IsActive { get; set; }
 }

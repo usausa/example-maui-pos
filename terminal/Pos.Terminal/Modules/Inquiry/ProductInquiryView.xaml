@@ -33,6 +33,13 @@
         <!-- 商品 -->
         <ScrollView IsVisible="{Binding HasProduct}">
             <VerticalStackLayout Style="{StaticResource PosPanelStack}">
+                <!-- 画像 (あるときだけ。オフラインで未取得なら出さない) -->
+                <Grid Style="{StaticResource PosProductImagePanelGrid}"
+                      IsVisible="{Binding Image, Converter={StaticResource NotEmptyConverter}}">
+                    <Image Style="{StaticResource PosProductImage}"
+                           Source="{Binding Image}" />
+                </Grid>
+
                 <!-- 名称・コード・売価 -->
                 <Border Style="{StaticResource PosHeroBorder}"
                         behaviors:AnimationOption.EnterAnimation="FadeUp">

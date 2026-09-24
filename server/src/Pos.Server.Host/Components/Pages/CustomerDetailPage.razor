@@ -117,5 +117,30 @@ else
                 </NoRecordsContent>
             </MudTable>
         </MudTabPanel>
+        <MudTabPanel Text="📋 受注" BadgeData="@orders.Count" BadgeColor="Color.Primary">
+            <MudTable T="OrderDetailView" Items="orders" Dense="true" Hover="true" Bordered="true" Striped="true" Loading="IsLoading">
+                <HeaderContent>
+                    <MudTh>受注日時</MudTh>
+                    <MudTh>受注番号</MudTh>
+                    <MudTh>種別</MudTh>
+                    <MudTh>状態</MudTh>
+                    <MudTh>商品</MudTh>
+                    <MudTh Class="text-right">金額</MudTh>
+                    <MudTh>希望日</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd Class="no-wrap">@context.Order.OrderedAt.ToDateTimeText()</MudTd>
+                    <MudTd><MudLink Href="@($"orders?id={context.Order.Id}")" Typo="Typo.body2">@context.Order.OrderNo</MudLink></MudTd>
+                    <MudTd><StatusChip Value="@ViewHelper.OrderTypeChip(context.Order.Type)" /></MudTd>
+                    <MudTd><StatusChip Value="@ViewHelper.OrderStatusChip(context.Order.Status)" /></MudTd>
+                    <MudTd>@context.ToLineSummary()</MudTd>
+                    <MudTd Class="text-right">@context.Order.Total.ToYen()</MudTd>
+                    <MudTd>@context.Order.RequestedDate.ToDateText()</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>受注がありません。</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudTabPanel>
     </MudTabs>
 }

@@ -1,0 +1,77 @@
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudText Typo="Typo.h6">📦 入荷</MudText>
+            @if (detail is not null)
+            {
+                <MudText Typo="Typo.h6">@detail.SupplierName</MudText>
+                <StatusChip Value="@ViewHelper.InventoryReceiptStatusChip(detail.Receipt.Status)" />
+            }
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (detail is null)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            var receipt = detail.Receipt;
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">🏭 入荷</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary w-110">店舗</td><td>@Names.Store(receipt.StoreId)</td></tr>
+                            <tr><td class="mud-text-secondary">仕入先</td><td>@detail.SupplierName</td></tr>
+                            <tr><td class="mud-text-secondary">納品書番号</td><td>@receipt.SlipNo</td></tr>
+                            <tr><td class="mud-text-secondary">入荷予定日</td><td>@receipt.ExpectedDate.ToDateText()</td></tr>
+                            <tr><td class="mud-text-secondary">備考</td><td>@receipt.Note</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">🕒 経過</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary w-110">登録</td><td>@receipt.CreatedAt.ToDateTimeText()</td></tr>
+                            <tr><td class="mud-text-secondary">受領</td><td>@receipt.ReceivedAt.ToDateTimeText() @Names.StaffNameOrEmpty(receipt.ReceivedByStaffId)</td></tr>
+                            @if (receipt.CancelledAt is not null)
+                            {
+                                <tr><td class="mud-text-secondary">キャンセル</td><td>@receipt.CancelledAt.ToDateTimeText()</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2">明細</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <thead>
+                            <tr><th>#</th><th>商品</th><th class="text-right">予定</th><th class="text-right">受領</th><th class="text-right">仕入単価</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in detail.Lines)
+                            {
+                                <tr>
+                                    <td>@line.LineNo</td>
+                                    <td>@line.ProductCode @line.ProductName</td>
+                                    <td class="text-right">@line.Quantity.ToQuantityText()</td>
+                                    <td class="text-right">@line.ReceivedQuantity.ToQuantityText() <span class="mud-warning-text">@ViewHelper.QuantityDifferenceText(line.Quantity, line.ReceivedQuantity)</span></td>
+                                    <td class="text-right">@line.Cost.ToYen()</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (detail?.Receipt.Status == InventoryReceiptStatus.Draft)
+        {
+            <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" OnClick="() => Close(InventoryReceiptDialogAction.Cancel)">入荷をキャンセル</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.MoveToInbox" OnClick="() => Close(InventoryReceiptDialogAction.Receive)">受領</MudButton>
+        }
+        <MudButton OnClick="() => MudDialog.Cancel()">閉じる</MudButton>
+    </DialogActions>
+</MudDialog>

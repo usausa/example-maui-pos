@@ -1,0 +1,73 @@
+@page "/orders"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 受注</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">📋 受注</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+</MudStack>
+
+<MudPaper Class="pa-2 mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <MudDateRangePicker Class="filter-range" @bind-DateRange="period" Label="受注日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
+        <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
+        <MudSelect Class="min-w-150" T="StatusFilter" @bind-Value="statusFilter" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Open">未完了</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Ordered">⏳ 入荷待ち</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Arrived">📦 引き渡し待ち</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Completed">✅ 完了</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Cancelled">❌ キャンセル</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.All">すべて</MudSelectItem>
+        </MudSelect>
+        <MudSelect Class="min-w-130" T="OrderType?" @bind-Value="type" Label="種別" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+            <MudSelectItem T="OrderType?" Value="null">すべて</MudSelectItem>
+            <MudSelectItem T="OrderType?" Value="OrderType.BackOrder">🚚 取り寄せ</MudSelectItem>
+            <MudSelectItem T="OrderType?" Value="OrderType.Hold">🔖 取り置き</MudSelectItem>
+        </MudSelect>
+        <MudTextField Class="min-w-260 search-field" @bind-Value="keyword" Label="受注番号 / 宛名 / 電話" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
+    </MudStack>
+</MudPaper>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudDataGrid @ref="Grid" T="OrderDetailView" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
+    <Columns>
+        <PropertyColumn Property="x => x.Order.OrderNo" Title="受注番号" />
+        <PropertyColumn Property="x => x.Order.OrderedAt" Title="受注日時" InitialDirection="SortDirection.Descending">
+            <CellTemplate>@context.Item.Order.OrderedAt.ToShortDateTimeText()</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="店舗" Sortable="false">
+            <CellTemplate>@names.Store(context.Item.Order.StoreId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="種別" Sortable="false">
+            <CellTemplate><StatusChip Value="@ViewHelper.OrderTypeChip(context.Item.Order.Type)" /></CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="状態" Sortable="false">
+            <CellTemplate><StatusChip Value="@ViewHelper.OrderStatusChip(context.Item.Order.Status)" /></CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="お客様" Sortable="false" CellClass="cell-wrap min-w-120">
+            <CellTemplate>@context.Item.Order.CustomerName</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="電話" Sortable="false">
+            <CellTemplate>@context.Item.Order.Phone</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="商品" Sortable="false" CellClass="cell-wrap min-w-200">
+            <CellTemplate>@context.Item.ToLineSummary()</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="金額" Sortable="false" CellClass="text-right">
+            <CellTemplate>@context.Item.Order.Total.ToYen()</CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.Order.RequestedDate" Title="希望日">
+            <CellTemplate>@context.Item.Order.RequestedDate.ToDateText()</CellTemplate>
+        </PropertyColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>受注がありません。</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="OrderDetailView" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
+    </PagerContent>
+</MudDataGrid>

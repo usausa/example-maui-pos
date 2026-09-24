@@ -47,6 +47,11 @@ public sealed partial class ProductForm
 
     public int Version { get; set; }
 
+    // 画像の変更。商品の保存のあとにページが反映する (Entity には写さない)
+    public ReadOnlyMemory<byte>? NewImage { get; set; }
+
+    public bool RemoveImage { get; set; }
+
     // Entity ↔ フォーム (サーバ付与項目はサービスが設定する)
     [Mapper]
     public static partial ProductForm ToForm(ProductEntity entity);

@@ -6,7 +6,9 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
     <MudText Typo="Typo.h5">🏷️ 商品</MudText>
     <MudSpacer />
-    <MudButton StartIcon="@Icons.Material.Filled.FileDownload" Variant="Variant.Outlined" Size="Size.Small" Href="@ExportUrls.ProductsCsv">CSV</MudButton>
+    <MudButton StartIcon="@Icons.Material.Filled.FileDownload" Variant="Variant.Outlined" Size="Size.Small" Href="@ExportUrls.ProductsCsv">CSV 出力</MudButton>
+    @* 認証の導入時: 取込は Administrator だけに出す *@
+    <MudButton StartIcon="@Icons.Material.Filled.UploadFile" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="ImportAsync">CSV 取込</MudButton>
     <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
 </MudStack>
 
@@ -34,6 +36,19 @@
 
 <MudDataGrid @ref="Grid" T="ProductEntity" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" HorizontalScrollbar="true" Class="grid-nowrap">
     <Columns>
+        <TemplateColumn Title="画像" Sortable="false">
+            <CellTemplate>
+                @* 画像のない行も同じ高さにする *@
+                @if (context.Item.ImageUrl is not null)
+                {
+                    <img class="product-thumb" src="@context.Item.ImageUrl" alt="@context.Item.Name" />
+                }
+                else
+                {
+                    <div class="product-thumb"></div>
+                }
+            </CellTemplate>
+        </TemplateColumn>
         <PropertyColumn Property="x => x.Code" Title="コード" />
         <PropertyColumn Property="x => x.Barcode" Title="JAN" Sortable="false" />
         <PropertyColumn Property="x => x.Name" Title="商品名" />

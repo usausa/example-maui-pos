@@ -36,6 +36,9 @@ public sealed class NameLookup
 
     public string StaffName(Guid? id) => (id is not null) && Staff.TryGetValue(id.Value, out var x) ? x.Name : "-";
 
+    // 担当の記録がなければ空 (経過の日時に続けて出す)
+    public string StaffNameOrEmpty(Guid? id) => id is null ? string.Empty : StaffName(id);
+
     public string PaymentMethod(Guid id) => PaymentMethods.TryGetValue(id, out var x) ? x.Name : "-";
 
     // 店舗に属する端末 (フィルタ用)

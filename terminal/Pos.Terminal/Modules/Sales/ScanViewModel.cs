@@ -44,6 +44,9 @@ public sealed partial class ScanViewModel : AppViewModelBase
     public StockContext StockContext { get; set; } = default!;
 
     [Scope]
+    public ReceivingContext ReceivingContext { get; set; } = default!;
+
+    [Scope]
     public CustomerDraft CustomerDraft { get; set; } = default!;
 
     public BarcodeController Controller { get; } = new();

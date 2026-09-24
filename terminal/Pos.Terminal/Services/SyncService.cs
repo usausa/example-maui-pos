@@ -94,6 +94,13 @@ public sealed class SyncService : IDisposable
         }
     }
 
+    // 端末の外で在庫が変わったとき (受領) に呼ぶ。次の周回でマスタと在庫の差分も取る
+    public void TriggerMasterSync()
+    {
+        lastMasterSync = DateTime.MinValue;
+        Trigger();
+    }
+
 #pragma warning disable CA1031
     private async Task LoopAsync()
     {
@@ -102,7 +109,8 @@ public sealed class SyncService : IDisposable
         {
             try
             {
-                await Task.WhenAny(Task.Delay(Interval, token), wake.WaitAsync(token));
+                // 間隔を待つ間に Trigger されたらすぐ回る (待ち受けを周回ごとに作り直すと解放が古い待ち受けに渡る)
+                await wake.WaitAsync(Interval, token);
                 if (token.IsCancellationRequested || !settings.IsConfigured || !deviceState.NetworkState.IsConnected() || (DateTime.UtcNow < nextAttempt))
                 {
                     continue;

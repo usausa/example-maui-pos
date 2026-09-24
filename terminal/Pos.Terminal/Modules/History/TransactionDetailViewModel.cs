@@ -84,7 +84,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
 
     private async Task LoadAsync()
     {
-        transaction = await transactions.QueryAsync(transactionId);
+        transaction = await transactions.FindAsync(transactionId);
         if (transaction is null)
         {
             await dialog.InformationAsync("取引が見つかりません。");
@@ -143,6 +143,11 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
                 new SummaryRow(delivery.Address, delivery.PostalCode ?? string.Empty),
                 new SummaryRow("希望", $"{(delivery.RequestedDate is null ? "指定なし" : ViewHelper.Date(delivery.RequestedDate.Value))} {delivery.TimeSlot}")
             ]));
+        }
+
+        if (transaction.OrderNo is not null)
+        {
+            sections.Add(new SummarySection("📋 受注", [new SummaryRow("受注番号", transaction.OrderNo)]));
         }
 
         if (transaction.Void is not null)

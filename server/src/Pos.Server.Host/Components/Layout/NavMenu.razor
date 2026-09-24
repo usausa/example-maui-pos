@@ -7,13 +7,24 @@
         <MudNavLink Href="reports/sales" Icon="@Icons.Material.Filled.ShowChart">売上集計</MudNavLink>
         <MudNavLink Href="reports/products" Icon="@Icons.Material.Filled.Leaderboard">商品別売上</MudNavLink>
     </MudNavGroup>
-    <MudNavLink Href="transactions" Icon="@Icons.Material.Filled.Receipt">取引</MudNavLink>
-    <MudNavLink Href="shifts" Icon="@Icons.Material.Filled.PointOfSale">精算</MudNavLink>
+    <MudNavGroup Title="取引" Icon="@Icons.Material.Filled.Receipt"
+                 Expanded="@IsExpanded(NavGroup.Transactions)" ExpandedChanged="@(x => SetExpanded(NavGroup.Transactions, x))">
+        <MudNavLink Href="transactions" Icon="@Icons.Material.Filled.ReceiptLong">取引</MudNavLink>
+        <MudNavLink Href="orders" Icon="@Icons.Material.Filled.Assignment">受注</MudNavLink>
+    </MudNavGroup>
+    <MudNavGroup Title="精算" Icon="@Icons.Material.Filled.PointOfSale"
+                 Expanded="@IsExpanded(NavGroup.Closing)" ExpandedChanged="@(x => SetExpanded(NavGroup.Closing, x))">
+        <MudNavLink Href="shifts" Icon="@Icons.Material.Filled.Payments">シフト</MudNavLink>
+        <MudNavLink Href="daily-closings" Icon="@Icons.Material.Filled.EventAvailable">日次締め</MudNavLink>
+    </MudNavGroup>
     <MudNavGroup Title="在庫" Icon="@Icons.Material.Filled.Inventory"
                  Expanded="@IsExpanded(NavGroup.Inventory)" ExpandedChanged="@(x => SetExpanded(NavGroup.Inventory, x))">
         <MudNavLink Href="inventory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Inventory2">現在庫</MudNavLink>
         <MudNavLink Href="inventory/changes" Icon="@Icons.Material.Filled.History">在庫変動履歴</MudNavLink>
+        <MudNavLink Href="inventory/receipts" Icon="@Icons.Material.Filled.MoveToInbox">入荷</MudNavLink>
+        <MudNavLink Href="inventory/transfers" Icon="@Icons.Material.Filled.LocalShipping">店舗間移動</MudNavLink>
         <MudNavLink Href="inventory/reasons" Icon="@Icons.Material.Filled.Rule">調整理由</MudNavLink>
+        <MudNavLink Href="inventory/suppliers" Icon="@Icons.Material.Filled.Factory">仕入先</MudNavLink>
     </MudNavGroup>
     <MudNavGroup Title="商品" Icon="@Icons.Material.Filled.Sell"
                  Expanded="@IsExpanded(NavGroup.Products)" ExpandedChanged="@(x => SetExpanded(NavGroup.Products, x))">

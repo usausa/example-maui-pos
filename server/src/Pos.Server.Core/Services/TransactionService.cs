@@ -63,8 +63,7 @@ public sealed record TransactionCalculation(SalesResult? Result, RuleError? Erro
 // 取引の登録・取消・照会。登録は取引一式 + 在庫 + ポイント + 端末の連番を 1 トランザクションで書く
 public sealed class TransactionService
 {
-    private const string ReferenceType = "Transaction";
-
+    private readonly TimeProvider timeProvider;
     private readonly IDbProvider provider;
     private readonly MasterAccessor masterAccessor;
     private readonly ProductAccessor productAccessor;
@@ -72,9 +71,12 @@ public sealed class TransactionService
     private readonly ShiftAccessor shiftAccessor;
     private readonly TransactionAccessor transactionAccessor;
     private readonly InventoryAccessor inventoryAccessor;
-    private readonly TimeProvider timeProvider;
+    private readonly DailyClosingAccessor dailyClosingAccessor;
+    private readonly OrderAccessor orderAccessor;
+    private readonly ChangeNotificationService changeNotification;
 
     public TransactionService(
+        TimeProvider timeProvider,
         IDbProvider provider,
         MasterAccessor masterAccessor,
         ProductAccessor productAccessor,
@@ -82,8 +84,11 @@ public sealed class TransactionService
         ShiftAccessor shiftAccessor,
         TransactionAccessor transactionAccessor,
         InventoryAccessor inventoryAccessor,
-        TimeProvider timeProvider)
+        DailyClosingAccessor dailyClosingAccessor,
+        OrderAccessor orderAccessor,
+        ChangeNotificationService changeNotification)
     {
+        this.timeProvider = timeProvider;
         this.provider = provider;
         this.masterAccessor = masterAccessor;
         this.productAccessor = productAccessor;
@@ -91,7 +96,9 @@ public sealed class TransactionService
         this.shiftAccessor = shiftAccessor;
         this.transactionAccessor = transactionAccessor;
         this.inventoryAccessor = inventoryAccessor;
-        this.timeProvider = timeProvider;
+        this.dailyClosingAccessor = dailyClosingAccessor;
+        this.orderAccessor = orderAccessor;
+        this.changeNotification = changeNotification;
     }
 
     //--------------------------------------------------------------------------------
@@ -117,10 +124,36 @@ public sealed class TransactionService
         return entity is null ? null : await LoadDetailAsync(entity, cancellationToken);
     }
 
+    // レシート PDF (控え・再発行)。支払方法は削除済みも名前を引く
+    public async ValueTask<ReceiptReportView?> QueryReceiptAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var detail = await QueryDetailAsync(id, cancellationToken);
+        if (detail is null)
+        {
+            return null;
+        }
+
+        var transaction = detail.Transaction;
+        var store = await masterAccessor.QueryStoreAsync(transaction.StoreId, cancellationToken);
+        var terminal = await masterAccessor.QueryTerminalAsync(transaction.TerminalId, cancellationToken);
+        var staff = await masterAccessor.QueryStaffAsync(transaction.StaffId, cancellationToken);
+        var methods = await masterAccessor.QueryPaymentMethodListAsync(null, true, cancellationToken);
+        return new ReceiptReportView
+        {
+            Detail = detail,
+            Store = store,
+            TerminalName = terminal?.Name ?? String.Empty,
+            StaffName = staff?.Name ?? String.Empty,
+            PaymentMethodNames = methods.ToDictionary(static x => x.Id, static x => x.Name),
+            TimeZone = StoreService.ResolveTimeZone(store?.TimeZone)
+        };
+    }
+
     public async ValueTask<PagedResult<TransactionEntity>> QueryPageAsync(TransactionQueryParameter parameter, CancellationToken cancellationToken)
     {
-        var total = await transactionAccessor.CountAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, cancellationToken);
-        var items = await transactionAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var serialNumber = String.IsNullOrWhiteSpace(parameter.SerialNumber) ? null : parameter.SerialNumber.Trim();
+        var total = await transactionAccessor.CountAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, serialNumber, cancellationToken);
+        var items = await transactionAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, serialNumber, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
         return new PagedResult<TransactionEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 
@@ -150,7 +183,8 @@ public sealed class TransactionService
             Discounts = await transactionAccessor.QueryDiscountListAsync(entity.Id, cancellationToken),
             TaxSummaries = await transactionAccessor.QueryTaxSummaryListAsync(entity.Id, cancellationToken),
             Payments = await transactionAccessor.QueryPaymentListAsync(entity.Id, cancellationToken),
-            Delivery = await transactionAccessor.QueryDeliveryAsync(entity.Id, cancellationToken)
+            Delivery = await transactionAccessor.QueryDeliveryAsync(entity.Id, cancellationToken),
+            Order = await orderAccessor.QueryByTransactionAsync(entity.Id, cancellationToken)
         };
 
     //--------------------------------------------------------------------------------
@@ -192,8 +226,9 @@ public sealed class TransactionService
     // Register
     //--------------------------------------------------------------------------------
 
-    // 冪等: 同じ id が既にあれば既存を返す (内容が違えば DuplicateMismatch)。検証は Pos.Domain の業務ルール
-    public async ValueTask<TransactionResult> RegisterAsync(TransactionDetailView detail, CancellationToken cancellationToken)
+    // 冪等: 同じ id が既にあれば既存を返す (内容が違えば DuplicateMismatch)。検証は Pos.Domain の業務ルール。
+    // orderId は受注から会計した販売で、完了した取引なら受注を完了にする
+    public async ValueTask<TransactionResult> RegisterAsync(TransactionDetailView detail, Guid? orderId, CancellationToken cancellationToken)
     {
         var entity = detail.Transaction;
         var existing = await transactionAccessor.QueryAsync(entity.Id, cancellationToken);
@@ -213,6 +248,8 @@ public sealed class TransactionService
         var customer = entity.CustomerId is null ? null : await customerAccessor.QueryAsync(entity.CustomerId.Value, cancellationToken);
         var claimed = ToClaimedResult(detail);
         var shiftFact = shift is null ? null : new ShiftFact { Id = shift.Id, Status = shift.Status, TerminalId = shift.TerminalId };
+        var dayClosed = await dailyClosingAccessor.QueryByBusinessDateAsync(entity.StoreId, entity.BusinessDate, cancellationToken) is not null;
+        var order = (orderId is null) || (entity.Type != TransactionType.Sale) ? null : await orderAccessor.QueryAsync(orderId.Value, cancellationToken);
 
         TransactionValidation validation;
         if (entity.Type == TransactionType.Return)
@@ -226,7 +263,8 @@ public sealed class TransactionService
                 Shift = shiftFact,
                 ReceiptNoInUse = receiptNoInUse,
                 Original = original is null ? null : new OriginalTransactionFact { Id = original.Id, Type = original.Type, Status = original.Status },
-                HasCustomer = customer is not null
+                HasCustomer = customer is not null,
+                DayClosed = dayClosed
             };
             validation = TransactionLogic.ValidateReturn(context, input, claimed);
         }
@@ -235,12 +273,16 @@ public sealed class TransactionService
             var input = ToSalesInput(settings, detail.Lines, detail.Discounts, detail.Payments, paymentMethods);
             var context = new SaleContext
             {
+                StoreId = entity.StoreId,
                 TerminalId = entity.TerminalId,
                 Shift = shiftFact,
                 ReceiptNoInUse = receiptNoInUse,
                 Products = products.ToDictionary(static x => x.Key, static x => new ProductFact { Id = x.Value.Id, AllowsPriceOverride = x.Value.AllowsPriceOverride, IsActive = x.Value.IsActive }),
                 HasCustomer = customer is not null,
-                CustomerPointBalance = customer?.PointBalance
+                CustomerPointBalance = customer?.PointBalance,
+                DayClosed = dayClosed,
+                OrderId = orderId,
+                Order = order is null ? null : new OrderFact { Id = order.Id, StoreId = order.StoreId, Status = order.Status }
             };
             validation = TransactionLogic.ValidateSale(context, input, claimed);
         }
@@ -284,6 +326,18 @@ public sealed class TransactionService
                     }
 
                     await masterAccessor.UpdateTerminalLastReceiptSeqAsync(tx, entity.TerminalId, ParseReceiptSeq(entity.ReceiptNo), now, cancellationToken);
+
+                    // 受注から会計したら受注を完了にする (検証のあとで状態が変わっていれば取り消す)
+                    if (sale && (orderId is not null) && (await orderAccessor.UpdateCompletedAsync(tx, orderId.Value, entity.Id, entity.TransactedAt, now, cancellationToken) == 0))
+                    {
+                        throw new RuleViolationException(ErrorCode.OrderNotReady, RuleReason.OrderNotReady);
+                    }
+                }
+
+                // 締めた日に届いた取引は、締め直すまで日計に入らないことを示す
+                if (dayClosed)
+                {
+                    await dailyClosingAccessor.UpdateHasLateTransactionsAsync(tx, entity.StoreId, entity.BusinessDate, now, cancellationToken);
                 }
 
                 await tx.CommitAsync(cancellationToken);
@@ -294,6 +348,12 @@ public sealed class TransactionService
             return TransactionResult.Violated(new RuleError(ex.Code, ex.Reason));
         }
 
+        if (sale && (orderId is not null) && (entity.Status == TransactionStatus.Completed))
+        {
+            detail.Order = await orderAccessor.QueryAsync(orderId.Value, cancellationToken);
+        }
+
+        changeNotification.Notify(DataChangeKind.Transaction);
         return TransactionResult.Success(detail, validation.Warnings);
     }
 
@@ -369,7 +429,7 @@ public sealed class TransactionService
                 Type = type,
                 QuantityDelta = delta,
                 QuantityAfter = after,
-                ReferenceType = ReferenceType,
+                ReferenceType = InventoryReferenceType.Transaction,
                 ReferenceId = entity.Id,
                 ReferenceLineId = line.Id,
                 StaffId = staffId,
@@ -447,7 +507,8 @@ public sealed class TransactionService
         var context = new VoidContext
         {
             Transaction = new TransactionFact { Id = entity.Id, Type = entity.Type, Status = entity.Status, HasReturns = await transactionAccessor.CountReturnsAsync(id, cancellationToken) > 0 },
-            ShiftStatus = shift?.Status
+            ShiftStatus = shift?.Status,
+            DayClosed = await dailyClosingAccessor.QueryByBusinessDateAsync(entity.StoreId, entity.BusinessDate, cancellationToken) is not null
         };
         var validation = TransactionLogic.ValidateVoid(context);
         if (!validation.IsValid)
@@ -478,9 +539,14 @@ public sealed class TransactionService
                     await AddPointsAsync(tx, entity.CustomerId.Value, entity.Id, PointHistoryType.Void, pointsDelta, staffId, voidedAt, now, cancellationToken);
                 }
 
-                // 返品の取消は元明細の返品数量を戻す
-                if (!sale)
+                if (sale)
                 {
+                    // 受注から会計した販売の取消は、受注を引き渡し待ちに戻す
+                    await orderAccessor.UpdateReopenedAsync(tx, id, now, cancellationToken);
+                }
+                else
+                {
+                    // 返品の取消は元明細の返品数量を戻す
                     foreach (var line in lines.Where(static x => x.OriginalLineId is not null))
                     {
                         await transactionAccessor.AddReturnedQuantityAsync(tx, line.OriginalLineId!.Value, -line.Quantity, cancellationToken);
@@ -496,6 +562,7 @@ public sealed class TransactionService
         }
 
         var voided = await transactionAccessor.QueryAsync(id, cancellationToken);
+        changeNotification.Notify(DataChangeKind.Transaction);
         return TransactionResult.Success(await LoadDetailAsync(voided!, cancellationToken));
     }
 

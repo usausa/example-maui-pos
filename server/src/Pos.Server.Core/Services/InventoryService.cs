@@ -12,24 +12,27 @@ public sealed record InventoryChangeResult(InventoryChangeEntity Change, bool Du
 // 在庫。取引による変動は TransactionService が書き、ここでは棚卸・調整と照会を扱う
 public sealed class InventoryService
 {
+    private readonly TimeProvider timeProvider;
     private readonly IDbProvider provider;
     private readonly IDialect dialect;
     private readonly ProductAccessor productAccessor;
     private readonly InventoryAccessor inventoryAccessor;
-    private readonly TimeProvider timeProvider;
+    private readonly ChangeNotificationService changeNotification;
 
     public InventoryService(
+        TimeProvider timeProvider,
         IDbProvider provider,
         IDialect dialect,
         ProductAccessor productAccessor,
         InventoryAccessor inventoryAccessor,
-        TimeProvider timeProvider)
+        ChangeNotificationService changeNotification)
     {
+        this.timeProvider = timeProvider;
         this.provider = provider;
         this.dialect = dialect;
         this.productAccessor = productAccessor;
         this.inventoryAccessor = inventoryAccessor;
-        this.timeProvider = timeProvider;
+        this.changeNotification = changeNotification;
     }
 
     //--------------------------------------------------------------------------------
@@ -95,9 +98,9 @@ public sealed class InventoryService
     }
 
     // 1 トランザクションで在庫を加減算し、変動履歴を残す。PhysicalCount は quantityDelta = quantity − 現在庫
-    private ValueTask<InventoryChangeEntity> ApplyChangeAsync(InventoryChangeParameter change, DateTime now, CancellationToken cancellationToken)
+    private async ValueTask<InventoryChangeEntity> ApplyChangeAsync(InventoryChangeParameter change, DateTime now, CancellationToken cancellationToken)
     {
-        return provider.UsingTxAsync(async (_, tx) =>
+        var applied = await provider.UsingTxAsync(async (_, tx) =>
         {
             var delta = change.Type == InventoryChangeType.PhysicalCount
                 ? change.Quantity - ((await inventoryAccessor.QueryLevelAsync(tx, change.StoreId, change.ProductId, cancellationToken))?.Quantity ?? 0m)
@@ -121,5 +124,7 @@ public sealed class InventoryService
             await tx.CommitAsync(cancellationToken);
             return entity;
         }, cancellationToken);
+        changeNotification.Notify(DataChangeKind.Inventory);
+        return applied;
     }
 }

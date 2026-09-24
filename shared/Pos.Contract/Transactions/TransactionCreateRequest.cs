@@ -71,6 +71,9 @@ public sealed class TransactionCreateRequest
     public string? Note { get; set; }
 
     public TransactionCreateRequestVoid? Void { get; set; }
+
+    // 受注から会計したとき (販売だけ)。受注は引き渡し待ちであること。会計で完了になり、取引を取り消すと引き渡し待ちに戻る
+    public Guid? OrderId { get; set; }
 }
 
 public sealed class TransactionCreateRequestLine

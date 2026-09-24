@@ -21,29 +21,35 @@
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,*,Auto">
-        <!-- 会員チップ (未設定なら「会員を選択」) -->
-        <Grid Grid.Row="0"
-              BackgroundColor="{StaticResource BlueLighten5}"
-              ColumnDefinitions="*,Auto">
-            <effects:SfEffectsView Grid.Column="0"
-                                   Style="{StaticResource PosRippleView}">
-                <effects:SfEffectsView.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding CustomerCommand}" />
-                </effects:SfEffectsView.GestureRecognizers>
-                <Label Style="{StaticResource PosListNameLabel}"
-                       Padding="16,12"
-                       TextColor="{StaticResource BlueDarken3}"
-                       Text="{Binding CustomerText}" />
-            </effects:SfEffectsView>
-            <Button Grid.Column="1"
-                    Style="{StaticResource PosQuantityButton}"
-                    Margin="0,0,16,0"
-                    FontFamily=""
-                    BackgroundColor="{StaticResource GrayLighten1}"
-                    IsVisible="{Binding HasCustomer}"
-                    Command="{Binding ClearCustomerCommand}"
-                    Text="✕" />
-        </Grid>
+        <!-- 会員チップ (未設定なら「会員を選択」) と受注からの会計 -->
+        <VerticalStackLayout Grid.Row="0">
+            <Grid BackgroundColor="{StaticResource BlueLighten5}"
+                  ColumnDefinitions="*,Auto">
+                <effects:SfEffectsView Grid.Column="0"
+                                       Style="{StaticResource PosRippleView}">
+                    <effects:SfEffectsView.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding CustomerCommand}" />
+                    </effects:SfEffectsView.GestureRecognizers>
+                    <Label Style="{StaticResource PosListNameLabel}"
+                           Padding="16,12"
+                           TextColor="{StaticResource BlueDarken3}"
+                           Text="{Binding CustomerText}" />
+                </effects:SfEffectsView>
+                <Button Grid.Column="1"
+                        Style="{StaticResource PosQuantityButton}"
+                        Margin="0,0,16,0"
+                        FontFamily=""
+                        BackgroundColor="{StaticResource GrayLighten1}"
+                        IsVisible="{Binding HasCustomer}"
+                        Command="{Binding ClearCustomerCommand}"
+                        Text="✕" />
+            </Grid>
+            <Label Style="{StaticResource PosCaptionLabel}"
+                   Padding="16,6"
+                   BackgroundColor="{StaticResource OrangeLighten5}"
+                   IsVisible="{Binding HasOrder}"
+                   Text="{Binding OrderText}" />
+        </VerticalStackLayout>
 
         <!-- 明細 (タップで編集、左スワイプで削除) -->
         <CollectionView Grid.Row="1"

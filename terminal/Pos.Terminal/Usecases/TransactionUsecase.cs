@@ -7,7 +7,7 @@ using Pos.Terminal.Models.Entity;
 
 using Smart.Data;
 
-public sealed record TransactionSummary(LocalTransactionEntity Transaction, TransactionResponseItem Detail, OutboxStatus SyncStatus);
+public sealed record TransactionSummary(TransactionResponseItem Detail, OutboxStatus SyncStatus);
 
 // 取引の保存 (ローカル取引 + Outbox + 自店在庫キャッシュを 1 トランザクションで書く)、取消、履歴
 public sealed class TransactionUsecase
@@ -16,15 +16,19 @@ public sealed class TransactionUsecase
 
     private readonly DataAccessor accessor;
 
+    private readonly NetworkService network;
+
     private readonly SyncService sync;
 
     public TransactionUsecase(
         IDbProvider provider,
         DataAccessor accessor,
+        NetworkService network,
         SyncService sync)
     {
         this.provider = provider;
         this.accessor = accessor;
+        this.network = network;
         this.sync = sync;
     }
 
@@ -36,6 +40,18 @@ public sealed class TransactionUsecase
     {
         var entity = await accessor.QueryTransactionAsync(id);
         return entity is null ? null : Deserialize(entity.Payload);
+    }
+
+    // ローカルになければ、オンラインのときにサーバから取る (シリアル番号で探した他の端末の取引を開くとき)
+    public async ValueTask<TransactionResponseItem?> FindAsync(Guid id)
+    {
+        var local = await QueryAsync(id);
+        if ((local is not null) || !network.IsConnected)
+        {
+            return local;
+        }
+
+        return (await network.ExecuteAsync(h => h.GetTransactionAsync(id), notify: false)).Content;
     }
 
     public async ValueTask<TransactionResponseItem?> QueryByReceiptNoAsync(string receiptNo)
@@ -60,7 +76,7 @@ public sealed class TransactionUsecase
             var detail = Deserialize(entity.Payload);
             if (detail is not null)
             {
-                result.Add(new TransactionSummary(entity, detail, outbox.GetValueOrDefault(entity.Id, OutboxStatus.Sent)));
+                result.Add(new TransactionSummary(detail, outbox.GetValueOrDefault(entity.Id, OutboxStatus.Sent)));
             }
         }
 

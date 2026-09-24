@@ -138,15 +138,23 @@
                             <Grid Style="{StaticResource PosListRowGrid}"
                                   BackgroundColor="Transparent"
                                   RowDefinitions="Auto,Auto"
-                                  ColumnDefinitions="*,Auto">
-                                <Label Grid.Row="0" Grid.Column="0"
+                                  ColumnDefinitions="Auto,*,Auto">
+                                <!-- 画像 (ないときは記号。取得できたら上に重ねる) -->
+                                <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                                      Style="{StaticResource PosThumbnailGrid}">
+                                    <Label Style="{StaticResource PosThumbnailIconLabel}" />
+                                    <Image Style="{StaticResource PosProductImage}"
+                                           IsVisible="{Binding Image, Converter={StaticResource NotEmptyConverter}}"
+                                           Source="{Binding Image}" />
+                                </Grid>
+                                <Label Grid.Row="0" Grid.Column="1"
                                        Style="{StaticResource PosListNameLabel}"
                                        Text="{Binding Name}" />
-                                <Label Grid.Row="0" Grid.Column="1"
+                                <Label Grid.Row="0" Grid.Column="2"
                                        Style="{StaticResource PosListValueLabel}"
                                        FontAttributes="Bold"
                                        Text="{Binding PriceText}" />
-                                <FlexLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                <FlexLayout Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
                                             Style="{StaticResource PosChipFlexLayout}">
                                     <Label Style="{StaticResource PosCodeLabel}"
                                            Text="{Binding Code}" />

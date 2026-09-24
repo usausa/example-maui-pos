@@ -1,0 +1,53 @@
+@inherits EditDialogBase<InventoryMovementForm>
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">📦 @Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@Message</MudText>
+        <MudForm @ref="EditForm" Model="Form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="Form.StaffId" For="@(() => Form.StaffId)" Validation="@Validator.ValidateValue" Label="担当">
+                        @foreach (var staff in staffList)
+                        {
+                            <MudSelectItem T="Guid?" Value="staff.Id">@staff.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <thead>
+                            <tr>
+                                <th>商品</th>
+                                <th class="w-100 text-right">@QuantityLabel</th>
+                                @if (Form.QuantityEditable)
+                                {
+                                    <th class="w-120">届いた数</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in Form.Lines)
+                            {
+                                <tr>
+                                    <td>@line.ProductCode @line.ProductName</td>
+                                    <td class="text-right">@line.Quantity.ToQuantityText()</td>
+                                    @if (Form.QuantityEditable)
+                                    {
+                                        <td><MudNumericField T="decimal" @bind-Value="line.ActualQuantity" Min="0m" Margin="Margin.Dense" /></td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnCancelClick">キャンセル</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnOkClick">@SubmitText</MudButton>
+    </DialogActions>
+</MudDialog>

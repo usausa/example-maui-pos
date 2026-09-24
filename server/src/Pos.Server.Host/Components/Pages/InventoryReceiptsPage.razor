@@ -1,0 +1,68 @@
+@page "/inventory/receipts"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 入荷</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">📦 入荷</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">入荷予定を登録</MudButton>
+</MudStack>
+
+<MudPaper Class="pa-2 mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <MudDateRangePicker Class="filter-range" @bind-DateRange="period" Label="入荷予定日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
+        <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
+        <MudSelect Class="min-w-200" T="Guid?" @bind-Value="supplierId" Label="仕入先" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+            <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
+            @foreach (var supplier in suppliers)
+            {
+                <MudSelectItem T="Guid?" Value="supplier.Id">@supplier.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect Class="min-w-130" T="InventoryReceiptStatus?" @bind-Value="status" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+            <MudSelectItem T="InventoryReceiptStatus?" Value="InventoryReceiptStatus.Draft">@ViewHelper.InventoryReceiptStatusChip(InventoryReceiptStatus.Draft).Text</MudSelectItem>
+            <MudSelectItem T="InventoryReceiptStatus?" Value="InventoryReceiptStatus.Received">@ViewHelper.InventoryReceiptStatusChip(InventoryReceiptStatus.Received).Text</MudSelectItem>
+            <MudSelectItem T="InventoryReceiptStatus?" Value="InventoryReceiptStatus.Cancelled">@ViewHelper.InventoryReceiptStatusChip(InventoryReceiptStatus.Cancelled).Text</MudSelectItem>
+            <MudSelectItem T="InventoryReceiptStatus?" Value="null">すべて</MudSelectItem>
+        </MudSelect>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
+    </MudStack>
+</MudPaper>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudDataGrid @ref="Grid" T="InventoryReceiptDetailView" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
+    <Columns>
+        <PropertyColumn Property="x => x.Receipt.CreatedAt" Title="登録日時" InitialDirection="SortDirection.Descending">
+            <CellTemplate>@context.Item.Receipt.CreatedAt.ToShortDateTimeText()</CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.Receipt.ExpectedDate" Title="入荷予定日">
+            <CellTemplate>@context.Item.Receipt.ExpectedDate.ToDateText()</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="店舗" Sortable="false">
+            <CellTemplate>@names.Store(context.Item.Receipt.StoreId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="仕入先" Sortable="false" CellClass="cell-wrap min-w-200">
+            <CellTemplate>@context.Item.SupplierName</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="納品書番号" Sortable="false">
+            <CellTemplate>@context.Item.Receipt.SlipNo</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="状態" Sortable="false">
+            <CellTemplate><StatusChip Value="@ViewHelper.InventoryReceiptStatusChip(context.Item.Receipt.Status)" /></CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="商品" Sortable="false" CellClass="cell-wrap min-w-200">
+            <CellTemplate>@context.Item.ToLineSummary()</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="受領日時" Sortable="false">
+            <CellTemplate>@context.Item.Receipt.ReceivedAt.ToShortDateTimeText()</CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>入荷がありません。</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="InventoryReceiptDetailView" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
+    </PagerContent>
+</MudDataGrid>

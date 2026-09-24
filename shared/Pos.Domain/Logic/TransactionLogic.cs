@@ -18,6 +18,16 @@ public static class TransactionLogic
             errors.Add(new RuleError(ErrorCode.DuplicateReceiptNo, RuleReason.DuplicateReceiptNo));
         }
 
+        if (context.DayClosed)
+        {
+            warnings.Add(new RuleWarning(WarningCode.DayAlreadyClosed));
+        }
+
+        if ((context.OrderId is not null) && (OrderLogic.ValidateCheckout(context.Order, context.StoreId) is { } orderError))
+        {
+            errors.Add(orderError);
+        }
+
         foreach (var line in input.Lines)
         {
             if (!context.Products.TryGetValue(line.ProductId, out var product))
@@ -222,6 +232,11 @@ public static class TransactionLogic
             errors.Add(new RuleError(ErrorCode.DuplicateReceiptNo, RuleReason.DuplicateReceiptNo));
         }
 
+        if (context.DayClosed)
+        {
+            warnings.Add(new RuleWarning(WarningCode.DayAlreadyClosed));
+        }
+
         if (context.Original is null)
         {
             errors.Add(new RuleError(ErrorCode.OriginalNotFound, RuleReason.OriginalNotFound));
@@ -365,6 +380,11 @@ public static class TransactionLogic
         else if (context.ShiftStatus != ShiftStatus.Open)
         {
             errors.Add(new RuleError(ErrorCode.ShiftClosed, RuleReason.ShiftClosedForVoid));
+        }
+
+        if (context.DayClosed)
+        {
+            errors.Add(new RuleError(ErrorCode.DayClosed, RuleReason.DayClosed));
         }
 
         if ((context.Transaction.Type == TransactionType.Sale) && context.Transaction.HasReturns)

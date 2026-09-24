@@ -1,0 +1,137 @@
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudText Typo="Typo.h6">🗓️ 日次締め</MudText>
+            @if (summary is not null)
+            {
+                <StatusChip Value="@ViewHelper.DailyClosingChip(summary.Day.Status, summary.Day.HasLateTransactions)" />
+            }
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@Names.Store(StoreId) / @BusinessDate.ToDateText()</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (summary is null)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            var day = summary.Day;
+            if (day.Status == DailyClosingStatus.Closed)
+            {
+                if (day.HasLateTransactions)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">締めた後に、この営業日の取引が届いています。締めを解除して締め直すと日計に含まれます。</MudAlert>
+                }
+            }
+            else if (day.ShiftCount == 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">この営業日のシフトはありません。</MudAlert>
+            }
+            else if (day.OpenShiftCount > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">未精算のシフトが @day.OpenShiftCount 件あります。すべて精算してから締めてください。</MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">締めると日計を確定し、この営業日の取引は取消できなくなります (返品で対応します)。</MudAlert>
+            }
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">📈 日計</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary w-120">販売 / 返品 / 取消</td><td class="text-right">@day.SalesCount / @day.ReturnCount / @day.VoidCount 件</td></tr>
+                            <tr><td class="mud-text-secondary">客数 (会員)</td><td class="text-right">@day.CustomerCount 人</td></tr>
+                            <tr><td class="mud-text-secondary">売上 / 返品</td><td class="text-right">@day.SalesTotal.ToYen() / -@day.ReturnsTotal.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary">純売上</td><td class="text-right"><strong>@day.NetSales.ToYen()</strong></td></tr>
+                            <tr><td class="mud-text-secondary">値引 / 税</td><td class="text-right">@day.DiscountTotal.ToYen() / @day.TaxTotal.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary">ポイント</td><td class="text-right">付与 @day.PointsEarned.ToPointText() / 利用 @day.PointsRedeemed.ToPointText()</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">🔒 締め</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary w-120">シフト</td><td class="text-right">@day.ShiftCount 件 (未精算 @day.OpenShiftCount 件)</td></tr>
+                            <tr><td class="mud-text-secondary">締め日時</td><td>@day.ClosedAt.ToDateTimeText()</td></tr>
+                            <tr><td class="mud-text-secondary">締めた人</td><td>@(day.ClosedBy ?? "-")</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">支払方法別</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            @foreach (var item in summary.ByPaymentMethod)
+                            {
+                                <tr><td>@item.Name</td><td class="text-right">@item.SalesAmount.ToYen() (@item.SalesCount)</td><td class="text-right mud-text-secondary">返金 @item.ReturnAmount.ToYen()</td></tr>
+                            }
+                            @if (summary.ByPaymentMethod.Count == 0)
+                            {
+                                <tr><td class="mud-text-secondary">なし</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">税率別</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            @foreach (var item in summary.ByTaxRate)
+                            {
+                                <tr><td>@item.Rate.ToPercentText() @item.TaxIncluded.ToTaxIncludedText()</td><td class="text-right">@item.TaxableAmount.ToYen()</td><td class="text-right mud-text-secondary">税 @item.TaxAmount.ToYen()</td></tr>
+                            }
+                            @if (summary.ByTaxRate.Count == 0)
+                            {
+                                <tr><td class="mud-text-secondary">なし</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2">シフト</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            @foreach (var shift in summary.Shifts)
+                            {
+                                <tr>
+                                    <td>@Names.Terminal(shift.TerminalId)</td>
+                                    <td>@Names.StaffName(shift.OpenedByStaffId)</td>
+                                    <td><StatusChip Value="@ViewHelper.StatusChip(shift.Status)" /></td>
+                                    <td>@shift.OpenedAt.ToShortDateTimeText() 〜 @shift.ClosedAt.ToShortDateTimeText()</td>
+                                    <td class="mud-text-secondary">@(shift.BusinessDate == BusinessDate ? string.Empty : $"営業日 {shift.BusinessDate.ToDateText()}")</td>
+                                    <td class="text-right">@shift.ExpectedCash.ToYen()</td>
+                                    <td class="text-right">
+                                        @if (shift.Status == ShiftStatus.Closed)
+                                        {
+                                            <StatusChip Value="@ViewHelper.DifferenceChip(shift.Difference)" />
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            @if (summary.Shifts.Count == 0)
+                            {
+                                <tr><td class="mud-text-secondary">なし</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@ExportUrls.DailySalesPdf(StoreId, BusinessDate)" Target="_blank">売上日報 PDF</MudButton>
+        @if (summary?.Day.Status == DailyClosingStatus.Closed)
+        {
+            @* 認証の導入時: 締め解除は Administrator だけに出す *@
+            <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.LockOpen" OnClick="() => MudDialog.Close(DialogResult.Ok(summary.Day))">締めを解除</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Lock" Disabled="@(!CanClose)" OnClick="() => MudDialog.Close(DialogResult.Ok(summary!.Day))">締める</MudButton>
+        }
+        <MudButton OnClick="() => MudDialog.Cancel()">閉じる</MudButton>
+    </DialogActions>
+</MudDialog>

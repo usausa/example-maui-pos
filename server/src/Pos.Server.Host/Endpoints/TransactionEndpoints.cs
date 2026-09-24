@@ -3,6 +3,7 @@ namespace Pos.Server.Host.Endpoints;
 using Pos.Contract.Transactions;
 using Pos.Domain.Logic;
 using Pos.Server.Host.Helpers;
+using Pos.Server.Host.Reports;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
@@ -25,6 +26,7 @@ public static partial class TransactionEndpoints
         group.MapGet("/", HandleListAsync);
         group.MapGet("/lookup", HandleLookupAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
+        group.MapGet("/{id:guid}/receipt/pdf", HandleReceiptPdfAsync);
         group.MapPost("/{id:guid}/void", HandleVoidAsync);
     }
 
@@ -114,6 +116,8 @@ public static partial class TransactionEndpoints
         response.Void = entity.VoidedAt is null
             ? null
             : new TransactionResponseVoid { VoidedAt = entity.VoidedAt.Value, VoidedByStaffId = entity.VoidedByStaffId ?? Guid.Empty, Reason = entity.VoidReason ?? String.Empty };
+        response.OrderId = detail.Order?.Id;
+        response.OrderNo = detail.Order?.OrderNo;
         if (warnings is not null)
         {
             response.Warnings = warnings.Select(static x => new TransactionResponseWarning { Code = x.Code.ToCode(), Message = ApiRuleText.Of(x.Code), LineId = x.LineId }).ToList();
@@ -169,7 +173,7 @@ public static partial class TransactionEndpoints
         CancellationToken cancellationToken)
     {
         var detail = ToDetail(request);
-        var result = await service.RegisterAsync(detail, cancellationToken);
+        var result = await service.RegisterAsync(detail, request.OrderId, cancellationToken);
         return result.Status switch
         {
             TransactionResultStatus.Success => TypedResults.Created($"{ApiRoutes.Transactions}/{detail.Transaction.Id}", ToResponse(result.Detail!, result.Warnings)),
@@ -215,6 +219,7 @@ public static partial class TransactionEndpoints
         DateOnly? to,
         TransactionType? type,
         TransactionStatus? status,
+        string? serialNumber,
         string? sort,
         CancellationToken cancellationToken,
         bool desc = true,
@@ -232,6 +237,7 @@ public static partial class TransactionEndpoints
             To = to,
             Type = type,
             Status = status,
+            SerialNumber = serialNumber,
             Sort = EnumHelper.Parse(sort, TransactionSort.TransactedAt),
             Desc = desc,
             Page = page,
@@ -239,6 +245,23 @@ public static partial class TransactionEndpoints
         };
         var result = await service.QueryDetailPageAsync(parameter, cancellationToken);
         return TypedResults.Ok(new TransactionResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => ToResponse(x)).ToList() });
+    }
+
+    // レシートの控え (再発行)。項目は端末のレシートと同じ
+    private static async ValueTask<IResult> HandleReceiptPdfAsync(
+        TransactionService service,
+        ReceiptReportBuilder reportBuilder,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var report = await service.QueryReceiptAsync(id, cancellationToken);
+        if (report is null)
+        {
+            return ApiProblems.NotFound();
+        }
+
+        var bytes = reportBuilder.Build(report);
+        return TypedResults.File(bytes, "application/pdf", $"receipt-{report.Detail.Transaction.ReceiptNo}.pdf");
     }
 
     // 返品時のレシート番号検索

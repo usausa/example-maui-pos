@@ -86,12 +86,36 @@
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
+    <s:MapToColorConverter x:Key="OrderStatusColorConverter"
+                           DefaultValue="{StaticResource GrayDefault}">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Ordered}" Value="{StaticResource BlueDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Arrived}" Value="{StaticResource OrangeDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Completed}" Value="{StaticResource GreenDarken1}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <s:MapToColorConverter x:Key="OrderTypeColorConverter"
+                           DefaultValue="{StaticResource IndigoDarken1}">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static enums:OrderType.Hold}" Value="{StaticResource TealDarken1}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
     <!-- 一覧の行の背景 (状態を薄い色で示す。取消は画面側のトリガーで赤にする) -->
 
     <s:MapToColorConverter x:Key="TransactionRowColorConverter"
                            DefaultValue="White">
         <s:MapToColorConverter.Entries>
             <s:MapToColorEntry Key="{x:Static enums:TransactionType.Return}" Value="{StaticResource OrangeLighten5}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <!-- 引き渡し待ちの受注はお客様への連絡が要るので目立たせる -->
+    <s:MapToColorConverter x:Key="OrderRowColorConverter"
+                           DefaultValue="White">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Arrived}" Value="{StaticResource OrangeLighten5}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
@@ -123,6 +147,32 @@
             <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}" Value="{x:Static fonts:MaterialIcons.Build}" />
         </s:MapToTextConverter.Entries>
     </s:MapToTextConverter>
+
+    <!-- 受領: 伝票の種類 (入荷 / 移動) と、検品の明細の状態 (帯とチップ、不足・過剰は行の背景も) -->
+
+    <s:MapToColorConverter x:Key="ReceivingKindColorConverter"
+                           DefaultValue="{StaticResource GreenDarken1}">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static models:ReceivingKind.Transfer}" Value="{StaticResource IndigoDarken1}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <s:MapToColorConverter x:Key="ReceivingLineColorConverter"
+                           DefaultValue="{StaticResource BlueGrayLighten2}">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Match}" Value="{StaticResource GreenDarken1}" />
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Shortage}" Value="{StaticResource OrangeDarken1}" />
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Excess}" Value="{StaticResource RedDarken1}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
+
+    <s:MapToColorConverter x:Key="ReceivingRowColorConverter"
+                           DefaultValue="White">
+        <s:MapToColorConverter.Entries>
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Shortage}" Value="{StaticResource OrangeLighten5}" />
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Excess}" Value="{StaticResource RedLighten5}" />
+        </s:MapToColorConverter.Entries>
+    </s:MapToColorConverter>
 
     <!-- アバター (名前の頭文字とコードで決まる色) -->
 
@@ -1690,6 +1740,39 @@
            TargetType="FlexLayout"
            BasedOn="{StaticResource PosChipFlexLayout}">
         <Setter Property="Padding" Value="8,0,8,8" />
+    </Style>
+
+    <!-- 商品画像 (検索結果のサムネイルと照会の画像。角丸にせず、画像がないときは淡い面に記号を出す) -->
+
+    <Style x:Key="PosThumbnailGrid"
+           TargetType="Grid">
+        <Setter Property="WidthRequest" Value="48" />
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="BackgroundColor" Value="{StaticResource GrayLighten4}" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <Style x:Key="PosThumbnailIconLabel"
+           TargetType="Label">
+        <Setter Property="FontFamily" Value="MaterialIcons" />
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="TextColor" Value="{StaticResource GrayLighten1}" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="VerticalOptions" Value="Center" />
+        <Setter Property="Text" Value="{x:Static fonts:MaterialIcons.Image}" />
+    </Style>
+
+    <Style x:Key="PosProductImage"
+           TargetType="Image">
+        <Setter Property="Aspect" Value="AspectFit" />
+        <Setter Property="BackgroundColor" Value="White" />
+    </Style>
+
+    <Style x:Key="PosProductImagePanelGrid"
+           TargetType="Grid">
+        <Setter Property="Padding" Value="16,12,16,0" />
+        <Setter Property="HeightRequest" Value="220" />
+        <Setter Property="BackgroundColor" Value="White" />
     </Style>
 
     <!-- アバター付きの行 (会員の検索結果) -->

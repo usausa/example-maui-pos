@@ -339,4 +339,35 @@ public sealed partial class MasterAccessor
 
     [Execute]
     public partial ValueTask<int> DeleteAdjustmentReasonAsync(Guid id, DateTime updatedAt, CancellationToken cancellationToken);
+
+    //--------------------------------------------------------------------------------
+    // Supplier
+    //--------------------------------------------------------------------------------
+
+    [Query]
+    public partial ValueTask<List<SupplierEntity>> QuerySupplierListAsync(bool includeDeleted, CancellationToken cancellationToken);
+
+    [QueryFirst]
+    [SelectSingle(typeof(SupplierEntity))]
+    public partial ValueTask<SupplierEntity?> QuerySupplierAsync(Guid id, CancellationToken cancellationToken);
+
+    [Execute]
+    [Insert(typeof(SupplierEntity))]
+    public partial ValueTask<int> InsertSupplierAsync(SupplierEntity entity, CancellationToken cancellationToken);
+
+    [QueryFirst]
+    public partial ValueTask<SupplierEntity?> UpdateSupplierAsync(
+        Guid id,
+        string code,
+        string name,
+        string? phone,
+        string? email,
+        string? note,
+        bool isActive,
+        DateTime updatedAt,
+        int version,
+        CancellationToken cancellationToken);
+
+    [Execute]
+    public partial ValueTask<int> DeleteSupplierAsync(Guid id, DateTime updatedAt, CancellationToken cancellationToken);
 }

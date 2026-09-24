@@ -7,6 +7,36 @@
     <DialogContent>
         <MudForm @ref="EditForm" Model="Form">
             <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <div class="product-image-preview">
+                            @if (imagePreview is not null)
+                            {
+                                <img src="@imagePreview" alt="商品画像" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Default" Size="Size.Large" />
+                            }
+                        </div>
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" Spacing="1">
+                                <MudFileUpload T="IBrowserFile" Accept="image/jpeg,image/png" FilesChanged="OnImageSelectedAsync">
+                                    <CustomContent>
+                                        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Image" OnClick="@context.OpenFilePickerAsync">画像を選択</MudButton>
+                                    </CustomContent>
+                                    <SelectedTemplate />
+                                </MudFileUpload>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" Disabled="imagePreview is null" OnClick="OnImageRemoveClick">画像を削除</MudButton>
+                            </MudStack>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">JPEG / PNG、2 MB まで。[保存] で反映します</MudText>
+                            @if (imageError is not null)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Error">@imageError</MudText>
+                            }
+                        </MudStack>
+                    </MudStack>
+                </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudTextField @bind-Value="Form.Code" For="@(() => Form.Code)" Validation="@Validator.ValidateValue" Label="コード" Immediate="true" />
                 </MudItem>

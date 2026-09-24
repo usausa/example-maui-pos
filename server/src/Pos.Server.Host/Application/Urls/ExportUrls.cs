@@ -22,6 +22,8 @@ public static class ExportUrls
 
     public static string ShiftSummaryPdf(Guid shiftId) => $"{ApiRoutes.Shifts}/{shiftId}/summary/pdf";
 
+    public static string ReceiptPdf(Guid transactionId) => $"{ApiRoutes.Transactions}/{transactionId}/receipt/pdf";
+
     private static string Date(DateOnly value) => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private static string Value<TEnum>(TEnum value)

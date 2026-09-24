@@ -31,6 +31,10 @@ public static class ViewHelper
 
     public static string Time(DateTime value) => DateTimeHelper.FormatTime(value);
 
+    // 明細の要約 (先頭の商品名と残りの点数)
+    public static string LineSummary(string? firstProductName, int count) =>
+        firstProductName is null ? string.Empty : $"{firstProductName}{(count > 1 ? $" 他 {count - 1} 点" : string.Empty)}";
+
     public static string Name(TransactionType value) => value switch
     {
         TransactionType.Sale => "販売",
@@ -111,6 +115,38 @@ public static class ViewHelper
         _ => value.ToString()
     };
 
+    public static string Name(OrderStatus value) => value switch
+    {
+        OrderStatus.Ordered => "入荷待ち",
+        OrderStatus.Arrived => "引き渡し待ち",
+        OrderStatus.Completed => "完了",
+        OrderStatus.Cancelled => "キャンセル",
+        _ => value.ToString()
+    };
+
+    public static string Name(OrderType value) => value switch
+    {
+        OrderType.BackOrder => "取り寄せ",
+        OrderType.Hold => "取り置き",
+        _ => value.ToString()
+    };
+
+    public static string Name(ReceivingKind value) => value switch
+    {
+        ReceivingKind.Receipt => "入荷",
+        ReceivingKind.Transfer => "移動",
+        _ => value.ToString()
+    };
+
+    public static string Name(ReceivingLineState value) => value switch
+    {
+        ReceivingLineState.Unchecked => "未確認",
+        ReceivingLineState.Match => "一致",
+        ReceivingLineState.Shortage => "不足",
+        ReceivingLineState.Excess => "過剰",
+        _ => value.ToString()
+    };
+
     // 値引の値 (率なら % 表示)
     public static string DiscountValue(DiscountType type, decimal value) =>
         type == DiscountType.Percent ? Percent(value) : Yen(value);
@@ -155,6 +191,18 @@ public static class ViewHelper
         RuleReason.DuplicateLineId => "明細 ID が重複しています",
         RuleReason.NoLines => "明細がありません",
         RuleReason.LineDiscountExceeds => "明細値引が明細金額を超えています",
+        RuleReason.DayClosed => "締め済みの営業日の取引は取消できません",
+        RuleReason.OrderNotFound => "受注が見つかりません",
+        RuleReason.OrderNotReady => "引き渡し待ちの受注ではありません",
+        RuleReason.OrderNotEditable => "完了・キャンセルした受注は変更できません",
+        RuleReason.OrderNotOrdered => "入荷待ちの受注ではありません",
+        RuleReason.OrderNotCancellable => "完了・キャンセルした受注はキャンセルできません",
+        RuleReason.StoreNotFound => "店舗が見つかりません",
+        RuleReason.CustomerNotFound => "会員が見つかりません",
+        RuleReason.SupplierNotFound => "仕入先が見つかりません",
+        RuleReason.InventoryReceiptNotDraft => "受領・キャンセルした入荷です",
+        RuleReason.InventoryTransferNotRequested => "出荷・キャンセルした移動です",
+        RuleReason.InventoryTransferNotShipped => "出荷済みの移動ではありません",
         _ => reason.ToString()
     };
 
@@ -163,6 +211,7 @@ public static class ViewHelper
         WarningCode.PointBalanceNegative => "ポイント残高が不足しています",
         WarningCode.ProductInactive => "販売停止中の商品です",
         WarningCode.InventoryNegative => "在庫がマイナスになります",
+        WarningCode.DayAlreadyClosed => "締め済みの営業日の取引です",
         _ => code.ToString()
     };
 }

@@ -35,6 +35,10 @@ public static class Length
     public const int PaymentMethodName = 50;
     public const int PaymentMethodShortName = 10;
     public const int AdjustmentReasonName = 50;
+    public const int SupplierName = 100;
+
+    // 入荷 (仕入先の納品書番号)
+    public const int SlipNo = 50;
 
     // 商品
     public const int Barcode = 20;

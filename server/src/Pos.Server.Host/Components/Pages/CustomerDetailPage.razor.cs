@@ -6,14 +6,16 @@ using Pos.Server.Host.Components.Dialogs;
 using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
+using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
-// 顧客詳細 (ポイント履歴・購入履歴・ポイント調整)
+// 顧客詳細 (ポイント履歴・購入履歴・受注・ポイント調整)
 public sealed partial class CustomerDetailPage
 {
     private CustomerEntity? customer;
     private IReadOnlyList<PointHistoryEntity> histories = [];
     private IReadOnlyList<TransactionEntity> transactions = [];
+    private IReadOnlyList<OrderDetailView> orders = [];
     private Dictionary<Guid, string> staffNames = [];
 
     [Parameter]
@@ -24,6 +26,9 @@ public sealed partial class CustomerDetailPage
 
     [Inject]
     public required TransactionService TransactionService { get; set; }
+
+    [Inject]
+    public required OrderService OrderService { get; set; }
 
     [Inject]
     public required StaffService StaffService { get; set; }
@@ -45,6 +50,7 @@ public sealed partial class CustomerDetailPage
             staffNames = (await StaffService.QueryAllAsync(true, CancellationToken)).ToDictionary(static x => x.Id, static x => x.Name);
             histories = (await CustomerService.QueryPointHistoryPageAsync(Id, 0, ListLimit, CancellationToken))?.Items ?? [];
             transactions = (await TransactionService.QueryPageAsync(new TransactionQueryParameter { CustomerId = Id, Desc = true, Size = ListLimit }, CancellationToken)).Items;
+            orders = (await OrderService.QueryPageAsync(new OrderQueryParameter { CustomerId = Id, Desc = true, Size = ListLimit }, CancellationToken)).Items;
         });
 
     private string StaffName(Guid? staffId) => staffId is null ? string.Empty : staffNames.GetValueOrDefault(staffId.Value, "-");

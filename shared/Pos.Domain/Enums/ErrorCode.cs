@@ -22,5 +22,13 @@ public enum ErrorCode
     OriginalNotReturnable,
     ReturnQuantityExceeded,
     HasReturns,
-    InUse
+    InUse,
+    ShiftStillOpen,
+    AlreadyClosed,
+    DayClosed,
+    OrderNotFound,
+    OrderNotReady,
+    OrderStatusInvalid,
+    InventoryReceiptStatusInvalid,
+    InventoryTransferStatusInvalid
 }

@@ -5,5 +5,6 @@ public enum WarningCode
 {
     PointBalanceNegative,
     ProductInactive,
-    InventoryNegative
+    InventoryNegative,
+    DayAlreadyClosed
 }

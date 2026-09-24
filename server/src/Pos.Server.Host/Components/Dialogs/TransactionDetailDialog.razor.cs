@@ -18,6 +18,7 @@ public sealed partial class TransactionDetailDialog
     private IReadOnlyList<TransactionTaxSummaryEntity> taxSummaries = [];
     private IReadOnlyList<TransactionPaymentEntity> payments = [];
     private TransactionDeliveryEntity? delivery;
+    private OrderEntity? order;
     private CustomerEntity? customer;
     private TransactionEntity? original;
     private List<TransactionEntity> returns = [];
@@ -55,6 +56,7 @@ public sealed partial class TransactionDetailDialog
         taxSummaries = detail.TaxSummaries;
         payments = detail.Payments;
         delivery = detail.Delivery;
+        order = detail.Order;
         customer = transaction.CustomerId is null ? null : await CustomerService.QueryAsync(transaction.CustomerId.Value, token);
         original = transaction.OriginalTransactionId is null ? null : await TransactionService.QueryAsync(transaction.OriginalTransactionId.Value, token);
         returns = await TransactionService.QueryReturnsAsync(id, token);

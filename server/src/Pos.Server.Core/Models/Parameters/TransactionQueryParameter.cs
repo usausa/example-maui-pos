@@ -20,4 +20,7 @@ public sealed class TransactionQueryParameter : PagedParameter<TransactionSort>
     public TransactionType? Type { get; init; }
 
     public TransactionStatus? Status { get; init; }
+
+    // 明細のシリアル番号 (完全一致)
+    public string? SerialNumber { get; init; }
 }

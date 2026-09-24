@@ -26,6 +26,7 @@ public static class Parameters
     private const string CustomerIdKey = nameof(CustomerIdKey);
     private const string CallerReturnToKey = nameof(CallerReturnToKey);
     private const string ProductIdKey = nameof(ProductIdKey);
+    private const string OrderIdKey = nameof(OrderIdKey);
 
     public static NavigationParameter Make() => new();
 
@@ -93,5 +94,13 @@ public static class Parameters
 
     public static Guid? GetProductId(this INavigationParameter parameter) =>
         parameter.TryGetValue<Guid>(ProductIdKey, out var value) ? value : null;
+
+    // Order
+
+    public static NavigationParameter WithOrderId(this NavigationParameter parameter, Guid id) =>
+        parameter.SetValue(OrderIdKey, id);
+
+    public static Guid? GetOrderId(this INavigationParameter parameter) =>
+        parameter.TryGetValue<Guid>(OrderIdKey, out var value) ? value : null;
 }
 #pragma warning restore CA1724

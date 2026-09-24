@@ -24,7 +24,7 @@
 | 列挙型 | TEXT (列挙名)。汎用 `EnumTextConverter<T>` を `DataProfile` (`[AccessorProfile]`) に列挙型ごとに宣言し、各 Accessor が `[ExecuteConfig(typeof(DataProfile))]` で参照する ([D-25](decisions.md#d-25-日時と列挙型の-sqlite-保存形式))。値は API の enum と同じ |
 | 論理削除 | マスタ系は `IsDeleted`。差分同期で削除も伝える必要があるので、通常の照会側で `IsDeleted = 0` を明示する |
 | 監査列 | `CreatedAt` / `UpdatedAt` (UTC)。マスタ系は楽観ロック用 `Version` (INTEGER、更新ごとに +1) |
-| 履歴 | 取引・シフト・入出金・在庫変動・ポイント履歴は**更新・削除しない** (取消も `Status` 更新 + 逆方向の履歴追加) |
+| 履歴 | 取引・シフト・入出金・在庫変動・ポイント履歴は**更新・削除しない** (取消も `Status` 更新 + 逆方向の履歴追加)。日次締めは締め解除で行ごと消し、締め直しで作り直す |
 | スナップショット | 取引明細は商品名・単価・税率・還元率を販売時点の値で保持する。マスタ変更が過去の取引に影響しない |
 | 外部キー | `FOREIGN KEY` は宣言するが、SQLite の既定では強制されないため接続文字列の `Foreign Keys=True` で接続ごとに有効化する (WAL と busy_timeout は起動時の `GenericAccessor.ExecutePragmaAsync`) |
 
@@ -61,6 +61,7 @@ erDiagram
     Categories ||--o{ Categories : parent
     Categories ||--o{ Products : has
     TaxRates ||--o{ Products : applies
+    Products ||--o| ProductImages : "image (nullable)"
     Stores {
         guid Id PK
         string Code UK
@@ -96,6 +97,11 @@ erDiagram
         rate PointRate
         bool RequiresSerial
         bool TrackInventory
+        string ImageUrl
+    }
+    ProductImages {
+        guid ProductId PK
+        blob Data
     }
     Discounts {
         guid Id PK
@@ -130,6 +136,12 @@ erDiagram
     TransactionLines ||--o{ TransactionLines : "original line (Return)"
     TransactionLines }o--o| TransactionDiscounts : "line discount"
     Customers ||--o{ Transactions : buys
+    Stores ||--o{ DailyClosings : "closes (per BusinessDate)"
+    DailyClosings ||--o{ DailyClosingPayments : has
+    DailyClosings ||--o{ DailyClosingTaxes : has
+    Orders ||--|{ OrderLines : has
+    Orders |o--o| Transactions : "completed by"
+    Customers ||--o{ Orders : orders
     Shifts {
         guid Id PK
         guid TerminalId FK
@@ -172,6 +184,21 @@ erDiagram
         string Type
         money Amount
     }
+    DailyClosings {
+        guid Id PK
+        guid StoreId FK
+        date BusinessDate
+        money NetSales
+        bool HasLateTransactions
+    }
+    Orders {
+        guid Id PK
+        string OrderNo UK
+        string Type
+        string Status
+        guid CustomerId FK
+        guid TransactionId FK
+    }
 ```
 
 ### 2.3 在庫・顧客
@@ -184,6 +211,13 @@ erDiagram
     Products ||--o{ InventoryChanges : has
     AdjustmentReasons |o--o{ InventoryChanges : reason
     Transactions |o--o{ InventoryChanges : "reference"
+    Suppliers ||--o{ InventoryReceipts : supplies
+    Stores ||--o{ InventoryReceipts : receives
+    InventoryReceipts ||--o{ InventoryReceiptLines : has
+    InventoryReceipts |o--o{ InventoryChanges : "reference"
+    Stores ||--o{ InventoryTransfers : "from / to"
+    InventoryTransfers ||--o{ InventoryTransferLines : has
+    InventoryTransfers |o--o{ InventoryChanges : "reference"
     Customers ||--o{ PointHistories : has
     Transactions |o--o{ PointHistories : "reference"
     InventoryLevels {
@@ -198,6 +232,19 @@ erDiagram
         qty QuantityAfter
         string ReferenceType
         guid ReferenceId
+    }
+    InventoryReceipts {
+        guid Id PK
+        guid SupplierId FK
+        string SlipNo
+        string Status
+    }
+    InventoryTransfers {
+        guid Id PK
+        string TransferNo UK
+        guid FromStoreId FK
+        guid ToStoreId FK
+        string Status
     }
     Customers {
         guid Id PK
@@ -331,11 +378,22 @@ erDiagram
 | TrackInventory | bool | | |
 | AllowsPriceOverride | bool | | |
 | Unit | string(10) | ○ | |
-| ImageUrl | string(500) | ○ | |
+| ImageUrl | string(500) | ○ | 画像の URL (`/api/v1/products/{id}/image?v={内容のハッシュ}`)。画像を変えると `UpdatedAt` / `Version` も進める |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
 索引: `UQ(Code)`, `UQ(Barcode) WHERE Barcode IS NOT NULL`, `IX(CategoryId)`, `IX(Name)`, `IX(Kana)`, `IX(UpdatedAt)`
+
+#### ProductImages (商品画像)
+
+画像は DB に持つ ([D-65](decisions.md#d-65-商品画像-db-に持ち内容のハッシュ付きの-url-で配る))。  
+形式 (JPEG / PNG) は `Data` の先頭のバイトで判定し、列には持たない。
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| ProductId | guid | | PK, FK → Products |
+| Data | blob | | 画像 (2 MB まで) |
+| UpdatedAt | datetime | | |
 
 #### Discounts (値引定義)
 
@@ -379,6 +437,22 @@ erDiagram
 | SortOrder | int | | |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
+
+#### Suppliers (仕入先)
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK |
+| Code | string(20) | | UQ |
+| Name | string(100) | | |
+| Phone | string(20) | ○ | |
+| Email | string(100) | ○ | |
+| Note | string(500) | ○ | |
+| IsActive | bool | | 入荷予定の登録で選べる |
+| 共通列 + IsDeleted, Version | | | |
+
+入荷は削除済みの仕入先の名前も引く。  
+端末には同期しない。
 
 ### 3.2 顧客
 
@@ -474,7 +548,62 @@ erDiagram
 
 索引: `IX(ShiftId, OccurredAt)`
 
-### 3.4 取引
+### 3.4 日次締め
+
+店舗 × 営業日の締め ([D-63](decisions.md#d-63-日次締め-締めた時点の日計を持ち締め後の取消を止める))。  
+締めた時点の日計と内訳を写して持ち、締め解除で内訳ごと消す。
+
+#### DailyClosings
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK (サーバ採番) |
+| StoreId | guid | | FK → Stores |
+| BusinessDate | date | | 営業日 |
+| ClosedAt | datetime | | |
+| ClosedBy | string | ○ | 締めた管理画面のアカウント名 (認証の導入までは NULL) |
+| ShiftCount | int | | その営業日のシフトと、その営業日の取引を含むシフトの数 |
+| SalesCount | int | | 以下は締めた時点の日計 (取消済みを除き、返品は負) |
+| ReturnCount | int | | |
+| VoidCount | int | | |
+| CustomerCount | int | | 会員の人数 |
+| SalesTotal | money | | |
+| ReturnsTotal | money | | |
+| NetSales | money | | |
+| DiscountTotal | money | | |
+| TaxTotal | money | | |
+| PointsEarned | int | | |
+| PointsRedeemed | int | | |
+| HasLateTransactions | bool | | 締めた後に同じ営業日の取引が届いた (締め直すまで日計に含まれない) |
+| CreatedAt / UpdatedAt | datetime | | |
+
+索引: `UQ(StoreId, BusinessDate)`
+
+#### DailyClosingPayments (支払方法別)
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| DailyClosingId | guid | | PK, FK → DailyClosings |
+| LineNo | int | | PK (表示順) |
+| PaymentMethodId | guid | | FK → PaymentMethods |
+| Name | string | | 締めた時点の名称 |
+| Kind | enum | | |
+| SalesAmount / SalesCount | money / int | | 販売への充当額と件数 |
+| ReturnAmount / ReturnCount | money / int | | 返金額と件数 |
+
+#### DailyClosingTaxes (税率別)
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| DailyClosingId | guid | | PK, FK → DailyClosings |
+| LineNo | int | | PK (表示順) |
+| TaxRateId | guid | | FK → TaxRates |
+| Rate | rate | | |
+| TaxIncluded | bool | | |
+| TaxableAmount | money | | 返品は負として合算 |
+| TaxAmount | money | | 同上 |
+
+### 3.5 取引
 
 #### Transactions
 
@@ -608,7 +737,54 @@ erDiagram
 | TimeSlot | string(20) | ○ | |
 | Note | string(200) | ○ | |
 
-### 3.5 在庫
+### 3.6 受注
+
+取り寄せ・取り置きの約束 ([D-64](decisions.md#d-64-受注-会計前の約束を別の資源で持ち会計で完了にする))。  
+会計した取引とは `Orders.TransactionId` で紐付ける (取引には列を足さない)。
+
+#### Orders
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK (端末 / 管理画面が採番) |
+| StoreId | guid | | FK → Stores |
+| Seq | int | | 店舗ごとの連番 (登録時に採番) |
+| OrderNo | string | | `{店舗コード}-O-{Seq:000000}` |
+| TerminalId | guid | ○ | FK → Terminals (管理画面で登録したときは NULL) |
+| StaffId | guid | | FK → Staff |
+| CustomerId | guid | ○ | FK → Customers |
+| CustomerName | string(100) | | 宛名 (会員のときは会員の名前) |
+| Phone | string(20) | ○ | |
+| Type | enum | | `BackOrder` / `Hold` |
+| Status | enum | | `Ordered` / `Arrived` / `Completed` / `Cancelled` |
+| RequestedDate | date | ○ | 希望日 |
+| Note | string(500) | ○ | |
+| Total | money | | 明細の金額の合計 |
+| TransactionId | guid | ○ | FK → Transactions (完了のとき) |
+| OrderedAt | datetime | | |
+| ArrivedAt / CompletedAt / CancelledAt | datetime | ○ | |
+| CancelReason | string(200) | ○ | |
+| 共通列 | | | Version (楽観ロック) を含む |
+
+索引: `UQ(StoreId, Seq)`、`UQ(OrderNo)`、`IX(StoreId, Status)`、`IX(CustomerId)`、`IX(TransactionId)`
+
+#### OrderLines
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK |
+| OrderId | guid | | FK → Orders |
+| LineNo | int | | |
+| ProductId | guid | | FK → Products |
+| ProductCode / ProductName | string | | 受注時点のスナップショット |
+| Quantity | qty | | |
+| UnitPrice | money | | 約束した単価 |
+| Amount | money | | 単価 × 数量 (切り捨て) |
+| Note | string(200) | ○ | |
+
+索引: `IX(OrderId)`
+
+### 3.7 在庫
 
 #### InventoryLevels (現在庫)
 
@@ -628,19 +804,85 @@ erDiagram
 | Id | guid | | PK (端末採番 or サーバ採番) |
 | StoreId | guid | | FK → Stores |
 | ProductId | guid | | FK → Products |
-| Type | enum | | `Sale` / `Return` / `Void` / `PhysicalCount` / `Adjustment` |
+| Type | enum | | `Sale` / `Return` / `Void` / `PhysicalCount` / `Adjustment` / `Receive` / `TransferOut` / `TransferIn` |
 | QuantityDelta | qty | | |
 | QuantityAfter | qty | | |
 | ReasonId | guid | ○ | FK → AdjustmentReasons |
-| Reason | string(200) | ○ | |
-| ReferenceType | string(20) | ○ | `Transaction` |
-| ReferenceId | guid | ○ | 取引 ID |
-| ReferenceLineId | guid | ○ | 取引明細 ID |
+| Reason | string(200) | ○ | 自由記述 (入荷は納品書番号、移動は移動番号) |
+| ReferenceType | string(20) | ○ | `Transaction` / `InventoryReceipt` / `InventoryTransfer` |
+| ReferenceId | guid | ○ | 取引・入荷・移動の ID |
+| ReferenceLineId | guid | ○ | その明細の ID |
 | StaffId | guid | ○ | FK → Staff |
 | OccurredAt | datetime | | |
 | CreatedAt | datetime | | |
 
 索引: `IX(StoreId, ProductId, OccurredAt DESC)`, `IX(ReferenceId)`
+
+#### InventoryReceipts (入荷)
+
+入荷予定を登録し、受領で在庫に入れる ([D-71](decisions.md#d-71-入荷と店舗間移動-伝票で持ち受領出荷で在庫を動かす))。
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK (サーバ採番) |
+| StoreId | guid | | FK → Stores (入荷する店舗) |
+| SupplierId | guid | | FK → Suppliers |
+| SlipNo | string(50) | ○ | 仕入先の納品書番号 |
+| ExpectedDate | date | ○ | 入荷予定日 |
+| Status | enum | | `Draft` / `Received` / `Cancelled` |
+| Note | string(500) | ○ | |
+| ReceivedAt | datetime | ○ | |
+| ReceivedByStaffId | guid | ○ | FK → Staff |
+| CancelledAt | datetime | ○ | |
+| 共通列 | | | Version を含む |
+
+索引: `IX(StoreId, Status)`
+
+#### InventoryReceiptLines
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK |
+| ReceiptId | guid | | FK → InventoryReceipts |
+| LineNo | int | | |
+| ProductId | guid | | FK → Products |
+| ProductCode / ProductName | string | | 登録時点のスナップショット |
+| Quantity | qty | | 予定の数 |
+| ReceivedQuantity | qty | ○ | 受領した数 (受領まで NULL) |
+| Cost | money | ○ | 仕入単価 |
+
+索引: `IX(ReceiptId)`
+
+#### InventoryTransfers (店舗間移動)
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK (サーバ採番) |
+| FromStoreId | guid | | FK → Stores (出荷店) |
+| Seq | int | | 出荷店ごとの連番 (登録時に採番) |
+| TransferNo | string | | `{出荷店コード}-T-{Seq:000000}` |
+| ToStoreId | guid | | FK → Stores (入荷店) |
+| Status | enum | | `Requested` / `Shipped` / `Received` / `Cancelled` |
+| Note | string(500) | ○ | |
+| ShippedAt / ReceivedAt / CancelledAt | datetime | ○ | |
+| ShippedByStaffId / ReceivedByStaffId | guid | ○ | FK → Staff |
+| 共通列 | | | Version を含む |
+
+索引: `UQ(FromStoreId, Seq)`、`UQ(TransferNo)`、`IX(ToStoreId, Status)`
+
+#### InventoryTransferLines
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK |
+| TransferId | guid | | FK → InventoryTransfers |
+| LineNo | int | | |
+| ProductId | guid | | FK → Products |
+| ProductCode / ProductName | string | | 依頼時点のスナップショット |
+| Quantity | qty | | 依頼・出荷の数 |
+| ReceivedQuantity | qty | ○ | 受領した数 (受領まで NULL) |
+
+索引: `IX(TransferId)`
 
 ---
 
@@ -795,19 +1037,48 @@ SQLite は書き込みが直列化される (単一ライター) ため、サー
    - `TrackInventory` の明細ごとに `InventoryLevels` を **UPSERT で加減算** (`INSERT ... ON CONFLICT (StoreId, ProductId) DO UPDATE SET Quantity = Quantity + excluded.Quantity`) し、更新後の値 (`RETURNING Quantity`) で `InventoryChanges` を INSERT
    - 顧客があれば `Customers.PointBalance` を `UPDATE ... SET PointBalance = PointBalance + @delta` で加減算し、`PointHistories` を INSERT (`Redeem` → `Earn` の順。Return は `Refund` → `Revoke`)
    - `Terminals.LastReceiptSeq` を `max(現在値, 今回の連番)` で更新
+   - 店舗 × 営業日が締め済みなら `DailyClosings.HasLateTransactions` を立てる
+   - 受注から会計した販売なら、引き渡し待ちの受注を `Completed` にして `TransactionId` を入れる (状態が変わっていれば取消)
 4. コミット
 
 ### 5.2 取消 (`POST /transactions/{id}/void`)
 
 `Transactions.Status = Voided` + Void 列を更新し、在庫は逆方向の `InventoryChanges (Type = Void)`、ポイントは `PointHistories (Type = Void)` を追加。  
-元の履歴行は変更しない。
+元の履歴行は変更しない。  
+店舗 × 営業日が締め済みなら拒否する。  
+受注から会計した販売の取消は、同じトランザクションで受注を `Arrived` に戻す。
 
 ### 5.3 精算 (`POST /shifts/{id}/close`)
 
 シフト内の `Completed` 取引と `CashEvents` から集計列を確定して `Shifts` を更新し、`Status = Closed`。  
 以降、そのシフトへの取引・入出金・取消は拒否。
 
-### 5.4 集計の考え方
+### 5.4 日次締め (`POST /daily-closings`)
+
+関係するシフト (その営業日のシフトと、その営業日の取引を含むシフト) がすべて `Closed` であることを確かめ、日計と支払方法別・税率別を集計して `DailyClosings` + `DailyClosingPayments` + `DailyClosingTaxes` を 1 トランザクションで INSERT する。  
+同時に締めたときは `UQ(StoreId, BusinessDate)` の重複で片方を締め済みとして返す。  
+締め解除 (`DELETE /daily-closings/{id}`) は内訳と行を 1 トランザクションで DELETE する。
+
+### 5.5 受注の登録 (`POST /orders`)
+
+受注番号は 1 文の `INSERT INTO Orders ... SELECT MAX(Seq) + 1 ... RETURNING *` で採番して登録し、明細と同じトランザクションで書く。  
+同時に登録しても連番は重ならない (`UQ(StoreId, Seq)` でも守る)。  
+入荷・キャンセル・変更は状態を条件にした `UPDATE ... RETURNING *` で、行が返らなければ状態 (または版) が合わない。
+
+### 5.6 商品画像と CSV 取込
+
+画像の登録・削除は `ProductImages` の UPSERT / DELETE と `Products.ImageUrl` の更新 (`UpdatedAt` / `Version` を進める) を 1 トランザクションで行う。  
+CSV 取込は全行を検証してから、登録と更新を 1 トランザクションで書く。  
+更新は版を条件にした `UPDATE ... RETURNING *` で、行が返らないか一意制約・外部キーに反したら全体を取り消す (検証の後に他で変わった)。
+
+### 5.7 入荷の受領と店舗間移動
+
+入荷の受領は、状態を条件にした `UPDATE InventoryReceipts ... WHERE Status = 'Draft' RETURNING *` と、明細ごとの受領数の更新・`InventoryLevels` の UPSERT・`InventoryChanges (Type = Receive)` の INSERT を 1 トランザクションで行う。  
+行が返らなければ状態が合わないか伝票がない。  
+移動の番号は受注と同じく 1 文の `INSERT ... SELECT MAX(Seq) + 1 ... RETURNING *` で採番する。  
+出荷 (`TransferOut`、出荷店を依頼の数だけ減らす) と受領 (`TransferIn`、入荷店を受領した数だけ増やす) もそれぞれ状態を条件にした UPDATE と在庫の加減算を 1 トランザクションで行う。
+
+### 5.8 集計の考え方
 
 - 取引の集計は常に `Status = 'Completed'` を対象にし、`Type = 'Return'` を負として扱う。  
   金額列は NUMERIC 親和性で数値として保存されるので `SUM` をそのまま使える
@@ -825,7 +1096,7 @@ MAUI 側のローカル DB。
 
 | テーブル | 内容 |
 | --- | --- |
-| マスタ各種 | `Settings` / `Stores` / `Terminals` / `Staff` / `Categories` / `TaxRates` / `Products` / `Discounts` / `PaymentMethods` / `AdjustmentReasons` を `Pos.Contract` の Response と同じ列で保持 (エンティティクラスは Response をそのまま使う)。`GET /sync/masters` の結果を Id で削除 → 挿入 (1 トランザクション)。削除済み (`IsDeleted`) も保持し、検索時に除く |
+| マスタ各種 | `Settings` / `Stores` / `Terminals` / `Staff` / `Categories` / `TaxRates` / `Products` / `Discounts` / `PaymentMethods` / `AdjustmentReasons` を `Pos.Contract` の Response と同じ列で保持 (エンティティクラスは Response をそのまま使う)。`GET /sync/masters` の結果を Id で削除 → 挿入 (1 トランザクション)。削除済み (`IsDeleted`) も保持し、検索時に除く。商品画像は DB に持たず、表示するときに取得して `CacheDirectory/products/{商品 ID}_{v}` に置く (オフラインはキャッシュだけ) |
 | `InventoryLevels` | 自店分のみ (`updatedSince` で差分取り込み。販売・返品・取消・棚卸ではローカルでも増減させる) |
 | `Shifts` / `CashEvents` | 端末で開設したシフトと入出金 (精算の予想現金の計算に使う) |
 | `Transactions` | 検索用の列 (種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引) + `Payload` (`TransactionResponse` の JSON。送信後はサーバの応答で置き換える)。取引履歴・再印字・返品の元取引参照に使う |

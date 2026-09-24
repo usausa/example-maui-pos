@@ -1,0 +1,60 @@
+@page "/inventory/transfers"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 店舗間移動</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">📦 店舗間移動</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">移動を依頼</MudButton>
+</MudStack>
+
+<MudPaper Class="pa-2 mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" Label="店舗 (出荷店か入荷店)" />
+        <MudSelect Class="min-w-150" T="StatusFilter" @bind-Value="statusFilter" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Open">未受領</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Requested">@ViewHelper.InventoryTransferStatusChip(InventoryTransferStatus.Requested).Text</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Shipped">@ViewHelper.InventoryTransferStatusChip(InventoryTransferStatus.Shipped).Text</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Received">@ViewHelper.InventoryTransferStatusChip(InventoryTransferStatus.Received).Text</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Cancelled">@ViewHelper.InventoryTransferStatusChip(InventoryTransferStatus.Cancelled).Text</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.All">すべて</MudSelectItem>
+        </MudSelect>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
+    </MudStack>
+</MudPaper>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudDataGrid @ref="Grid" T="InventoryTransferDetailView" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
+    <Columns>
+        <PropertyColumn Property="x => x.Transfer.TransferNo" Title="移動番号" />
+        <PropertyColumn Property="x => x.Transfer.CreatedAt" Title="依頼日時" InitialDirection="SortDirection.Descending">
+            <CellTemplate>@context.Item.Transfer.CreatedAt.ToShortDateTimeText()</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="出荷店" Sortable="false">
+            <CellTemplate>@names.Store(context.Item.Transfer.FromStoreId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="入荷店" Sortable="false">
+            <CellTemplate>@names.Store(context.Item.Transfer.ToStoreId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="状態" Sortable="false">
+            <CellTemplate><StatusChip Value="@ViewHelper.InventoryTransferStatusChip(context.Item.Transfer.Status)" /></CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="商品" Sortable="false" CellClass="cell-wrap min-w-200">
+            <CellTemplate>@context.Item.ToLineSummary()</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="出荷日時" Sortable="false">
+            <CellTemplate>@context.Item.Transfer.ShippedAt.ToShortDateTimeText()</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="受領日時" Sortable="false">
+            <CellTemplate>@context.Item.Transfer.ReceivedAt.ToShortDateTimeText()</CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>店舗間移動がありません。</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="InventoryTransferDetailView" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
+    </PagerContent>
+</MudDataGrid>

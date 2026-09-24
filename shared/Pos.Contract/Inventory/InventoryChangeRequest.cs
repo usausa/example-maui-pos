@@ -7,7 +7,7 @@ public sealed class InventoryChangeRequest
     public IReadOnlyList<InventoryChangeRequestChange> Changes { get; set; } = default!;
 }
 
-public sealed class InventoryChangeRequestChange
+public sealed class InventoryChangeRequestChange : IValidatableObject
 {
     // 端末採番
     public Guid Id { get; set; }
@@ -30,6 +30,14 @@ public sealed class InventoryChangeRequestChange
     public Guid StaffId { get; set; }
 
     public DateTime OccurredAt { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (!Type.IsManual())
+        {
+            yield return new ValidationResult("種別は PhysicalCount か Adjustment を指定してください", [nameof(Type)]);
+        }
+    }
 }
 
 // 要素ごとの結果

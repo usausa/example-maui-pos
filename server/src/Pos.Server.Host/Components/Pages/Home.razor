@@ -5,7 +5,7 @@
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
     <MudText Typo="Typo.h5">📊 ダッシュボード</MudText>
-    <MudText Typo="Typo.body2" Class="mud-text-secondary">本日 @today.ToDateText()</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">本日 @today.ToDateText()・自動更新</MudText>
     <MudSpacer />
     <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
 </MudStack>
@@ -50,14 +50,14 @@
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">要確認</MudText>
             </div>
             <MudText Typo="Typo.h6" Color="@(WarningCount > 0 ? Color.Error : Color.Default)">@WarningCount 件</MudText>
-            <MudText Typo="Typo.caption" Class="mud-text-secondary">在庫マイナス @NegativeInventoryCount / 残高マイナス @negativeCustomers.Count</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">在庫 @NegativeInventoryCount / ポイント @negativeCustomers.Count / 未締め @UnclosedDayCount</MudText>
         </MudPaper>
     </MudItem>
 </MudGrid>
 
 <MudGrid Spacing="2">
     <MudItem xs="12" md="6">
-        <MudPaper Elevation="1">
+        <MudPaper Elevation="1" Class="mb-2">
             <MudTable T="SalesSummaryView" Items="storeRows" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
                 <ToolBarContent>
                     <MudText Typo="Typo.subtitle1" Class="pa-2">🏬 店舗別売上 (本日)</MudText>
@@ -79,9 +79,36 @@
                 </NoRecordsContent>
             </MudTable>
         </MudPaper>
+        <MudPaper Elevation="1">
+            <MudTable T="OrderDetailView" Items="arrivedOrders" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+                <ToolBarContent>
+                    <MudBadge Content="arrivedOrderCount" Color="Color.Warning" Origin="Origin.CenterRight" BadgeClass="ml-1" Visible="arrivedOrderCount > 0">
+                        <MudText Typo="Typo.subtitle1" Class="pa-2">📋 引き渡し待ちの受注</MudText>
+                    </MudBadge>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">入荷待ち @orderedCount 件</MudText>
+                    <MudSpacer />
+                    <MudButton Size="Size.Small" Href="orders" Variant="Variant.Text">一覧へ</MudButton>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>受注番号</MudTh>
+                    <MudTh>お客様</MudTh>
+                    <MudTh>電話</MudTh>
+                    <MudTh>希望日</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><MudLink Href="@($"orders?id={context.Order.Id}")" Typo="Typo.body2">@context.Order.OrderNo</MudLink></MudTd>
+                    <MudTd>@context.Order.CustomerName</MudTd>
+                    <MudTd>@context.Order.Phone</MudTd>
+                    <MudTd>@context.Order.RequestedDate.ToDateText()</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">引き渡し待ちの受注はありません。</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
     </MudItem>
     <MudItem xs="12" md="6">
-        <MudPaper Elevation="1">
+        <MudPaper Elevation="1" Class="mb-2">
             <MudTable T="ShiftEntity" Items="openShifts" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
                 <ToolBarContent>
                     <MudBadge Content="openShifts.Count" Color="Color.Success" Origin="Origin.CenterRight" BadgeClass="ml-1" Visible="openShifts.Count > 0">
@@ -105,9 +132,43 @@
                 </NoRecordsContent>
             </MudTable>
         </MudPaper>
+        <MudPaper Elevation="1">
+            <MudTable T="DailyClosingDayView" Items="unclosedDays" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+                <ToolBarContent>
+                    <MudBadge Content="UnclosedDayCount" Color="Color.Warning" Origin="Origin.CenterRight" BadgeClass="ml-1" Visible="UnclosedDayCount > 0">
+                        <MudText Typo="Typo.subtitle1" Class="pa-2">🗓️ 未締めの営業日 (前日まで)</MudText>
+                    </MudBadge>
+                    <MudSpacer />
+                    <MudButton Size="Size.Small" Href="daily-closings?unclosed=true" Variant="Variant.Text">一覧へ</MudButton>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>営業日</MudTh>
+                    <MudTh>店舗</MudTh>
+                    <MudTh>シフト</MudTh>
+                    <MudTh Class="text-right">純売上</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.BusinessDate.ToDateText()</MudTd>
+                    <MudTd>@names.Store(context.StoreId)</MudTd>
+                    <MudTd>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <span>@context.ShiftCount 件</span>
+                            @if (context.OpenShiftCount > 0)
+                            {
+                                <StatusChip Value="@ViewHelper.OpenShiftChip(context.OpenShiftCount)" />
+                            }
+                        </MudStack>
+                    </MudTd>
+                    <MudTd Class="text-right">¥@context.NetSales.ToYen()</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">✅ 前日までの営業日はすべて締め済みです。</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
     </MudItem>
     <MudItem xs="12" md="6">
-        <MudPaper Elevation="1">
+        <MudPaper Elevation="1" Class="mb-2">
             <MudTable T="TerminalEntity" Items="terminals" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
                 <ToolBarContent>
                     <MudText Typo="Typo.subtitle1" Class="pa-2">📱 端末の通信状態</MudText>
@@ -122,6 +183,33 @@
                     <MudTd><StatusChip Value="@ViewHelper.OnlineChip(context.LastSeenAt, TerminalService.IsOnline(context.LastSeenAt))" /></MudTd>
                     <MudTd>@context.AppVersion</MudTd>
                 </RowTemplate>
+            </MudTable>
+        </MudPaper>
+        <MudPaper Elevation="1">
+            <MudTable T="InventoryTransferDetailView" Items="openTransfers" Dense="true" Hover="true" Elevation="0" Loading="IsLoading">
+                <ToolBarContent>
+                    <MudBadge Content="OpenTransferCount" Color="Color.Warning" Origin="Origin.CenterRight" BadgeClass="ml-1" Visible="OpenTransferCount > 0">
+                        <MudText Typo="Typo.subtitle1" Class="pa-2">🚚 未受領の移動</MudText>
+                    </MudBadge>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">出荷待ち @requestedTransferCount 件 / 受領待ち @shippedTransferCount 件</MudText>
+                    <MudSpacer />
+                    <MudButton Size="Size.Small" Href="inventory/transfers" Variant="Variant.Text">一覧へ</MudButton>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>移動番号</MudTh>
+                    <MudTh>出荷店 → 入荷店</MudTh>
+                    <MudTh>状態</MudTh>
+                    <MudTh>依頼日時</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd Class="no-wrap"><MudLink Href="@($"inventory/transfers?id={context.Transfer.Id}")" Typo="Typo.body2">@context.Transfer.TransferNo</MudLink></MudTd>
+                    <MudTd>@names.Store(context.Transfer.FromStoreId) → @names.Store(context.Transfer.ToStoreId)</MudTd>
+                    <MudTd><StatusChip Value="@ViewHelper.InventoryTransferStatusChip(context.Transfer.Status)" /></MudTd>
+                    <MudTd Class="no-wrap">@context.Transfer.CreatedAt.ToShortDateTimeText()</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">未受領の移動はありません。</MudText>
+                </NoRecordsContent>
             </MudTable>
         </MudPaper>
     </MudItem>

@@ -37,8 +37,19 @@ public sealed class ProductFact
     public bool IsActive { get; init; } = true;
 }
 
+public sealed class OrderFact
+{
+    public required Guid Id { get; init; }
+
+    public required Guid StoreId { get; init; }
+
+    public required OrderStatus Status { get; init; }
+}
+
 public sealed class SaleContext
 {
+    public Guid StoreId { get; init; }
+
     public required Guid TerminalId { get; init; }
 
     // null = シフトが見つからない
@@ -53,6 +64,14 @@ public sealed class SaleContext
 
     // 顧客のポイント残高 (顧客なし / 不明なら null)
     public int? CustomerPointBalance { get; init; }
+
+    // 店舗 × 営業日が締め済み (オフラインの端末から遅れて届いた取引。店頭で成立済みなので受理して警告)
+    public bool DayClosed { get; init; }
+
+    // 受注から会計したとき。Order は見つからなければ null
+    public Guid? OrderId { get; init; }
+
+    public OrderFact? Order { get; init; }
 }
 
 public sealed class OriginalTransactionFact
@@ -76,6 +95,9 @@ public sealed class ReturnContext
     public OriginalTransactionFact? Original { get; init; }
 
     public bool HasCustomer { get; init; }
+
+    // 店舗 × 営業日が締め済み (受理して警告)
+    public bool DayClosed { get; init; }
 }
 
 public sealed class VoidContext
@@ -85,6 +107,9 @@ public sealed class VoidContext
 
     // null = シフトが見つからない
     public ShiftStatus? ShiftStatus { get; init; }
+
+    // 取引の店舗 × 営業日が締め済み (締めた日計を変えないため取消できない。返品で対応する)
+    public bool DayClosed { get; init; }
 }
 
 public sealed class TransactionFact

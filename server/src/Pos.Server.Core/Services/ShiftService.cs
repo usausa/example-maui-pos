@@ -38,24 +38,27 @@ public sealed record CashEventResult(CashEventResultStatus Status, CashEventEnti
 // レジ開閉・現金管理。Open 中の集計は取引から都度求め、精算時に Shifts へ確定する
 public sealed class ShiftService
 {
+    private readonly TimeProvider timeProvider;
     private readonly IDbProvider provider;
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
     private readonly ShiftAccessor shiftAccessor;
-    private readonly TimeProvider timeProvider;
+    private readonly ChangeNotificationService changeNotification;
 
     public ShiftService(
+        TimeProvider timeProvider,
         IDbProvider provider,
         IDialect dialect,
         MasterAccessor masterAccessor,
         ShiftAccessor shiftAccessor,
-        TimeProvider timeProvider)
+        ChangeNotificationService changeNotification)
     {
+        this.timeProvider = timeProvider;
         this.provider = provider;
         this.dialect = dialect;
         this.masterAccessor = masterAccessor;
         this.shiftAccessor = shiftAccessor;
-        this.timeProvider = timeProvider;
+        this.changeNotification = changeNotification;
     }
 
     // openingCash + cashSales − cashReturns + paidIn − paidOut
@@ -164,6 +167,7 @@ public sealed class ShiftService
             return new ShiftResult(ShiftResultStatus.TerminalHasOpenShift);
         }
 
+        changeNotification.Notify(DataChangeKind.Shift);
         return new ShiftResult(ShiftResultStatus.Success, await LoadDetailAsync(entity, cancellationToken));
     }
 
@@ -198,6 +202,7 @@ public sealed class ShiftService
         }, cancellationToken);
 
         var closed = await shiftAccessor.QueryAsync(id, cancellationToken);
+        changeNotification.Notify(DataChangeKind.Shift);
         return new ShiftResult(ShiftResultStatus.Success, await LoadDetailAsync(closed!, cancellationToken));
     }
 
@@ -229,6 +234,7 @@ public sealed class ShiftService
 
         entity.CreatedAt = timeProvider.GetUtcNow().UtcDateTime;
         await shiftAccessor.InsertCashEventAsync(entity, cancellationToken);
+        changeNotification.Notify(DataChangeKind.Shift);
         return new CashEventResult(CashEventResultStatus.Success, entity);
     }
 

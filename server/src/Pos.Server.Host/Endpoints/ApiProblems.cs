@@ -29,6 +29,12 @@ public static class ApiProblems
     public static IResult NotFound(string title = "対象が見つかりません") =>
         Problem(StatusCodes.Status404NotFound, ErrorCode.NotFound, title);
 
+    public static IResult PayloadTooLarge(string title) =>
+        Problem(StatusCodes.Status413PayloadTooLarge, ErrorCode.ValidationError, title);
+
+    public static IResult UnsupportedMediaType(string title) =>
+        Problem(StatusCodes.Status415UnsupportedMediaType, ErrorCode.ValidationError, title);
+
     public static IResult DuplicateCode(string title = "コードが重複しています") =>
         Problem(StatusCodes.Status409Conflict, ErrorCode.DuplicateCode, title);
 

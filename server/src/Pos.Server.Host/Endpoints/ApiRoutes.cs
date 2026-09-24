@@ -30,9 +30,22 @@ public static class ApiRoutes
 
     public const string Shifts = Prefix + "/shifts";
 
+    public const string DailyClosings = Prefix + "/daily-closings";
+
+    public const string Orders = Prefix + "/orders";
+
     public const string Inventory = Prefix + "/inventory";
 
     public const string AdjustmentReasons = Inventory + "/adjustment-reasons";
 
+    public const string Suppliers = Inventory + "/suppliers";
+
+    public const string InventoryReceipts = Inventory + "/receipts";
+
+    public const string InventoryTransfers = Inventory + "/transfers";
+
     public const string Reports = Prefix + "/reports";
+
+    // 商品画像 (ImageUrl はこれに ?v={内容のハッシュ} を付けたもの)
+    public static string ProductImage(Guid id) => $"{Products}/{id}/image";
 }

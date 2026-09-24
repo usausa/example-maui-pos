@@ -25,6 +25,7 @@ public sealed partial class TransactionsPage
     private TransactionType? type;
     private TransactionStatus? status;
     private string? receiptNo;
+    private string? serialNumber;
 
     [Inject]
     public required TransactionService TransactionService { get; set; }
@@ -91,6 +92,7 @@ public sealed partial class TransactionsPage
             To = ToDateOnly(period?.End),
             Type = type,
             Status = status,
+            SerialNumber = serialNumber,
             Sort = EnumHelper.Parse(sort?.SortBy, TransactionSort.TransactedAt),
             Desc = sort?.Descending ?? true,
             Page = state.Page,

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
+             xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Inventory"
+             x:Class="Pos.Terminal.Modules.Inventory.ReceivingListView"
+             x:DataType="{x:Type module:ReceivingListViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:ReceivingListViewModel}"
+             shell:ShellProperty.Title="入荷・受領"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="—"
+             shell:ShellProperty.Function3Text="—"
+             shell:ShellProperty.Function4Text="更新"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="False"
+             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,*">
+        <!-- 案内と件数 -->
+        <Grid Grid.Row="0"
+              Padding="16,8"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="8">
+            <Label Grid.Column="0"
+                   Style="{StaticResource PosCaptionLabel}"
+                   Text="届いた伝票を選んで検品します" />
+            <Label Grid.Column="1"
+                   Style="{StaticResource PosCaptionLabel}"
+                   Text="{Binding CountText}" />
+        </Grid>
+
+        <!-- 結果。取得中と取得できないときは上に重ねて隠す -->
+        <Grid Grid.Row="1">
+            <CollectionView Style="{StaticResource PosListCollectionView}"
+                            behaviors:AnimationOption.EnterAnimation="FadeUp"
+                            behaviors:AnimationOption.EnterTrigger="{Binding Items.Count}"
+                            ItemsSource="{Binding Items}">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
+                        <Label Style="{StaticResource PosEmptyIconLabel}"
+                               Text="📥" />
+                        <Label Style="{StaticResource PosMessageLabel}"
+                               Text="{Binding Message}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <!-- 左端の帯で種類 (入荷 / 移動) を示す。タップで検品 -->
+                    <DataTemplate x:DataType="{x:Type module:ReceivingItem}">
+                        <Grid Style="{StaticResource PosStripRowGrid}"
+                              RowDefinitions="*,Auto"
+                              ColumnDefinitions="Auto,*"
+                              BackgroundColor="White">
+                            <BoxView Grid.Row="0" Grid.Column="0"
+                                     Style="{StaticResource PosStripBoxView}"
+                                     Color="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}" />
+
+                            <effects:SfEffectsView Grid.Row="0" Grid.Column="1"
+                                                   Style="{StaticResource PosRippleView}">
+                                <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                                <effects:SfEffectsView.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:ReceivingListViewModel}}, Path=SelectCommand, x:DataType={x:Type module:ReceivingListViewModel}}"
+                                                          CommandParameter="{Binding .}" />
+                                </effects:SfEffectsView.GestureRecognizers>
+                                <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                                <!-- 右端に操作の列がないので右の余白を足す -->
+                                <VerticalStackLayout Style="{StaticResource PosStripBodyStack}"
+                                                     Padding="12,8,16,8">
+                                    <!-- 仕入先か出荷店と、入荷予定日か出荷日時 -->
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          ColumnSpacing="8">
+                                        <Label Grid.Column="0"
+                                               Style="{StaticResource PosListNameLabel}"
+                                               Text="{Binding Source}" />
+                                        <Label Grid.Column="1"
+                                               Style="{StaticResource PosCaptionLabel}"
+                                               Text="{Binding DateText}" />
+                                    </Grid>
+
+                                    <!-- 種類と番号 -->
+                                    <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                        <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                             ChipColor="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}"
+                                                             Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}" />
+                                        <Label Style="{StaticResource PosCodeLabel}"
+                                               Text="{Binding Number}" />
+                                    </FlexLayout>
+
+                                    <Label Style="{StaticResource PosCaptionLabel}"
+                                           Text="{Binding Summary}" />
+                                </VerticalStackLayout>
+                            </effects:SfEffectsView>
+
+                            <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                     Style="{StaticResource PosRowSeparator}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Grid Style="{StaticResource PosPageGrid}"
+                  IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.LoadingState}}">
+                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
+                    <Label Style="{StaticResource PosEmptyIconLabel}"
+                           Text="🔍" />
+                    <Label Style="{StaticResource PosMessageLabel}"
+                           Text="読み込んでいます。" />
+                </VerticalStackLayout>
+            </Grid>
+            <Grid Style="{StaticResource PosPageGrid}"
+                  IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.OfflineState}}">
+                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
+                    <Label Style="{StaticResource PosEmptyIconLabel}"
+                           Text="📡" />
+                    <Label Style="{StaticResource PosMessageLabel}"
+                           Text="{Binding Message}" />
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
+    </Grid>
+
+</ContentView>

@@ -286,6 +286,7 @@ public static partial class MauiProgram
         services.AddSingleton<NetworkService>();
         services.AddSingleton<SyncService>();
         services.AddSingleton<ReceiptService>();
+        services.AddSingleton<ProductImageService>();
 
         // Usecase
         services.AddSingleton<TransactionUsecase>();
@@ -294,11 +295,14 @@ public static partial class MauiProgram
         services.AddSingleton<ShiftUsecase>();
         services.AddSingleton<StockUsecase>();
         services.AddSingleton<SetupUsecase>();
+        services.AddSingleton<OrderUsecase>();
+        services.AddSingleton<ReceivingUsecase>();
 
         // Scope (画面間で共有する状態。Navigator の Scope プラグインが生成し、参照する画面がなくなると破棄する)
         services.AddTransient<SalesContext>();
         services.AddTransient<ReturnContext>();
         services.AddTransient<StockContext>();
+        services.AddTransient<ReceivingContext>();
         services.AddTransient<CustomerDraft>();
     }
 

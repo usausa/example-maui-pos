@@ -9,6 +9,8 @@ public sealed partial class NavMenu
     private static readonly Dictionary<NavGroup, string[]> GroupRoutes = new()
     {
         [NavGroup.Reports] = ["reports"],
+        [NavGroup.Transactions] = ["transactions", "orders"],
+        [NavGroup.Closing] = ["shifts", "daily-closings"],
         [NavGroup.Inventory] = ["inventory"],
         [NavGroup.Products] = ["products", "categories", "tax-rates", "discounts", "payment-methods"],
         [NavGroup.Stores] = ["stores", "terminals", "staff"],
@@ -71,6 +73,8 @@ public sealed partial class NavMenu
     private enum NavGroup
     {
         Reports,
+        Transactions,
+        Closing,
         Inventory,
         Products,
         Stores,

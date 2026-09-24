@@ -24,6 +24,14 @@ public sealed class ErrorCodeTests
     [InlineData(ErrorCode.ReturnQuantityExceeded, "RETURN_QUANTITY_EXCEEDED")]
     [InlineData(ErrorCode.HasReturns, "HAS_RETURNS")]
     [InlineData(ErrorCode.InUse, "IN_USE")]
+    [InlineData(ErrorCode.ShiftStillOpen, "SHIFT_STILL_OPEN")]
+    [InlineData(ErrorCode.AlreadyClosed, "ALREADY_CLOSED")]
+    [InlineData(ErrorCode.DayClosed, "DAY_CLOSED")]
+    [InlineData(ErrorCode.OrderNotFound, "ORDER_NOT_FOUND")]
+    [InlineData(ErrorCode.OrderNotReady, "ORDER_NOT_READY")]
+    [InlineData(ErrorCode.OrderStatusInvalid, "ORDER_STATUS_INVALID")]
+    [InlineData(ErrorCode.InventoryReceiptStatusInvalid, "INVENTORY_RECEIPT_STATUS_INVALID")]
+    [InlineData(ErrorCode.InventoryTransferStatusInvalid, "INVENTORY_TRANSFER_STATUS_INVALID")]
     public void ErrorCodeToCode(ErrorCode code, string expected)
     {
         Assert.Equal(expected, code.ToCode());
@@ -33,6 +41,7 @@ public sealed class ErrorCodeTests
     [InlineData(WarningCode.PointBalanceNegative, "POINT_BALANCE_NEGATIVE")]
     [InlineData(WarningCode.ProductInactive, "PRODUCT_INACTIVE")]
     [InlineData(WarningCode.InventoryNegative, "INVENTORY_NEGATIVE")]
+    [InlineData(WarningCode.DayAlreadyClosed, "DAY_ALREADY_CLOSED")]
     public void WarningCodeToCode(WarningCode code, string expected)
     {
         Assert.Equal(expected, code.ToCode());

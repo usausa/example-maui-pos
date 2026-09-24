@@ -14,6 +14,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
         Delivery,
         Hold,
         Recall,
+        Order,
         Clear
     }
 
@@ -34,6 +35,13 @@ public sealed partial class SalesViewModel : AppViewModelBase
 
     [ObservableProperty]
     public partial bool HasCustomer { get; set; }
+
+    // 受注から会計しているとき (会計で受注が完了になる)
+    [ObservableProperty]
+    public partial bool HasOrder { get; set; }
+
+    [ObservableProperty]
+    public partial string OrderText { get; set; } = string.Empty;
 
     public ObservableCollection<CartLineItem> Lines { get; } = [];
 
@@ -101,6 +109,8 @@ public sealed partial class SalesViewModel : AppViewModelBase
         var cart = SalesContext.Cart;
         HasCustomer = cart.Customer is not null;
         CustomerText = cart.Customer is null ? "👤 会員を選択" : $"👤 {cart.Customer.Name}  {ViewHelper.Points(cart.Customer.PointBalance)}";
+        HasOrder = cart.OrderId is not null;
+        OrderText = cart.OrderNo is null ? string.Empty : $"📋 受注 {cart.OrderNo} の会計";
 
         var result = sales.Calculate(cart, []);
         var items = new List<CartLineItem>(cart.Lines.Count);
@@ -150,6 +160,11 @@ public sealed partial class SalesViewModel : AppViewModelBase
             ("▶️ 保留を呼び出す", MoreAction.Recall),
             ("🧹 クリア", MoreAction.Clear)
         };
+        if (cart.OrderId is null)
+        {
+            actions.Insert(actions.Count - 1, ("📋 受注にする", MoreAction.Order));
+        }
+
         if (cart.Discounts.Count > 0)
         {
             actions.Insert(1, ("取引値引を解除", MoreAction.ClearDiscount));
@@ -199,6 +214,16 @@ public sealed partial class SalesViewModel : AppViewModelBase
 
             case MoreAction.Recall:
                 await Navigator.ForwardAsync(ViewId.Hold);
+                break;
+
+            case MoreAction.Order:
+                if (cart.IsEmpty)
+                {
+                    await dialog.InformationAsync("明細がありません。");
+                    return;
+                }
+
+                await Navigator.ForwardAsync(ViewId.OrderCreate);
                 break;
 
             case MoreAction.Clear:

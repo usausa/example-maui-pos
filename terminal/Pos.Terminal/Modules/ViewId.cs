@@ -27,6 +27,11 @@ public enum ViewId
     CustomerInquiry,
     CustomerEdit,
     StockCount,
+    ReceivingList,
+    ReceivingCheck,
     SalesReport,
+    OrderList,
+    OrderDetail,
+    OrderCreate,
     Setting
 }

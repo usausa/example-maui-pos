@@ -61,7 +61,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
 
         // 販売の計算 (設計書の例)
         var sale = CreateSaleRequest(shiftId);
-        using var calculateResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/calculate", ToCalculateRequest(sale), options);
+        using var calculateResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/calculate", TransactionRequests.ToCalculateRequest(sale), options);
         var calculation = await calculateResponse.ReadAsAsync<TransactionCalculateResponse>(HttpStatusCode.OK, options);
         Assert.Equal(85100m, calculation.Subtotal);
         Assert.Equal(5000m, calculation.DiscountTotal);
@@ -71,7 +71,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(7074, calculation.PointsEarned);
         Assert.Equal(5000, calculation.PointsRedeemed);
         Assert.Equal(ExampleNetAmounts, calculation.Lines.Select(static x => x.NetAmount).ToList());
-        Apply(sale, calculation);
+        TransactionRequests.Apply(sale, calculation);
 
         // 登録 → 再送 200 → 内容違いの再送 409 → 計算違い 422
         using var saleResponse = await client.PostJsonAsync(ApiRoutes.Transactions, sale, options);
@@ -86,16 +86,21 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         using var resendResponse = await client.PostJsonAsync(ApiRoutes.Transactions, sale, options);
         Assert.Equal(sale.Id, (await resendResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.OK, options)).Id);
 
+        // シリアル番号 (完全一致) で取引を引ける
+        var bySerial = await client.GetJsonAsync<TransactionResponse>($"{ApiRoutes.Transactions}?serialNumber=SN-0001234", options);
+        Assert.Equal(sale.Id, Assert.Single(bySerial.Items).Id);
+        Assert.Equal(0, (await client.GetJsonAsync<TransactionResponse>($"{ApiRoutes.Transactions}?serialNumber=SN-000123", options)).Total);
+
         var mismatch = CreateSaleRequest(shiftId);
         mismatch.Id = sale.Id;
-        Apply(mismatch, calculation);
+        TransactionRequests.Apply(mismatch, calculation);
         mismatch.Total = 1m;
         using var mismatchResponse = await client.PostJsonAsync(ApiRoutes.Transactions, mismatch, options);
         await mismatchResponse.ReadProblemAsync(HttpStatusCode.Conflict, "DUPLICATE_ID_MISMATCH", options);
 
         var wrong = CreateSaleRequest(shiftId);
         wrong.ReceiptNo = "S001-01-000099";
-        Apply(wrong, calculation);
+        TransactionRequests.Apply(wrong, calculation);
         wrong.Total = 80000m;
         using var wrongResponse = await client.PostJsonAsync(ApiRoutes.Transactions, wrong, options);
         var wrongProblem = await wrongResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "CALCULATION_MISMATCH", options);
@@ -117,13 +122,13 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         // 返品 (SD カード 1 枚)
         var sdCardLine = saleResult.Lines[1];
         var returnRequest = CreateReturnRequest(shiftId, sale.Id, sdCardLine, 1m, "S001-01-000002");
-        using var returnCalculateResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/calculate", ToCalculateRequest(returnRequest), options);
+        using var returnCalculateResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/calculate", TransactionRequests.ToCalculateRequest(returnRequest), options);
         var returnCalculation = await returnCalculateResponse.ReadAsAsync<TransactionCalculateResponse>(HttpStatusCode.OK, options);
         Assert.Equal(1976m, returnCalculation.Total);
         Assert.Equal(179m, returnCalculation.TaxTotal);
         Assert.Equal(-18, returnCalculation.PointsEarned);
         Assert.Equal(-123, returnCalculation.PointsRedeemed);
-        Apply(returnRequest, returnCalculation);
+        TransactionRequests.Apply(returnRequest, returnCalculation);
         using var returnResponse = await client.PostJsonAsync(ApiRoutes.Transactions, returnRequest, options);
         var returnResult = await returnResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(TransactionType.Return, returnResult.Type);
@@ -183,7 +188,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         await noCurrentResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
         var late = CreateSaleRequest(shiftId);
         late.ReceiptNo = "S001-01-000004";
-        Apply(late, calculation);
+        TransactionRequests.Apply(late, calculation);
         using var lateResponse = await client.PostJsonAsync(ApiRoutes.Transactions, late, options);
         await lateResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "SHIFT_CLOSED", options);
         using var lateVoidResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", voidRequest, options);
@@ -207,6 +212,9 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         // 帳票 PDF (D-37)
         await AssertPdfAsync(client, $"{ApiRoutes.Shifts}/{shiftId}/summary/pdf", "shift-report");
         await AssertPdfAsync(client, $"{ApiRoutes.Reports}/sales/daily/pdf?storeId={TestData.MainStoreId}&date=2026-09-11", "daily-sales");
+        await AssertPdfAsync(client, $"{ApiRoutes.Transactions}/{sale.Id}/receipt/pdf", "receipt");
+        using var missingReceiptResponse = await client.GetAsync(new Uri($"{ApiRoutes.Transactions}/{Guid.NewGuid()}/receipt/pdf", UriKind.Relative), Token);
+        await missingReceiptResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
         using var missingPdfResponse = await client.GetAsync(new Uri($"{ApiRoutes.Shifts}/{Guid.NewGuid()}/summary/pdf", UriKind.Relative), Token);
         await missingPdfResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
         using var missingStorePdfResponse = await client.GetAsync(new Uri($"{ApiRoutes.Reports}/sales/daily/pdf?storeId={Guid.NewGuid()}&date=2026-09-11", UriKind.Relative), Token);
@@ -368,46 +376,5 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
                 new TransactionCreateRequestPayment { Id = Guid.NewGuid(), SeqNo = 2, PaymentMethodId = TestData.CashPaymentMethodId, Kind = PaymentKind.Cash, Amount = netAmount - refundPoints, TenderedAmount = netAmount - refundPoints }
             ]
         };
-    }
-
-    private static TransactionCalculateRequest ToCalculateRequest(TransactionCreateRequest request) => new()
-    {
-        Type = request.Type,
-        OriginalTransactionId = request.OriginalTransactionId,
-        Lines = request.Lines,
-        Discounts = request.Discounts,
-        Payments = request.Payments
-    };
-
-    // 端末が計算した体で、計算項目を応答から写す (明細・値引は並び順で対応)
-    private static void Apply(TransactionCreateRequest request, TransactionCalculateResponse calculation)
-    {
-        for (var i = 0; i < request.Lines.Count; i++)
-        {
-            var line = request.Lines[i];
-            var calculated = calculation.Lines[i];
-            line.Amount = calculated.Amount;
-            line.DiscountAmount = calculated.DiscountAmount;
-            line.AllocatedDiscountAmount = calculated.AllocatedDiscountAmount;
-            line.NetAmount = calculated.NetAmount;
-            line.PointsRedeemed = calculated.PointsRedeemed;
-            line.PointsEarned = calculated.PointsEarned;
-        }
-
-        for (var i = 0; i < request.Discounts.Count; i++)
-        {
-            request.Discounts[i].Amount = calculation.Discounts[i].Amount;
-        }
-
-        request.TaxSummaries = calculation.TaxSummaries.Select(static x => new TransactionCreateRequestTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList();
-        request.Subtotal = calculation.Subtotal;
-        request.DiscountTotal = calculation.DiscountTotal;
-        request.NetSubtotal = calculation.NetSubtotal;
-        request.TaxTotal = calculation.TaxTotal;
-        request.Total = calculation.Total;
-        request.TenderedTotal = calculation.TenderedTotal;
-        request.ChangeAmount = calculation.ChangeAmount;
-        request.PointsEarned = calculation.PointsEarned;
-        request.PointsRedeemed = calculation.PointsRedeemed;
     }
 }

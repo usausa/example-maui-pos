@@ -2,6 +2,8 @@ namespace Pos.Server.Host.Application;
 
 using MudBlazor;
 
+using Pos.Server.Models;
+
 // 状態をチップで示す (文言・色・アイコンの組)。塗りつぶしのチップの上では色付きの絵文字が背景に溶けるため、記号は単色の Material Icons にする
 public static class ViewHelper
 {
@@ -31,6 +33,63 @@ public static class ViewHelper
         _ => (status.ToString(), Color.Default, null)
     };
 
+    public static (string Text, Color Color, string? Icon) OrderTypeChip(OrderType type) => type switch
+    {
+        OrderType.BackOrder => ("取り寄せ", Color.Primary, Icons.Material.Filled.LocalShipping),
+        OrderType.Hold => ("取り置き", Color.Secondary, Icons.Material.Filled.BookmarkAdded),
+        _ => (type.ToString(), Color.Default, null)
+    };
+
+    // 受注: 入荷待ち → 引き渡し待ち (お客様への連絡が要る) → 完了
+    public static (string Text, Color Color, string? Icon) OrderStatusChip(OrderStatus status) => status switch
+    {
+        OrderStatus.Ordered => ("入荷待ち", Color.Info, Icons.Material.Filled.HourglassTop),
+        OrderStatus.Arrived => ("引き渡し待ち", Color.Warning, Icons.Material.Filled.Inventory),
+        OrderStatus.Completed => ("完了", Color.Success, Icons.Material.Filled.CheckCircle),
+        OrderStatus.Cancelled => ("キャンセル", Color.Default, Icons.Material.Filled.Cancel),
+        _ => (status.ToString(), Color.Default, null)
+    };
+
+    // 入荷: 入荷予定 → 受領
+    public static (string Text, Color Color, string? Icon) InventoryReceiptStatusChip(InventoryReceiptStatus status) => status switch
+    {
+        InventoryReceiptStatus.Draft => ("入荷予定", Color.Info, Icons.Material.Filled.HourglassTop),
+        InventoryReceiptStatus.Received => ("受領済み", Color.Success, Icons.Material.Filled.CheckCircle),
+        InventoryReceiptStatus.Cancelled => ("キャンセル", Color.Default, Icons.Material.Filled.Cancel),
+        _ => (status.ToString(), Color.Default, null)
+    };
+
+    // 店舗間移動: 依頼 (出荷待ち) → 出荷済み (入荷店の受領待ち) → 受領
+    public static (string Text, Color Color, string? Icon) InventoryTransferStatusChip(InventoryTransferStatus status) => status switch
+    {
+        InventoryTransferStatus.Requested => ("出荷待ち", Color.Info, Icons.Material.Filled.HourglassTop),
+        InventoryTransferStatus.Shipped => ("受領待ち", Color.Warning, Icons.Material.Filled.LocalShipping),
+        InventoryTransferStatus.Received => ("受領済み", Color.Success, Icons.Material.Filled.CheckCircle),
+        InventoryTransferStatus.Cancelled => ("キャンセル", Color.Default, Icons.Material.Filled.Cancel),
+        _ => (status.ToString(), Color.Default, null)
+    };
+
+    // 日次締め: 締めた後に同じ営業日の取引が届いた日は締め直しが要る
+    public static (string Text, Color Color, string? Icon) DailyClosingChip(DailyClosingStatus status, bool hasLateTransactions) => (status, hasLateTransactions) switch
+    {
+        (DailyClosingStatus.Closed, true) => ("締め後の取引あり", Color.Warning, Icons.Material.Filled.Warning),
+        (DailyClosingStatus.Closed, false) => ("締め済み", Color.Success, Icons.Material.Filled.Lock),
+        _ => ("未締め", Color.Info, Icons.Material.Filled.LockOpen)
+    };
+
+    // 商品 CSV の取込の行の結果
+    public static (string Text, Color Color, string? Icon) ImportActionChip(ImportAction action) => action switch
+    {
+        ImportAction.Insert => ("新規", Color.Success, Icons.Material.Filled.AddCircle),
+        ImportAction.Update => ("更新", Color.Info, Icons.Material.Filled.Edit),
+        ImportAction.Unchanged => ("変更なし", Color.Default, Icons.Material.Filled.Remove),
+        ImportAction.Error => ("エラー", Color.Error, Icons.Material.Filled.Error),
+        _ => (action.ToString(), Color.Default, null)
+    };
+
+    // 締めを止めている未精算のシフト
+    public static (string Text, Color Color, string? Icon) OpenShiftChip(int count) => ($"未精算 {count}", Color.Warning, Icons.Material.Filled.PointOfSale);
+
     // 過不足: 0 は一致、正は過剰、負は不足
     public static (string Text, Color Color, string? Icon) DifferenceChip(decimal? difference) => difference switch
     {
@@ -55,6 +114,9 @@ public static class ViewHelper
         InventoryChangeType.Void => ("取消", Color.Error, Icons.Material.Filled.Cancel),
         InventoryChangeType.PhysicalCount => ("棚卸", Color.Info, Icons.Material.Filled.Assignment),
         InventoryChangeType.Adjustment => ("調整", Color.Secondary, Icons.Material.Filled.Build),
+        InventoryChangeType.Receive => ("入荷", Color.Success, Icons.Material.Filled.MoveToInbox),
+        InventoryChangeType.TransferOut => ("移動出荷", Color.Tertiary, Icons.Material.Filled.CallMade),
+        InventoryChangeType.TransferIn => ("移動受領", Color.Tertiary, Icons.Material.Filled.CallReceived),
         _ => (type.ToString(), Color.Default, null)
     };
 
@@ -129,6 +191,18 @@ public static class ViewHelper
     public static string TransactionDiscountMark(bool isTransactionDiscount) => isTransactionDiscount ? "(取引)" : String.Empty;
 
     public static string ReturnedText(decimal returnedQuantity) => returnedQuantity > 0 ? $"(返品済 {returnedQuantity.ToQuantityText()})" : String.Empty;
+
+    // 受領した数と予定・出荷の数の差 (受領前と一致は出さない)
+    public static string QuantityDifferenceText(decimal quantity, decimal? receivedQuantity) =>
+        receivedQuantity is { } received && received != quantity ? $"(差 {(received - quantity).ToDeltaText()})" : String.Empty;
+
+    // 在庫変動の参照先 (取引・入荷・移動) の画面
+    public static (string Href, string Text) ReferenceLink(string? referenceType, Guid referenceId) => referenceType switch
+    {
+        InventoryReferenceType.InventoryReceipt => ($"inventory/receipts?id={referenceId}", "📦 入荷"),
+        InventoryReferenceType.InventoryTransfer => ($"inventory/transfers?id={referenceId}", "🚚 移動"),
+        _ => ($"transactions?id={referenceId}", "🧾 取引")
+    };
 
     // 上位 3 位はメダル
     public static string RankText(int rank) => rank switch

@@ -1,0 +1,73 @@
+@using Pos.Server.Host.Endpoints
+@using Pos.Server.Services
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">📥 商品 CSV の取込</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.body2">
+                「CSV 出力」と同じ列の CSV を選ぶと、取り込む前に行ごとの結果を確かめられます。
+                コードが一致する商品は更新し、ない商品は登録します (CSV にない商品は削除しません)。
+                誤りのある行があると何も取り込みません。
+            </MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudFileUpload T="IBrowserFile" Accept=".csv,text/csv" FilesChanged="OnFileSelectedAsync">
+                    <CustomContent>
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile" Disabled="busy" OnClick="@context.OpenFilePickerAsync">ファイルを選択</MudButton>
+                    </CustomContent>
+                    <SelectedTemplate />
+                </MudFileUpload>
+                <MudText Typo="Typo.body2">@fileName</MudText>
+            </MudStack>
+            @if (message is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@message</MudAlert>
+            }
+            @if (preview is not null)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="1">
+                    <StatusChip Value="@ViewHelper.ImportActionChip(ImportAction.Insert)" />
+                    <MudText Typo="Typo.body2" Class="mr-2">@preview.InsertCount 件</MudText>
+                    <StatusChip Value="@ViewHelper.ImportActionChip(ImportAction.Update)" />
+                    <MudText Typo="Typo.body2" Class="mr-2">@preview.UpdateCount 件</MudText>
+                    <StatusChip Value="@ViewHelper.ImportActionChip(ImportAction.Unchanged)" />
+                    <MudText Typo="Typo.body2" Class="mr-2">@preview.UnchangedCount 件</MudText>
+                    <StatusChip Value="@ViewHelper.ImportActionChip(ImportAction.Error)" />
+                    <MudText Typo="Typo.body2" Class="mr-2">@preview.ErrorCount 件</MudText>
+                    <MudSpacer />
+                    <MudSwitch T="bool" @bind-Value="showUnchanged" Label="変更のない行も表示" Color="Color.Primary" />
+                </MudStack>
+                <MudTable T="ProductImportLineResult" Items="VisibleLines" Dense="true" Hover="true" Bordered="true" FixedHeader="true" Height="360px">
+                    <HeaderContent>
+                        <MudTh Class="text-right">行</MudTh>
+                        <MudTh>コード</MudTh>
+                        <MudTh>商品名</MudTh>
+                        <MudTh>結果</MudTh>
+                        <MudTh>内容</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd Class="text-right">@context.LineNo</MudTd>
+                        <MudTd>@context.Code</MudTd>
+                        <MudTd>@context.Name</MudTd>
+                        <MudTd><StatusChip Value="@ViewHelper.ImportActionChip(context.Action)" /></MudTd>
+                        <MudTd>
+                            @foreach (var error in context.Errors)
+                            {
+                                <div class="mud-error-text">@ApiRuleText.Of(error)</div>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText>変更のある行はありません。</MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()">閉じる</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.UploadFile" Disabled="busy || !CanImport" OnClick="ImportAsync">取込</MudButton>
+    </DialogActions>
+</MudDialog>

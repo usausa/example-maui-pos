@@ -29,6 +29,7 @@ public sealed partial class TransactionAccessor
         DateOnly? to,
         TransactionType? type,
         TransactionStatus? status,
+        string? serialNumber,
         CancellationToken cancellationToken);
 
     [Query]
@@ -42,6 +43,7 @@ public sealed partial class TransactionAccessor
         DateOnly? to,
         TransactionType? type,
         TransactionStatus? status,
+        string? serialNumber,
         TransactionSort sort,
         bool desc,
         int limit,

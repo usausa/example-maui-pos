@@ -64,6 +64,11 @@ public sealed class TransactionResponseItem
 
     public TransactionResponseVoid? Void { get; set; }
 
+    // 受注から会計した取引
+    public Guid? OrderId { get; set; }
+
+    public string? OrderNo { get; set; }
+
     // 受理したが確認が必要な事項
     public IReadOnlyList<TransactionResponseWarning> Warnings { get; set; } = [];
 

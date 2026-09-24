@@ -18,6 +18,10 @@ public sealed class DisplayNameConverter : IValueConverter
             StaffRole x => ViewHelper.Name(x),
             OutboxStatus x => ViewHelper.Name(x),
             OutboxKind x => ViewHelper.Name(x),
+            OrderStatus x => ViewHelper.Name(x),
+            OrderType x => ViewHelper.Name(x),
+            ReceivingKind x => ViewHelper.Name(x),
+            ReceivingLineState x => ViewHelper.Name(x),
             _ => value.ToString()
         };
 

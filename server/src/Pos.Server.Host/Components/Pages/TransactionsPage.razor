@@ -30,6 +30,7 @@
             <MudSelectItem T="TransactionStatus?" Value="TransactionStatus.Voided">❌ 取消</MudSelectItem>
         </MudSelect>
         <MudTextField Class="min-w-180 search-field" @bind-Value="receiptNo" Label="レシート番号" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        <MudTextField Class="min-w-180 search-field" @bind-Value="serialNumber" Label="シリアル番号" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
         @if (ShiftId is not null)
         {

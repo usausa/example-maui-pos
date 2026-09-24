@@ -1,0 +1,67 @@
+@page "/daily-closings"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 日次締め</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">🗓️ 日次締め</MudText>
+    <MudSpacer />
+</MudStack>
+
+<MudPaper Class="pa-2 mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <MudDateRangePicker Class="filter-range" @bind-DateRange="period" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
+        <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
+        <MudSelect Class="min-w-130" T="DailyClosingStatus?" @bind-Value="status" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+            <MudSelectItem T="DailyClosingStatus?" Value="null">すべて</MudSelectItem>
+            <MudSelectItem T="DailyClosingStatus?" Value="DailyClosingStatus.Open">🔓 未締め</MudSelectItem>
+            <MudSelectItem T="DailyClosingStatus?" Value="DailyClosingStatus.Closed">🔒 締め済み</MudSelectItem>
+        </MudSelect>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
+    </MudStack>
+</MudPaper>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudDataGrid @ref="Grid" T="DailyClosingDayView" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
+    <Columns>
+        <PropertyColumn Property="x => x.BusinessDate" Title="営業日" InitialDirection="SortDirection.Descending">
+            <CellTemplate>@context.Item.BusinessDate.ToDateText()</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="店舗" Sortable="false" CellClass="cell-wrap">
+            <CellTemplate>@names.Store(context.Item.StoreId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="状態" Sortable="false">
+            <CellTemplate><StatusChip Value="@ViewHelper.DailyClosingChip(context.Item.Status, context.Item.HasLateTransactions)" /></CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="シフト" Sortable="false">
+            <CellTemplate>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <span>@context.Item.ShiftCount 件</span>
+                    @if (context.Item.OpenShiftCount > 0)
+                    {
+                        <StatusChip Value="@ViewHelper.OpenShiftChip(context.Item.OpenShiftCount)" />
+                    }
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="販売 / 返品 / 取消" Sortable="false" CellClass="text-right">
+            <CellTemplate>@context.Item.SalesCount / @context.Item.ReturnCount / @context.Item.VoidCount 件</CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.NetSales" Title="純売上" CellClass="text-right">
+            <CellTemplate>@context.Item.NetSales.ToYen()</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="締め" Sortable="false">
+            <CellTemplate>@context.Item.ClosedAt.ToShortDateTimeText()</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="締めた人" Sortable="false" CellClass="cell-wrap">
+            <CellTemplate>@(context.Item.ClosedBy ?? "-")</CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>営業日がありません。</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="DailyClosingDayView" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
+    </PagerContent>
+</MudDataGrid>

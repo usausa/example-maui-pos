@@ -51,9 +51,10 @@
         </TemplateColumn>
         <TemplateColumn Title="参照">
             <CellTemplate>
-                @if (context.Item.ReferenceId is not null)
+                @if (context.Item.ReferenceId is { } referenceId)
                 {
-                    <MudLink Href="@($"transactions?id={context.Item.ReferenceId}")" Typo="Typo.body2">🧾 取引</MudLink>
+                    var link = ViewHelper.ReferenceLink(context.Item.ReferenceType, referenceId);
+                    <MudLink Href="@link.Href" Typo="Typo.body2">@link.Text</MudLink>
                 }
             </CellTemplate>
         </TemplateColumn>

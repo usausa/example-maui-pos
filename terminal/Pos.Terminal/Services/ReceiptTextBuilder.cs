@@ -30,6 +30,11 @@ public static class ReceiptTextBuilder
         AppendCenter(sb, transaction.Type == TransactionType.Return ? "【返品】" : transaction.Status == TransactionStatus.Voided ? "【取消済み】" : "領収書");
         AppendPair(sb, DateTimeHelper.FormatDateTime(transaction.TransactedAt), "担当: " + staffName);
         AppendPair(sb, terminalName, "No." + transaction.ReceiptNo);
+        if (transaction.OrderNo is not null)
+        {
+            AppendPair(sb, "受注番号", transaction.OrderNo);
+        }
+
         AppendLine(sb, '-');
 
         foreach (var line in transaction.Lines)

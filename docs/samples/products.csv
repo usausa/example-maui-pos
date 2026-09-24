@@ -1,0 +1,34 @@
+﻿コード,JAN,商品名,かな,メーカー,型番,部門コード,部門,種別,価格,内税,税率コード,原価,還元率,シリアル要,在庫管理,売価変更可,単位,販売可
+BAG-01,4901234500181,カメラバッグ,カメラバッグ,UsaCam,UB-01,C0203,アクセサリ,Goods,6800,True,STD,4000,0.01,False,True,False,個,True
+BAG-45,4901234500297,ゴミ袋 45L 50枚,ゴミブクロ 45L 50マイ,,,C0303,日用品,Goods,548,True,STD,300,0.01,False,True,False,袋,True
+BAT-X,4901234500204,予備バッテリー,ヨビバッテリー,UsaCam,UBT-X,C0203,アクセサリ,Goods,5400,True,STD,3200,0.01,False,True,False,個,True
+BATT-AA8,4901234500303,単3 アルカリ電池 8本,タン3 アルカリデンチ 8ホン,UsaPower,UAA-8,C0303,日用品,Goods,698,True,STD,400,0.01,False,True,False,個,True
+BD-2T,4901234500037,ブルーレイレコーダー 2TB,ブルーレイレコーダー 2TB,UsaVision,UBD-2000,C0101,テレビ・レコーダー,Goods,49800,True,STD,37000,0.1,True,True,False,台,True
+CAM-C20,4901234500129,コンパクトデジタルカメラ C-20,コンパクトデジタルカメラ C-20,UsaCam,C-20,C0201,デジタルカメラ,Goods,42000,True,STD,31000,0.1,True,True,False,台,True
+CAM-R5,4901234500136,一眼レフカメラ R-5 ボディ,イチガンレフカメラ R-5 ボディ,UsaCam,R-5,C0201,デジタルカメラ,Goods,150000,True,STD,112000,0.1,True,True,False,台,True
+CAM-X100,4901234567894,デジタルカメラ X-100,デジタルカメラ X-100,UsaCam,X-100,C0201,デジタルカメラ,Goods,80000,True,STD,60000,0.1,True,True,False,台,True
+DETERGENT,4901234500280,洗濯用洗剤 1kg,センタクヨウセンザイ 1kg,UsaHome,,C0303,日用品,Goods,398,True,STD,250,0.01,False,True,False,個,True
+DRILL-01,4901234500211,電動ドリルドライバー,デンドウドリルドライバー,UsaTool,UD-01,C0301,工具,Goods,12800,True,STD,8500,0.01,False,True,False,台,True
+DRIVER-SET,4901234500228,ドライバーセット 10本組,ドライバーセット 10ホングミ,UsaTool,UDS-10,C0301,工具,Goods,1980,True,STD,1200,0.01,False,True,False,組,True
+GLOVE-W,4901234500273,作業手袋,サギョウテブクロ,,,C0303,日用品,Goods,480,True,STD,250,0.01,False,True,False,双,True
+HD-12,4901234500105,ヘアドライヤー,ヘアドライヤー,UsaHome,UHD-12,C0103,生活家電,Goods,12800,True,STD,9000,0.01,False,True,False,台,True
+LENS-2470,4901234500143,標準ズームレンズ 24-70mm,ヒョウジュンズームレンズ 24-70mm,UsaCam,UL-2470,C0202,レンズ,Goods,98000,True,STD,72000,0.05,True,True,False,本,True
+LENS-50,4901234500150,単焦点レンズ 50mm,タンショウテンレンズ 50mm,UsaCam,UL-50,C0202,レンズ,Goods,32000,True,STD,23000,0.05,True,True,False,本,True
+LENS-70300,4901234500167,望遠ズームレンズ 70-300mm,ボウエンズームレンズ 70-300mm,UsaCam,UL-70300,C0202,レンズ,Goods,68000,True,STD,50000,0.05,True,True,False,本,True
+MW-26,4901234500075,電子レンジ 26L,デンシレンジ 26L,UsaKitchen,UM-26,C0103,生活家電,Goods,24800,True,STD,18000,0.05,False,True,False,台,True
+POT-8,4901234500259,植木鉢 8号,ウエキバチ 8ゴウ,UsaGarden,,C0302,園芸,Goods,880,True,STD,500,0.01,False,True,False,個,True
+RC-55,4901234500082,IH 炊飯器 5.5合,IH スイハンキ 5.5ゴウ,UsaKitchen,URC-55,C0103,生活家電,Goods,32000,True,STD,24000,0.05,False,True,False,台,True
+RF-150,4901234500051,冷蔵庫 150L,レイゾウコ 150L,UsaCool,UR-150,C0102,冷蔵庫・洗濯機,Goods,39800,True,STD,29000,0.05,True,True,False,台,True
+RF-450,4901234500044,冷蔵庫 450L,レイゾウコ 450L,UsaCool,UR-450,C0102,冷蔵庫・洗濯機,Goods,158000,True,STD,118000,0.05,True,True,False,台,True
+ROPE-6,4901234500235,ロープ 6mm (切り売り),ロープ 6mm キリウリ,,,C0301,工具,Goods,120,True,STD,70,0.01,False,True,False,m,True
+SCISSORS-G,4901234500266,園芸ばさみ,エンゲイバサミ,UsaGarden,UGS-1,C0302,園芸,Goods,1280,True,STD,800,0.01,False,True,False,本,True
+SD-64,4901234567900,SD カード 64GB,SD カード 64GB,UsaMedia,USD-64,C0203,アクセサリ,Goods,2000,True,STD,1200,0.01,False,True,False,枚,True
+SOIL-25,4901234500242,培養土 25L,バイヨウド 25L,UsaGarden,,C0302,園芸,Goods,698,True,STD,400,0.01,False,True,False,袋,True
+SVC-DELIVERY,,配送料,ハイソウリョウ,,,C04,サービス,Service,1100,True,STD,,0,False,False,True,件,True
+SVC-INSTALL,,設置工事,セッチコウジ,,,C04,サービス,Service,8000,True,STD,,0,False,False,True,件,True
+SVC-WARRANTY,,延長保証 (5 年),エンチョウホショウ 5ネン,,,C04,サービス,Service,5000,True,STD,,0,False,False,True,件,True
+TRIPOD-01,4901234500198,三脚,サンキャク,UsaCam,UT-01,C0203,アクセサリ,Goods,9800,True,STD,6000,0.01,False,True,False,本,True
+TV-43K,4901234500020,4K 液晶テレビ 43型,4K エキショウテレビ 43ガタ,UsaVision,UV-43K,C0101,テレビ・レコーダー,Goods,78000,True,STD,58000,0.1,True,True,False,台,True
+TV-55K,4901234500013,4K 液晶テレビ 55型,4K エキショウテレビ 55ガタ,UsaVision,UV-55K,C0101,テレビ・レコーダー,Goods,128000,True,STD,96000,0.1,True,True,False,台,True
+VC-C1,4901234500099,コードレス掃除機,コードレスソウジキ,UsaHome,UVC-C1,C0103,生活家電,Goods,54800,True,STD,40000,0.1,True,True,False,台,True
+WM-D10,4901234500068,ドラム式洗濯機 10kg,ドラムシキセンタクキ 10kg,UsaCool,UW-D10,C0102,冷蔵庫・洗濯機,Goods,198000,True,STD,148000,0.05,True,True,False,台,True

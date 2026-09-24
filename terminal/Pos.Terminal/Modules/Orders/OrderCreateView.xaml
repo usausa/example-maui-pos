@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:helpers="clr-namespace:Pos.Terminal.Helpers"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Orders"
+             x:Class="Pos.Terminal.Modules.Orders.OrderCreateView"
+             x:DataType="{x:Type module:OrderCreateViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:OrderCreateViewModel}"
+             shell:ShellProperty.Title="受注にする"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="—"
+             shell:ShellProperty.Function3Text="—"
+             shell:ShellProperty.Function4Text="登録"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="False"
+             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
+                             BackgroundColor="{StaticResource GrayLighten3}">
+            <!-- 受注にする明細と会員 -->
+            <Border Style="{StaticResource PosHeroBorder}">
+                <VerticalStackLayout Spacing="4">
+                    <Label Style="{StaticResource PosListNameLabel}"
+                           LineBreakMode="WordWrap"
+                           Text="{Binding CartText}" />
+                    <Label Style="{StaticResource PosHeroCaptionLabel}"
+                           Text="{Binding CustomerText}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="種別" />
+            <Button Style="{StaticResource PosSelectButton}"
+                    Margin="16,0"
+                    HorizontalOptions="Fill"
+                    Command="{Binding SelectTypeCommand}"
+                    Text="{Binding TypeText}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="宛名" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   behaviors:EntryBind.Controller="{Binding CustomerName}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="電話" />
+            <Button Style="{StaticResource PosFieldInputButton}"
+                    Command="{Binding InputPhoneCommand}"
+                    Text="{Binding PhoneText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして入力'}" />
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="希望日 (入荷予定・取り置きの期限)" />
+            <Grid Margin="16,0"
+                  ColumnDefinitions="*,Auto"
+                  ColumnSpacing="8">
+                <DatePicker Grid.Column="0"
+                            Format="{x:Static helpers:DateTimeHelper.DateFormat}"
+                            FontSize="16"
+                            BackgroundColor="White"
+                            IsVisible="{Binding HasRequestedDate}"
+                            Date="{Binding RequestedDate}" />
+                <Button Grid.Column="0"
+                        Style="{StaticResource PosSelectButton}"
+                        IsVisible="{Binding HasRequestedDate, Converter={StaticResource ReverseConverter}}"
+                        Command="{Binding SetDateCommand}"
+                        Text="指定なし (タップで指定)" />
+                <Button Grid.Column="1"
+                        Style="{StaticResource PosSelectButton}"
+                        IsVisible="{Binding HasRequestedDate}"
+                        Command="{Binding ClearDateCommand}"
+                        Text="✕" />
+            </Grid>
+
+            <Label Style="{StaticResource PosFieldLabel}"
+                   Text="備考" />
+            <Entry Style="{StaticResource PosFieldEntry}"
+                   Margin="16,0,16,16"
+                   behaviors:EntryBind.Controller="{Binding Note}" />
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentView>

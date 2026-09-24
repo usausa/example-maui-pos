@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:s="http://smart/maui"
+             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
+             xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Inventory"
+             x:Class="Pos.Terminal.Modules.Inventory.ReceivingCheckView"
+             x:DataType="{x:Type module:ReceivingCheckViewModel}"
+             s:BindingContextResolver.Type="{x:Type module:ReceivingCheckViewModel}"
+             shell:ShellProperty.Title="検品"
+             shell:ShellProperty.Function1Text="戻る"
+             shell:ShellProperty.Function2Text="スキャン"
+             shell:ShellProperty.Function3Text="—"
+             shell:ShellProperty.Function4Text="受領"
+             shell:ShellProperty.Function1Enabled="True"
+             shell:ShellProperty.Function2Enabled="True"
+             shell:ShellProperty.Function3Enabled="False"
+             shell:ShellProperty.Function4Enabled="True">
+
+    <Grid Style="{StaticResource PosPageGrid}"
+          RowDefinitions="Auto,Auto,*">
+        <!-- 伝票 (仕入先か出荷店・種類・番号・備考) と数えた明細の数 -->
+        <Border Grid.Row="0"
+                Style="{StaticResource PosHeroBorder}">
+            <Grid RowDefinitions="Auto,Auto,Auto"
+                  ColumnDefinitions="*,Auto"
+                  RowSpacing="4">
+                <Label Grid.Row="0" Grid.Column="0"
+                       Style="{StaticResource PosListNameLabel}"
+                       FontSize="18"
+                       Text="{Binding Source}" />
+                <Label Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                       Style="{StaticResource PosListValueLabel}"
+                       FontAttributes="Bold"
+                       Text="{Binding ProgressText}" />
+                <FlexLayout Grid.Row="1" Grid.Column="0"
+                            Style="{StaticResource PosChipFlexLayout}">
+                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                         ChipColor="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}"
+                                         Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}" />
+                    <Label Style="{StaticResource PosCodeLabel}"
+                           Text="{Binding Number}" />
+                </FlexLayout>
+                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                       Style="{StaticResource PosCaptionLabel}"
+                       LineBreakMode="WordWrap"
+                       IsVisible="{Binding Note, Converter={StaticResource NotEmptyConverter}}"
+                       Text="{Binding Note}" />
+            </Grid>
+        </Border>
+
+        <Button Grid.Row="1"
+                Style="{StaticResource PosMethodButton}"
+                Margin="8"
+                Command="{Binding InputCodeCommand}"
+                ImageSource="{StaticResource PosDialpadIcon}"
+                Text="JAN / 商品コードを入力" />
+
+        <!-- 左端の帯と行の背景で届いた数の状態を示す。タップで届いた数を入れ直す -->
+        <CollectionView Grid.Row="2"
+                        Style="{StaticResource PosListCollectionView}"
+                        ItemsSource="{Binding Items}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type module:ReceivingLineItem}">
+                    <Grid Style="{StaticResource PosStripRowGrid}"
+                          RowDefinitions="*,Auto"
+                          ColumnDefinitions="Auto,*"
+                          BackgroundColor="{Binding State, Converter={StaticResource ReceivingRowColorConverter}}">
+                        <BoxView Grid.Row="0" Grid.Column="0"
+                                 Style="{StaticResource PosStripBoxView}"
+                                 Color="{Binding State, Converter={StaticResource ReceivingLineColorConverter}}" />
+
+                        <effects:SfEffectsView Grid.Row="0" Grid.Column="1"
+                                               Style="{StaticResource PosRippleView}">
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <effects:SfEffectsView.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:ReceivingCheckViewModel}}, Path=SelectCommand, x:DataType={x:Type module:ReceivingCheckViewModel}}"
+                                                      CommandParameter="{Binding .}" />
+                            </effects:SfEffectsView.GestureRecognizers>
+                            <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
+                            <VerticalStackLayout Style="{StaticResource PosStripBodyStack}"
+                                                 Padding="12,10,16,10">
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <Label Grid.Column="0"
+                                           Style="{StaticResource PosListNameLabel}"
+                                           Text="{Binding Name}" />
+                                    <Label Grid.Column="1"
+                                           Style="{StaticResource PosListValueLabel}"
+                                           FontAttributes="Bold"
+                                           Text="{Binding CountText}" />
+                                </Grid>
+                                <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                         ChipColor="{Binding State, Converter={StaticResource ReceivingLineColorConverter}}"
+                                                         Text="{Binding State, Converter={StaticResource DisplayNameConverter}}" />
+                                    <Label Style="{StaticResource PosCodeLabel}"
+                                           Text="{Binding Code}" />
+                                    <Label Style="{StaticResource PosInfoLabel}"
+                                           Text="{Binding Detail}" />
+                                </FlexLayout>
+                            </VerticalStackLayout>
+                        </effects:SfEffectsView>
+
+                        <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                 Style="{StaticResource PosRowSeparator}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentView>

@@ -1,20 +1,22 @@
 namespace Pos.Server.SampleData;
 
 using Pos.Contract.Customers;
+using Pos.Contract.DailyClosings;
 using Pos.Contract.Discounts;
-using Pos.Contract.Inventory;
+using Pos.Contract.InventoryReceipts;
 using Pos.Contract.PaymentMethods;
 using Pos.Contract.Products;
 using Pos.Contract.Shifts;
 using Pos.Contract.Staff;
 using Pos.Contract.Stores;
+using Pos.Contract.Suppliers;
 using Pos.Contract.Sync;
 using Pos.Contract.TaxRates;
 using Pos.Contract.Terminals;
 using Pos.Contract.Transactions;
 using Pos.Domain.Logic;
 
-// 端末と同じ手順 (Pos.Domain で計算 → TransactionCreateRequest → POST) で、過去 N 日分のシフト・販売・返品・入出金・精算を作る
+// 端末と同じ手順 (Pos.Domain で計算 → TransactionCreateRequest → POST) で、過去 N 日分のシフト・販売・返品・入出金・精算を作り、前日までを日次締めする
 internal sealed class SampleGenerator
 {
     private static readonly string[] PaidOutReasons = ["両替", "釣銭補充", "経費支払"];
@@ -48,6 +50,8 @@ internal sealed class SampleGenerator
     private PaymentMethodResponseItem? card;
 
     private PaymentMethodResponseItem? points;
+
+    private SupplierResponseItem supplier = default!;
 
     private TaxRounding taxRounding;
 
@@ -102,6 +106,12 @@ internal sealed class SampleGenerator
                     await GenerateDayAsync(store, terminal, cashier, manager, date, () => $"{store.Code}-{terminal.TerminalNo:00}-{++receiptSeq:000000}").ConfigureAwait(false);
                 }
             }
+
+            // 今日は営業中として残す
+            for (var offset = options.Days - 1; offset >= 1; offset--)
+            {
+                await CloseDayAsync(store, today.AddDays(-offset)).ConfigureAwait(false);
+            }
         }
 
         await output.WriteLineAsync($"完了: 取引 {created} 件").ConfigureAwait(false);
@@ -130,6 +140,11 @@ internal sealed class SampleGenerator
         taxRounding = masters.Settings?.TaxRounding ?? TaxRounding.Floor;
         pointBasis = masters.Settings?.PointBasis ?? PointBasis.TaxIncluded;
 
+        // 入荷の仕入先 (なければサンプル用に登録する)
+        var suppliers = await client.GetAsync<SupplierResponse>("inventory/suppliers").ConfigureAwait(false);
+        supplier = suppliers.Items.FirstOrDefault(static x => x.IsActive)
+            ?? await client.PostAsync<SupplierResponseItem>("inventory/suppliers", new SupplierCreateRequest { Code = "SAMPLE", Name = "サンプル仕入先" }).ConfigureAwait(false);
+
         var customerList = await client.GetAsync<CustomerResponse>("customers?size=100").ConfigureAwait(false);
         customers = customerList.Items.Where(static x => !x.IsDeleted).ToList();
         pointBalances = customers.ToDictionary(static x => x.Id, static x => x.PointBalance);
@@ -142,30 +157,28 @@ internal sealed class SampleGenerator
         await output.WriteLineAsync($"マスタ: 店舗 {masters.Stores.Count} / 端末 {masters.Terminals.Count} / 商品 {products.Count} / 会員 {customers.Count}").ConfigureAwait(false);
     }
 
-    // 初日の開店前に在庫を積む (販売で在庫がマイナスになりすぎないように、在庫調整で入荷扱い)
+    // 初日の開店前に在庫を積む (販売で在庫がマイナスになりすぎないように、仕入先からの入荷を予定どおり受領する)
     private async Task ReceiveStockAsync(StoreResponseItem store, StaffResponseItem staff, DateOnly date)
     {
-        var changes = products
+        var lines = products
             .Where(static x => x.TrackInventory && (x.Kind == ProductKind.Goods))
-            .Select(x => new InventoryChangeRequestChange
-            {
-                Id = Guid.NewGuid(),
-                StoreId = store.Id,
-                ProductId = x.Id,
-                Type = InventoryChangeType.Adjustment,
-                Quantity = 10 + random.Next(21),
-                Reason = "サンプル入荷",
-                StaffId = staff.Id,
-                OccurredAt = ToUtc(date, 8, 30)
-            })
+            .Select(x => new InventoryReceiptCreateRequestLine { ProductId = x.Id, Quantity = 10 + random.Next(21), Cost = x.Cost })
             .ToList();
-        if (changes.Count == 0)
+        if (lines.Count == 0)
         {
             return;
         }
 
-        await client.PostAsync<InventoryChangeResultResponse>("inventory/changes", new InventoryChangeRequest { Changes = changes }).ConfigureAwait(false);
-        await output.WriteLineAsync($"[{store.Name}] 入荷 {changes.Count} 商品").ConfigureAwait(false);
+        var receipt = await client.PostAsync<InventoryReceiptResponseItem>("inventory/receipts", new InventoryReceiptCreateRequest
+        {
+            StoreId = store.Id,
+            SupplierId = supplier.Id,
+            SlipNo = $"SAMPLE-{store.Code}-{date:yyyyMMdd}",
+            ExpectedDate = date,
+            Lines = lines
+        }).ConfigureAwait(false);
+        await client.PostAsync<InventoryReceiptResponseItem>($"inventory/receipts/{receipt.Id}/receive", new InventoryReceiptReceiveRequest { StaffId = staff.Id, ReceivedAt = ToUtc(date, 8, 30) }).ConfigureAwait(false);
+        await output.WriteLineAsync($"[{store.Name}] 入荷 {lines.Count} 商品 ({supplier.Name})").ConfigureAwait(false);
     }
 
     // 1 日分: 開設 → 販売 (返品・取消を混ぜる) → 出金 → 精算
@@ -551,6 +564,20 @@ internal sealed class SampleGenerator
         {
             await output.WriteLineAsync($"  取引を省略: {ex.Message}").ConfigureAwait(false);
             return null;
+        }
+    }
+
+    // 締め済み (再実行) や未精算のシフトがある日は省略して続ける
+    private async Task CloseDayAsync(StoreResponseItem store, DateOnly date)
+    {
+        try
+        {
+            await client.PostAsync<DailyClosingSummaryResponse>("daily-closings", new DailyClosingCreateRequest { StoreId = store.Id, BusinessDate = date }).ConfigureAwait(false);
+            await output.WriteLineAsync($"{date:yyyy-MM-dd} {store.Name}: 日次締め").ConfigureAwait(false);
+        }
+        catch (ApiException ex) when (ex.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.UnprocessableEntity)
+        {
+            await output.WriteLineAsync($"  日次締めを省略: {ex.Message}").ConfigureAwait(false);
         }
     }
 

@@ -21,8 +21,37 @@ public sealed class CategoryItem : NotificationObject
     }
 }
 
-// 検索結果の商品 (コードは等幅で見せ、シリアル必須はチップで示す)
-public sealed record ProductItem(ProductResponseItem Product, string Name, string Code, string Detail, string PriceText, bool RequiresSerial);
+// 検索結果の商品 (コードは等幅で見せ、シリアル必須はチップで示す。画像は結果を出した後に入れる)
+public sealed class ProductItem : NotificationObject
+{
+    public ProductResponseItem Product { get; }
+
+    public string Name { get; }
+
+    public string Code { get; }
+
+    public string Detail { get; }
+
+    public string PriceText { get; }
+
+    public bool RequiresSerial { get; }
+
+    public ImageSource? Image
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    public ProductItem(ProductResponseItem product, string detail, string priceText)
+    {
+        Product = product;
+        Name = product.Name;
+        Code = product.Code;
+        Detail = detail;
+        PriceText = priceText;
+        RequiresSerial = product.RequiresSerial;
+    }
+}
 
 // 商品検索: キーワードと部門 (2 階層) でローカルの商品を探す。販売からは追加して継続、照会からは選んで戻る
 public sealed partial class ProductSearchViewModel : AppViewModelBase
@@ -35,6 +64,8 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
     private readonly DataAccessor accessor;
 
+    private readonly ProductImageService imageService;
+
     private readonly SalesUsecase sales;
 
     private IReadOnlyList<CategoryResponseItem> categories = [];
@@ -44,6 +75,9 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
     private CategoryItem? selectedParent;
 
     private CategoryItem? selectedChild;
+
+    // 画像を入れている検索 (次の検索が始まったら前の結果には入れない)
+    private int searchCount;
 
     // 販売の画面間で共有する状態 (Scope プラグインが同じインスタンスを注入し、どの画面からも参照されなくなると破棄する)。照会からのときは使わない
     [Scope]
@@ -80,11 +114,13 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
         IDialog dialog,
         IPopupNavigator popupNavigator,
         DataAccessor accessor,
+        ProductImageService imageService,
         SalesUsecase sales)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
         this.accessor = accessor;
+        this.imageService = imageService;
         this.sales = sales;
 
         SearchCommand = MakeAsyncCommand(SearchAsync);
@@ -134,6 +170,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
             categoryIds = categories.Where(x => x.ParentId == selectedParent.Id).Select(static x => x.Id).Append(selectedParent.Id.Value).ToArray();
         }
 
+        var count = ++searchCount;
         if ((pattern is null) && (categoryIds is null))
         {
             Items.Clear();
@@ -142,8 +179,24 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
         }
 
         var list = await accessor.QueryProductListAsync(categoryIds, pattern, 200);
-        Items.Replace(list.Select(static x => new ProductItem(x, x.Name, x.Code, $"{x.ModelNo}  {x.Brand}".Trim(), ViewHelper.Yen(x.Price), x.RequiresSerial)));
+        var items = list.Select(static x => new ProductItem(x, $"{x.ModelNo}  {x.Brand}".Trim(), ViewHelper.Yen(x.Price))).ToList();
+        Items.Replace(items);
         Message = "該当する商品がありません。";
+
+        // 画像は結果を出した後に上から順に入れる (取得を待たずに操作できる)
+        foreach (var item in items.Where(static x => x.Product.ImageUrl is not null))
+        {
+            var file = await imageService.GetImageFileAsync(item.Product);
+            if (count != searchCount)
+            {
+                return;
+            }
+
+            if (file is not null)
+            {
+                item.Image = ImageSource.FromFile(file);
+            }
+        }
     }
 
     private Task SelectParentAsync(CategoryItem item)

@@ -1,6 +1,6 @@
 namespace Pos.Terminal.Modules.Inquiry;
 
-// 商品・在庫照会: スキャン / 検索で価格・税・還元率・自店在庫を見せる。他店在庫はオンライン
+// 商品・在庫照会: スキャン / 検索で画像・価格・税・還元率・自店在庫を見せる。他店在庫はオンライン
 public sealed partial class ProductInquiryViewModel : AppViewModelBase
 {
     private readonly Session session;
@@ -8,6 +8,8 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
     private readonly DataAccessor accessor;
 
     private readonly NetworkService network;
+
+    private readonly ProductImageService imageService;
 
     private ProductResponseItem? product;
 
@@ -29,6 +31,10 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string PriceDetail { get; set; } = string.Empty;
 
+    // 画像 (取得できたときだけ面を出す)
+    [ObservableProperty]
+    public partial ImageSource? Image { get; set; }
+
     public ObservableCollection<SummarySection> Sections { get; } = [];
 
     // 他店在庫 (F4 で取得したときだけ見出しと面を出す。取得中・取得できない・在庫なしは案内文で示す)
@@ -43,11 +49,13 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
     public ProductInquiryViewModel(
         Session session,
         DataAccessor accessor,
-        NetworkService network)
+        NetworkService network,
+        ProductImageService imageService)
     {
         this.session = session;
         this.accessor = accessor;
         this.network = network;
+        this.imageService = imageService;
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
@@ -67,6 +75,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
     private async Task UpdateProductAsync(ProductResponseItem? value, string key)
     {
         product = value;
+        Image = null;
         HasOtherStores = false;
         OtherStores.Clear();
         if (value is null)
@@ -102,6 +111,13 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
                 new SummaryRow("状態", value.IsActive && !value.IsDeleted ? "販売中" : "取扱終了")
             ])
         ]);
+
+        // 画像は他の項目を出した後に入れる (取得している間に別の商品へ替わったら捨てる)
+        var file = await imageService.GetImageFileAsync(value);
+        if ((file is not null) && (product == value))
+        {
+            Image = ImageSource.FromFile(file);
+        }
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Menu);

@@ -1,0 +1,79 @@
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudText Typo="Typo.h6">🚚 店舗間移動</MudText>
+            @if (detail is not null)
+            {
+                <MudText Typo="Typo.h6">@detail.Transfer.TransferNo</MudText>
+                <StatusChip Value="@ViewHelper.InventoryTransferStatusChip(detail.Transfer.Status)" />
+            }
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (detail is null)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            var transfer = detail.Transfer;
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">🏬 移動</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary w-110">出荷店</td><td>@Names.Store(transfer.FromStoreId)</td></tr>
+                            <tr><td class="mud-text-secondary">入荷店</td><td>@Names.Store(transfer.ToStoreId)</td></tr>
+                            <tr><td class="mud-text-secondary">備考</td><td>@transfer.Note</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">🕒 経過</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary w-110">依頼</td><td>@transfer.CreatedAt.ToDateTimeText()</td></tr>
+                            <tr><td class="mud-text-secondary">出荷</td><td>@transfer.ShippedAt.ToDateTimeText() @Names.StaffNameOrEmpty(transfer.ShippedByStaffId)</td></tr>
+                            <tr><td class="mud-text-secondary">受領</td><td>@transfer.ReceivedAt.ToDateTimeText() @Names.StaffNameOrEmpty(transfer.ReceivedByStaffId)</td></tr>
+                            @if (transfer.CancelledAt is not null)
+                            {
+                                <tr><td class="mud-text-secondary">キャンセル</td><td>@transfer.CancelledAt.ToDateTimeText()</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2">明細</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <thead>
+                            <tr><th>#</th><th>商品</th><th class="text-right">数量</th><th class="text-right">受領</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in detail.Lines)
+                            {
+                                <tr>
+                                    <td>@line.LineNo</td>
+                                    <td>@line.ProductCode @line.ProductName</td>
+                                    <td class="text-right">@line.Quantity.ToQuantityText()</td>
+                                    <td class="text-right">@line.ReceivedQuantity.ToQuantityText() <span class="mud-warning-text">@ViewHelper.QuantityDifferenceText(line.Quantity, line.ReceivedQuantity)</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (detail?.Transfer.Status == InventoryTransferStatus.Requested)
+        {
+            <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" OnClick="() => Close(InventoryTransferDialogAction.Cancel)">移動をキャンセル</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LocalShipping" OnClick="() => Close(InventoryTransferDialogAction.Ship)">出荷</MudButton>
+        }
+        @if (detail?.Transfer.Status == InventoryTransferStatus.Shipped)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.MoveToInbox" OnClick="() => Close(InventoryTransferDialogAction.Receive)">受領</MudButton>
+        }
+        <MudButton OnClick="() => MudDialog.Cancel()">閉じる</MudButton>
+    </DialogActions>
+</MudDialog>

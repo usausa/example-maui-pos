@@ -361,7 +361,10 @@ ViewModel は `DataAccessor` / `HttpService` / `Pos.Domain` を直接使い、�
 
 MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに分けた。  
 設計文書には実装済みの内容だけを書き、後回しの項目は本書で管理する。  
-順序の判断は [D-42](decisions.md#d-42-後回し項目の実装順序-phase-8-以降)。
+順序の判断は [D-42](decisions.md#d-42-後回し項目の実装順序-phase-8-以降)。  
+その後、認証に依存しない機能を先に作ることにした ([D-62](decisions.md#d-62-認証に依存しない機能を先に実装する))。  
+実装順は Phase 9 → 10 → 11 → 12 → 13b → 14 → 8 → 13a。  
+認証で変わる箇所はソースに `認証の導入時:` の注記を付け、[Phase 8](#認証の導入時に変える箇所) に一覧を置く。
 
 | フェーズ | 内容 | 主な対象 | 規模 |
 | --- | --- | --- | --- |
@@ -375,13 +378,13 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 各フェーズ共通の進め方 (Phase 0〜7 と同じ):
 
-- 着手時にまず設計を詳細化する: api-design (エンドポイント・Request / Response・エラーコード)、db-design (テーブル定義・DDL)、screen-design (画面・遷移) の該当節を追加し、判断は decisions.md に `D-4x` として記録する。  
+- 着手時にまず設計を詳細化する: api-design (エンドポイント・Request / Response・エラーコード)、db-design (テーブル定義・DDL)、screen-design (画面・遷移) の該当節を追加し、判断は decisions.md に続き番号で記録する。  
   本書のチェックリストは詳細化で変わりうる
 - 既存テーブルへの列追加は避け、新しいテーブルで持つ (起動時の `CREATE TABLE IF NOT EXISTS` だけで済ませる)。  
-  避けられない場合は `DatabaseAccessor` に `PRAGMA table_info` で列を確認して `ALTER TABLE ADD COLUMN` する仕組みを入れる。  
+  避けられない場合は `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確かめて `ALTER TABLE ADD COLUMN`) で起動時に足す。  
   端末のローカル DB は `SyncState` にスキーマ版を持ち、違えばマスタ表を作り直して全件同期する
 - 完了条件は共通: 該当画面 / 端末の流れを実機 (エミュレータ) とブラウザで確認、統合テストの追加、`dotnet build` 警告ゼロ、テスト緑、`jb inspectcode` の指摘ゼロ、docs (api / db / screen / architecture / README) を実装に合わせる
-- 引き続き後回し (本計画の対象外): 外部向け Webhook、Bluetooth レシートプリンタ、受注の前受金 (内金)、発注 (仕入先への注文)、管理画面の MFA / パスキー
+- 引き続き後回し (本計画の対象外): 外部向け Webhook、Bluetooth ラインプリンタ (端末の印刷、[D-68](decisions.md#d-68-端末の印刷は-bluetooth-ラインプリンタを前提にし今は作らない))、受注の前受金 (内金)、発注 (仕入先への注文)、管理画面の MFA / パスキー
 
 ---
 
@@ -389,7 +392,7 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 [D-09](decisions.md#d-09-認証端末登録-後回し) で後回しにした認証を入れる。  
 `template-maui-server` の 2 スキーム構成 (管理画面 = Cookie、API = Bearer) を土台にする。  
-方針 (着手時に D-43 として記録):
+方針 (着手時に decisions に記録する):
 
 - **管理画面**: `Accounts` テーブル (テンプレートの `AccountEntity` + `IPasswordProvider`) による Cookie ログイン。  
   役割は `Administrator` (すべて) / `Operator` (参照と、取引・在庫・顧客の操作。マスタ・設定・ユーザー・端末登録は不可)
@@ -435,7 +438,7 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 - [ ] ポリシー: `Api` (Cookie または Terminal)、`Admin` (Cookie)、`Administrator` (Cookie + 役割)。  
       `/api/v1` 全体に `Api`、api-design の用途が「管理」だけの endpoint は `Admin`、マスタ・会社設定の書き込みは `Administrator`。  
       api-design §2 に「認証」節を追加し、各表に列を足す
-- [ ] 端末クレームとの一致検証 (`TERMINAL_MISMATCH` 403): `sync/*` (自店在庫)、`shifts` (開設・入出金・精算・current)、`transactions` (登録・取消)、`inventory/changes`、`terminals/me/*`。  
+- [ ] 端末クレームとの一致検証 (`TERMINAL_MISMATCH` 403): `sync/*` (自店在庫)、`shifts` (開設・入出金・精算・current)、`transactions` (登録・取消)、`orders` (登録・入荷・キャンセル)、`inventory/changes`、`inventory/receipts|transfers/{id}/receive` (伝票の入荷店)、`terminals/me/*`。  
       Cookie の要求には適用しない
 - [ ] 役割検証: `requiresApproval` の値引は `approvedByStaffId` が必須で Manager 以上 (現状は保存するだけで検証していない)。  
       取消は `TransactionVoidRequest` に `approvedByStaffId?` を追加し、`staffId` が Cashier なら承認者が必須。  
@@ -472,8 +475,28 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
       db-design §3 に `Accounts` / `TerminalTokens`。  
       screen-design の T-00 / T-01 / T-91 / S-71 / S-72 / S-92。  
       architecture §3 / §5 / §6。  
-      D-09 の「当面の扱い」を更新し D-43 を追加。  
+      D-09 の「当面の扱い」を更新し、方針を decisions に追加。  
       README の起動手順 (ログイン、ペアリング)
+
+### 認証の導入時に変える箇所
+
+先に作ったフェーズで、認証がないため仮にしている箇所。  
+ソースの注記 (`// 認証の導入時:`、razor は `@* 認証の導入時: … *@`) を grep して、すべて直したら注記を消す。
+
+| フェーズ | 箇所 | 変えること |
+| --- | --- | --- |
+| 9 | `DailyClosingEndpoints` (`DELETE /daily-closings/{id}`) | 締め解除は Administrator に限る |
+| 9 | `DailyClosingEndpoints.HandleCloseAsync`、`DailyClosingsPage.CloseAsync` | 締めた人 (`closedBy`) にログイン中のアカウント名を渡す (今は `null`) |
+| 9 | `DailyClosingsPage.ReopenAsync`、`DailyClosingDialog` の [締めを解除] | Administrator だけに出す・実行させる |
+| 9 | `DailyClosingEndpoints` のグループ | 日次締めの API は管理画面だけ (`Admin`) |
+| 10 | `OrderEndpoints` (登録・入荷・キャンセル) | 端末の要求は `storeId` / `terminalId` (入荷・キャンセルは受注の店舗) が端末トークンのクレームと一致すること (`TERMINAL_MISMATCH`) |
+| 10 | `OrderEndpoints` (`PUT /orders/{id}`) | 変更は管理画面だけ (`Admin`) |
+| 11 | `ProductEndpoints` (`PUT` / `DELETE /products/{id}/image`、`POST /products/import`) | マスタの書き込みなので Administrator に限る |
+| 11 | `ProductsPage` の [CSV 取込] | Administrator だけに出す (商品の編集・画像と同じ) |
+| 14 | `SupplierEndpoints` (登録・更新・削除) | マスタの書き込みなので Administrator に限る |
+| 14 | `SuppliersPage` の [追加] と行の編集・削除 | Administrator だけに出す (他のマスタと同じ) |
+| 14 | `InventoryReceiptEndpoints` (登録・キャンセル)、`InventoryTransferEndpoints` (依頼・出荷・キャンセル) | 管理画面だけ (`Admin`) |
+| 14 | `InventoryReceiptEndpoints` / `InventoryTransferEndpoints` (受領) | 端末の要求は伝票の入荷店が端末トークンのクレームと一致すること (`TERMINAL_MISMATCH`) |
 
 ### 完了条件
 
@@ -487,134 +510,152 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 ---
 
-## Phase 9: 日次締め
+## Phase 9: 日次締め (完了)
 
-[D-16](decisions.md#d-16-日次締めは-phase-2)。  
+[D-16](decisions.md#d-16-日次締めは-phase-2)、[D-63](decisions.md#d-63-日次締め-締めた時点の日計を持ち締め後の取消を止める)。  
 店舗 × 営業日の締めをサーバで確定し、締め後の変更を制御する。
 
 ### 9a DB / API
 
-- [ ] `DailyClosings` (`Id`, `StoreId`, `BusinessDate` (店舗と組で UQ), `ClosedAt`, `ClosedBy` (管理画面のアカウント名), `ShiftCount`, `SalesCount`, `ReturnCount`, `VoidCount`, `CustomerCount`, `SalesTotal`, `ReturnsTotal`, `DiscountTotal`, `TaxTotal`, `NetSales`, `PointsEarned`, `PointsRedeemed`, `Version`)、`DailyClosingPayments` (支払方法別)、`DailyClosingTaxes` (税率別)。  
-      集計は `SalesSummaryQuery` を共用
-- [ ] `POST /daily-closings` (管理): `{ storeId, businessDate }`。  
-      その日のシフトに Open が残っていれば 422 `SHIFT_STILL_OPEN`、締め済みは 409 `ALREADY_CLOSED`。  
-      `GET /daily-closings?storeId&from&to`、`GET /daily-closings/{id}` (内訳とシフト一覧)、`DELETE /daily-closings/{id}` (締め解除、Administrator)
-- [ ] 取引側の制約: 締め済みの店舗 × 営業日の取引は取消不可 (422 `DAY_CLOSED`)。  
-      締め後に届いた同日の取引 (端末のオフライン分) は受け付けて `warnings[]` に `DAY_ALREADY_CLOSED` を付け、`DailyClosings.HasLateTransactions` を立てる (再締めで取り込む)
+- [x] `DailyClosings` (`Id`, `StoreId`, `BusinessDate` (店舗と組で UQ), `ClosedAt`, `ClosedBy` (管理画面のアカウント名。認証の導入まで NULL), `ShiftCount`, `SalesCount`, `ReturnCount`, `VoidCount`, `CustomerCount`, `SalesTotal`, `ReturnsTotal`, `NetSales`, `DiscountTotal`, `TaxTotal`, `PointsEarned`, `PointsRedeemed`, `HasLateTransactions`)、`DailyClosingPayments` (支払方法別)、`DailyClosingTaxes` (税率別)。  
+      利用者が編集しないので `Version` は持たない。  
+      日計は店舗 × 営業日の一覧と同じ SQL で取引から集計し、統合テストで売上集計の日別と一致を確かめる
+- [x] `POST /daily-closings` (管理): `{ storeId, businessDate }`。  
+      関係するシフト (その日のシフトと、その日の取引を含む日をまたいだシフト) に Open が残っていれば 422 `SHIFT_STILL_OPEN`、シフトのない日は 422 `SHIFT_NOT_FOUND`、締め済みは 409 `ALREADY_CLOSED`。  
+      `GET /daily-closings?storeId&status&from&to` (店舗 × 営業日。未締めの日も並べる)、`GET /daily-closings/preview?storeId&businessDate` (締める前の確認)、`GET /daily-closings/{id}` (内訳とシフト一覧)、`DELETE /daily-closings/{id}` (締め解除)
+- [x] 取引側の制約: 締め済みの店舗 × 営業日の取引は取消不可 (422 `DAY_CLOSED`。`Pos.Domain` の `VoidContext.DayClosed`)。  
+      締め後に届いた同日の取引 (端末のオフライン分、締め後に開設したシフト) は受け付けて `warnings[]` に `DAY_ALREADY_CLOSED` を付け、`DailyClosings.HasLateTransactions` を立てる (再締めで取り込む)
+- [x] `Pos.Server.SampleData` は前日までを締める
 
 ### 9b 管理画面
 
-- [ ] S-90 日次締め (`/daily-closings`、ナビ「精算 › 日次締め」): 店舗 × 営業日の一覧 (直近 30 日。状態チップ: 未締め / 締め済み / 締め後の取引あり、未精算シフト数)、[締め] ダイアログ (未精算シフトの警告、日計プレビュー)、詳細ダイアログ (日計、支払方法別、税率別、シフト一覧)、[売上日報 PDF]、[締め解除] (Administrator)
-- [ ] ダッシュボードに「前日までの未締め」警告と件数
+- [x] S-90 日次締め (`/daily-closings`、ナビ「精算 › 日次締め」。精算はシフトと日次締めのグループにした): 店舗 × 営業日の一覧 (既定は直近 30 日。状態チップ: 未締め / 締め済み / 締め後の取引あり、未精算シフトのチップ)。  
+      行クリックで内容のダイアログ (日計、支払方法別、税率別、シフト一覧。未締めは取引からの集計で、未精算やシフトのない日は警告して [締める] を無効に)、[売上日報 PDF]、[締める] / [締めを解除] (確認のうえ実行)
+- [x] ダッシュボードに「前日までの未締め」の一覧と件数 (要確認の件数に含める。[一覧へ] で未締めに絞って S-90 を開く)
 
 ### 9c 端末
 
-- [ ] 変更なし (締め済みの日の取消はサーバが 422 で拒否し、Outbox の要確認として表示される)。  
-      T-31 の取消確認に「営業日が締め済みなら取消できない」旨を出すかは着手時に判断
+- [x] 変更なし (締め済みの日の取消はサーバが 422 で拒否し、Outbox の要確認として表示される)。  
+      端末は締めの状態を持たずオフラインでも判断できないので、T-31 の取消確認では知らせない。  
+      `RuleReason.DayClosed` と `WarningCode.DayAlreadyClosed` の文言だけ足した
 
 ### 完了条件
 
-- [ ] 統合テスト: 未精算で 422 → 精算後に締め → 取消 422 → 締め後の再送取引に warning → 解除 → 再締めで取り込み
-- [ ] 画面: 一覧・締め・詳細・PDF・解除。  
+- [x] 統合テスト (`ApiDailyClosingTests`): 未精算で 422 → 精算後に締め (売上集計と一致) → 取消 422 → 締め後の取引に warning → 解除 → 再締めで取り込み。  
+      日をまたいだシフトは取引の営業日の締めでも精算を待つ
+- [x] 画面: 一覧・締め・詳細・PDF・解除。  
       警告ゼロ、InspectCode ゼロ、テスト緑
 
 ---
 
-## Phase 10: 受注 (取り寄せ・取り置き)
+## Phase 10: 受注 (取り寄せ・取り置き) (完了)
 
-[D-01](decisions.md#d-01-取引モデル-一体型-vs-分離型) の「受注は将来」。  
+[D-01](decisions.md#d-01-取引モデル-一体型-vs-分離型) の「受注は将来」、[D-64](decisions.md#d-64-受注-会計前の約束を別の資源で持ち会計で完了にする)。  
 会計はこれまでどおり取引 1 回で行い、受注は会計前の約束 (取り寄せ / 取り置き) を管理するリソースにする。  
 前受金 (内金) は対象外。
 
 ### 10a DB / API
 
-- [ ] `Orders` (`Id` (端末採番), `OrderNo` (`{店舗コード}-O-{連番}`), `StoreId`, `TerminalId?`, `StaffId`, `CustomerId?`, `CustomerName`, `Phone`, `Type` (`BackOrder` 取り寄せ / `Hold` 取り置き), `Status` (`Ordered` → `Arrived` → `Completed` / `Cancelled`), `RequestedDate?`, `Note`, `TransactionId?`, `OrderedAt`, `ArrivedAt?`, `CompletedAt?`, `CancelledAt?`, `Version`)、`OrderLines` (`ProductId`, `Quantity`, `UnitPrice`, `Note`)。  
-      取り置きは登録時点で `Arrived`
-- [ ] `POST /orders` (端末 / 管理、同一 id は 200)、`GET /orders?storeId&status&customerId&keyword&from&to`、`GET /orders/{id}`、`PUT /orders/{id}` (`Ordered` のみ)、`POST /orders/{id}/arrive`、`POST /orders/{id}/cancel`
-- [ ] 会計との紐付け: `TransactionCreateRequest.OrderId?`。  
-      登録時に受注が `Arrived` でなければ 422 `ORDER_NOT_READY`、成功で `Orders.TransactionId` + `Completed`。  
+- [x] `Orders` (`Id` (端末 / 管理画面が採番), `StoreId`, `Seq`, `OrderNo` (`{店舗コード}-O-{連番:000000}`。サーバが 1 文の `INSERT ... SELECT` で採番), `TerminalId?`, `StaffId`, `CustomerId?`, `CustomerName`, `Phone?`, `Type` (`BackOrder` 取り寄せ / `Hold` 取り置き), `Status` (`Ordered` → `Arrived` → `Completed` / `Cancelled`), `RequestedDate?`, `Note?`, `Total`, `TransactionId?`, `OrderedAt`, `ArrivedAt?`, `CompletedAt?`, `CancelledAt?`, `CancelReason?`, `Version`)、`OrderLines` (`ProductId`, `ProductCode`, `ProductName`, `Quantity`, `UnitPrice`, `Amount`, `Note?`)。  
+      取り置きは登録時点で `Arrived`。  
+      状態遷移の規則は `Pos.Domain` の `OrderLogic`
+- [x] `POST /orders` (端末 / 管理、同一 id は 200、内容が違えば 409)、`GET /orders?storeId&status&open&type&customerId&keyword&from&to`、`GET /orders/{id}`、`PUT /orders/{id}`、`POST /orders/{id}/arrive`、`POST /orders/{id}/cancel`。  
+      変更は計画の `Ordered` だけから未完了のあいだに広げた (取り置きは登録時点で `Arrived` なので連絡先も直せないため)
+- [x] 会計との紐付け: `TransactionCreateRequest.OrderId?`。  
+      受注が自店の `Arrived` でなければ 422 `ORDER_NOT_FOUND` / `ORDER_NOT_READY`、成功で同じトランザクションの中で `Orders.TransactionId` + `Completed`。  
       取引の取消で `Arrived` に戻す。  
       `TransactionResponse` に `orderId` / `orderNo`
-- [ ] 在庫は会計時に減る (受注時の引当はしない)。  
+- [x] 在庫は会計時に減る (受注時の引当はしない)。  
       取り寄せの入荷は Phase 14 の入荷とは独立 (状態だけ)
 
 ### 10b 管理画面
 
-- [ ] S-91 受注 (`/orders`、ナビ「取引 › 受注」): 一覧 (店舗・状態・種別・期間・キーワード)、詳細 / 編集ダイアログ (連絡先・明細・希望日・備考)、[入荷] [キャンセル]、完了した受注から取引詳細 S-21 へ
-- [ ] 会員詳細 S-61 に受注タブ、ダッシュボードに「入荷待ち / 引き渡し待ち」件数
+- [x] S-91 受注 (`/orders`、ナビ「取引 › 受注」): 一覧 (店舗・状態 (未完了 / 各状態)・種別・期間・キーワード)、[追加]、詳細ダイアログ ([変更] [入荷] [受注をキャンセル]、完了した受注から取引詳細 S-21 へ)、編集ダイアログ (会員・宛名・電話・担当・希望日・備考・明細)
+- [x] 会員詳細 S-61 に受注タブ、ダッシュボードに「入荷待ち / 引き渡し待ち」の件数と引き渡し待ちの一覧、取引詳細 S-21 に受注番号
 
 ### 10c 端末
 
-- [ ] ホーム T-02 に「受注」タイル (最下段を「受注 / 設定・同期」の 2 列に)
-- [ ] T-92 受注一覧 (自店、状態フィルタ、検索。オンライン限定) → 詳細 → [会計へ] (明細をカートに展開し会員を設定、`SalesContext.OrderId` を持って T-10 へ。会計で `orderId` を送る)、[入荷] [キャンセル]
-- [ ] T-10 販売の [⋯] に「受注にする」: 会員 (または宛名・電話)、種別、希望日、備考 → `POST /orders` (オンライン限定) → カートをクリア。  
-      会計時に受注から来た取引はレシートに受注番号を印字
+- [x] ホーム T-02 に「受注」タイル (最下段を「受注 / 設定・同期」の 2 列に)
+- [x] T-92 受注一覧 (自店、状態フィルタ、検索。オンライン限定) → T-93 詳細 → [会計へ] (明細をカートに展開し会員を設定、カートに受注を持って T-10 へ。会計で `orderId` を送る)、[入荷] [キャンセル] (理由の選択)
+- [x] T-10 販売の [⋯] に「受注にする」→ T-94 (種別、宛名・電話 (会員なら省略可)、希望日、備考) → `POST /orders` (オンライン限定) → カートをクリア。  
+      受注から会計したレシートに受注番号を印字し、T-10 に受注の帯を出す。  
+      取引詳細 T-31 に受注番号
 
 ### 完了条件
 
-- [ ] 端末で受注 → 管理画面で入荷 → 端末で会計 → `Completed`、取消で `Arrived` に戻る。  
+- [x] 端末で受注 → 管理画面で入荷 → 端末で会計 → `Completed`、取消で `Arrived` に戻る。  
       `Ordered` のまま会計すると 422
-- [ ] 統合テスト (登録 / 状態遷移 / 会計 / 取消)、警告ゼロ、InspectCode ゼロ
+- [x] 統合テスト (`ApiOrderTests`: 登録 / 再送 / 変更 / 状態遷移 / 会計 / 取消 / 入力の誤り)、警告ゼロ、InspectCode ゼロ
 
 ---
 
-## Phase 11: 商品画像・CSV 取込
+## Phase 11: 商品画像・CSV 取込 (完了)
+
+[D-65](decisions.md#d-65-商品画像-db-に持ち内容のハッシュ付きの-url-で配る)、[D-66](decisions.md#d-66-商品の-csv-取込-全行を検証してから-1-トランザクションで反映する)。
 
 ### 11a 商品画像
 
-- [ ] `PUT /products/{id}/image` (multipart、JPEG / PNG、2 MB まで) → `Storage:ImageDirectory` (既定 `App_Data/images/products`) に `{id}.{ext}` で保存し `ImageUrl` = `/api/v1/products/{id}/image?v={version}`。  
-      `GET /products/{id}/image` (`Api`)、`DELETE /products/{id}/image`。  
-      縮小はしない (サイズ制限のみ)
-- [ ] S-51 商品編集に画像 (プレビュー、アップロード、削除)、S-50 一覧にサムネイル列
-- [ ] 端末: 商品照会 T-60 と検索 T-12 に画像。  
-      オンラインで取得して `FileSystem.CacheDirectory` にキャッシュ (`v` が変わったら取り直す)、オフラインはキャッシュのみ
+- [x] 画像は計画のファイル (`Storage:ImageDirectory`) ではなく DB の `ProductImages` に持つことにした (バックアップと移行が DB だけで済み、商品の URL と 1 トランザクションで変えられる)。  
+      `PUT /products/{id}/image` (本文に画像そのもの。multipart にしない。JPEG / PNG を先頭のバイトで判定、2 MB まで) → `ImageUrl` = `/api/v1/products/{id}/image?v={内容のハッシュ}` (計画の `v={version}` から変えた。同じ画像の再登録で端末に取り直させない)。  
+      商品の `UpdatedAt` / `Version` も進めて差分同期に載せる。  
+      `GET /products/{id}/image` (`v` が一致すれば長期キャッシュ、ETag で再検証)、`DELETE /products/{id}/image`。  
+      縮小はしない
+- [x] S-51 商品編集に画像 (プレビュー、[画像を選択] [画像を削除]。[保存] で商品を保存した後に反映)、S-50 一覧にサムネイル列
+- [x] 端末: 商品照会 T-60 (上に画像) と検索 T-12 (行の左にサムネイル。ないときは記号) に画像。  
+      表示するときに取得して `FileSystem.CacheDirectory` にキャッシュ (`v` が変わったら取り直す)、オフラインはキャッシュのみ
 
 ### 11b CSV 取込
 
-- [ ] `POST /products/import` (multipart CSV。列は `GET /products/csv` と同じ。`dryRun=true` でプレビュー): 行ごとに `Insert` / `Update` (コード一致) / `Error` (メッセージ) を返す。  
+- [x] `POST /products/import` (本文に CSV、`Content-Type: text/csv`。列は `GET /products/csv` と同じ。`dryRun=true` でプレビュー): 行ごとに `Insert` / `Update` (コード一致) / `Unchanged` (変更なし。書き込まない) / `Error` (文言) を返す。  
       部門・税率はコードで参照。  
-      エラーが 1 行でもあれば取り込まず 422 で行結果を返す (全件成功のときだけ 1 トランザクションで反映)
-- [ ] S-52 取込ダイアログ (`MudFileUpload` → プレビュー表 (結果チップ) → [取込])。  
-      初期データと同じ 33 商品の CSV を `docs/samples/products.csv` に置く
+      エラーが 1 行でもあれば取り込まず 422 で行ごとの文言を返す (全件成功のときだけ 1 トランザクションで反映)。  
+      UTF-8 と Shift_JIS を判別する
+- [x] S-52 取込ダイアログ (`MudFileUpload` → プレビュー表 (結果チップ) → [取込])。  
+      初期データと同じ 33 商品の CSV を `docs/samples/products.csv` に置いた
 
 ### 完了条件
 
-- [ ] 画像をアップロードして端末に表示される (オフラインではキャッシュ)。  
-      CSV で新規 / 更新 / エラーの各行が期待どおりになる
-- [ ] 統合テスト (画像の PUT / GET / DELETE、取込の dryRun / 成功 / エラー)、警告ゼロ、InspectCode ゼロ
+- [x] 画像をアップロードして端末に表示される (オフラインではキャッシュ)。  
+      CSV で新規 / 更新 / 変更なし / エラーの各行が期待どおりになる
+- [x] 統合テスト (`ApiProductTests`: 画像の PUT / GET / 再検証 / 差分同期 / DELETE、取込の dryRun / 反映 / 変更なし / Shift_JIS / エラー)、単体テスト (`CsvImportTests`)、警告ゼロ、InspectCode ゼロ
 
 ---
 
-## Phase 12: レシート・帳票・検索の拡張
+## Phase 12: レシート・帳票・検索の拡張 (完了)
+
+[D-67](decisions.md#d-67-レシートの控え-pdf-サーバの帳票で端末と同じ項目を出す)、[D-68](decisions.md#d-68-端末の印刷は-bluetooth-ラインプリンタを前提にし今は作らない)、[D-69](decisions.md#d-69-取引の一括送信は作らない)。
 
 ### 12a レシート PDF (サーバ)
 
-- [ ] `GET /transactions/{id}/receipt/pdf` ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport))。  
-      テンプレート `Assets/Reports/Receipt.xlsx` (レシート幅相当の 1 列)、`ReceiptReportBuilder`。  
-      内容は端末の `ReceiptTextBuilder` と同じ項目 (`Pos.Domain` に共通の行生成を寄せるかは着手時に判断)
-- [ ] S-21 取引詳細に [レシート PDF]
+- [x] `GET /transactions/{id}/receipt/pdf` ([D-37](decisions.md#d-37-帳票出力-pdf-oysterreport))。  
+      テンプレート `Assets/Reports/Receipt.xlsx` (品名・数量と単価・金額の 3 列を A4 の中央に置く)、`ReceiptReportBuilder`。  
+      内容は端末の `ReceiptTextBuilder` と同じ項目にし、行の組み立ては `Pos.Domain` に寄せない (端末は 32 桁の文字列、サーバは Excel のテンプレート)。  
+      末尾に「控え (再発行)」と出力日時
+- [x] S-21 取引詳細に [レシート PDF]
 
-### 12b 端末の印刷
+### 12b 端末の印刷 (作らない)
 
-- [ ] T-22 レシート / T-52 精算レポートの [印刷] を有効化: Android の印刷フレームワーク (`PrintManager` + `PrintDocumentAdapter`) にレシート画像 / レポートのテキストを渡す (「PDF に保存」や対応プリンタで出力)。  
-      Bluetooth レシートプリンタ (ESC/POS) は対象外として記録
+- [ ] 端末の印刷は Bluetooth ラインプリンタ (ESC/POS) を前提にし、今は作らない (利用者指示)。  
+      OS の印刷 (`PrintManager`、「PDF に保存」) は使わず、T-22 / T-52 の [印刷] は無効のまま
 
 ### 12c 検索・送信
 
-- [ ] シリアル番号検索: `GET /transactions?serialNumber=` (完全一致)、S-20 のフィルタ、T-30 取引履歴の検索欄 (オンライン限定)
-- [ ] `POST /transactions/batch` (要素ごとの結果)。  
-      `SyncService` は Outbox に取引が連続して 10 件以上溜まっているときだけ使う (任意。着手時に効果を見て省いてもよい)
+- [x] シリアル番号検索: `GET /transactions?serialNumber=` (完全一致)、S-20 のフィルタ、T-30 取引履歴の検索欄 (オンライン限定。全店の送信済みの取引)。  
+      端末にない取引は T-31 / T-22 でサーバから開き、レシートはその店舗と端末で組み立てる
+- [ ] `POST /transactions/batch` は作らない (会計ごとに 1 件ずつ送り、一括にしても減るのは往復だけ)
 
 ### 完了条件
 
-- [ ] レシート PDF が端末表示と同じ内容で出る。  
-      エミュレータで [印刷] → 「PDF に保存」が動く。  
-      シリアルで取引が引ける
-- [ ] 統合テスト、警告ゼロ、InspectCode ゼロ
+- [x] レシート PDF が端末表示と同じ項目で出る。  
+      シリアルで取引が引ける (端末は他の店舗の取引も開ける)
+- [x] 統合テスト (レシート PDF・シリアル検索)、警告ゼロ、InspectCode ゼロ
 
 ---
 
 ## Phase 13: 通知 (SignalR)
+
+13b (管理画面の自動更新) は認証に依存しないので先に作った ([D-70](decisions.md#d-70-管理画面の自動更新-プロセス内の通知でダッシュボードを読み直す))。  
+13a (端末向けハブ) は端末トークンが要るので Phase 8 の後。
 
 ### 13a 端末向けハブ
 
@@ -623,42 +664,55 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
       接続状態を通信インジケータと T-90 に表示。  
       heartbeat はハブ接続中は不要
 
-### 13b 管理画面の自動更新
+### 13b 管理画面の自動更新 (完了)
 
-- [ ] プロセス内の `ChangeNotifier` (シングルトン、種別ごとのイベント): 取引・シフト・在庫変動の登録時に発火し、ダッシュボードと開設中シフト・端末の通信状態・要確認を自動更新する (Blazor Server 内なので SignalR クライアントは使わない)
+- [x] プロセス内の `ChangeNotificationService` (シングルトン、`DataChangeKind` ごとのイベント): 取引 (登録・取消)・シフト (開設・入出金・精算)・在庫 (棚卸・調整)・受注・日次締めの書き込みの後に発火し、ダッシュボード (本日の KPI・開設中シフト・端末の通信状態・要確認など) を読み直す (Blazor Server 内なので SignalR クライアントは使わない)。  
+      続けて届く変更は 1 秒でまとめ、端末の通信状態のために 1 分ごとにも読み直す
 
 ### 完了条件
 
 - [ ] 管理画面で商品を保存すると端末が数秒で再同期する。  
-      端末を解除すると即座に T-00 へ。  
-      ダッシュボードが端末の販売で更新される
-- [ ] 統合テスト (ハブ接続の認証)、警告ゼロ、InspectCode ゼロ
+      端末を解除すると即座に T-00 へ
+- [x] ダッシュボードが端末の販売・在庫の変更で更新される
+- [ ] 統合テスト (ハブ接続の認証)。  
+      13b は `ChangeNotificationTests` (書き込みの通知・受け付けなかった書き込みは通知しない)、警告ゼロ、InspectCode ゼロ
 
 ---
 
-## Phase 14: 在庫移動・入荷
+## Phase 14: 在庫移動・入荷 (完了)
+
+[D-71](decisions.md#d-71-入荷と店舗間移動-伝票で持ち受領出荷で在庫を動かす)。
 
 ### 14a DB / API
 
-- [ ] `Suppliers` (仕入先マスタ: コード・名称・連絡先)、`InventoryReceipts` (入荷: 店舗・仕入先・伝票番号・入荷日・状態 `Draft` → `Received`) + 明細 (商品・数量・原価)。  
-      受領で `InventoryChangeType.Receive` (+数量) を記録
-- [ ] `InventoryTransfers` (店舗間移動: 出荷店・入荷店・状態 `Requested` → `Shipped` → `Received` / `Cancelled`) + 明細。  
-      出荷で `TransferOut` (−)、受領で `TransferIn` (+)
-- [ ] API: `/inventory/suppliers`、`/inventory/receipts` (登録・一覧・詳細・受領)、`/inventory/transfers` (登録・一覧・詳細・出荷・受領・キャンセル)。  
-      変動履歴の `type` フィルタに新種別を追加
+- [x] `Suppliers` (仕入先マスタ: コード・名称・電話・メール・備考)、`InventoryReceipts` (入荷: 店舗・仕入先・納品書番号・入荷予定日・状態 `Draft` → `Received` / `Cancelled`) + 明細 (商品・予定の数・受領した数・仕入単価)。  
+      受領で `InventoryChangeType.Receive` (+届いた数) を記録。  
+      入荷予定のキャンセルは計画になかったが足した (誤登録を消す手段)
+- [x] `InventoryTransfers` (店舗間移動: 出荷店ごとの移動番号・出荷店・入荷店・状態 `Requested` → `Shipped` → `Received` / `Cancelled`) + 明細。  
+      出荷で `TransferOut` (−依頼の数)、受領で `TransferIn` (+届いた数)
+- [x] API: `/inventory/suppliers`、`/inventory/receipts` (登録・一覧・詳細・受領・キャンセル)、`/inventory/transfers` (依頼・一覧・詳細・出荷・受領・キャンセル)。  
+      状態に合わない操作は `422` (`INVENTORY_RECEIPT_STATUS_INVALID` / `INVENTORY_TRANSFER_STATUS_INVALID`)。  
+      変動履歴の `type` に新種別を追加し、`POST /inventory/changes` は棚卸・調整だけを受け付ける
 
 ### 14b 管理画面
 
-- [ ] S-45 入荷、S-46 移動、S-57 仕入先 (一覧・編集・状態遷移)。  
-      在庫変動履歴 S-42 の種別に追加。  
-      ダッシュボードに「未受領の移動」件数
+- [x] S-45 入荷、S-46 店舗間移動 (一覧・登録・詳細のダイアログ・受領 / 出荷の確認 (担当と届いた数)・キャンセル)、S-47 仕入先 (一覧・編集)。  
+      仕入先は計画の S-57 (商品のグループ) ではなく在庫のグループに置いた
+- [x] 在庫変動履歴 S-42 の種別に入荷・移動出荷・移動受領を追加し、参照の列から取引・入荷・移動の詳細を開く
+- [x] ダッシュボードに「未受領の移動」(件数バッジと出荷待ち / 受領待ちの件数、移動番号から S-46)
 
 ### 14c 端末
 
-- [ ] T-71 入荷検品 / T-72 移動受領: 自店宛の未受領一覧 → スキャンで数量を確認 → 受領 (オンライン限定)。  
-      `SampleData` の「サンプル入荷」を入荷 (`Receive`) に置き換える
+- [x] T-71 入荷・受領 (自店の入荷予定と自店宛に出荷済みの移動の一覧) → T-72 検品 (スキャン・JAN / 商品コード・行のタップで届いた数を入れる) → 受領 (オンライン限定)。  
+      計画では入荷と移動の画面を分けていたが、一覧と検品を 1 組にまとめた
+- [x] ホームに「入荷・受領」を足し、設定・同期を最下段の 2 列幅にした
+- [x] `SampleData` の「サンプル入荷」を入荷予定の登録と受領に置き換えた
+
+### 14d README
+
+- [x] スクリーンショットを撮り直し、Phase 9〜14 の画面を加えた (端末 12 枚: 取引履歴・商品・在庫照会・受注・検品を追加、管理画面 8 枚: 受注・日次締め・商品・入荷・店舗間移動を追加)
 
 ### 完了条件
 
-- [ ] 入荷と店舗間移動が在庫と変動履歴に反映される (他店在庫照会で確認)。  
-      統合テスト、警告ゼロ、InspectCode ゼロ
+- [x] 入荷と店舗間移動が在庫と変動履歴に反映される (管理画面と端末で受領し、他店在庫・変動履歴で確認)。  
+      統合テスト (`ApiInventoryMovementTests`、`InventoryMovementLogicTests`)、警告ゼロ、InspectCode ゼロ

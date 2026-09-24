@@ -8,6 +8,9 @@ using System.Text.Unicode;
 
 using Pos.Contract.Customers;
 using Pos.Contract.Inventory;
+using Pos.Contract.InventoryReceipts;
+using Pos.Contract.InventoryTransfers;
+using Pos.Contract.Orders;
 using Pos.Contract.Reports;
 using Pos.Contract.Shifts;
 using Pos.Contract.Sync;
@@ -108,8 +111,49 @@ public sealed class HttpService
     public ValueTask<ApiResult<TransactionResponseItem>> LookupTransactionAsync(string receiptNo, CancellationToken cancellationToken = default) =>
         GetAsync<TransactionResponseItem>($"transactions/lookup?receiptNo={Uri.EscapeDataString(receiptNo)}", cancellationToken);
 
+    // シリアル番号 (完全一致) を含む取引。新しい順
+    public ValueTask<ApiResult<TransactionResponse>> GetTransactionsBySerialAsync(string serialNumber, CancellationToken cancellationToken = default) =>
+        GetAsync<TransactionResponse>($"transactions?serialNumber={Uri.EscapeDataString(serialNumber)}&size=50", cancellationToken);
+
     public ValueTask<ApiResult<TransactionResponseItem>> GetTransactionAsync(Guid id, CancellationToken cancellationToken = default) =>
         GetAsync<TransactionResponseItem>($"transactions/{id}", cancellationToken);
+
+    //--------------------------------------------------------------------------------
+    // Order (オンライン限定)
+    //--------------------------------------------------------------------------------
+
+    // open = true は未完了 (入荷待ち・引き渡し待ち) だけ。keyword は受注番号・宛名・電話の部分一致
+    public ValueTask<ApiResult<OrderResponse>> GetOrdersAsync(Guid storeId, OrderStatus? status, bool open, string? keyword, CancellationToken cancellationToken = default) =>
+        GetAsync<OrderResponse>($"orders?storeId={storeId}&size=100{(open ? "&open=true" : string.Empty)}{(status is null ? string.Empty : "&status=" + status)}{(String.IsNullOrEmpty(keyword) ? string.Empty : "&keyword=" + Uri.EscapeDataString(keyword))}", cancellationToken);
+
+    public ValueTask<ApiResult<OrderResponseItem>> GetOrderAsync(Guid id, CancellationToken cancellationToken = default) =>
+        GetAsync<OrderResponseItem>($"orders/{id}", cancellationToken);
+
+    public ValueTask<ApiResult<OrderResponseItem>> PostOrderAsync(OrderCreateRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<OrderResponseItem>("orders", request, cancellationToken);
+
+    public ValueTask<ApiResult<OrderResponseItem>> PostOrderArriveAsync(Guid id, CancellationToken cancellationToken = default) =>
+        SendAsync<OrderResponseItem>(HttpMethod.Post, $"orders/{id}/arrive", null, cancellationToken);
+
+    public ValueTask<ApiResult<OrderResponseItem>> PostOrderCancelAsync(Guid id, OrderCancelRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<OrderResponseItem>($"orders/{id}/cancel", request, cancellationToken);
+
+    //--------------------------------------------------------------------------------
+    // Receiving (オンライン限定)
+    //--------------------------------------------------------------------------------
+
+    public ValueTask<ApiResult<InventoryReceiptResponse>> GetInventoryReceiptsAsync(Guid storeId, InventoryReceiptStatus status, CancellationToken cancellationToken = default) =>
+        GetAsync<InventoryReceiptResponse>($"inventory/receipts?storeId={storeId}&status={status}&size=100", cancellationToken);
+
+    public ValueTask<ApiResult<InventoryReceiptResponseItem>> PostInventoryReceiptReceiveAsync(Guid id, InventoryReceiptReceiveRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<InventoryReceiptResponseItem>($"inventory/receipts/{id}/receive", request, cancellationToken);
+
+    // 自店宛の移動
+    public ValueTask<ApiResult<InventoryTransferResponse>> GetInventoryTransfersAsync(Guid toStoreId, InventoryTransferStatus status, CancellationToken cancellationToken = default) =>
+        GetAsync<InventoryTransferResponse>($"inventory/transfers?toStoreId={toStoreId}&status={status}&size=100", cancellationToken);
+
+    public ValueTask<ApiResult<InventoryTransferResponseItem>> PostInventoryTransferReceiveAsync(Guid id, InventoryTransferReceiveRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<InventoryTransferResponseItem>($"inventory/transfers/{id}/receive", request, cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Shift
@@ -136,6 +180,33 @@ public sealed class HttpService
 
     public ValueTask<ApiResult<ReportSalesSummaryResponse>> GetSalesSummaryAsync(Guid? storeId, DateOnly from, DateOnly to, string groupBy, CancellationToken cancellationToken = default) =>
         GetAsync<ReportSalesSummaryResponse>($"reports/sales/summary?from={DateTimeHelper.ToIsoDate(from)}&to={DateTimeHelper.ToIsoDate(to)}&groupBy={groupBy}{(storeId is null ? string.Empty : "&storeId=" + storeId)}", cancellationToken);
+
+    //--------------------------------------------------------------------------------
+    // Image
+    //--------------------------------------------------------------------------------
+
+    // 画像などのバイト列 (path は接続先からの相対パス)
+#pragma warning disable CA1031
+    public async ValueTask<ApiResult<byte[]>> GetBytesAsync(Uri path, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient(ApiNames.Default);
+            using var response = await client.GetAsync(path, cancellationToken).ConfigureAwait(false);
+            return response.IsSuccessStatusCode
+                ? new ApiResult<byte[]>(ApiStatus.Success, response.StatusCode, await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false), null, null)
+                : new ApiResult<byte[]>(ApiStatus.HttpError, response.StatusCode, null, null, null);
+        }
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            return new ApiResult<byte[]>(ApiStatus.Canceled, 0, null, null, ex);
+        }
+        catch (Exception ex)
+        {
+            return new ApiResult<byte[]>(ApiStatus.Unavailable, 0, null, null, ex);
+        }
+    }
+#pragma warning restore CA1031
 
     //--------------------------------------------------------------------------------
     // Core

@@ -28,10 +28,10 @@
                    Text="{Binding ShiftDetail}" />
         </Grid>
 
-        <!-- 販売を最上段に 2 列幅で置く -->
+        <!-- 販売を最上段、設定・同期を最下段に 2 列幅で置く -->
         <Grid Grid.Row="1"
               Style="{StaticResource MenuGrid}"
-              RowDefinitions="*,*,*,*,*,*"
+              RowDefinitions="*,*,*,*,*,*,*"
               ColumnDefinitions="*,*">
             <Button Grid.Row="0" Grid.ColumnSpan="2"
                     Style="{StaticResource MenuPrimaryButton}"
@@ -77,9 +77,19 @@
             <Button Grid.Row="4" Grid.Column="1"
                     Style="{StaticResource MenuButton}"
                     Command="{Binding ForwardCommand}"
+                    CommandParameter="{x:Static modules:ViewId.ReceivingList}"
+                    Text="📥 入荷・受領" />
+            <Button Grid.Row="5" Grid.Column="0"
+                    Style="{StaticResource MenuButton}"
+                    Command="{Binding ForwardCommand}"
+                    CommandParameter="{x:Static modules:ViewId.OrderList}"
+                    Text="📋 受注" />
+            <Button Grid.Row="5" Grid.Column="1"
+                    Style="{StaticResource MenuButton}"
+                    Command="{Binding ForwardCommand}"
                     CommandParameter="{x:Static modules:ViewId.SalesReport}"
                     Text="📊 売上照会" />
-            <Button Grid.Row="5" Grid.ColumnSpan="2"
+            <Button Grid.Row="6" Grid.ColumnSpan="2"
                     Style="{StaticResource MenuButton}"
                     Command="{Binding ForwardCommand}"
                     CommandParameter="{x:Static modules:ViewId.Setting}"

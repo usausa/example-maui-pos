@@ -468,6 +468,7 @@ public static class ApplicationExtensions
         // Report
         builder.Services.AddSingleton<ShiftReportBuilder>();
         builder.Services.AddSingleton<DailySalesReportBuilder>();
+        builder.Services.AddSingleton<ReceiptReportBuilder>();
 
         // Setting
         builder.Services.AddOptions<ProfilerSetting>().BindConfiguration("Profiler").ValidateDataAnnotations().ValidateOnStart();
@@ -552,8 +553,13 @@ public static class ApplicationExtensions
         app.MapCustomerEndpoints();
         app.MapTransactionEndpoints();
         app.MapShiftEndpoints();
+        app.MapDailyClosingEndpoints();
+        app.MapOrderEndpoints();
         app.MapInventoryEndpoints();
         app.MapAdjustmentReasonEndpoints();
+        app.MapSupplierEndpoints();
+        app.MapInventoryReceiptEndpoints();
+        app.MapInventoryTransferEndpoints();
         app.MapReportEndpoints();
 
         return app;

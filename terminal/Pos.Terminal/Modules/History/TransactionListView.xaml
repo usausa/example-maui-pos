@@ -23,9 +23,28 @@
              shell:ShellProperty.Function4Enabled="True">
 
     <Grid Style="{StaticResource PosPageGrid}"
-          RowDefinitions="Auto,Auto,*">
-        <!-- 絞り込み (期間・種別) -->
+          RowDefinitions="Auto,Auto,Auto,*">
+        <!-- シリアル番号で全店の取引を探す (オンライン)。空で検索すると端末の履歴に戻る -->
         <Grid Grid.Row="0"
+              Padding="8,8,8,0"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="8">
+            <Entry Grid.Column="0"
+                   Style="{StaticResource PosFieldEntry}"
+                   Margin="0"
+                   behaviors:EntryBind.Controller="{Binding Serial}"
+                   ReturnType="Search"
+                   Placeholder="シリアル番号 (オンライン)" />
+            <Button Grid.Column="1"
+                    Style="{StaticResource PosMethodButton}"
+                    Margin="0"
+                    Command="{Binding SerialSearchCommand}"
+                    ImageSource="{StaticResource PosSearchIcon}"
+                    Text="検索" />
+        </Grid>
+
+        <!-- 絞り込み (期間・種別) -->
+        <Grid Grid.Row="1"
               Padding="8"
               ColumnDefinitions="*,*,Auto"
               ColumnSpacing="8">
@@ -43,7 +62,7 @@
         </Grid>
 
         <!-- 件数の内訳 -->
-        <FlexLayout Grid.Row="1"
+        <FlexLayout Grid.Row="2"
                     Style="{StaticResource PosSummaryFlexLayout}">
             <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
                                  ChipColor="{StaticResource BlueDarken1}"
@@ -63,7 +82,7 @@
                                  Text="{Binding UnsentCount, StringFormat='未送信 {0}'}" />
         </FlexLayout>
 
-        <CollectionView Grid.Row="2"
+        <CollectionView Grid.Row="3"
                         Style="{StaticResource PosListCollectionView}"
                         behaviors:AnimationOption.EnterAnimation="FadeUp"
                         behaviors:AnimationOption.EnterTrigger="{Binding Items.Count}"
@@ -73,7 +92,7 @@
                     <Label Style="{StaticResource PosEmptyIconLabel}"
                            Text="🧾" />
                     <Label Style="{StaticResource PosMessageLabel}"
-                           Text="取引がありません。" />
+                           Text="{Binding Message}" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>

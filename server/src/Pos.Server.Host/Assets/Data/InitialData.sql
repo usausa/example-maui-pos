@@ -1,4 +1,4 @@
--- 初期データ (会社設定がない空の DB へ起動時に投入する。@now は投入時刻)。固定 ID は Pos.Server.Services.InitialData と一致させる
+-- 初期データ (会社設定がない空の DB へ起動時に投入する。@now は投入時刻)。固定 ID は統合テストの TestData と一致させる
 
 INSERT INTO
     Settings
@@ -122,6 +122,14 @@ VALUES
     ('00000000-0000-0000-0009-000000000003', 'THEFT', '万引き', 3, 1, 0, @now, @now, 1),
     ('00000000-0000-0000-0009-000000000004', 'INTERNAL', '自家消費', 4, 1, 0, @now, @now, 1),
     ('00000000-0000-0000-0009-000000000005', 'STOCKTAKE', '棚卸差異', 5, 1, 0, @now, @now, 1);
+
+INSERT INTO
+    Suppliers
+    (Id, Code, Name, Phone, Email, Note, IsActive, IsDeleted, CreatedAt, UpdatedAt, Version)
+VALUES
+    ('00000000-0000-0000-000C-000000000001', 'SUP01', 'うさぎカメラ販売株式会社', '03-1000-0001', 'order@usacam.example.com', NULL, 1, 0, @now, @now, 1),
+    ('00000000-0000-0000-000C-000000000002', 'SUP02', 'うさぎ電機卸株式会社', '06-2000-0002', 'order@usadenki.example.com', NULL, 1, 0, @now, @now, 1),
+    ('00000000-0000-0000-000C-000000000003', 'SUP03', '日用品うさぎ商事', '052-3000-0003', NULL, '週 2 回の定期便', 1, 0, @now, @now, 1);
 
 INSERT INTO
     Customers

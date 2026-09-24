@@ -1,0 +1,96 @@
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudText Typo="Typo.h6">📋 受注</MudText>
+            @if (detail is not null)
+            {
+                <MudText Typo="Typo.h6">@detail.Order.OrderNo</MudText>
+                <StatusChip Value="@ViewHelper.OrderTypeChip(detail.Order.Type)" />
+                <StatusChip Value="@ViewHelper.OrderStatusChip(detail.Order.Status)" />
+            }
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (detail is null)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            var order = detail.Order;
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">👤 お客様</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr>
+                                <td class="mud-text-secondary w-110">宛名</td>
+                                <td>
+                                    @order.CustomerName
+                                    @if (order.CustomerId is not null)
+                                    {
+                                        <MudLink Href="@($"customers/{order.CustomerId}")" Typo="Typo.body2" Class="ml-2">会員を表示</MudLink>
+                                    }
+                                </td>
+                            </tr>
+                            <tr><td class="mud-text-secondary">電話</td><td>@order.Phone</td></tr>
+                            <tr><td class="mud-text-secondary">希望日</td><td>@order.RequestedDate.ToDateText()</td></tr>
+                            <tr><td class="mud-text-secondary">備考</td><td>@order.Note</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">🕒 経過</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary w-110">受注</td><td>@order.OrderedAt.ToDateTimeText() @Names.Store(order.StoreId) / @(order.TerminalId is { } terminalId ? Names.Terminal(terminalId) : "管理画面") / @Names.StaffName(order.StaffId)</td></tr>
+                            <tr><td class="mud-text-secondary">入荷</td><td>@order.ArrivedAt.ToDateTimeText()</td></tr>
+                            <tr><td class="mud-text-secondary">完了</td><td>@order.CompletedAt.ToDateTimeText()</td></tr>
+                            @if (order.CancelledAt is not null)
+                            {
+                                <tr><td class="mud-text-secondary">キャンセル</td><td>@order.CancelledAt.ToDateTimeText() @order.CancelReason</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2">明細</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <thead>
+                            <tr><th>#</th><th>商品</th><th class="text-right">単価</th><th class="text-right">数量</th><th class="text-right">金額</th><th>備考</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in detail.Lines)
+                            {
+                                <tr><td>@line.LineNo</td><td>@line.ProductCode @line.ProductName</td><td class="text-right">@line.UnitPrice.ToYen()</td><td class="text-right">@line.Quantity.ToQuantityText()</td><td class="text-right">@line.Amount.ToYen()</td><td>@line.Note</td></tr>
+                            }
+                            <tr><td></td><td class="mud-text-secondary">合計 (税・値引は会計で決まる)</td><td></td><td></td><td class="text-right"><strong>@order.Total.ToYen()</strong></td><td></td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (detail is not null)
+        {
+            var order = detail.Order;
+            if (order.TransactionId is not null)
+            {
+                <MudButton StartIcon="@Icons.Material.Filled.Receipt" OnClick="() => Close(OrderDialogAction.OpenTransaction)">会計した取引</MudButton>
+            }
+
+            if (order.Status.IsOpen())
+            {
+                <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" OnClick="() => Close(OrderDialogAction.Cancel)">受注をキャンセル</MudButton>
+                <MudButton StartIcon="@Icons.Material.Filled.Edit" OnClick="() => Close(OrderDialogAction.Edit)">変更</MudButton>
+            }
+
+            if (order.Status == OrderStatus.Ordered)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Inventory" OnClick="() => Close(OrderDialogAction.Arrive)">入荷</MudButton>
+            }
+        }
+        <MudButton OnClick="() => MudDialog.Cancel()">閉じる</MudButton>
+    </DialogActions>
+</MudDialog>

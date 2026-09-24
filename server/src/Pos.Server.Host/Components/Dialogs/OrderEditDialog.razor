@@ -1,0 +1,84 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">📋 @Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="editForm" Model="Form">
+            <MudGrid Spacing="2">
+                @if (Form.IsNew)
+                {
+                    <MudItem xs="12" sm="4">
+                        <StoreSelect @bind-Value="Form.StoreId" AllowAll="false" Class="mt-2" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="Guid?" @bind-Value="Form.StaffId" For="@(() => Form.StaffId)" Validation="@Validator.ValidateValue" Label="担当">
+                            @foreach (var staff in staffList)
+                            {
+                                <MudSelectItem T="Guid?" Value="staff.Id">@staff.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="OrderType" @bind-Value="Form.Type" Label="種別">
+                            <MudSelectItem T="OrderType" Value="OrderType.BackOrder">🚚 取り寄せ (入荷を待つ)</MudSelectItem>
+                            <MudSelectItem T="OrderType" Value="OrderType.Hold">🔖 取り置き (店頭の在庫を確保)</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="4">
+                    <MudAutocomplete T="CustomerEntity" Value="Form.Customer" ValueChanged="OnCustomerChanged" Label="会員" SearchFunc="SearchCustomersAsync" ToStringFunc="@(x => x is null ? string.Empty : x.ToDisplayText())" ResetValueOnEmptyText="true" Clearable="true" MinCharacters="1" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Form.CustomerName" For="@(() => Form.CustomerName)" Validation="@Validator.ValidateValue" Label="宛名" HelperText="会員のときは省略できます" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Form.Phone" For="@(() => Form.Phone)" Validation="@Validator.ValidateValue" Label="電話" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudDatePicker @bind-Date="Form.RequestedDate" Label="希望日" DateFormat="yyyy/MM/dd" Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Form.Note" For="@(() => Form.Note)" Validation="@Validator.ValidateValue" Label="備考" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+        <MudText Typo="Typo.subtitle2" Class="mt-4">明細</MudText>
+        <MudSimpleTable Dense="true" Elevation="0">
+            <thead>
+                <tr><th>商品</th><th class="w-100">数量</th><th class="w-120">単価</th><th class="w-110 text-right">金額</th><th>備考</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var line in Form.Lines)
+                {
+                    <tr>
+                        <td class="min-w-260">
+                            <MudAutocomplete T="ProductEntity" Value="line.Product" ValueChanged="@(x => OnProductChanged(line, x))" SearchFunc="SearchProductsAsync" ToStringFunc="@(x => x is null ? string.Empty : $"{x.Code} {x.Name}")" ResetValueOnEmptyText="true" MinCharacters="1" Margin="Margin.Dense" />
+                        </td>
+                        <td><MudNumericField T="decimal" @bind-Value="line.Quantity" Min="0.01m" Margin="Margin.Dense" /></td>
+                        <td><MudNumericField T="decimal" @bind-Value="line.UnitPrice" Min="0m" Margin="Margin.Dense" /></td>
+                        <td class="text-right">@line.Amount.ToYen()</td>
+                        <td><MudTextField @bind-Value="line.Note" Margin="Margin.Dense" /></td>
+                        <td><MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => RemoveLine(line)" /></td>
+                    </tr>
+                }
+                @if (Form.Lines.Count == 0)
+                {
+                    <tr><td class="mud-text-secondary">明細がありません。</td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1">
+            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="AddLine">明細を追加</MudButton>
+            <MudSpacer />
+            <MudText>合計 <strong>@Form.Total.ToYen()</strong></MudText>
+        </MudStack>
+        @if (errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">@errorMessage</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnCancelClick">キャンセル</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnOkClick">保存</MudButton>
+    </DialogActions>
+</MudDialog>

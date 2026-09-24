@@ -1,5 +1,8 @@
 namespace Pos.Server.Host.Endpoints;
 
+using Pos.Server.Host.Models.Export;
+using Pos.Server.Services;
+
 // 業務ルール違反と警告の文言
 public static class ApiRuleText
 {
@@ -39,6 +42,18 @@ public static class ApiRuleText
         RuleReason.DuplicateLineId => "明細 ID が重複しています",
         RuleReason.NoLines => "明細がありません",
         RuleReason.LineDiscountExceeds => "明細値引が明細金額を超えています",
+        RuleReason.DayClosed => "締め済みの営業日の取引は取消できません",
+        RuleReason.OrderNotFound => "受注が見つかりません",
+        RuleReason.OrderNotReady => "引き渡し待ちの受注ではありません",
+        RuleReason.OrderNotEditable => "完了・キャンセルした受注は変更できません",
+        RuleReason.OrderNotOrdered => "入荷待ちの受注ではありません",
+        RuleReason.OrderNotCancellable => "完了・キャンセルした受注はキャンセルできません",
+        RuleReason.StoreNotFound => "店舗が見つかりません",
+        RuleReason.CustomerNotFound => "会員が見つかりません",
+        RuleReason.SupplierNotFound => "仕入先が見つかりません",
+        RuleReason.InventoryReceiptNotDraft => "受領・キャンセルした入荷です",
+        RuleReason.InventoryTransferNotRequested => "出荷・キャンセルした移動です",
+        RuleReason.InventoryTransferNotShipped => "出荷済みの移動ではありません",
         _ => reason.ToString()
     };
 
@@ -47,6 +62,66 @@ public static class ApiRuleText
         WarningCode.PointBalanceNegative => "ポイント残高が不足しています",
         WarningCode.ProductInactive => "販売停止中の商品です",
         WarningCode.InventoryNegative => "在庫がマイナスになります",
+        WarningCode.DayAlreadyClosed => "締め済みの営業日の取引です (締め直すまで日計に含まれません)",
         _ => code.ToString()
+    };
+
+    // 商品 CSV の取込の誤り (列は CSV の見出しで示す)
+    public static string Of(ProductImportError error)
+    {
+        var header = HeaderOf(error.Column);
+        return error.Problem switch
+        {
+            ProductImportProblem.Required => $"「{header}」を入力してください",
+            ProductImportProblem.TooLong => $"「{header}」は {MaxLengthOf(error.Column)} 文字以内にしてください",
+            ProductImportProblem.Invalid => error.Column switch
+            {
+                ProductImportColumn.Kind => $"「{header}」は Goods (物品) か Service (サービス) にしてください",
+                ProductImportColumn.Price or ProductImportColumn.Cost => $"「{header}」は 0 以上の数値にしてください",
+                ProductImportColumn.PointRate => $"「{header}」は 0〜1 の数値にしてください (0.1 = 10%)",
+                _ => $"「{header}」は True か False にしてください"
+            },
+            ProductImportProblem.NotFound => $"「{header}」に該当する{(error.Column == ProductImportColumn.CategoryCode ? "部門" : "税率")}がありません",
+            ProductImportProblem.Duplicated => $"「{header}」がファイルの中で重複しています",
+            ProductImportProblem.InUse => error.Column == ProductImportColumn.Code
+                ? $"「{header}」は削除済みの商品で使われています"
+                : $"「{header}」は他の商品 (削除済みを含む) で使われています",
+            _ => error.Problem.ToString()
+        };
+    }
+
+    private static string HeaderOf(ProductImportColumn column) => column switch
+    {
+        ProductImportColumn.Code => ProductCsvHeader.Code,
+        ProductImportColumn.Barcode => ProductCsvHeader.Barcode,
+        ProductImportColumn.Name => ProductCsvHeader.Name,
+        ProductImportColumn.Kana => ProductCsvHeader.Kana,
+        ProductImportColumn.Brand => ProductCsvHeader.Brand,
+        ProductImportColumn.ModelNo => ProductCsvHeader.ModelNo,
+        ProductImportColumn.CategoryCode => ProductCsvHeader.CategoryCode,
+        ProductImportColumn.Kind => ProductCsvHeader.Kind,
+        ProductImportColumn.Price => ProductCsvHeader.Price,
+        ProductImportColumn.TaxIncluded => ProductCsvHeader.TaxIncluded,
+        ProductImportColumn.TaxRateCode => ProductCsvHeader.TaxRateCode,
+        ProductImportColumn.Cost => ProductCsvHeader.Cost,
+        ProductImportColumn.PointRate => ProductCsvHeader.PointRate,
+        ProductImportColumn.RequiresSerial => ProductCsvHeader.RequiresSerial,
+        ProductImportColumn.TrackInventory => ProductCsvHeader.TrackInventory,
+        ProductImportColumn.AllowsPriceOverride => ProductCsvHeader.AllowsPriceOverride,
+        ProductImportColumn.Unit => ProductCsvHeader.Unit,
+        ProductImportColumn.IsActive => ProductCsvHeader.IsActive,
+        _ => column.ToString()
+    };
+
+    private static int MaxLengthOf(ProductImportColumn column) => column switch
+    {
+        ProductImportColumn.Barcode => Length.Barcode,
+        ProductImportColumn.Name => Length.Name,
+        ProductImportColumn.Kana => Length.Kana,
+        ProductImportColumn.Brand => Length.Brand,
+        ProductImportColumn.ModelNo => Length.ModelNo,
+        ProductImportColumn.TaxRateCode => Length.TaxRateCode,
+        ProductImportColumn.Unit => Length.Unit,
+        _ => Length.Code
     };
 }

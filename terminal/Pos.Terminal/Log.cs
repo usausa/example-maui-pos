@@ -23,6 +23,12 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Warning, Message = "API call failed. status=[{status}], statusCode=[{statusCode}], errorCode=[{errorCode}]")]
     public static partial void WarnApiFailed(this ILogger logger, Services.ApiStatus status, int statusCode, string? errorCode, Exception? exception);
 
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Product image not loaded. product=[{productId}], status=[{status}], statusCode=[{statusCode}]")]
+    public static partial void DebugProductImageNotLoaded(this ILogger logger, Guid productId, Services.ApiStatus status, int statusCode);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Product image cache failed. product=[{productId}]")]
+    public static partial void WarnProductImageCache(this ILogger logger, Guid productId, Exception exception);
+
     // Sync
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Master synchronized. products=[{products}], serverTime=[{serverTime}]")]

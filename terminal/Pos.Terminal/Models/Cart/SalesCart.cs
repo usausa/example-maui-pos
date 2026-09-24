@@ -19,6 +19,11 @@ public sealed class SalesCart
 
     public string? Note { get; set; }
 
+    // 受注から会計するとき (会計で受注を完了にする)
+    public Guid? OrderId { get; set; }
+
+    public string? OrderNo { get; set; }
+
     public bool IsEmpty => Lines.Count == 0;
 
     public void Clear()
@@ -28,6 +33,8 @@ public sealed class SalesCart
         Customer = null;
         Delivery = null;
         Note = null;
+        OrderId = null;
+        OrderNo = null;
     }
 
     // 同じ商品 (単価変更なし) は数量を足す

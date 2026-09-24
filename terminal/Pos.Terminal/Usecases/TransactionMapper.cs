@@ -129,6 +129,7 @@ public static class TransactionMapper
             ChangeAmount = result.ChangeAmount,
             PointsEarned = result.PointsEarned,
             PointsRedeemed = result.PointsRedeemed,
+            OrderId = cart.OrderId,
             Delivery = cart.Delivery is null ? null : new TransactionCreateRequestDelivery
             {
                 RecipientName = cart.Delivery.RecipientName,

@@ -2,6 +2,8 @@ namespace Pos.Domain.Logic;
 
 public sealed class TransactionLogicTests
 {
+    private static readonly Guid StoreId = new("00000000-0000-0000-0001-000000000001");
+
     private static readonly Guid TerminalId = new("00000000-0000-0000-0006-000000000001");
 
     private static readonly Guid OtherTerminalId = new("00000000-0000-0000-0006-000000000002");
@@ -203,6 +205,47 @@ public sealed class TransactionLogicTests
         Assert.Contains(validation.Warnings, static x => x.Code == WarningCode.PointBalanceNegative);
     }
 
+    // 締め済みの営業日に届いた販売・返品は受理して警告
+    [Fact]
+    public void ValidateDayAlreadyClosed()
+    {
+        // Arrange
+        var saleInput = SalesExample.Input();
+        var saleClaimed = SalesLogic.Calculate(saleInput);
+        var returnInput = ReturnInput(1m);
+        var returnClaimed = ReturnLogic.Calculate(returnInput);
+
+        // Act
+        var sale = TransactionLogic.ValidateSale(SaleContext(dayClosed: true), saleInput, saleClaimed);
+        var returned = TransactionLogic.ValidateReturn(ReturnContext(dayClosed: true), returnInput, returnClaimed);
+
+        // Assert
+        Assert.True(sale.IsValid);
+        Assert.Equal(WarningCode.DayAlreadyClosed, Assert.Single(sale.Warnings).Code);
+        Assert.True(returned.IsValid);
+        Assert.Equal(WarningCode.DayAlreadyClosed, Assert.Single(returned.Warnings).Code);
+    }
+
+    // 受注から会計するときは、受注が引き渡し待ちであること
+    [Fact]
+    public void ValidateSaleOrder()
+    {
+        // Arrange
+        var input = SalesExample.Input();
+        var claimed = SalesLogic.Calculate(input);
+        var orderId = Guid.NewGuid();
+
+        // Act
+        var ready = TransactionLogic.ValidateSale(SaleContext(order: new OrderFact { Id = orderId, StoreId = StoreId, Status = OrderStatus.Arrived }, orderId: orderId), input, claimed);
+        var notReady = TransactionLogic.ValidateSale(SaleContext(order: new OrderFact { Id = orderId, StoreId = StoreId, Status = OrderStatus.Ordered }, orderId: orderId), input, claimed);
+        var missing = TransactionLogic.ValidateSale(SaleContext(orderId: orderId), input, claimed);
+
+        // Assert
+        Assert.True(ready.IsValid);
+        Assert.Equal(ErrorCode.OrderNotReady, Assert.Single(notReady.Errors).Code);
+        Assert.Equal(ErrorCode.OrderNotFound, Assert.Single(missing.Errors).Code);
+    }
+
     // ------------------------------------------------------------
     // Return
     // ------------------------------------------------------------
@@ -326,6 +369,9 @@ public sealed class TransactionLogicTests
 
         var returnWithFlag = TransactionLogic.ValidateVoid(new VoidContext { Transaction = Transaction(TransactionType.Return, hasReturns: true), ShiftStatus = ShiftStatus.Open });
         Assert.True(returnWithFlag.IsValid);
+
+        var dayClosed = TransactionLogic.ValidateVoid(new VoidContext { Transaction = Transaction(), ShiftStatus = ShiftStatus.Open, DayClosed = true });
+        Assert.Equal(ErrorCode.DayClosed, Assert.Single(dayClosed.Errors).Code);
     }
 
     // ------------------------------------------------------------
@@ -346,7 +392,7 @@ public sealed class TransactionLogicTests
         IsActive = isActive
     };
 
-    private static SaleContext SaleContext(ShiftFact? shift = null, bool shiftMissing = false, bool receiptNoInUse = false, IReadOnlyList<ProductFact>? products = null, bool hasCustomer = true, int? pointBalance = 6000)
+    private static SaleContext SaleContext(ShiftFact? shift = null, bool shiftMissing = false, bool receiptNoInUse = false, IReadOnlyList<ProductFact>? products = null, bool hasCustomer = true, int? pointBalance = 6000, bool dayClosed = false, OrderFact? order = null, Guid? orderId = null)
     {
         products ??= [Product(SalesExample.CameraProduct), Product(SalesExample.SdCardProduct), Product(SalesExample.DeliveryProduct)];
         return new SaleContext
@@ -356,7 +402,11 @@ public sealed class TransactionLogicTests
             ReceiptNoInUse = receiptNoInUse,
             Products = products.ToDictionary(static x => x.Id),
             HasCustomer = hasCustomer,
-            CustomerPointBalance = hasCustomer ? pointBalance : null
+            CustomerPointBalance = hasCustomer ? pointBalance : null,
+            DayClosed = dayClosed,
+            StoreId = StoreId,
+            OrderId = orderId,
+            Order = order
         };
     }
 
@@ -367,12 +417,13 @@ public sealed class TransactionLogicTests
         Status = status
     };
 
-    private static ReturnContext ReturnContext(OriginalTransactionFact? original = null, bool originalMissing = false, bool hasCustomer = true) => new()
+    private static ReturnContext ReturnContext(OriginalTransactionFact? original = null, bool originalMissing = false, bool hasCustomer = true, bool dayClosed = false) => new()
     {
         TerminalId = TerminalId,
         Shift = Shift(),
         Original = originalMissing ? null : (original ?? Original(TransactionType.Sale, TransactionStatus.Completed)),
-        HasCustomer = hasCustomer
+        HasCustomer = hasCustomer,
+        DayClosed = dayClosed
     };
 
     // SD カードを quantity 個返品 (の元取引)

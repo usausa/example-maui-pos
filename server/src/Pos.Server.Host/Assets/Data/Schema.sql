@@ -194,6 +194,15 @@ CREATE INDEX IF NOT EXISTS IX_Products_Kana ON Products (Kana);
 CREATE INDEX IF NOT EXISTS IX_Products_UpdatedAt ON Products (UpdatedAt);
 CREATE UNIQUE INDEX IF NOT EXISTS UX_Products_Barcode ON Products (Barcode) WHERE Barcode IS NOT NULL;
 
+-- 商品画像 (JPEG / PNG。形式は先頭のバイトで判定する)。Products.ImageUrl の v は Data のハッシュ
+CREATE TABLE IF NOT EXISTS ProductImages (
+    ProductId  TEXT  NOT NULL,
+    Data       BLOB  NOT NULL,
+    UpdatedAt  TEXT  NOT NULL,
+    PRIMARY KEY (ProductId),
+    FOREIGN KEY (ProductId) REFERENCES Products (Id)
+);
+
 CREATE TABLE IF NOT EXISTS Customers (
     Id            TEXT     NOT NULL,
     Code          TEXT     NOT NULL,
@@ -443,6 +452,116 @@ CREATE TABLE IF NOT EXISTS TransactionDeliveries (
     FOREIGN KEY (TransactionId) REFERENCES Transactions (Id)
 );
 
+-- 日次締め (店舗 × 営業日)。締めた時点の日計を持ち、締めを解除すると内訳ごと消す
+CREATE TABLE IF NOT EXISTS DailyClosings (
+    Id                   TEXT     NOT NULL,
+    StoreId              TEXT     NOT NULL,
+    BusinessDate         TEXT     NOT NULL,   -- yyyy-MM-dd
+    ClosedAt             TEXT     NOT NULL,
+    ClosedBy             TEXT,                -- 管理画面のアカウント名 (認証の導入まで NULL)
+    ShiftCount           INTEGER  NOT NULL,
+    SalesCount           INTEGER  NOT NULL,
+    ReturnCount          INTEGER  NOT NULL,
+    VoidCount            INTEGER  NOT NULL,
+    CustomerCount        INTEGER  NOT NULL,
+    SalesTotal           NUMERIC  NOT NULL,
+    ReturnsTotal         NUMERIC  NOT NULL,
+    NetSales             NUMERIC  NOT NULL,
+    DiscountTotal        NUMERIC  NOT NULL,
+    TaxTotal             NUMERIC  NOT NULL,
+    PointsEarned         INTEGER  NOT NULL,
+    PointsRedeemed       INTEGER  NOT NULL,
+    HasLateTransactions  INTEGER  NOT NULL DEFAULT 0,   -- 締め後に同じ営業日の取引が届いた
+    CreatedAt            TEXT     NOT NULL,
+    UpdatedAt            TEXT     NOT NULL,
+    PRIMARY KEY (Id),
+    FOREIGN KEY (StoreId) REFERENCES Stores (Id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_DailyClosings_StoreId_BusinessDate ON DailyClosings (StoreId, BusinessDate);
+
+CREATE TABLE IF NOT EXISTS DailyClosingPayments (
+    DailyClosingId   TEXT     NOT NULL,
+    LineNo           INTEGER  NOT NULL,
+    PaymentMethodId  TEXT     NOT NULL,
+    Name             TEXT     NOT NULL,
+    Kind             TEXT     NOT NULL,
+    SalesAmount      NUMERIC  NOT NULL,
+    SalesCount       INTEGER  NOT NULL,
+    ReturnAmount     NUMERIC  NOT NULL,
+    ReturnCount      INTEGER  NOT NULL,
+    PRIMARY KEY (DailyClosingId, LineNo),
+    FOREIGN KEY (DailyClosingId) REFERENCES DailyClosings (Id),
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethods (Id)
+);
+
+CREATE TABLE IF NOT EXISTS DailyClosingTaxes (
+    DailyClosingId  TEXT     NOT NULL,
+    LineNo          INTEGER  NOT NULL,
+    TaxRateId       TEXT     NOT NULL,
+    Rate            NUMERIC  NOT NULL,
+    TaxIncluded     INTEGER  NOT NULL,
+    TaxableAmount   NUMERIC  NOT NULL,
+    TaxAmount       NUMERIC  NOT NULL,
+    PRIMARY KEY (DailyClosingId, LineNo),
+    FOREIGN KEY (DailyClosingId) REFERENCES DailyClosings (Id),
+    FOREIGN KEY (TaxRateId) REFERENCES TaxRates (Id)
+);
+
+-- 受注 (取り寄せ・取り置き)。受注番号は店舗ごとの連番 (Seq) から作る。会計した取引は TransactionId で持つ
+CREATE TABLE IF NOT EXISTS Orders (
+    Id             TEXT     NOT NULL,
+    StoreId        TEXT     NOT NULL,
+    Seq            INTEGER  NOT NULL,
+    OrderNo        TEXT     NOT NULL,   -- {店舗コード}-O-{連番:000000}
+    TerminalId     TEXT,
+    StaffId        TEXT     NOT NULL,
+    CustomerId     TEXT,
+    CustomerName   TEXT     NOT NULL,
+    Phone          TEXT,
+    Type           TEXT     NOT NULL,   -- BackOrder / Hold
+    Status         TEXT     NOT NULL,   -- Ordered / Arrived / Completed / Cancelled
+    RequestedDate  TEXT,                -- yyyy-MM-dd
+    Note           TEXT,
+    Total          NUMERIC  NOT NULL,
+    TransactionId  TEXT,
+    OrderedAt      TEXT     NOT NULL,
+    ArrivedAt      TEXT,
+    CompletedAt    TEXT,
+    CancelledAt    TEXT,
+    CancelReason   TEXT,
+    CreatedAt      TEXT     NOT NULL,
+    UpdatedAt      TEXT     NOT NULL,
+    Version        INTEGER  NOT NULL,
+    PRIMARY KEY (Id),
+    FOREIGN KEY (StoreId) REFERENCES Stores (Id),
+    FOREIGN KEY (TerminalId) REFERENCES Terminals (Id),
+    FOREIGN KEY (StaffId) REFERENCES Staff (Id),
+    FOREIGN KEY (CustomerId) REFERENCES Customers (Id),
+    FOREIGN KEY (TransactionId) REFERENCES Transactions (Id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_Orders_StoreId_Seq ON Orders (StoreId, Seq);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_Orders_OrderNo ON Orders (OrderNo);
+CREATE INDEX IF NOT EXISTS IX_Orders_StoreId_Status ON Orders (StoreId, Status);
+CREATE INDEX IF NOT EXISTS IX_Orders_CustomerId ON Orders (CustomerId);
+CREATE INDEX IF NOT EXISTS IX_Orders_TransactionId ON Orders (TransactionId);
+
+CREATE TABLE IF NOT EXISTS OrderLines (
+    Id           TEXT     NOT NULL,
+    OrderId      TEXT     NOT NULL,
+    LineNo       INTEGER  NOT NULL,
+    ProductId    TEXT     NOT NULL,
+    ProductCode  TEXT     NOT NULL,
+    ProductName  TEXT     NOT NULL,
+    Quantity     NUMERIC  NOT NULL,
+    UnitPrice    NUMERIC  NOT NULL,
+    Amount       NUMERIC  NOT NULL,
+    Note         TEXT,
+    PRIMARY KEY (Id),
+    FOREIGN KEY (OrderId) REFERENCES Orders (Id),
+    FOREIGN KEY (ProductId) REFERENCES Products (Id)
+);
+CREATE INDEX IF NOT EXISTS IX_OrderLines_OrderId ON OrderLines (OrderId);
+
 CREATE TABLE IF NOT EXISTS InventoryLevels (
     StoreId    TEXT     NOT NULL,
     ProductId  TEXT     NOT NULL,
@@ -455,11 +574,108 @@ CREATE TABLE IF NOT EXISTS InventoryLevels (
 CREATE INDEX IF NOT EXISTS IX_InventoryLevels_ProductId ON InventoryLevels (ProductId);
 CREATE INDEX IF NOT EXISTS IX_InventoryLevels_StoreId_UpdatedAt ON InventoryLevels (StoreId, UpdatedAt);
 
+-- 仕入先 (入荷の相手)
+CREATE TABLE IF NOT EXISTS Suppliers (
+    Id         TEXT     NOT NULL,
+    Code       TEXT     NOT NULL,
+    Name       TEXT     NOT NULL,
+    Phone      TEXT,
+    Email      TEXT,
+    Note       TEXT,
+    IsActive   INTEGER  NOT NULL,
+    IsDeleted  INTEGER  NOT NULL,
+    CreatedAt  TEXT     NOT NULL,
+    UpdatedAt  TEXT     NOT NULL,
+    Version    INTEGER  NOT NULL,
+    PRIMARY KEY (Id),
+    UNIQUE (Code)
+);
+
+-- 入荷 (入荷予定を受領すると在庫に入る。明細の商品コード・名称は登録時点の写し)
+CREATE TABLE IF NOT EXISTS InventoryReceipts (
+    Id                 TEXT     NOT NULL,
+    StoreId            TEXT     NOT NULL,
+    SupplierId         TEXT     NOT NULL,
+    SlipNo             TEXT,                -- 仕入先の納品書番号
+    ExpectedDate       TEXT,                -- yyyy-MM-dd
+    Status             TEXT     NOT NULL,   -- Draft / Received / Cancelled
+    Note               TEXT,
+    ReceivedAt         TEXT,
+    ReceivedByStaffId  TEXT,
+    CancelledAt        TEXT,
+    CreatedAt          TEXT     NOT NULL,
+    UpdatedAt          TEXT     NOT NULL,
+    Version            INTEGER  NOT NULL,
+    PRIMARY KEY (Id),
+    FOREIGN KEY (StoreId) REFERENCES Stores (Id),
+    FOREIGN KEY (SupplierId) REFERENCES Suppliers (Id),
+    FOREIGN KEY (ReceivedByStaffId) REFERENCES Staff (Id)
+);
+CREATE INDEX IF NOT EXISTS IX_InventoryReceipts_StoreId_Status ON InventoryReceipts (StoreId, Status);
+
+CREATE TABLE IF NOT EXISTS InventoryReceiptLines (
+    Id                TEXT     NOT NULL,
+    ReceiptId         TEXT     NOT NULL,
+    LineNo            INTEGER  NOT NULL,
+    ProductId         TEXT     NOT NULL,
+    ProductCode       TEXT     NOT NULL,
+    ProductName       TEXT     NOT NULL,
+    Quantity          NUMERIC  NOT NULL,   -- 予定の数
+    ReceivedQuantity  NUMERIC,             -- 受領した数 (受領まで NULL)
+    Cost              NUMERIC,             -- 仕入単価
+    PRIMARY KEY (Id),
+    FOREIGN KEY (ReceiptId) REFERENCES InventoryReceipts (Id),
+    FOREIGN KEY (ProductId) REFERENCES Products (Id)
+);
+CREATE INDEX IF NOT EXISTS IX_InventoryReceiptLines_ReceiptId ON InventoryReceiptLines (ReceiptId);
+
+-- 店舗間移動 (出荷で出荷店の在庫が減り、受領で入荷店の在庫が増える)
+CREATE TABLE IF NOT EXISTS InventoryTransfers (
+    Id                 TEXT     NOT NULL,
+    FromStoreId        TEXT     NOT NULL,
+    Seq                INTEGER  NOT NULL,
+    TransferNo         TEXT     NOT NULL,   -- {出荷店コード}-T-{連番:000000}
+    ToStoreId          TEXT     NOT NULL,
+    Status             TEXT     NOT NULL,   -- Requested / Shipped / Received / Cancelled
+    Note               TEXT,
+    ShippedAt          TEXT,
+    ShippedByStaffId   TEXT,
+    ReceivedAt         TEXT,
+    ReceivedByStaffId  TEXT,
+    CancelledAt        TEXT,
+    CreatedAt          TEXT     NOT NULL,
+    UpdatedAt          TEXT     NOT NULL,
+    Version            INTEGER  NOT NULL,
+    PRIMARY KEY (Id),
+    FOREIGN KEY (FromStoreId) REFERENCES Stores (Id),
+    FOREIGN KEY (ToStoreId) REFERENCES Stores (Id),
+    FOREIGN KEY (ShippedByStaffId) REFERENCES Staff (Id),
+    FOREIGN KEY (ReceivedByStaffId) REFERENCES Staff (Id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_InventoryTransfers_FromStoreId_Seq ON InventoryTransfers (FromStoreId, Seq);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_InventoryTransfers_TransferNo ON InventoryTransfers (TransferNo);
+CREATE INDEX IF NOT EXISTS IX_InventoryTransfers_ToStoreId_Status ON InventoryTransfers (ToStoreId, Status);
+
+CREATE TABLE IF NOT EXISTS InventoryTransferLines (
+    Id                TEXT     NOT NULL,
+    TransferId        TEXT     NOT NULL,
+    LineNo            INTEGER  NOT NULL,
+    ProductId         TEXT     NOT NULL,
+    ProductCode       TEXT     NOT NULL,
+    ProductName       TEXT     NOT NULL,
+    Quantity          NUMERIC  NOT NULL,   -- 依頼・出荷の数
+    ReceivedQuantity  NUMERIC,             -- 受領した数 (受領まで NULL)
+    PRIMARY KEY (Id),
+    FOREIGN KEY (TransferId) REFERENCES InventoryTransfers (Id),
+    FOREIGN KEY (ProductId) REFERENCES Products (Id)
+);
+CREATE INDEX IF NOT EXISTS IX_InventoryTransferLines_TransferId ON InventoryTransferLines (TransferId);
+
 CREATE TABLE IF NOT EXISTS InventoryChanges (
     Id               TEXT     NOT NULL,
     StoreId          TEXT     NOT NULL,
     ProductId        TEXT     NOT NULL,
-    Type             TEXT     NOT NULL,   -- Sale / Return / Void / PhysicalCount / Adjustment
+    Type             TEXT     NOT NULL,   -- Sale / Return / Void / PhysicalCount / Adjustment / Receive / TransferOut / TransferIn
     QuantityDelta    NUMERIC  NOT NULL,
     QuantityAfter    NUMERIC  NOT NULL,
     ReasonId         TEXT,

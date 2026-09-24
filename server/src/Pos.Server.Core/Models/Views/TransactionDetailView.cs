@@ -2,7 +2,7 @@ namespace Pos.Server.Models.Views;
 
 using Pos.Server.Models.Entity;
 
-// 取引一式 (明細・シリアル・値引・税・支払・配送)
+// 取引一式 (明細・シリアル・値引・税・支払・配送、受注から会計したときは受注)
 public sealed class TransactionDetailView
 {
     public required TransactionEntity Transaction { get; init; }
@@ -18,4 +18,7 @@ public sealed class TransactionDetailView
     public IReadOnlyList<TransactionPaymentEntity> Payments { get; init; } = [];
 
     public TransactionDeliveryEntity? Delivery { get; init; }
+
+    // 登録で受注を完了にしたときに付ける
+    public OrderEntity? Order { get; set; }
 }

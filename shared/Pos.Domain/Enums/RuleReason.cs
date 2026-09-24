@@ -36,5 +36,17 @@ public enum RuleReason
     QuantityNotPositive,
     DuplicateLineId,
     NoLines,
-    LineDiscountExceeds
+    LineDiscountExceeds,
+    DayClosed,
+    OrderNotFound,
+    OrderNotReady,
+    OrderNotEditable,
+    OrderNotOrdered,
+    OrderNotCancellable,
+    StoreNotFound,
+    CustomerNotFound,
+    SupplierNotFound,
+    InventoryReceiptNotDraft,
+    InventoryTransferNotRequested,
+    InventoryTransferNotShipped
 }

@@ -53,7 +53,7 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
     private async Task LoadAsync()
     {
-        var transaction = await transactions.QueryAsync(transactionId);
+        var transaction = await transactions.FindAsync(transactionId);
         if (transaction is null)
         {
             await Navigator.ForwardAsync(ViewId.Menu);

@@ -25,6 +25,10 @@
                             <tr><td class="mud-text-secondary">店舗 / 端末</td><td>@Names.Store(transaction.StoreId) / @Names.Terminal(transaction.TerminalId)</td></tr>
                             <tr><td class="mud-text-secondary">担当</td><td>@Names.StaffName(transaction.StaffId)</td></tr>
                             <tr><td class="mud-text-secondary">会員</td><td>@(customer is null ? "-" : customer.ToDisplayText())</td></tr>
+                            @if (order is not null)
+                            {
+                                <tr><td class="mud-text-secondary">受注</td><td><MudLink Href="@($"orders?id={order.Id}")" Typo="Typo.body2" OnClick="() => MudDialog.Close()">@order.OrderNo</MudLink></td></tr>
+                            }
                             <tr><td class="mud-text-secondary">備考</td><td>@transaction.Note</td></tr>
                         </tbody>
                     </MudSimpleTable>
@@ -132,6 +136,10 @@
         }
     </DialogContent>
     <DialogActions>
+        @if (transaction is not null)
+        {
+            <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@ExportUrls.ReceiptPdf(transaction.Id)" Target="_blank">レシート PDF</MudButton>
+        }
         <MudButton Color="Color.Primary" OnClick="() => MudDialog.Close()">閉じる</MudButton>
     </DialogActions>
 </MudDialog>

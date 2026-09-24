@@ -159,8 +159,8 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(new DateOnly(2026, 9, 14), (await transactions.QueryDeliveryAsync(transactionId, Token))!.RequestedDate);
         Assert.Equal(sdBefore - 2m, (await inventory.QueryLevelListByProductAsync(TestData.SdCardProductId, Token)).Single(x => x.StoreId == TestData.MainStoreId).Quantity);
         Assert.Equal(1, (await masters.QueryTerminalAsync(TestData.MainTerminal2Id, Token))!.LastReceiptSeq);
-        Assert.Equal(1, await transactions.CountAsync(null, null, null, shiftId, null, null, null, TransactionType.Sale, TransactionStatus.Completed, Token));
-        Assert.Single(await transactions.QueryListAsync(TestData.MainStoreId, null, null, null, TestData.Customer1Id, businessDate, businessDate, null, null, TransactionSort.TransactedAt, true, 10, 0, Token));
+        Assert.Equal(1, await transactions.CountAsync(null, null, null, shiftId, null, null, null, TransactionType.Sale, TransactionStatus.Completed, null, Token));
+        Assert.Single(await transactions.QueryListAsync(TestData.MainStoreId, null, null, null, TestData.Customer1Id, businessDate, businessDate, null, null, null, TransactionSort.TransactedAt, true, 10, 0, Token));
 
         // 集計
         var totals = await shifts.QuerySummaryAsync(shiftId, Token);

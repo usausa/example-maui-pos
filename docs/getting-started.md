@@ -59,7 +59,7 @@ dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net10.0-android -t:Run
 
 ## サンプル取引の生成
 
-レポートやダッシュボードの確認用に、起動中のサーバへ直近数日分のシフト・販売・返品・取消・入出金・精算を API で登録する。
+レポートやダッシュボードの確認用に、起動中のサーバへ初日の入荷 (在庫を積む) と直近数日分のシフト・販売・返品・取消・入出金・精算を API で登録し、前日までを日次締めする。
 
 ```bash
 dotnet run --project server/tools/Pos.Server.SampleData -- --days 7
@@ -68,6 +68,8 @@ dotnet run --project server/tools/Pos.Server.SampleData -- --days 7
 オプションは `--base <url>` (既定 `http://localhost:8080/`)、`--days <n>` (既定 7)、`--per-day <n>` (端末 1 台 1 日あたりの販売件数の目安、既定 6)、`--seed <n>` (乱数、既定 1)。  
 開設中のシフトがある端末は省略する。  
 詳細は [architecture.md §6](architecture.md#6-初期データ) と [D-41](decisions.md#d-41-サンプル取引の生成-api-経由のコンソールツール)。
+
+商品マスタの CSV 取込は、初期データと同じ 33 商品の [docs/samples/products.csv](samples/products.csv) を編集して管理画面の「商品 › CSV 取込」で試せる (列は「CSV 出力」と同じ)。
 
 ## テスト・静的解析
 
