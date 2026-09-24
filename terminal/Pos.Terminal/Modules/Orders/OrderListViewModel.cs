@@ -46,9 +46,9 @@ public sealed partial class OrderListViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string Message { get; set; } = "受注がありません。";
 
-    // 取得中 / 取得できない / 結果 (空文字) を切り替える
+    // 取得中 / 取得できない / 結果 (空文字) を切り替える。表示した直後に読むので取得中から始める
     [ObservableProperty]
-    public partial string CurrentState { get; set; } = string.Empty;
+    public partial string CurrentState { get; set; } = ViewHelper.LoadingState;
 
     public IObserveCommand SearchCommand { get; }
 
@@ -80,6 +80,7 @@ public sealed partial class OrderListViewModel : AppViewModelBase
     {
         if (session.StoreId is not { } storeId)
         {
+            CurrentState = string.Empty;
             return;
         }
 
