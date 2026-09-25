@@ -346,7 +346,7 @@ Usecases/                            通信 → DB → 完了までの一連の�
   TransactionUsecase.cs              取引の保存 (ローカル取引 + Outbox + 自店在庫を 1 トランザクション)、取消、履歴 (送信状態付き)、端末にない取引はオンラインでサーバから
   SalesUsecase.cs / ReturnUsecase.cs 会計・返品の計算 (Pos.Domain) と確定、保留、元取引の検索 (オンラインならサーバの最新)
   ShiftUsecase.cs                    開設 (サーバに残ったシフトの引き継ぎ)、精算、入出金、集計
-  OrderUsecase.cs                    受注の登録 (カートから)、受注から会計のカートを作る (前受金を含む)、前受金の受取と返金 (受け付けた記録を端末に写す)
+  OrderUsecase.cs                    受注の登録 (カートから)、受注の取得と会計前の読み直し、受注から会計のカートを作る (前受金を含む)、前受金の受取と返金 (今のシフトの記録を端末に写す)
   StockUsecase.cs / SetupUsecase.cs  棚卸・在庫調整の送信、初期設定 (ペアリング・トークンと設定の保存・初回同期)
   ReceivingUsecase.cs                受領待ちの入荷・移動の取得と受領 (オンライン。受領したら在庫の差分同期を促す)
   ReceivingMapper.cs                 入荷・移動の応答 → 受領待ちの伝票、数えた数 → 受領の要求

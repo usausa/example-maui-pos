@@ -9,7 +9,7 @@ public sealed record MethodItem(PaymentMethodResponseItem Method, string Name);
 public sealed record PaymentItem(CartPayment Payment, string Text, string AmountText, bool Removable);
 
 // 会計: 埋め込みテンキーで預り金を入れ、支払方法ボタンで支払を積む。確定は SalesUsecase で登録して会計完了へ。
-// 受注の前受金は先頭の支払にする (合計を超えるときは会計できないので、受注の詳細で返してもらう)
+// 受注の前受金は、画面に入るときにオンラインなら読み直したうえで先頭の支払にする (合計を超えるときは会計できないので、受注の詳細で返してもらう)
 public sealed partial class PaymentViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
@@ -21,6 +21,8 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     private readonly DataAccessor accessor;
 
     private readonly SalesUsecase sales;
+
+    private readonly OrderUsecase orders;
 
     private PaymentMethodResponseItem? pointsMethod;
 
@@ -90,13 +92,15 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         IPopupNavigator popupNavigator,
         Session session,
         DataAccessor accessor,
-        SalesUsecase sales)
+        SalesUsecase sales,
+        OrderUsecase orders)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
         this.session = session;
         this.accessor = accessor;
         this.sales = sales;
+        this.orders = orders;
 
         PushCommand = MakeDelegateCommand<string>(x =>
         {
@@ -156,9 +160,15 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         Refresh();
     }
 
-    // 受注の前受金を先頭の支払にする (入り直すたびに置き直す)。会計できないときは false
+    // 受注の前受金を先頭の支払にする (入り直すたびに読み直して置き直す)。会計できないときは false
     private async ValueTask<bool> ApplyDepositAsync()
     {
+        if (await orders.RefreshOrderAsync(SalesContext.Cart) is { } error)
+        {
+            await dialog.InformationAsync(ViewHelper.Reason(error.Reason));
+            return false;
+        }
+
         var payments = SalesContext.Payments;
         for (var i = payments.Count - 1; i >= 0; i--)
         {
@@ -176,7 +186,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
         if (depositMethod is null)
         {
-            await dialog.InformationAsync("前受金の支払方法がありません。\n設定・同期でマスタを同期してください。");
+            await dialog.InformationAsync("前受金の支払方法がありません。\n設定・同期でマスタを同期するか、管理画面の支払方法を確かめてください。");
             return false;
         }
 

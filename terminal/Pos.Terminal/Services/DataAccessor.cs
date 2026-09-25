@@ -237,10 +237,9 @@ public sealed partial class DataAccessor
     // OrderDeposits
     //--------------------------------------------------------------------------------
 
-    // サーバが受け付けた前受金を写す (1 文なのでトランザクションなし)
+    // サーバが受け付けた前受金を写す (写し済みの Id は何もしない。1 文なのでトランザクションなし)
     [Execute]
-    [Insert(typeof(LocalOrderDepositEntity))]
-    public partial ValueTask<int> InsertOrderDepositAsync(LocalOrderDepositEntity entity);
+    public partial ValueTask<int> InsertOrderDepositAsync(Guid id, Guid orderId, Guid shiftId, OrderDepositType type, Guid paymentMethodId, PaymentKind kind, decimal amount, DateTime occurredAt);
 
     [Query]
     public partial ValueTask<List<LocalOrderDepositEntity>> QueryOrderDepositListAsync(Guid shiftId);

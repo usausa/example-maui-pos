@@ -106,7 +106,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     private async Task LoadAsync()
     {
         paymentMethods = await orders.QueryPaymentMethodsAsync();
-        var result = await network.ExecuteAsync(h => h.GetOrderAsync(orderId), notifyNotFound: true);
+        var result = await orders.LoadAsync(orderId);
         if (result is { IsSuccess: true, Content: not null })
         {
             Update(result.Content);
@@ -251,6 +251,12 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
             .Where(static x => x.IsActive && !x.IsDeleted && x.Kind.CanReceiveDeposit())
             .OrderBy(static x => x.SortOrder)
             .ToList();
+        if (methods.Count == 0)
+        {
+            await dialog.InformationAsync("前受金を受け取れる支払方法がありません。\n設定・同期でマスタを同期してください。");
+            return;
+        }
+
         var method = await popupNavigator.ChooseAsync(methods, static x => x.Name, "前受金の支払方法");
         if (method is null)
         {

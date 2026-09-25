@@ -338,8 +338,8 @@ public sealed class OrderService
             return new OrderResult(OrderResultStatus.Violation, Violation: violation);
         }
 
-        // 有効な前受金は 1 つなので、最後の受取が返す相手
-        var received = deposits.Last(static x => x.Type == OrderDepositType.Receive);
+        // 有効な前受金は 1 つなので、最後に受け付けた受取が返す相手 (端末の時刻ではなくサーバの登録時刻で選ぶ)
+        var received = deposits.Where(static x => x.Type == OrderDepositType.Receive).MaxBy(static x => x.CreatedAt)!;
         refund.Type = OrderDepositType.Refund;
         refund.PaymentMethodId = received.PaymentMethodId;
         refund.Kind = received.Kind;
