@@ -85,6 +85,14 @@ public static class ViewHelper
         PaymentKind.Points => "ポイント",
         PaymentKind.Credit => "掛売",
         PaymentKind.Other => "その他",
+        PaymentKind.Deposit => "前受金",
+        _ => value.ToString()
+    };
+
+    public static string Name(OrderDepositType value) => value switch
+    {
+        OrderDepositType.Receive => "受取",
+        OrderDepositType.Refund => "返金",
         _ => value.ToString()
     };
 
@@ -205,6 +213,13 @@ public static class ViewHelper
         RuleReason.InventoryTransferNotShipped => "出荷済みの移動ではありません",
         RuleReason.PurchaseOrderNotDraft => "下書きの発注ではありません",
         RuleReason.PurchaseOrderNotOpen => "入荷済み・キャンセルした発注です",
+        RuleReason.DepositExists => "前受金を受け取り済みです",
+        RuleReason.DepositAmountInvalid => "前受金は 1 円以上、受注の金額までにしてください",
+        RuleReason.DepositMethodInvalid => "前受金は現金・カード・QR・電子マネーで受け取ってください",
+        RuleReason.DepositNotFound => "前受金がありません",
+        RuleReason.DepositHeld => "前受金を返してからキャンセルしてください",
+        RuleReason.DepositMismatch => "前受金の全額を会計で充ててください",
+        RuleReason.DepositRefundNotAllowed => "前受金では返金できません",
         RuleReason.DiscountApprovalRequired => "承認が必要な値引です",
         RuleReason.VoidApprovalRequired => "取消には店長以上の承認が必要です",
         RuleReason.ApproverNotAllowed => "承認者が店長以上の有効なスタッフではありません",

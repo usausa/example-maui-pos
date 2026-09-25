@@ -4,13 +4,14 @@ using Pos.Contract.Shifts;
 using Pos.Contract.Transactions;
 using Pos.Terminal.Models.Entity;
 
-// ローカルの取引・入出金からシフト集計を作る (精算画面の予想現金、オフライン時の精算レポート)。サーバの ShiftSummary と同じ形にする
+// ローカルの取引・入出金・前受金からシフト集計を作る (精算画面の予想現金、オフライン時の精算レポート)。サーバの ShiftSummary と同じ形にする
 public static class ShiftSummaryCalculator
 {
     public static ShiftSummaryResponse Calculate(
         LocalShiftEntity shift,
         IEnumerable<TransactionResponseItem> transactions,
         IEnumerable<LocalCashEventEntity> cashEvents,
+        IEnumerable<LocalOrderDepositEntity> deposits,
         IEnumerable<PaymentMethodResponseItem> paymentMethods,
         IEnumerable<CategoryResponseItem> categories)
     {
@@ -119,7 +120,20 @@ public static class ShiftSummaryCalculator
             }
         }
 
-        var expectedCash = shift.OpeningCash + totals.CashSales - totals.CashReturns + totals.PaidIn - totals.PaidOut;
+        // 前受金は現金の分だけ
+        foreach (var deposit in deposits.Where(static x => x.Kind == PaymentKind.Cash))
+        {
+            if (deposit.Type == OrderDepositType.Receive)
+            {
+                totals.DepositCashIn += deposit.Amount;
+            }
+            else
+            {
+                totals.DepositCashOut += deposit.Amount;
+            }
+        }
+
+        var expectedCash = shift.OpeningCash + totals.CashSales - totals.CashReturns + totals.PaidIn - totals.PaidOut + totals.DepositCashIn - totals.DepositCashOut;
 
         return new ShiftSummaryResponse
         {
@@ -152,6 +166,8 @@ public static class ShiftSummaryCalculator
                 CashReturns = totals.CashReturns,
                 PaidIn = totals.PaidIn,
                 PaidOut = totals.PaidOut,
+                DepositCashIn = totals.DepositCashIn,
+                DepositCashOut = totals.DepositCashOut,
                 ExpectedCash = expectedCash,
                 ActualCash = shift.ActualCash,
                 Difference = shift.ActualCash - expectedCash

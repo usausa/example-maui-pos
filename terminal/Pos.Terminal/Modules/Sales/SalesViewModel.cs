@@ -110,7 +110,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
         HasCustomer = cart.Customer is not null;
         CustomerText = cart.Customer is null ? "👤 会員を選択" : $"👤 {cart.Customer.Name}  {ViewHelper.Points(cart.Customer.PointBalance)}";
         HasOrder = cart.OrderId is not null;
-        OrderText = cart.OrderNo is null ? string.Empty : $"📋 受注 {cart.OrderNo} の会計";
+        OrderText = cart.OrderNo is null ? string.Empty : $"📋 受注 {cart.OrderNo} の会計{(cart.DepositAmount > 0 ? $"  前受金 {ViewHelper.Yen(cart.DepositAmount)}" : string.Empty)}";
 
         var result = sales.Calculate(cart, []);
         var items = new List<CartLineItem>(cart.Lines.Count);

@@ -165,7 +165,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         // 集計
         var totals = await shifts.QuerySummaryAsync(shiftId, Token);
         Assert.NotNull(totals);
-        Assert.Equal(new ShiftTotalsView(80000m, 0m, 0m, 0m, 1, 0, 0, 80000m, 0m), totals);
+        Assert.Equal(new ShiftTotalsView(80000m, 0m, 0m, 0m, 0m, 0m, 1, 0, 0, 80000m, 0m), totals);
         var byPayment = Assert.Single(await shifts.QueryPaymentMethodSummaryAsync(shiftId, Token));
         Assert.Equal(new PaymentMethodTotalView(TestData.CashPaymentMethodId, "現金", PaymentKind.Cash, 80000m, 1, 0m, 0), byPayment);
         var byTax = Assert.Single(await shifts.QueryTaxRateSummaryAsync(shiftId, Token));
@@ -200,7 +200,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(1, await InTxAsync(provider, tx => transactions.UpdateVoidedAsync(tx, transactionId, now.AddMinutes(10), TestData.ManagerStaffId, "誤操作", now.AddMinutes(10), Token)));
         Assert.Equal(TransactionStatus.Voided, (await transactions.QueryAsync(transactionId, Token))!.Status);
         var totalsAfterVoid = await shifts.QuerySummaryAsync(shiftId, Token);
-        Assert.Equal(new ShiftTotalsView(0m, 0m, 0m, 0m, 0, 0, 1, 0m, 0m), totalsAfterVoid);
+        Assert.Equal(new ShiftTotalsView(0m, 0m, 0m, 0m, 0m, 0m, 0, 0, 1, 0m, 0m), totalsAfterVoid);
 
         // 入出金と精算
         await shifts.InsertCashEventAsync(new CashEventEntity { Id = Guid.NewGuid(), ShiftId = shiftId, Type = CashEventType.PaidOut, Amount = 10000m, Reason = "両替", StaffId = TestData.MainCashierStaffId, OccurredAt = now.AddMinutes(20), CreatedAt = now.AddMinutes(20) }, Token);

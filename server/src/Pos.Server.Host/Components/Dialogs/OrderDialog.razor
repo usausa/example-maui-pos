@@ -68,6 +68,28 @@
                         </tbody>
                     </MudSimpleTable>
                 </MudItem>
+                @if (detail.Deposits.Count > 0)
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle2">💴 前受金</MudText>
+                        <MudSimpleTable Dense="true" Elevation="0">
+                            <thead>
+                                <tr><th>日時</th><th>種類</th><th>方法</th><th class="text-right">金額</th><th>端末 / 担当</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var deposit in detail.Deposits)
+                                {
+                                    <tr><td>@deposit.OccurredAt.ToDateTimeText()</td><td><StatusChip Value="@ViewHelper.OrderDepositChip(deposit.Type)" /></td><td>@Names.PaymentMethod(deposit.PaymentMethodId) @deposit.Reference</td><td class="text-right">@deposit.Amount.ToYen()</td><td>@Names.Terminal(deposit.TerminalId) / @Names.StaffName(deposit.StaffId)</td></tr>
+                                }
+                                <tr><td></td><td></td><td class="mud-text-secondary">@ViewHelper.OrderDepositNetLabel(order.Status)</td><td class="text-right"><strong>@detail.DepositNet.ToYen()</strong></td><td></td></tr>
+                            </tbody>
+                        </MudSimpleTable>
+                        @if (detail.DepositBalance > 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">キャンセルするときは、端末で前受金を返してからにしてください。</MudText>
+                        }
+                    </MudItem>
+                }
             </MudGrid>
         }
     </DialogContent>
@@ -82,7 +104,7 @@
 
             if (order.Status.IsOpen())
             {
-                <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" OnClick="() => Close(OrderDialogAction.Cancel)">受注をキャンセル</MudButton>
+                <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" Disabled="@(detail.DepositBalance > 0)" OnClick="() => Close(OrderDialogAction.Cancel)">受注をキャンセル</MudButton>
                 <MudButton StartIcon="@Icons.Material.Filled.Edit" OnClick="() => Close(OrderDialogAction.Edit)">変更</MudButton>
             }
 

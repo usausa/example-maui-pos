@@ -46,6 +46,7 @@ description: README の画面の画像 (docs/images/ の server-*.png と termin
 | `terminal-transactions` | 取引履歴 |
 | `terminal-product-inquiry` | 商品・在庫照会 |
 | `terminal-orders` | 受注一覧 |
+| `terminal-order-detail` | 受注詳細 (前受金を受け取った入荷待ちの受注) |
 | `terminal-receiving` | 入荷・移動の検品 |
 
 ## 仕上げ

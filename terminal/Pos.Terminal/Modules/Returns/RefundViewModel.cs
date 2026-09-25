@@ -114,10 +114,10 @@ public sealed partial class RefundViewModel : AppViewModelBase
         var methods = (await accessor.QueryPaymentMethodListAsync()).Where(static x => x.IsActive && !x.IsDeleted).OrderBy(static x => x.SortOrder).ToList();
         pointsMethod = methods.FirstOrDefault(static x => x.Kind == PaymentKind.Points);
 
-        // 元取引で使った支払方法を先頭に
+        // 元取引で使った支払方法を先頭に (前受金は受注の会計で充てる支払なので返金には使わない)
         var used = original.Payments.Select(static x => x.PaymentMethodId).ToHashSet();
         Methods.Replace(methods
-            .Where(static x => x.Kind != PaymentKind.Points)
+            .Where(static x => x.Kind is not (PaymentKind.Points or PaymentKind.Deposit))
             .OrderByDescending(x => used.Contains(x.Id))
             .ThenBy(static x => x.SortOrder)
             .Select(x => new RefundMethodItem(x, used.Contains(x.Id) ? "元の支払" : string.Empty)));

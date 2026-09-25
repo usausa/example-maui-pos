@@ -39,12 +39,16 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(4, await masters.CountStaffAsync(null, null, false, Token));
         Assert.Equal(13, await masters.CountCategoriesAsync(null, false, Token));
         Assert.Equal(3, (await masters.QueryTaxRateListAsync(null, false, Token)).Count);
-        Assert.Equal(6, (await masters.QueryPaymentMethodListAsync(null, false, Token)).Count);
+        Assert.Equal(7, (await masters.QueryPaymentMethodListAsync(null, false, Token)).Count);
         Assert.Equal(33, await Resolve<ProductAccessor>().CountAsync(null, null, null, null, false, Token));
         Assert.Equal(3, (await masters.QueryDiscountListAsync(null, false, Token)).Count);
         Assert.Equal(5, (await masters.QueryAdjustmentReasonListAsync(null, false, Token)).Count);
         Assert.Equal(5, await Resolve<CustomerAccessor>().CountAsync(null, null, null, null, false, Token));
         Assert.Equal(60, await Resolve<InventoryAccessor>().CountLevelsAsync(null, null, null, false, null, Token));
+
+        // 前受金の支払方法は初期データにあり、起動時の追加 (初期データより前の DB 向け) は何もしない
+        Assert.Equal(PaymentKind.Deposit, (await masters.QueryPaymentMethodAsync(TestData.DepositPaymentMethodId, Token))?.Kind);
+        Assert.Equal(0, await Resolve<GenericAccessor>().InsertDepositPaymentMethodAsync(DateTime.UtcNow, Token));
 
         // 販売例の商品 (JAN で引ける)
         var camera = await Resolve<ProductAccessor>().QueryByBarcodeAsync("4901234567894", Token);

@@ -1,7 +1,7 @@
 # example-maui-pos
 
 MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理画面) の POS サンプル。  
-家電・カメラ・ホームセンターの物販を想定し、販売・会計・レシート、取り寄せ・取り置きの受注、レジ開閉と精算、日次締め、返品・取消、会員ポイント、在庫 (棚卸・調整、仕入先への発注と入荷、店舗間移動)、売上レポートを扱う。  
+家電・カメラ・ホームセンターの物販を想定し、販売・会計・レシート、取り寄せ・取り置きの受注と前受金、レジ開閉と精算、日次締め、返品・取消、会員ポイント、在庫 (棚卸・調整、仕入先への発注と入荷、店舗間移動)、売上レポートを扱う。  
 管理画面はログイン (管理者 / オペレーター)、端末はペアリングコードで登録し、スタッフは PIN でログインする (値引と取消の承認も PIN)。
 
 ## 端末 (Android)
@@ -12,8 +12,10 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | ホーム | 販売 | 会計 | レシート |
 | ![初期設定](docs/images/terminal-setup.png) | ![商品検索](docs/images/terminal-product-search.png) | ![精算](docs/images/terminal-shift-close.png) | ![売上照会](docs/images/terminal-sales-report.png) |
 | 初期設定 | 商品検索 | 精算 | 売上照会 |
-| ![取引履歴](docs/images/terminal-transactions.png) | ![商品・在庫照会](docs/images/terminal-product-inquiry.png) | ![受注](docs/images/terminal-orders.png) | ![検品](docs/images/terminal-receiving.png) |
-| 取引履歴 | 商品・在庫照会 | 受注 | 入荷・移動の検品 |
+| ![取引履歴](docs/images/terminal-transactions.png) | ![商品・在庫照会](docs/images/terminal-product-inquiry.png) | ![受注](docs/images/terminal-orders.png) | ![受注詳細](docs/images/terminal-order-detail.png) |
+| 取引履歴 | 商品・在庫照会 | 受注 | 受注詳細 (前受金) |
+| ![検品](docs/images/terminal-receiving.png) | | | |
+| 入荷・移動の検品 | | | |
 
 ## 管理画面 (Blazor + MudBlazor)
 
@@ -26,7 +28,7 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | ![取引](docs/images/server-transactions.png) |
 | 取引: 営業日・店舗・端末・種別・状態・レシート番号・シリアル番号で検索、詳細からレシートの控え (PDF) |
 | ![受注](docs/images/server-orders.png) |
-| 受注: 取り寄せ・取り置きの登録・変更・入荷・キャンセル (端末で会計すると完了) |
+| 受注: 取り寄せ・取り置きの登録・変更・入荷・キャンセル、前受金の記録 (前受金は端末で受け取り、会計で充てると完了) |
 | ![日次締め](docs/images/server-daily-closings.png) |
 | 日次締め: 店舗 × 営業日の締めと解除 (未精算のシフトがある日は締めない)、売上日報 |
 | ![商品](docs/images/server-products.png) |

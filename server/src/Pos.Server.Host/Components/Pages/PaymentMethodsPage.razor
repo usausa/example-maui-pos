@@ -13,7 +13,7 @@
     <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
 </MudStack>
 
-<MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">💡 種別「ポイント」の支払方法は有効なものを 1 件だけ登録できます。</MudAlert>
+<MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">💡 種別「ポイント」「前受金」の支払方法は、それぞれ有効なものを 1 件だけ登録できます。</MudAlert>
 
 <ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
 

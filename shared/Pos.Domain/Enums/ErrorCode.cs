@@ -35,5 +35,6 @@ public enum ErrorCode
     PairingCodeInvalid,
     ApprovalRequired,
     StaffInvalid,
-    PurchaseOrderStatusInvalid
+    PurchaseOrderStatusInvalid,
+    OrderDepositInvalid
 }

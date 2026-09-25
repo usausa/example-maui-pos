@@ -58,7 +58,13 @@
             <CellTemplate>@context.Item.ToLineSummary()</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="金額" Sortable="false" CellClass="text-right">
-            <CellTemplate>@context.Item.Order.Total.ToYen()</CellTemplate>
+            <CellTemplate>
+                @context.Item.Order.Total.ToYen()
+                @if (context.Item.DepositBalance > 0)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">前受金 @context.Item.DepositBalance.ToYen()</MudText>
+                }
+            </CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.Order.RequestedDate" Title="希望日">
             <CellTemplate>@context.Item.Order.RequestedDate.ToDateText()</CellTemplate>

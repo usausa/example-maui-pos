@@ -155,6 +155,12 @@ public sealed class HttpService
     public ValueTask<ApiResult<OrderResponseItem>> PostOrderCancelAsync(Guid id, OrderCancelRequest request, CancellationToken cancellationToken = default) =>
         PostAsync<OrderResponseItem>($"orders/{id}/cancel", request, cancellationToken);
 
+    public ValueTask<ApiResult<OrderResponseItem>> PostOrderDepositAsync(Guid id, OrderDepositRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<OrderResponseItem>($"orders/{id}/deposit", request, cancellationToken);
+
+    public ValueTask<ApiResult<OrderResponseItem>> PostOrderDepositRefundAsync(Guid id, OrderDepositRefundRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<OrderResponseItem>($"orders/{id}/deposit/refund", request, cancellationToken);
+
     //--------------------------------------------------------------------------------
     // Receiving (オンライン限定)
     //--------------------------------------------------------------------------------

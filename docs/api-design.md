@@ -121,7 +121,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 - ログインもトークンもない (トークンが解除済み・不明を含む) 要求は `401`、役割が足りない要求は `403` (本文なし)。  
   端末は `401` を受けたら登録が解除されたとして初期設定に戻る
 - 端末のトークンで認証された要求は、本文・クエリの店舗・端末がトークンと一致すること (違えば `403` `TERMINAL_MISMATCH`)。  
-  確かめるのはシフトの開設・入出金・精算・`current`、取引の登録と取消 (取引の店舗・端末)、受注の登録と入荷・キャンセル (受注の店舗)、在庫の変更、入荷と移動の受領 (伝票の入荷店)。  
+  確かめるのはシフトの開設・入出金・精算・`current`、取引の登録と取消 (取引の店舗・端末)、受注の登録と入荷・キャンセル (受注の店舗)、前受金の受取と返金 (受注の店舗と端末)、在庫の変更、入荷と移動の受領 (伝票の入荷店)。  
   管理画面のログインの要求と読み取りは確かめない ([D-74](decisions.md#d-74-認可-ポリシーは要件で分け端末は自店自端末の操作だけ))
 - 担当 (`staffId`) は、その店舗 (または本部) の有効なスタッフであること (`422` `STAFF_INVALID`)。  
   承認が必要な値引は `approvedByStaffId` に店長以上、レジ係の取消も `approvedByStaffId` に店長以上が要る (`422` `APPROVAL_REQUIRED`)。  
@@ -357,12 +357,14 @@ CSV にない商品は削除しない ([D-66](decisions.md#d-66-商品の-csv-�
 | `code` | string(20) | 一意 |
 | `name` | string(50) | |
 | `shortName` | string(10)? | 端末の支払ボタンに出す短い名前 (「クレカ」など。省略時は `name`) |
-| `kind` | enum | `Cash` / `Card` / `Qr` / `EMoney` / `Voucher` (商品券) / `Points` / `Credit` (掛売) / `Other` |
+| `kind` | enum | `Cash` / `Card` / `Qr` / `EMoney` / `Voucher` (商品券) / `Points` / `Credit` (掛売) / `Other` / `Deposit` (受注の前受金を会計で充てる) |
 | `allowsChange` | bool | 釣銭あり (預り金 > 充当額 を許可)。通常 `Cash` のみ true |
 | `requiresReference` | bool | 伝票番号など参照の入力を求める (カードなど) |
 | `isActive`, `sortOrder`, `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
-`kind = Points` の支払方法をちょうど 1 件持つ (ポイント充当用、[D-07](decisions.md#d-07-ポイント制度))。
+`kind = Points` の支払方法をちょうど 1 件持つ (ポイント充当用、[D-07](decisions.md#d-07-ポイント制度))。  
+`kind = Deposit` も有効なものを 1 件だけ持つ (前受金の充当用、[D-77](decisions.md#d-77-受注の前受金-シフトで受け取り会計で全額を充てキャンセルは返してから))。  
+2 件目を有効にする登録・変更は `422` `VALIDATION_ERROR`。
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
@@ -627,7 +629,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
    残高は負になり得るので管理画面で確認できるようにする
 9. 店舗 × 営業日が締め済みでも**受理して警告** (`DAY_ALREADY_CLOSED`) にとどめ、日次締めに締め後の取引の印を付ける ([§3.14](#314-日次締め-dailyclosings))
 10. `orderId` があれば、その受注が自店の引き渡し待ちであること (`ORDER_NOT_FOUND` / `ORDER_NOT_READY`)。  
-    登録と同じトランザクションで受注を完了にする ([§3.15](#315-受注-orders))
+    `kind = Deposit` の支払の合計は、受注の前受金 (`depositAmount`) と同じであること (`PAYMENT_MISMATCH`。受注のない会計では 0)。  
+    登録と同じトランザクションで受注を完了にし、その間に受注の状態か前受金が変わっていれば `ORDER_NOT_READY` ([§3.15](#315-受注-orders))
 11. 登録時の副作用: `trackInventory` の明細ごとに在庫変動 (`Sale`, −数量)、ポイント履歴 (`Redeem` → `Earn` の順)、`terminals.lastReceiptSeq` 更新
 
 **返品 (`type = Return`)**
@@ -636,7 +639,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 2. 各明細の `originalLineId` が元取引の明細であり、`quantity ≤ 元数量 − returnedQuantity` (`RETURN_QUANTITY_EXCEEDED`)
 3. 明細金額・値引・ポイントは元明細から [§4.5](#45-返品) の式で導出した値と一致すること
 4. `payments` は返金方法。  
-   Σ `amount = total`、`tenderedAmount = amount`、`changeAmount = 0`
+   Σ `amount = total`、`tenderedAmount = amount`、`changeAmount = 0`。  
+   `kind = Deposit` は使えない (`PAYMENT_MISMATCH`)
 5. 締め済みの営業日は販売と同じく受理して警告 (`DAY_ALREADY_CLOSED`)
 6. 副作用: 在庫変動 (`Return`, +数量)、ポイント履歴 (`Revoke` / `Refund`)、元明細の `returnedQuantity` 加算
 
@@ -667,9 +671,9 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | `closedAt`, `closedByStaffId` | | 入力 (精算時) | |
 | `actualCash` | money? | 入力 (精算時) | 実査金額 |
 | `denominations[]` | `{ denomination, count }[]` | 入力 (精算時) | 金種別枚数 (任意) |
-| `expectedCash` | money? | サーバ | `openingCash + cashSales − cashReturns + paidIn − paidOut` |
+| `expectedCash` | money? | サーバ | `openingCash + cashSales − cashReturns + paidIn − paidOut + depositCashIn − depositCashOut` |
 | `difference` | money? | サーバ | `actualCash − expectedCash` |
-| `totals` | object | サーバ | `{ cashSales, cashReturns, paidIn, paidOut, salesCount, returnCount, voidCount, salesTotal, returnsTotal }` (取消済みを除く) |
+| `totals` | object | サーバ | `{ cashSales, cashReturns, paidIn, paidOut, depositCashIn, depositCashOut, salesCount, returnCount, voidCount, salesTotal, returnsTotal }` (取消済みを除く。`depositCashIn` / `depositCashOut` はシフトで現金で受け取った・返した前受金) |
 | `note` | string? | 入力 | |
 | `createdAt`, `updatedAt` | | サーバ | |
 
@@ -710,15 +714,17 @@ POST /api/v1/transactions      (TransactionCreateRequest)
   "byCategory":      [ { "categoryId": "...", "name": "カメラ", "quantity": 12, "netAmount": 180000 } ],
   "points":          { "earned": 15000, "redeemed": 4000 },
   "cash":            { "openingCash": 30000, "cashSales": 125000, "cashReturns": 2000, "paidIn": 0, "paidOut": 10000,
-                       "expectedCash": 143000, "actualCash": 142900, "difference": -100 }
+                       "depositCashIn": 5000, "depositCashOut": 0,
+                       "expectedCash": 148000, "actualCash": 147900, "difference": -100 }
 }
 ```
 
 #### 業務ルール
 
 - 端末につき `Open` のシフトは同時に 1 つ
-- 取引・入出金は `Open` のシフトにのみ登録できる。  
-  **端末は精算要求の前に、そのシフトの取引・入出金をすべて送信し終えていること** ([§6](#6-端末側の同期フロー))
+- 取引・入出金・前受金は `Open` のシフトにのみ登録できる。  
+  **端末は精算要求の前に、そのシフトの取引・入出金をすべて送信し終えていること** ([§6](#6-端末側の同期フロー))。  
+  前受金はオンライン限定なので送信を待たない
 - 精算後の再開はしない (翌営業日は新しいシフト)。  
   精算後の訂正は返品または手動調整で行う
 
@@ -788,7 +794,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 取り寄せ・取り置きの約束 ([D-64](decisions.md#d-64-受注-会計前の約束を別の資源で持ち会計で完了にする))。  
 会計は取引 ([§3.12](#312-取引-transactions)) で行い、`orderId` を付けた会計で受注が完了になる。  
-端末からの登録と状態の変更はオンライン限定。
+端末からの登録と状態の変更はオンライン限定。  
+前受金は端末のシフトで受け取り、会計で全額を充てる ([D-77](decisions.md#d-77-受注の前受金-シフトで受け取り会計で全額を充てキャンセルは返してから))。
 
 #### 受注の項目 (`OrderResponseItem`)
 
@@ -812,6 +819,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | `arrivedAt`, `completedAt`, `cancelledAt` | datetime? | サーバ | |
 | `cancelReason` | string(200)? | 入力 (キャンセル時) | |
 | `lines[]` | object[] | 入力 | `{ id, lineNo, productId, productCode, productName, quantity, unitPrice, amount, note }`。`amount` はサーバが計算する (単価 × 数量の切り捨て) |
+| `depositAmount` | money | サーバ | 会計で充てる前受金 (受け取った額 − 返した額)。完了・キャンセルした受注は `0` |
+| `deposits[]` | object[] | サーバ | 前受金の受取と返金の記録 `{ id, type (Receive / Refund), paymentMethodId, kind, amount, reference, terminalId, shiftId, staffId, occurredAt }` |
 | `createdAt`, `updatedAt`, `version` | | サーバ | |
 
 #### エンドポイント
@@ -823,7 +832,9 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | GET | `/orders/{id}` | 端末 / 管理 | 詳細 |
 | PUT | `/orders/{id}` | 管理 | 変更 (`OrderUpdateRequest`: 会員・宛名・電話・希望日・備考・明細 (全体を置き換える)・`version`)。完了・キャンセル済みは `422` (`ORDER_STATUS_INVALID`)、版の不一致は `409` |
 | POST | `/orders/{id}/arrive` | 端末 / 管理 | 入荷 (入荷待ちのときだけ。それ以外は `422` `ORDER_STATUS_INVALID`) |
-| POST | `/orders/{id}/cancel` | 端末 / 管理 | キャンセル `OrderCancelRequest { reason }` (未完了のときだけ) |
+| POST | `/orders/{id}/cancel` | 端末 / 管理 | キャンセル `OrderCancelRequest { reason }` (未完了で、前受金がないときだけ。前受金があれば `422` `ORDER_DEPOSIT_INVALID`) |
+| POST | `/orders/{id}/deposit` | 端末 | 前受金の受取 `OrderDepositRequest { id, shiftId, terminalId, staffId, paymentMethodId, amount, reference, occurredAt }` → 受注。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 |
+| POST | `/orders/{id}/deposit/refund` | 端末 | 前受金の返金 `OrderDepositRefundRequest { id, shiftId, terminalId, staffId, occurredAt }` → 受注。前受金の全額を受け取った方法で返す。`201` 新規 / `200` 同一 `id` 既存 |
 
 #### 業務ルール
 
@@ -832,6 +843,18 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 - 登録と同じトランザクションで受注を完了 (`transactionId`・`completedAt`) にし、その取引を取り消すと引き渡し待ちに戻す
 - 在庫は会計のときに減らす (受注では引き当てない)。  
   取り寄せの入荷は状態だけ
+- 前受金は未完了の受注に 1 つだけ受け取れる (返したら受け取り直せる)。  
+  金額は 1 円以上で受注の金額まで、支払方法は `Cash` / `Card` / `Qr` / `EMoney` (違えば `422` `ORDER_DEPOSIT_INVALID`)。  
+  未完了でない受注は `422` `ORDER_STATUS_INVALID`
+- 前受金を受け取る・返すシフトは開設中で、その端末のものであること (`SHIFT_NOT_FOUND` / `SHIFT_CLOSED` / `SHIFT_TERMINAL_MISMATCH`)。  
+  シフトの店舗が受注の店舗と違えば `ORDER_NOT_FOUND`、担当は取引と同じく `STAFF_INVALID` で確かめる
+- 返金は前受金の全額を、最後に受け取った方法で返す。  
+  前受金がなければ `422` `ORDER_DEPOSIT_INVALID`
+- 会計では `kind = Deposit` の支払で前受金の全額を充てる ([§3.12](#312-取引-transactions))。  
+  会計の取消で受注が引き渡し待ちに戻ると、前受金も戻る
+- 現金の前受金はシフトの予想現金に入り (`depositCashIn` / `depositCashOut`)、会計で充てた分は現金売上に入らない
+- 受注の変更で金額が前受金を下回っても変更はできる。  
+  会計の合計が前受金より少ないときは、前受金を返してから会計する
 
 ### 3.16 在庫 (Inventory)
 
@@ -1145,7 +1168,8 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 422 | `SHIFT_STILL_OPEN` | 未精算のシフトがある営業日の締め |
 | 422 | `DAY_CLOSED` | 締め済みの営業日の取引の取消 |
 | 422 | `ORDER_NOT_FOUND` / `ORDER_NOT_READY` | 受注から会計したが、受注が見つからない (他店を含む) / 引き渡し待ちでない |
-| 422 | `ORDER_STATUS_INVALID` | 受注の状態に合わない変更・入荷・キャンセル |
+| 422 | `ORDER_STATUS_INVALID` | 受注の状態に合わない変更・入荷・キャンセル・前受金 |
+| 422 | `ORDER_DEPOSIT_INVALID` | 前受金の重複・金額・支払方法の誤り、前受金のない返金、前受金のある受注のキャンセル |
 | 422 | `INVENTORY_RECEIPT_STATUS_INVALID` / `INVENTORY_TRANSFER_STATUS_INVALID` | 入荷・店舗間移動の状態に合わない受領・出荷・キャンセル |
 | 422 | `PURCHASE_ORDER_STATUS_INVALID` | 発注の状態に合わない変更・発注・キャンセル |
 | 422 | `DUPLICATE_RECEIPT_NO` | レシート番号重複 |

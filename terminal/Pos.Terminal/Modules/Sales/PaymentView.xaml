@@ -88,6 +88,7 @@
                                     WidthRequest="28"
                                     HeightRequest="28"
                                     BackgroundColor="{StaticResource GrayLighten1}"
+                                    IsVisible="{Binding Removable}"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type module:PaymentViewModel}}, Path=RemovePaymentCommand, x:DataType={x:Type module:PaymentViewModel}}"
                                     CommandParameter="{Binding .}"
                                     Text="✕" />

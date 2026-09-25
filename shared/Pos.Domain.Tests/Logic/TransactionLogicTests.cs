@@ -252,6 +252,32 @@ public sealed class TransactionLogicTests
         Assert.Equal(ErrorCode.OrderNotFound, Assert.Single(missing.Errors).Code);
     }
 
+    // 受注の前受金は全額を会計で充てる (受注のない会計や、前受金と違う額は不可)
+    [Fact]
+    public void ValidateSaleDeposit()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var payments = SalesExample.Payments();
+        payments[1] = new SalesInputPayment { Id = SalesExample.CardPayment, Kind = PaymentKind.Deposit, Amount = 50000m, TenderedAmount = 50000m };
+        var input = SalesExample.Input() with { Payments = payments };
+        var claimed = SalesLogic.Calculate(input);
+        var withoutDeposit = SalesExample.Input();
+        var withoutDepositClaimed = SalesLogic.Calculate(withoutDeposit);
+
+        // Act
+        var applied = TransactionLogic.ValidateSale(SaleContext(order: Order(orderId, 50000m), orderId: orderId), input, claimed);
+        var differs = TransactionLogic.ValidateSale(SaleContext(order: Order(orderId, 30000m), orderId: orderId), input, claimed);
+        var noOrder = TransactionLogic.ValidateSale(SaleContext(), input, claimed);
+        var notApplied = TransactionLogic.ValidateSale(SaleContext(order: Order(orderId, 50000m), orderId: orderId), withoutDeposit, withoutDepositClaimed);
+
+        // Assert
+        Assert.True(applied.IsValid);
+        Assert.Equal((ErrorCode.PaymentMismatch, RuleReason.DepositMismatch), (Assert.Single(differs.Errors).Code, differs.Errors[0].Reason));
+        Assert.Equal(RuleReason.DepositMismatch, Assert.Single(noOrder.Errors).Reason);
+        Assert.Equal(RuleReason.DepositMismatch, Assert.Single(notApplied.Errors).Reason);
+    }
+
     // ------------------------------------------------------------
     // Return
     // ------------------------------------------------------------
@@ -266,6 +292,28 @@ public sealed class TransactionLogicTests
 
         Assert.True(validation.IsValid);
         Assert.NotNull(validation.Expected);
+    }
+
+    // 前受金は受注の会計で充てる支払なので、返品の返金には使えない
+    [Fact]
+    public void ValidateReturnRejectsDeposit()
+    {
+        // Arrange
+        var input = ReturnInput(1m) with
+        {
+            Payments =
+            [
+                new SalesInputPayment { Id = SalesExample.PointsPayment, Kind = PaymentKind.Points, Amount = 123m, TenderedAmount = 123m },
+                new SalesInputPayment { Id = SalesExample.CashPayment, Kind = PaymentKind.Deposit, Amount = 1853m, TenderedAmount = 1853m }
+            ]
+        };
+        var claimed = ReturnLogic.Calculate(input);
+
+        // Act
+        var validation = TransactionLogic.ValidateReturn(ReturnContext(), input, claimed);
+
+        // Assert
+        Assert.Equal((ErrorCode.PaymentMismatch, RuleReason.DepositRefundNotAllowed), (Assert.Single(validation.Errors).Code, validation.Errors[0].Reason));
     }
 
     [Fact]
@@ -494,6 +542,14 @@ public sealed class TransactionLogicTests
             DiscountApprovals = approvals ?? []
         };
     }
+
+    private static OrderFact Order(Guid id, decimal depositBalance) => new()
+    {
+        Id = id,
+        StoreId = StoreId,
+        Status = OrderStatus.Arrived,
+        DepositBalance = depositBalance
+    };
 
     private static OriginalTransactionFact Original(TransactionType type, TransactionStatus status) => new()
     {

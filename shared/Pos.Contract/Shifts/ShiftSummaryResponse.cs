@@ -76,6 +76,11 @@ public sealed class ShiftSummaryResponseCash
 
     public decimal PaidOut { get; set; }
 
+    // 現金で受け取った前受金と、現金で返した前受金
+    public decimal DepositCashIn { get; set; }
+
+    public decimal DepositCashOut { get; set; }
+
     public decimal? ExpectedCash { get; set; }
 
     public decimal? ActualCash { get; set; }

@@ -17,6 +17,7 @@ using Smart.Data.Accessor.Attributes;
 [TypeHandler(typeof(EnumTextConverter<StaffRole>))]
 [TypeHandler(typeof(EnumTextConverter<ShiftStatus>))]
 [TypeHandler(typeof(EnumTextConverter<CashEventType>))]
+[TypeHandler(typeof(EnumTextConverter<OrderDepositType>))]
 [TypeHandler(typeof(EnumTextConverter<InventoryChangeType>))]
 [TypeHandler(typeof(EnumTextConverter<TaxRounding>))]
 [TypeHandler(typeof(EnumTextConverter<PointBasis>))]

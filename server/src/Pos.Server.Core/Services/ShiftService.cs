@@ -61,10 +61,10 @@ public sealed class ShiftService
         this.changeNotification = changeNotification;
     }
 
-    // openingCash + cashSales − cashReturns + paidIn − paidOut
+    // openingCash + cashSales − cashReturns + paidIn − paidOut + depositCashIn − depositCashOut
     public static decimal ExpectedCash(decimal openingCash, ShiftTotalsView totals)
     {
-        return openingCash + totals.CashSales - totals.CashReturns + totals.PaidIn - totals.PaidOut;
+        return openingCash + totals.CashSales - totals.CashReturns + totals.PaidIn - totals.PaidOut + totals.DepositCashIn - totals.DepositCashOut;
     }
 
     //--------------------------------------------------------------------------------
@@ -274,7 +274,7 @@ public sealed class ShiftService
     private async ValueTask<ShiftDetailView> LoadDetailAsync(ShiftEntity entity, CancellationToken cancellationToken)
     {
         var totals = entity.Status == ShiftStatus.Closed
-            ? new ShiftTotalsView(entity.CashSales, entity.CashReturns, entity.PaidIn, entity.PaidOut, entity.SalesCount, entity.ReturnCount, entity.VoidCount, entity.SalesTotal, entity.ReturnsTotal)
+            ? new ShiftTotalsView(entity.CashSales, entity.CashReturns, entity.PaidIn, entity.PaidOut, entity.DepositCashIn, entity.DepositCashOut, entity.SalesCount, entity.ReturnCount, entity.VoidCount, entity.SalesTotal, entity.ReturnsTotal)
             : await shiftAccessor.QuerySummaryAsync(entity.Id, cancellationToken) ?? ShiftTotalsView.Empty;
         return new ShiftDetailView
         {

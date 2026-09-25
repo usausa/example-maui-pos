@@ -32,7 +32,7 @@ public sealed partial class PaymentMethodsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await PaymentMethodService.InsertAsync(PaymentMethodForm.ToEntity(form), CancellationToken), "追加しました。", invalid: "ポイントの支払方法は 1 件だけ有効にできます。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await PaymentMethodService.InsertAsync(PaymentMethodForm.ToEntity(form), CancellationToken), "追加しました。", invalid: "ポイント・前受金の支払方法は、それぞれ 1 件だけ有効にできます。"), LoadAsync);
     }
 
     private async Task EditAsync(PaymentMethodEntity entity)
@@ -43,7 +43,7 @@ public sealed partial class PaymentMethodsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await PaymentMethodService.UpdateAsync(PaymentMethodForm.ToEntity(form), CancellationToken), "更新しました。", invalid: "ポイントの支払方法は 1 件だけ有効にできます。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await PaymentMethodService.UpdateAsync(PaymentMethodForm.ToEntity(form), CancellationToken), "更新しました。", invalid: "ポイント・前受金の支払方法は、それぞれ 1 件だけ有効にできます。"), LoadAsync);
     }
 
     private async Task DeleteAsync(PaymentMethodEntity entity)

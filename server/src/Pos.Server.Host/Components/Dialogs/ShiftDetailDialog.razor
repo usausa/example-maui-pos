@@ -25,6 +25,7 @@
                             <tr><td class="mud-text-secondary">釣銭準備金</td><td class="text-right">@summary.Shift.Shift.OpeningCash.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">現金売上 / 返金</td><td class="text-right">@summary.Shift.Totals.CashSales.ToYen() / -@summary.Shift.Totals.CashReturns.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">入金 / 出金</td><td class="text-right">@summary.Shift.Totals.PaidIn.ToYen() / -@summary.Shift.Totals.PaidOut.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary">前受金 受取 / 返金</td><td class="text-right">@summary.Shift.Totals.DepositCashIn.ToYen() / -@summary.Shift.Totals.DepositCashOut.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">予想現金</td><td class="text-right"><strong>@summary.Shift.ExpectedCash.ToYen()</strong></td></tr>
                             <tr><td class="mud-text-secondary">実査</td><td class="text-right">@summary.Shift.Shift.ActualCash.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">過不足</td><td class="text-right"><StatusChip Value="@ViewHelper.DifferenceChip(summary.Shift.Shift.Difference)" /></td></tr>

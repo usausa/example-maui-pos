@@ -3,7 +3,7 @@ namespace Pos.Server.Services;
 using Pos.Server.Accessors;
 using Pos.Server.Models.Entity;
 
-// 支払方法 (少数なのでページングなし)。Kind = Points かつ有効な行はちょうど 1 件
+// 支払方法 (少数なのでページングなし)。Kind = Points / Deposit の有効な行はそれぞれちょうど 1 件
 public sealed class PaymentMethodService
 {
     private readonly IDialect dialect;
@@ -26,7 +26,7 @@ public sealed class PaymentMethodService
     public ValueTask<PaymentMethodEntity?> QueryAsync(Guid id, CancellationToken cancellationToken) =>
         masterAccessor.QueryPaymentMethodAsync(id, cancellationToken);
 
-    // 2 件目の有効なポイント支払は Invalid
+    // 2 件目の有効なポイント・前受金の支払は Invalid
     public async ValueTask<DataWriteStatus> InsertAsync(PaymentMethodEntity entity, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -34,7 +34,7 @@ public sealed class PaymentMethodService
         entity.CreatedAt = now;
         entity.UpdatedAt = now;
         entity.Version = 1;
-        if (await IsSecondPointsMethodAsync(entity, cancellationToken))
+        if (await IsSecondUniqueMethodAsync(entity, cancellationToken))
         {
             return DataWriteStatus.Invalid;
         }
@@ -44,7 +44,7 @@ public sealed class PaymentMethodService
 
     public async ValueTask<DataWriteResult<PaymentMethodEntity>> UpdateAsync(PaymentMethodEntity entity, CancellationToken cancellationToken)
     {
-        if (await IsSecondPointsMethodAsync(entity, cancellationToken))
+        if (await IsSecondUniqueMethodAsync(entity, cancellationToken))
         {
             return new DataWriteResult<PaymentMethodEntity>(DataWriteStatus.Invalid, null);
         }
@@ -71,6 +71,7 @@ public sealed class PaymentMethodService
     public async ValueTask<DataWriteStatus> DeleteAsync(Guid id, CancellationToken cancellationToken) =>
         await masterAccessor.DeletePaymentMethodAsync(id, timeProvider.GetUtcNow().UtcDateTime, cancellationToken) > 0 ? DataWriteStatus.Success : DataWriteStatus.NotFound;
 
-    private async ValueTask<bool> IsSecondPointsMethodAsync(PaymentMethodEntity entity, CancellationToken cancellationToken) =>
-        (entity.Kind == PaymentKind.Points) && entity.IsActive && (await masterAccessor.CountActivePointsPaymentMethodsAsync(entity.Id, cancellationToken) > 0);
+    // ポイントと前受金は、会計で種別から支払方法を引くので 1 件だけ
+    private async ValueTask<bool> IsSecondUniqueMethodAsync(PaymentMethodEntity entity, CancellationToken cancellationToken) =>
+        (entity.Kind is PaymentKind.Points or PaymentKind.Deposit) && entity.IsActive && (await masterAccessor.CountActivePaymentMethodsByKindAsync(entity.Kind, entity.Id, cancellationToken) > 0);
 }

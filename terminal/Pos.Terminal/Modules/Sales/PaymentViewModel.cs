@@ -5,9 +5,11 @@ using Pos.Terminal.Models.Cart;
 
 public sealed record MethodItem(PaymentMethodResponseItem Method, string Name);
 
-public sealed record PaymentItem(CartPayment Payment, string Text, string AmountText);
+// Removable = false は受注の前受金 (全額を充てるので外せない)
+public sealed record PaymentItem(CartPayment Payment, string Text, string AmountText, bool Removable);
 
-// 会計: 埋め込みテンキーで預り金を入れ、支払方法ボタンで支払を積む。確定は SalesUsecase で登録して会計完了へ
+// 会計: 埋め込みテンキーで預り金を入れ、支払方法ボタンで支払を積む。確定は SalesUsecase で登録して会計完了へ。
+// 受注の前受金は先頭の支払にする (合計を超えるときは会計できないので、受注の詳細で返してもらう)
 public sealed partial class PaymentViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
@@ -21,6 +23,8 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     private readonly SalesUsecase sales;
 
     private PaymentMethodResponseItem? pointsMethod;
+
+    private PaymentMethodResponseItem? depositMethod;
 
     private SalesResult result = default!;
 
@@ -109,8 +113,11 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         AddPaymentCommand = MakeAsyncCommand<MethodItem>(AddPaymentAsync);
         RemovePaymentCommand = MakeDelegateCommand<PaymentItem>(x =>
         {
-            SalesContext.Payments.Remove(x.Payment);
-            Refresh();
+            if (x.Removable)
+            {
+                SalesContext.Payments.Remove(x.Payment);
+                Refresh();
+            }
         });
     }
 
@@ -138,8 +145,50 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     {
         var methods = (await accessor.QueryPaymentMethodListAsync()).Where(static x => x.IsActive && !x.IsDeleted).OrderBy(static x => x.SortOrder).ToList();
         pointsMethod = methods.FirstOrDefault(static x => x.Kind == PaymentKind.Points);
-        Methods.Replace(methods.Where(static x => x.Kind != PaymentKind.Points).Select(static x => new MethodItem(x, String.IsNullOrEmpty(x.ShortName) ? x.Name : x.ShortName)));
+        depositMethod = methods.FirstOrDefault(static x => x.Kind == PaymentKind.Deposit);
+        Methods.Replace(methods.Where(static x => x.Kind is not (PaymentKind.Points or PaymentKind.Deposit)).Select(static x => new MethodItem(x, String.IsNullOrEmpty(x.ShortName) ? x.Name : x.ShortName)));
+        if (!await ApplyDepositAsync())
+        {
+            await Navigator.ForwardAsync(ViewId.Sales);
+            return;
+        }
+
         Refresh();
+    }
+
+    // 受注の前受金を先頭の支払にする (入り直すたびに置き直す)。会計できないときは false
+    private async ValueTask<bool> ApplyDepositAsync()
+    {
+        var payments = SalesContext.Payments;
+        for (var i = payments.Count - 1; i >= 0; i--)
+        {
+            if (payments[i].Method.Kind == PaymentKind.Deposit)
+            {
+                payments.RemoveAt(i);
+            }
+        }
+
+        var deposit = SalesContext.Cart.DepositAmount;
+        if (deposit <= 0)
+        {
+            return true;
+        }
+
+        if (depositMethod is null)
+        {
+            await dialog.InformationAsync("前受金の支払方法がありません。\n設定・同期でマスタを同期してください。");
+            return false;
+        }
+
+        var total = sales.Calculate(SalesContext.Cart, []).Total;
+        if (deposit > total)
+        {
+            await dialog.InformationAsync($"前受金 {ViewHelper.Yen(deposit)} が合計 {ViewHelper.Yen(total)} を超えています。\n受注の詳細で前受金を返してから会計してください。");
+            return false;
+        }
+
+        payments.Insert(0, new CartPayment { Id = Guid.NewGuid(), Method = depositMethod, Amount = deposit, TenderedAmount = deposit });
+        return true;
     }
 
     private void SetInput(decimal value)
@@ -163,7 +212,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         PointsText = customer is null ? "会員なし" : $"{ViewHelper.Yen(pointsUsed)} / 残高 {ViewHelper.Points(customer.PointBalance)}";
         PointsEnabled = (customer is not null) && (pointsMethod is not null) && (customer.PointBalance > 0);
         PaidText = ViewHelper.Yen(paid);
-        Payments.Replace(payments.Select(static x => new PaymentItem(x, x.Reference is null ? x.Method.Name : $"{x.Method.Name} {x.Reference}", ViewHelper.Yen(x.Amount))));
+        Payments.Replace(payments.Select(static x => new PaymentItem(x, x.Reference is null ? x.Method.Name : $"{x.Method.Name} {x.Reference}", ViewHelper.Yen(x.Amount), x.Method.Kind != PaymentKind.Deposit)));
         HasPayments = payments.Count > 0;
 
         // 支払が済んだら「残り」の行にお釣りを出す

@@ -154,6 +154,8 @@ erDiagram
     DailyClosings ||--o{ DailyClosingTaxes : has
     Orders ||--|{ OrderLines : has
     Orders |o--o| Transactions : "completed by"
+    Orders ||--o{ OrderDeposits : has
+    Shifts ||--o{ OrderDeposits : records
     Customers ||--o{ Orders : orders
     Shifts {
         guid Id PK
@@ -211,6 +213,14 @@ erDiagram
         string Status
         guid CustomerId FK
         guid TransactionId FK
+    }
+    OrderDeposits {
+        guid Id PK
+        guid OrderId FK
+        guid ShiftId FK
+        string Type
+        guid PaymentMethodId FK
+        money Amount
     }
 ```
 
@@ -442,14 +452,15 @@ erDiagram
 | Code | string(20) | | UQ |
 | Name | string(50) | | |
 | ShortName | string(10) | ○ | 端末の支払ボタンに出す短い名前 (省略時は Name) |
-| Kind | enum | | `Cash` / `Card` / `Qr` / `EMoney` / `Voucher` / `Points` / `Credit` / `Other` |
+| Kind | enum | | `Cash` / `Card` / `Qr` / `EMoney` / `Voucher` / `Points` / `Credit` / `Other` / `Deposit` (受注の前受金を会計で充てる) |
 | AllowsChange | bool | | |
 | RequiresReference | bool | | |
 | IsActive | bool | | |
 | SortOrder | int | | |
 | 共通列 + IsDeleted, Version | | | |
 
-アプリ側制約: `Kind = Points` かつ有効な行はちょうど 1 件。
+アプリ側制約: `Kind = Points` と `Kind = Deposit` の有効な行はそれぞれちょうど 1 件。  
+前受金の支払方法 (`DEPOSIT`) は初期データにあり、初期データより前の DB には起動時に足す。
 
 #### AdjustmentReasons (在庫調整理由)
 
@@ -539,6 +550,8 @@ erDiagram
 | CashReturns | money | | 同上 |
 | PaidIn | money | | 同上 |
 | PaidOut | money | | 同上 |
+| DepositCashIn | money | | 同上。現金で受け取った前受金 (`OrderDeposits` から集計。後から足した列で、起動時に `ALTER TABLE` で足す) |
+| DepositCashOut | money | | 同上。現金で返した前受金 |
 | SalesCount | int | | 同上 |
 | ReturnCount | int | | 同上 |
 | VoidCount | int | | 同上 |
@@ -807,6 +820,30 @@ erDiagram
 | Note | string(200) | ○ | |
 
 索引: `IX(OrderId)`
+
+#### OrderDeposits (前受金)
+
+受注の前受金の受取と返金 ([D-77](decisions.md#d-77-受注の前受金-シフトで受け取り会計で全額を充てキャンセルは返してから))。  
+会計で充てた分は取引の支払 (`TransactionPayments.Kind = Deposit`) に残り、ここには書かない。  
+会計で充てる額は、未完了の受注の「受取の合計 − 返金の合計」。
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK (端末が採番。同じ Id の再送は受け取り済み) |
+| OrderId | guid | | FK → Orders |
+| StoreId | guid | | FK → Stores (受注の店舗) |
+| TerminalId | guid | | FK → Terminals |
+| ShiftId | guid | | FK → Shifts (受け取った・返したシフト。現金は予想現金に入る) |
+| StaffId | guid | | FK → Staff |
+| Type | enum | | `Receive` / `Refund` |
+| PaymentMethodId | guid | | FK → PaymentMethods (返金は受け取った方法) |
+| Kind | enum | | 支払方法の種別 (`Cash` / `Card` / `Qr` / `EMoney`) |
+| Amount | money | | 正の値 (返金は前受金の全額) |
+| Reference | string(50) | ○ | カードの伝票番号など |
+| OccurredAt | datetime | | |
+| CreatedAt | datetime | | |
+
+索引: `IX(OrderId)`、`IX(ShiftId)`
 
 ### 3.7 在庫
 
@@ -1140,7 +1177,7 @@ SQLite は書き込みが直列化される (単一ライター) ため、サー
    - 顧客があれば `Customers.PointBalance` を `UPDATE ... SET PointBalance = PointBalance + @delta` で加減算し、`PointHistories` を INSERT (`Redeem` → `Earn` の順。Return は `Refund` → `Revoke`)
    - `Terminals.LastReceiptSeq` を `max(現在値, 今回の連番)` で更新
    - 店舗 × 営業日が締め済みなら `DailyClosings.HasLateTransactions` を立てる
-   - 受注から会計した販売なら、引き渡し待ちの受注を `Completed` にして `TransactionId` を入れる (状態が変わっていれば取消)
+   - 受注から会計した販売なら、引き渡し待ちの受注を `Completed` にして `TransactionId` を入れる (状態か前受金の残りが検証のときと変わっていれば取消)
 4. コミット
 
 ### 5.2 取消 (`POST /transactions/{id}/void`)
@@ -1152,8 +1189,8 @@ SQLite は書き込みが直列化される (単一ライター) ため、サー
 
 ### 5.3 精算 (`POST /shifts/{id}/close`)
 
-シフト内の `Completed` 取引と `CashEvents` から集計列を確定して `Shifts` を更新し、`Status = Closed`。  
-以降、そのシフトへの取引・入出金・取消は拒否。
+シフト内の `Completed` 取引と `CashEvents`、現金の `OrderDeposits` から集計列を確定して `Shifts` を更新し、`Status = Closed`。  
+以降、そのシフトへの取引・入出金・前受金・取消は拒否。
 
 ### 5.4 日次締め (`POST /daily-closings`)
 
@@ -1165,7 +1202,11 @@ SQLite は書き込みが直列化される (単一ライター) ため、サー
 
 受注番号は 1 文の `INSERT INTO Orders ... SELECT MAX(Seq) + 1 ... RETURNING *` で採番して登録し、明細と同じトランザクションで書く。  
 同時に登録しても連番は重ならない (`UQ(StoreId, Seq)` でも守る)。  
-入荷・キャンセル・変更は状態を条件にした `UPDATE ... RETURNING *` で、行が返らなければ状態 (または版) が合わない。
+入荷・キャンセル・変更は状態を条件にした `UPDATE ... RETURNING *` で、行が返らなければ状態 (または版) が合わない。  
+キャンセルは前受金の残りが 0 のときだけにする (条件に `OrderDeposits` の合計を入れる)。  
+前受金の受取・返金は 1 文の `INSERT INTO OrderDeposits ... SELECT ... FROM Orders WHERE ...` で、受注が未完了で、前受金の残りが検証のときと同じで、シフトが開設中のときだけ登録する。  
+同時の受取・返金・キャンセル・会計・精算と重なったら登録せず、改めて検証する。  
+SQLite は decimal の引数を TEXT で束縛するので、集計の式と比べる引数は `CAST(... AS NUMERIC)` にする。
 
 ### 5.6 商品画像と CSV 取込
 
@@ -1203,6 +1244,7 @@ MAUI 側のローカル DB。
 | マスタ各種 | `Settings` / `Stores` / `Terminals` / `Staff` / `Categories` / `TaxRates` / `Products` / `Discounts` / `PaymentMethods` / `AdjustmentReasons` を `Pos.Contract` の Response と同じ列で保持 (エンティティクラスは Response をそのまま使う)。`GET /sync/masters` の結果を Id で削除 → 挿入 (1 トランザクション)。削除済み (`IsDeleted`) も保持し、検索時に除く。商品画像は DB に持たず、表示するときに取得して `CacheDirectory/products/{商品 ID}_{v}` に置く (オフラインはキャッシュだけ) |
 | `InventoryLevels` | 自店分のみ (`updatedSince` で差分取り込み。販売・返品・取消・棚卸ではローカルでも増減させる) |
 | `Shifts` / `CashEvents` | 端末で開設したシフトと入出金 (精算の予想現金の計算に使う) |
+| `OrderDeposits` | サーバが受け付けた前受金の受取・返金の写し (精算の予想現金の計算に使う。前受金はオンライン限定なので Outbox には入れない) |
 | `Transactions` | 検索用の列 (種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引) + `Payload` (`TransactionResponse` の JSON。送信後はサーバの応答で置き換える)。取引履歴・再印字・返品の元取引参照に使う |
 | `Outbox` | `Id` (guid)、`Kind` (ShiftOpen / Transaction / TransactionVoid / CashEvent / ShiftClose / InventoryChanges)、`TargetId` (取引 ID やシフト ID)、`Payload` (JSON、`XxxRequest` をそのまま直列化)、`CreatedAt`、`Status` (Pending / Sent / Failed)、`Attempts`、`LastError`、`SentAt`。Sent は 7 日で削除 |
 | `SyncState` | `Key` / `Value` (最終 `ServerTime`、在庫の同期時刻、レシート番号の連番)。端末設定 (サーバ URL・店舗 ID・端末 ID・登録日時) は `IPreferences` (`Settings`)、端末のトークンは `SecureStorage` (`CredentialService`) に置く。`Staff.PinHash` の列を足したときは `ServerTime` を消して全件同期し直す (PIN は全員分が要るため) |

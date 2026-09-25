@@ -13,9 +13,20 @@ public sealed partial class GenericAccessor
     public static ValueTask<bool> EnsurePaymentMethodShortNameAsync(DbConnection con, CancellationToken cancellationToken) =>
         SchemaHelper.EnsureColumnAsync(con, "PaymentMethods", "ShortName", "TEXT", cancellationToken);
 
+    // 前受金の現金 (精算で確定する列。前受金より前に精算したシフトは 0)
+    public static async ValueTask EnsureShiftDepositCashAsync(DbConnection con, CancellationToken cancellationToken)
+    {
+        await SchemaHelper.EnsureColumnAsync(con, "Shifts", "DepositCashIn", "NUMERIC NOT NULL DEFAULT 0", cancellationToken);
+        await SchemaHelper.EnsureColumnAsync(con, "Shifts", "DepositCashOut", "NUMERIC NOT NULL DEFAULT 0", cancellationToken);
+    }
+
     // ShortName 列を後から足した DB に、初期データと同じボタン名を入れる (更新なので端末は差分同期で受け取る)
     [Execute]
     public partial ValueTask<int> BackfillPaymentMethodShortNamesAsync(DateTime now, CancellationToken cancellationToken);
+
+    // 前受金の支払方法を後から足す (初期データより前の DB。前受金の支払方法があれば何もしない)
+    [Execute]
+    public partial ValueTask<int> InsertDepositPaymentMethodAsync(DateTime now, CancellationToken cancellationToken);
 
     // スキーマ (Host の Assets/Data/Schema.sql。CREATE TABLE IF NOT EXISTS の複数文) をそのまま実行する
     [DirectSql]

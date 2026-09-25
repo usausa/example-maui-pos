@@ -72,13 +72,13 @@ public sealed partial class OrderAccessor
     [QueryFirst]
     public partial ValueTask<OrderEntity?> UpdateArrivedAsync(Guid id, DateTime arrivedAt, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // キャンセル (未完了のときだけ)
+    // キャンセル (未完了で、前受金がないときだけ)
     [QueryFirst]
     public partial ValueTask<OrderEntity?> UpdateCancelledAsync(Guid id, DateTime cancelledAt, string? cancelReason, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // 会計で完了にする (引き渡し待ちのときだけ)。戻り値 0 = 引き渡し待ちでない
+    // 会計で完了にする (引き渡し待ちで、前受金の残りが会計で充てた額と同じときだけ)。戻り値 0 = 引き渡し待ちでないか、前受金が変わった
     [Execute]
-    public partial ValueTask<int> UpdateCompletedAsync(DbTransaction tx, Guid id, Guid transactionId, DateTime completedAt, DateTime updatedAt, CancellationToken cancellationToken);
+    public partial ValueTask<int> UpdateCompletedAsync(DbTransaction tx, Guid id, Guid transactionId, DateTime completedAt, decimal depositApplied, DateTime updatedAt, CancellationToken cancellationToken);
 
     // 会計した取引を取り消したら引き渡し待ちに戻す
     [Execute]
@@ -98,4 +98,34 @@ public sealed partial class OrderAccessor
     // 変更では明細を置き換える
     [Execute]
     public partial ValueTask<int> DeleteLinesAsync(DbTransaction tx, Guid orderId, CancellationToken cancellationToken);
+
+    //--------------------------------------------------------------------------------
+    // Deposit
+    //--------------------------------------------------------------------------------
+
+    [QueryFirst]
+    [SelectSingle(typeof(OrderDepositEntity))]
+    public partial ValueTask<OrderDepositEntity?> QueryDepositAsync(Guid id, CancellationToken cancellationToken);
+
+    [Query]
+    public partial ValueTask<List<OrderDepositEntity>> QueryDepositListAsync(Guid orderId, CancellationToken cancellationToken);
+
+    // 前受金の受取・返金。未完了の受注で、今の前受金の残りが balance で、シフトが開設中のときだけ登録する
+    // (同時の受取・返金・キャンセル・会計・精算と重ならない)
+    [QueryFirst]
+    public partial ValueTask<OrderDepositEntity?> InsertDepositAsync(
+        Guid id,
+        Guid orderId,
+        Guid terminalId,
+        Guid shiftId,
+        Guid staffId,
+        OrderDepositType type,
+        Guid paymentMethodId,
+        PaymentKind kind,
+        decimal amount,
+        string? reference,
+        DateTime occurredAt,
+        DateTime createdAt,
+        decimal balance,
+        CancellationToken cancellationToken);
 }

@@ -23,7 +23,8 @@ public enum OrderResultStatus
 // 受注の登録・変更・状態遷移の結果
 public sealed record OrderResult(OrderResultStatus Status, OrderDetailView? Detail = null, RuleError? Violation = null);
 
-// 受注 (取り寄せ・取り置き)。会計前の約束で、在庫は会計時に減らす。会計との紐付けは TransactionService が行う
+// 受注 (取り寄せ・取り置き)。会計前の約束で、在庫は会計時に減らす。会計との紐付けは TransactionService が行う。
+// 前受金は端末のシフトで受け取り、会計で全額を充てる (キャンセルは返してから)
 public sealed class OrderService
 {
     private readonly TimeProvider timeProvider;
@@ -32,6 +33,7 @@ public sealed class OrderService
     private readonly MasterAccessor masterAccessor;
     private readonly ProductAccessor productAccessor;
     private readonly CustomerAccessor customerAccessor;
+    private readonly ShiftAccessor shiftAccessor;
     private readonly OrderAccessor orderAccessor;
     private readonly ChangeNotificationService changeNotification;
 
@@ -42,6 +44,7 @@ public sealed class OrderService
         MasterAccessor masterAccessor,
         ProductAccessor productAccessor,
         CustomerAccessor customerAccessor,
+        ShiftAccessor shiftAccessor,
         OrderAccessor orderAccessor,
         ChangeNotificationService changeNotification)
     {
@@ -51,6 +54,7 @@ public sealed class OrderService
         this.masterAccessor = masterAccessor;
         this.productAccessor = productAccessor;
         this.customerAccessor = customerAccessor;
+        this.shiftAccessor = shiftAccessor;
         this.orderAccessor = orderAccessor;
         this.changeNotification = changeNotification;
     }
@@ -196,7 +200,7 @@ public sealed class OrderService
         if (updated is not null)
         {
             changeNotification.Notify(DataChangeKind.Order);
-            return new OrderResult(OrderResultStatus.Success, new OrderDetailView { Order = updated, Lines = lines });
+            return new OrderResult(OrderResultStatus.Success, new OrderDetailView { Order = updated, Lines = lines, Deposits = await orderAccessor.QueryDepositListAsync(id, cancellationToken) });
         }
 
         // 行が返らない理由: ない、完了・キャンセル済み、版の不一致
@@ -232,7 +236,7 @@ public sealed class OrderService
             : new OrderResult(OrderResultStatus.Violation, Violation: OrderLogic.ValidateArrive(current.Status) ?? new RuleError(ErrorCode.OrderStatusInvalid, RuleReason.OrderNotOrdered));
     }
 
-    // キャンセル (未完了のときだけ)
+    // キャンセル (未完了で、前受金がないときだけ)
     public async ValueTask<OrderResult> CancelAsync(Guid id, string? reason, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -244,9 +248,153 @@ public sealed class OrderService
         }
 
         var current = await orderAccessor.QueryAsync(id, cancellationToken);
-        return current is null
-            ? new OrderResult(OrderResultStatus.NotFound)
-            : new OrderResult(OrderResultStatus.Violation, Violation: OrderLogic.ValidateCancel(current.Status) ?? new RuleError(ErrorCode.OrderStatusInvalid, RuleReason.OrderNotCancellable));
+        if (current is null)
+        {
+            return new OrderResult(OrderResultStatus.NotFound);
+        }
+
+        var balance = OrderDetailView.DepositBalanceOf(current.Status, await orderAccessor.QueryDepositListAsync(id, cancellationToken));
+        return new OrderResult(OrderResultStatus.Violation, Violation: OrderLogic.ValidateCancel(current.Status, balance) ?? new RuleError(ErrorCode.OrderStatusInvalid, RuleReason.OrderNotCancellable));
+    }
+
+    //--------------------------------------------------------------------------------
+    // Deposit
+    //--------------------------------------------------------------------------------
+
+    // 前受金の受取 (端末)。同じ id は Existing (内容が違えば DuplicateMismatch)。受取日時を省略したら受付時刻にする
+    public async ValueTask<OrderResult> DepositAsync(Guid id, OrderDepositEntity deposit, CancellationToken cancellationToken)
+    {
+        if (await ResolveResentDepositAsync(id, deposit, OrderDepositType.Receive, cancellationToken) is { } resent)
+        {
+            return resent;
+        }
+
+        var order = await orderAccessor.QueryAsync(id, cancellationToken);
+        if (order is null)
+        {
+            return new OrderResult(OrderResultStatus.NotFound);
+        }
+
+        var method = await masterAccessor.QueryPaymentMethodAsync(deposit.PaymentMethodId, cancellationToken);
+        if ((method is null) || !method.IsActive || method.IsDeleted)
+        {
+            return Violated(ErrorCode.OrderDepositInvalid, RuleReason.DepositMethodInvalid);
+        }
+
+        var balance = OrderDetailView.DepositBalanceOf(order.Status, await orderAccessor.QueryDepositListAsync(id, cancellationToken));
+        if ((await ValidateDepositPlaceAsync(order, deposit, cancellationToken) ?? OrderLogic.ValidateDeposit(order.Status, balance, order.Total, deposit.Amount, method.Kind)) is { } violation)
+        {
+            return new OrderResult(OrderResultStatus.Violation, Violation: violation);
+        }
+
+        deposit.Type = OrderDepositType.Receive;
+        deposit.Kind = method.Kind;
+        return await InsertDepositAsync(id, deposit, balance, (current, currentBalance) => OrderLogic.ValidateDeposit(current.Status, currentBalance, current.Total, deposit.Amount, method.Kind), cancellationToken);
+    }
+
+    // 前受金の返金 (端末)。前受金の全額を、受け取った方法で返す。同じ id は Existing
+    public async ValueTask<OrderResult> RefundDepositAsync(Guid id, OrderDepositEntity refund, CancellationToken cancellationToken)
+    {
+        if (await ResolveResentDepositAsync(id, refund, OrderDepositType.Refund, cancellationToken) is { } resent)
+        {
+            return resent;
+        }
+
+        var order = await orderAccessor.QueryAsync(id, cancellationToken);
+        if (order is null)
+        {
+            return new OrderResult(OrderResultStatus.NotFound);
+        }
+
+        var deposits = await orderAccessor.QueryDepositListAsync(id, cancellationToken);
+        var balance = OrderDetailView.DepositBalanceOf(order.Status, deposits);
+        if ((await ValidateDepositPlaceAsync(order, refund, cancellationToken) ?? OrderLogic.ValidateDepositRefund(order.Status, balance)) is { } violation)
+        {
+            return new OrderResult(OrderResultStatus.Violation, Violation: violation);
+        }
+
+        // 有効な前受金は 1 つなので、最後の受取が返す相手
+        var received = deposits.Last(static x => x.Type == OrderDepositType.Receive);
+        refund.Type = OrderDepositType.Refund;
+        refund.PaymentMethodId = received.PaymentMethodId;
+        refund.Kind = received.Kind;
+        refund.Amount = balance;
+        return await InsertDepositAsync(id, refund, balance, static (current, currentBalance) => OrderLogic.ValidateDepositRefund(current.Status, currentBalance), cancellationToken);
+    }
+
+    // 同じ id の再送: 同じ受注・種類 (受取は方法と金額も) なら登録済みとして受注を返す
+    private async ValueTask<OrderResult?> ResolveResentDepositAsync(Guid id, OrderDepositEntity deposit, OrderDepositType type, CancellationToken cancellationToken)
+    {
+        var existing = await orderAccessor.QueryDepositAsync(deposit.Id, cancellationToken);
+        if (existing is null)
+        {
+            return null;
+        }
+
+        var same = (existing.OrderId == id) &&
+            (existing.Type == type) &&
+            ((type == OrderDepositType.Refund) || ((existing.PaymentMethodId == deposit.PaymentMethodId) && (existing.Amount == deposit.Amount)));
+        return same
+            ? new OrderResult(OrderResultStatus.Existing, await QueryDetailAsync(id, cancellationToken))
+            : new OrderResult(OrderResultStatus.DuplicateMismatch);
+    }
+
+    // 前受金の記録。読んだときの残り (balance) のままで、シフトが開設中なら登録し、重なった操作で変わっていたら改めて検証する
+    private async ValueTask<OrderResult> InsertDepositAsync(Guid id, OrderDepositEntity deposit, decimal balance, Func<OrderEntity, decimal, RuleError?> validate, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        OrderDepositEntity? inserted;
+        try
+        {
+            inserted = await orderAccessor.InsertDepositAsync(
+                deposit.Id,
+                id,
+                deposit.TerminalId,
+                deposit.ShiftId,
+                deposit.StaffId,
+                deposit.Type,
+                deposit.PaymentMethodId,
+                deposit.Kind,
+                deposit.Amount,
+                deposit.Reference,
+                deposit.OccurredAt == default ? now : deposit.OccurredAt,
+                now,
+                balance,
+                cancellationToken);
+        }
+        catch (DbException ex) when (dialect.IsDuplicate(ex))
+        {
+            // 同じ id の再送が先に通った
+            return await ResolveResentDepositAsync(id, deposit, deposit.Type, cancellationToken) ?? new OrderResult(OrderResultStatus.DuplicateMismatch);
+        }
+
+        if (inserted is not null)
+        {
+            changeNotification.Notify(DataChangeKind.Order);
+            return new OrderResult(OrderResultStatus.Success, await QueryDetailAsync(id, cancellationToken));
+        }
+
+        var current = await orderAccessor.QueryAsync(id, cancellationToken);
+        if (current is null)
+        {
+            return new OrderResult(OrderResultStatus.NotFound);
+        }
+
+        var currentBalance = OrderDetailView.DepositBalanceOf(current.Status, await orderAccessor.QueryDepositListAsync(id, cancellationToken));
+        return (await ValidateDepositPlaceAsync(current, deposit, cancellationToken) ?? validate(current, currentBalance)) is { } error
+            ? new OrderResult(OrderResultStatus.Violation, Violation: error)
+            : new OrderResult(OrderResultStatus.VersionMismatch);
+    }
+
+    private async ValueTask<RuleError?> ValidateDepositPlaceAsync(OrderEntity order, OrderDepositEntity deposit, CancellationToken cancellationToken)
+    {
+        var shift = await shiftAccessor.QueryAsync(deposit.ShiftId, cancellationToken);
+        var staff = await masterAccessor.QueryStaffAsync(deposit.StaffId, cancellationToken);
+        return OrderLogic.ValidateDepositPlace(
+            shift is null ? null : new ShiftFact { Id = shift.Id, Status = shift.Status, TerminalId = shift.TerminalId, StoreId = shift.StoreId },
+            deposit.TerminalId,
+            order.StoreId,
+            staff is null ? null : new StaffFact { Id = staff.Id, Role = staff.Role, StoreId = staff.StoreId, IsActive = staff.IsActive && !staff.IsDeleted });
     }
 
     //--------------------------------------------------------------------------------
@@ -257,7 +405,8 @@ public sealed class OrderService
         new()
         {
             Order = order,
-            Lines = await orderAccessor.QueryLineListAsync(order.Id, cancellationToken)
+            Lines = await orderAccessor.QueryLineListAsync(order.Id, cancellationToken),
+            Deposits = await orderAccessor.QueryDepositListAsync(order.Id, cancellationToken)
         };
 
     private async ValueTask<RuleError?> ValidateProductsAsync(IReadOnlyList<OrderLineEntity> lines, CancellationToken cancellationToken)

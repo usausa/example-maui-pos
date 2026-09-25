@@ -142,6 +142,22 @@ public static class ViewHelper
         _ => (type.ToString(), Color.Default, null)
     };
 
+    // 前受金の受け取った額 − 返した額の見出し
+    public static string OrderDepositNetLabel(OrderStatus status) => status switch
+    {
+        OrderStatus.Completed => "会計で充てた額",
+        OrderStatus.Cancelled => "残り",
+        _ => "会計で充てる額"
+    };
+
+    // 前受金: 受取 (お店に入る) と返金 (お店から出る)
+    public static (string Text, Color Color, string? Icon) OrderDepositChip(OrderDepositType type) => type switch
+    {
+        OrderDepositType.Receive => ("受取", Color.Success, Icons.Material.Filled.ArrowDownward),
+        OrderDepositType.Refund => ("返金", Color.Warning, Icons.Material.Filled.ArrowUpward),
+        _ => (type.ToString(), Color.Default, null)
+    };
+
     public static (string Text, Color Color, string? Icon) CashEventChip(CashEventType type) => type switch
     {
         CashEventType.PaidIn => ("入金", Color.Success, Icons.Material.Filled.ArrowDownward),

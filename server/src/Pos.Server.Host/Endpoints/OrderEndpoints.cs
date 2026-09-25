@@ -9,7 +9,7 @@ using Pos.Server.Services;
 
 using Smart.Mapper;
 
-// 受注 (取り寄せ・取り置き)
+// 受注 (取り寄せ・取り置き) と前受金
 public static partial class OrderEndpoints
 {
     //--------------------------------------------------------------------------------
@@ -25,6 +25,8 @@ public static partial class OrderEndpoints
         group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Admin);
         group.MapPost("/{id:guid}/arrive", HandleArriveAsync);
         group.MapPost("/{id:guid}/cancel", HandleCancelAsync);
+        group.MapPost("/{id:guid}/deposit", HandleDepositAsync);
+        group.MapPost("/{id:guid}/deposit/refund", HandleRefundDepositAsync);
     }
 
     //--------------------------------------------------------------------------------
@@ -59,14 +61,44 @@ public static partial class OrderEndpoints
     [Mapper]
     private static partial OrderResponseLine ToResponse(OrderLineEntity entity);
 
+    [Mapper]
+    private static partial OrderResponseDeposit ToResponse(OrderDepositEntity entity);
+
     private static OrderResponseItem ToResponse(OrderDetailView detail)
     {
         var response = ToResponseCore(detail.Order);
+        response.DepositAmount = detail.DepositBalance;
         response.Lines = detail.Lines.Select(ToResponse).ToList();
+        response.Deposits = detail.Deposits.Select(ToResponse).ToList();
         return response;
     }
 
-    // 登録以外の結果 (変更・入荷・キャンセル)
+    // 受取日時を省略したら受付時刻 (default のまま渡す)
+    private static OrderDepositEntity ToEntity(OrderDepositRequest request) =>
+        new()
+        {
+            Id = request.Id,
+            ShiftId = request.ShiftId,
+            TerminalId = request.TerminalId,
+            StaffId = request.StaffId,
+            PaymentMethodId = request.PaymentMethodId,
+            Amount = request.Amount,
+            Reference = request.Reference,
+            OccurredAt = request.OccurredAt ?? default
+        };
+
+    // 方法と金額はサーバが前受金から決める
+    private static OrderDepositEntity ToEntity(OrderDepositRefundRequest request) =>
+        new()
+        {
+            Id = request.Id,
+            ShiftId = request.ShiftId,
+            TerminalId = request.TerminalId,
+            StaffId = request.StaffId,
+            OccurredAt = request.OccurredAt ?? default
+        };
+
+    // 登録以外の結果 (変更・入荷・キャンセル・前受金)
     private static IResult ToResult(OrderResult result) =>
         result.Status switch
         {
@@ -76,6 +108,12 @@ public static partial class OrderEndpoints
             OrderResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
             _ => ApiProblems.FromViolation(result.Violation!)
         };
+
+    // 前受金は端末が id を決める登録なので、新規は 201 (Location は受注)
+    private static IResult ToDepositResult(Guid id, OrderResult result) =>
+        result.Status == OrderResultStatus.Success
+            ? TypedResults.Created($"{ApiRoutes.Orders}/{id}", ToResponse(result.Detail!))
+            : ToResult(result);
 
     //--------------------------------------------------------------------------------
     // Handler
@@ -186,5 +224,39 @@ public static partial class OrderEndpoints
         }
 
         return ToResult(await service.CancelAsync(id, request.Reason, cancellationToken));
+    }
+
+    // 前受金の受取 (端末のシフト)。新規は 201 で受注を返し、同じ id は 200 で既存を、内容が違えば 409
+    private static async ValueTask<IResult> HandleDepositAsync(
+        TerminalAccess access,
+        OrderService service,
+        ClaimsPrincipal user,
+        Guid id,
+        OrderDepositRequest request,
+        CancellationToken cancellationToken)
+    {
+        if ((await service.QueryDetailAsync(id, cancellationToken) is { } detail) && !access.CanAccess(user, detail.Order.StoreId, request.TerminalId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
+        return ToDepositResult(id, await service.DepositAsync(id, ToEntity(request), cancellationToken));
+    }
+
+    // 前受金の返金 (全額を受け取った方法で)。新規は 201、同じ id は 200 で既存を返す
+    private static async ValueTask<IResult> HandleRefundDepositAsync(
+        TerminalAccess access,
+        OrderService service,
+        ClaimsPrincipal user,
+        Guid id,
+        OrderDepositRefundRequest request,
+        CancellationToken cancellationToken)
+    {
+        if ((await service.QueryDetailAsync(id, cancellationToken) is { } detail) && !access.CanAccess(user, detail.Order.StoreId, request.TerminalId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
+        return ToDepositResult(id, await service.RefundDepositAsync(id, ToEntity(request), cancellationToken));
     }
 }

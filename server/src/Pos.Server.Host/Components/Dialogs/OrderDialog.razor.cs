@@ -19,7 +19,8 @@ public enum OrderDialogAction
 // 受注の詳細で選んだ操作 (実行はページが行う)
 public sealed record OrderDialogResult(OrderDialogAction Action, OrderDetailView Order);
 
-// 受注の詳細 (連絡先・経過・明細)。状態に合わせて [入荷] [変更] [キャンセル] [会計した取引] を出す
+// 受注の詳細 (連絡先・経過・明細・前受金)。状態に合わせて [入荷] [変更] [キャンセル] [会計した取引] を出す。
+// 前受金は端末で受け取り・返すので、ここでは見るだけ (前受金があればキャンセルできない)
 public sealed partial class OrderDialog
 {
     private OrderDetailView? detail;

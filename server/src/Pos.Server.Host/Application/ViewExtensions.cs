@@ -144,6 +144,7 @@ public static class ViewExtensions
         PaymentKind.Points => "ポイント",
         PaymentKind.Credit => "掛売",
         PaymentKind.Other => "その他",
+        PaymentKind.Deposit => "前受金",
         _ => value.ToString()
     };
 

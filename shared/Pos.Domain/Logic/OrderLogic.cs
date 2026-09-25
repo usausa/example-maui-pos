@@ -20,6 +20,57 @@ public static class OrderLogic
     public static RuleError? ValidateCancel(OrderStatus status) =>
         status.IsOpen() ? null : new RuleError(ErrorCode.OrderStatusInvalid, RuleReason.OrderNotCancellable);
 
+    // 前受金があるときは、返してからキャンセルする
+    public static RuleError? ValidateCancel(OrderStatus status, decimal depositBalance) =>
+        ValidateCancel(status) ?? (depositBalance > 0 ? new RuleError(ErrorCode.OrderDepositInvalid, RuleReason.DepositHeld) : null);
+
+    // 前受金の受取は未完了の受注で、前受金がないときだけ (1 つの受注に 1 つ)。1 円以上、受注の金額まで
+    public static RuleError? ValidateDeposit(OrderStatus status, decimal depositBalance, decimal total, decimal amount, PaymentKind kind)
+    {
+        if (!status.IsOpen())
+        {
+            return new RuleError(ErrorCode.OrderStatusInvalid, RuleReason.OrderNotEditable);
+        }
+
+        if (depositBalance > 0)
+        {
+            return new RuleError(ErrorCode.OrderDepositInvalid, RuleReason.DepositExists);
+        }
+
+        if ((amount <= 0) || (amount > total))
+        {
+            return new RuleError(ErrorCode.OrderDepositInvalid, RuleReason.DepositAmountInvalid);
+        }
+
+        return kind.CanReceiveDeposit() ? null : new RuleError(ErrorCode.OrderDepositInvalid, RuleReason.DepositMethodInvalid);
+    }
+
+    // 前受金は取引と同じく、開設中のシフトでその端末から自店の受注に受け取る (返す)。担当は自店 (または本部) の有効なスタッフ
+    public static RuleError? ValidateDepositPlace(ShiftFact? shift, Guid terminalId, Guid storeId, StaffFact? staff)
+    {
+        if (TransactionLogic.ValidateShift(shift, terminalId) is { } error)
+        {
+            return error;
+        }
+
+        return shift!.StoreId == storeId ? StaffLogic.ValidateStaff(staff, storeId) : new RuleError(ErrorCode.OrderNotFound, RuleReason.OrderNotFound);
+    }
+
+    // 前受金を返すのは未完了の受注で、前受金があるときだけ (全額を、受け取った方法で返す)
+    public static RuleError? ValidateDepositRefund(OrderStatus status, decimal depositBalance)
+    {
+        if (!status.IsOpen())
+        {
+            return new RuleError(ErrorCode.OrderStatusInvalid, RuleReason.OrderNotEditable);
+        }
+
+        return depositBalance > 0 ? null : new RuleError(ErrorCode.OrderDepositInvalid, RuleReason.DepositNotFound);
+    }
+
+    // 会計で充てる前受金 (net = 受け取った額 − 返した額)。完了した受注は会計で充てたので 0
+    public static decimal DepositBalance(OrderStatus status, decimal net) =>
+        status.IsOpen() ? net : 0m;
+
     // 会計できるのは自店の引き渡し待ちの受注だけ (order = null は見つからない)
     public static RuleError? ValidateCheckout(OrderFact? order, Guid storeId)
     {

@@ -5,21 +5,21 @@ using Pos.Server.Accessors;
 // 起動時のデータベース準備: PRAGMA (WAL) → スキーマ (SQL ファイル) → 後から増えた列 → 初期データ (SQL ファイル)
 public sealed class DatabaseService
 {
+    private readonly TimeProvider timeProvider;
     private readonly IDbProvider provider;
     private readonly GenericAccessor genericAccessor;
     private readonly MasterAccessor masterAccessor;
-    private readonly TimeProvider timeProvider;
 
     public DatabaseService(
+        TimeProvider timeProvider,
         IDbProvider provider,
         GenericAccessor genericAccessor,
-        MasterAccessor masterAccessor,
-        TimeProvider timeProvider)
+        MasterAccessor masterAccessor)
     {
+        this.timeProvider = timeProvider;
         this.provider = provider;
         this.genericAccessor = genericAccessor;
         this.masterAccessor = masterAccessor;
-        this.timeProvider = timeProvider;
     }
 
     // schemaPath: CREATE TABLE IF NOT EXISTS の DDL、initialDataPath: 会社設定がない (= 空の) DB へ流し込む SQL
@@ -39,6 +39,8 @@ public sealed class DatabaseService
             await genericAccessor.BackfillPaymentMethodShortNamesAsync(now, cancellationToken);
         }
 
+        await provider.UsingAsync(con => GenericAccessor.EnsureShiftDepositCashAsync(con, cancellationToken), cancellationToken);
+
         // 会社設定がなければ (= 空の DB) 初期データを投入する
         if (await masterAccessor.QuerySettingsAsync(cancellationToken) is null)
         {
@@ -49,5 +51,8 @@ public sealed class DatabaseService
                 await tx.CommitAsync(cancellationToken);
             }, cancellationToken);
         }
+
+        // 後から増えた初期データ (前受金の支払方法。初期データを入れた DB では何もしない)
+        await genericAccessor.InsertDepositPaymentMethodAsync(now, cancellationToken);
     }
 }

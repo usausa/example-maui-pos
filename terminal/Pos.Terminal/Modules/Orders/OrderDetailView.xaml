@@ -12,11 +12,11 @@
              shell:ShellProperty.Title="受注詳細"
              shell:ShellProperty.Function1Text="戻る"
              shell:ShellProperty.Function2Text="入荷"
-             shell:ShellProperty.Function3Text="キャンセル"
+             shell:ShellProperty.Function3Text="操作"
              shell:ShellProperty.Function4Text="会計へ"
              shell:ShellProperty.Function1Enabled="True"
              shell:ShellProperty.Function2Enabled="{Binding CanArrive}"
-             shell:ShellProperty.Function3Enabled="{Binding CanCancel}"
+             shell:ShellProperty.Function3Enabled="{Binding CanOperate}"
              shell:ShellProperty.Function4Enabled="{Binding CanCheckout}">
 
     <ScrollView BackgroundColor="{StaticResource GrayLighten3}">
@@ -24,7 +24,7 @@
             <!-- お客様・金額・状態・種別・受注番号 -->
             <Border Style="{StaticResource PosHeroBorder}"
                     behaviors:AnimationOption.EnterAnimation="FadeUp">
-                <Grid RowDefinitions="Auto,Auto"
+                <Grid RowDefinitions="Auto,Auto,Auto"
                       ColumnDefinitions="*,Auto"
                       RowSpacing="4">
                     <Label Grid.Row="0" Grid.Column="0"
@@ -48,10 +48,15 @@
                         <Label Style="{StaticResource PosCodeLabel}"
                                Text="{Binding OrderNo}" />
                     </FlexLayout>
+                    <Label Grid.Row="2" Grid.Column="1"
+                           Style="{StaticResource PosCaptionLabel}"
+                           HorizontalOptions="End"
+                           IsVisible="{Binding HasDeposit}"
+                           Text="{Binding DepositText}" />
                 </Grid>
             </Border>
 
-            <!-- お客様・明細・経過 -->
+            <!-- お客様・明細・前受金・経過 -->
             <VerticalStackLayout BindableLayout.ItemsSource="{Binding Sections}"
                                  BindableLayout.ItemTemplate="{StaticResource PosSectionTemplate}" />
         </VerticalStackLayout>

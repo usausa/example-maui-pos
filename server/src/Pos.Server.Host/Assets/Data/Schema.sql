@@ -296,6 +296,8 @@ CREATE TABLE IF NOT EXISTS Shifts (
     CashReturns      NUMERIC  NOT NULL DEFAULT 0,
     PaidIn           NUMERIC  NOT NULL DEFAULT 0,
     PaidOut          NUMERIC  NOT NULL DEFAULT 0,
+    DepositCashIn    NUMERIC  NOT NULL DEFAULT 0,   -- 現金で受け取った前受金
+    DepositCashOut   NUMERIC  NOT NULL DEFAULT 0,   -- 現金で返した前受金
     SalesCount       INTEGER  NOT NULL DEFAULT 0,
     ReturnCount      INTEGER  NOT NULL DEFAULT 0,
     VoidCount        INTEGER  NOT NULL DEFAULT 0,
@@ -594,6 +596,32 @@ CREATE TABLE IF NOT EXISTS OrderLines (
     FOREIGN KEY (ProductId) REFERENCES Products (Id)
 );
 CREATE INDEX IF NOT EXISTS IX_OrderLines_OrderId ON OrderLines (OrderId);
+
+-- 受注の前受金 (受取と返金)。受け取った店舗の端末とシフトで記録し、現金は精算の予想現金に入る。会計で充てた分は取引の支払 (Deposit) に残る
+CREATE TABLE IF NOT EXISTS OrderDeposits (
+    Id               TEXT     NOT NULL,   -- 端末が採番
+    OrderId          TEXT     NOT NULL,
+    StoreId          TEXT     NOT NULL,
+    TerminalId       TEXT     NOT NULL,
+    ShiftId          TEXT     NOT NULL,
+    StaffId          TEXT     NOT NULL,
+    Type             TEXT     NOT NULL,   -- Receive / Refund
+    PaymentMethodId  TEXT     NOT NULL,
+    Kind             TEXT     NOT NULL,
+    Amount           NUMERIC  NOT NULL,
+    Reference        TEXT,
+    OccurredAt       TEXT     NOT NULL,
+    CreatedAt        TEXT     NOT NULL,
+    PRIMARY KEY (Id),
+    FOREIGN KEY (OrderId) REFERENCES Orders (Id),
+    FOREIGN KEY (StoreId) REFERENCES Stores (Id),
+    FOREIGN KEY (TerminalId) REFERENCES Terminals (Id),
+    FOREIGN KEY (ShiftId) REFERENCES Shifts (Id),
+    FOREIGN KEY (StaffId) REFERENCES Staff (Id),
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethods (Id)
+);
+CREATE INDEX IF NOT EXISTS IX_OrderDeposits_OrderId ON OrderDeposits (OrderId);
+CREATE INDEX IF NOT EXISTS IX_OrderDeposits_ShiftId ON OrderDeposits (ShiftId);
 
 CREATE TABLE IF NOT EXISTS InventoryLevels (
     StoreId    TEXT     NOT NULL,

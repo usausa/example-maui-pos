@@ -234,6 +234,18 @@ public sealed partial class DataAccessor
     public partial ValueTask<List<LocalCashEventEntity>> QueryCashEventListAsync(Guid shiftId);
 
     //--------------------------------------------------------------------------------
+    // OrderDeposits
+    //--------------------------------------------------------------------------------
+
+    // サーバが受け付けた前受金を写す (1 文なのでトランザクションなし)
+    [Execute]
+    [Insert(typeof(LocalOrderDepositEntity))]
+    public partial ValueTask<int> InsertOrderDepositAsync(LocalOrderDepositEntity entity);
+
+    [Query]
+    public partial ValueTask<List<LocalOrderDepositEntity>> QueryOrderDepositListAsync(Guid shiftId);
+
+    //--------------------------------------------------------------------------------
     // Outbox
     //--------------------------------------------------------------------------------
 

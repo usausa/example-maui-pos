@@ -72,6 +72,7 @@ public static class TransactionLogic
         }
 
         ValidateSalePayments(input.Payments, expected, errors);
+        ValidateDeposit(context.Order, input.Payments, errors);
 
         if (((expected.PointsEarned > 0) || (expected.PointsRedeemed > 0)) && !context.HasCustomer)
         {
@@ -230,6 +231,24 @@ public static class TransactionLogic
         }
     }
 
+    // 前受金は受注の前受金の全額を充てる (受注のない会計や、前受金のない受注では使えない)
+    private static void ValidateDeposit(OrderFact? order, IEnumerable<SalesInputPayment> payments, List<RuleError> errors)
+    {
+        var applied = 0m;
+        foreach (var payment in payments)
+        {
+            if (payment.Kind == PaymentKind.Deposit)
+            {
+                applied += payment.Amount;
+            }
+        }
+
+        if (applied != (order?.DepositBalance ?? 0m))
+        {
+            errors.Add(new RuleError(ErrorCode.PaymentMismatch, RuleReason.DepositMismatch));
+        }
+    }
+
     // ------------------------------------------------------------
     // Return
     // ------------------------------------------------------------
@@ -351,7 +370,12 @@ public static class TransactionLogic
                 pointsTotal += payment.Amount;
             }
 
-            if (payment.Amount < 0)
+            // 前受金は受注の会計で充てる支払なので、返品の返金には使えない
+            if (payment.Kind == PaymentKind.Deposit)
+            {
+                errors.Add(new RuleError(ErrorCode.PaymentMismatch, RuleReason.DepositRefundNotAllowed));
+            }
+            else if (payment.Amount < 0)
             {
                 errors.Add(new RuleError(ErrorCode.PaymentMismatch, RuleReason.RefundAmountInvalid));
             }
@@ -428,19 +452,27 @@ public static class TransactionLogic
     // Helper
     // ------------------------------------------------------------
 
-    private static void ValidateShift(ShiftFact? shift, Guid terminalId, List<RuleError> errors)
+    // 取引・前受金を記録するシフト: 開設中で、その端末のもの
+    public static RuleError? ValidateShift(ShiftFact? shift, Guid terminalId)
     {
         if (shift is null)
         {
-            errors.Add(new RuleError(ErrorCode.ShiftNotFound, RuleReason.ShiftNotFound));
+            return new RuleError(ErrorCode.ShiftNotFound, RuleReason.ShiftNotFound);
         }
-        else if (shift.Status != ShiftStatus.Open)
+
+        if (shift.Status != ShiftStatus.Open)
         {
-            errors.Add(new RuleError(ErrorCode.ShiftClosed, RuleReason.ShiftClosed));
+            return new RuleError(ErrorCode.ShiftClosed, RuleReason.ShiftClosed);
         }
-        else if (shift.TerminalId != terminalId)
+
+        return shift.TerminalId == terminalId ? null : new RuleError(ErrorCode.ShiftTerminalMismatch, RuleReason.ShiftTerminalMismatch);
+    }
+
+    private static void ValidateShift(ShiftFact? shift, Guid terminalId, List<RuleError> errors)
+    {
+        if (ValidateShift(shift, terminalId) is { } error)
         {
-            errors.Add(new RuleError(ErrorCode.ShiftTerminalMismatch, RuleReason.ShiftTerminalMismatch));
+            errors.Add(error);
         }
     }
 }

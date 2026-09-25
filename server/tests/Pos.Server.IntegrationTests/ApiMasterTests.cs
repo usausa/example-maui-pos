@@ -41,7 +41,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(3, all.TaxRates.Count);
         Assert.Equal(33, all.Products.Count);
         Assert.Equal(3, all.Discounts.Count);
-        Assert.Equal(6, all.PaymentMethods.Count);
+        Assert.Equal(7, all.PaymentMethods.Count);
         Assert.Equal(5, all.AdjustmentReasons.Count);
         Assert.False(all.ProductsTruncated);
 

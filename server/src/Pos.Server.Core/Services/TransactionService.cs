@@ -247,9 +247,10 @@ public sealed class TransactionService
         var products = (await productAccessor.QueryListByIdsAsync(detail.Lines.Select(static x => x.ProductId).Distinct().ToList(), cancellationToken)).ToDictionary(static x => x.Id);
         var customer = entity.CustomerId is null ? null : await customerAccessor.QueryAsync(entity.CustomerId.Value, cancellationToken);
         var claimed = ToClaimedResult(detail);
-        var shiftFact = shift is null ? null : new ShiftFact { Id = shift.Id, Status = shift.Status, TerminalId = shift.TerminalId };
+        var shiftFact = shift is null ? null : new ShiftFact { Id = shift.Id, Status = shift.Status, TerminalId = shift.TerminalId, StoreId = shift.StoreId };
         var dayClosed = await dailyClosingAccessor.QueryByBusinessDateAsync(entity.StoreId, entity.BusinessDate, cancellationToken) is not null;
         var order = (orderId is null) || (entity.Type != TransactionType.Sale) ? null : await orderAccessor.QueryAsync(orderId.Value, cancellationToken);
+        var depositBalance = order is null ? 0m : OrderDetailView.DepositBalanceOf(order.Status, await orderAccessor.QueryDepositListAsync(order.Id, cancellationToken));
         var staff = await QueryStaffFactAsync(entity.StaffId, cancellationToken);
 
         TransactionValidation validation;
@@ -285,7 +286,7 @@ public sealed class TransactionService
                 CustomerPointBalance = customer?.PointBalance,
                 DayClosed = dayClosed,
                 OrderId = orderId,
-                Order = order is null ? null : new OrderFact { Id = order.Id, StoreId = order.StoreId, Status = order.Status },
+                Order = order is null ? null : new OrderFact { Id = order.Id, StoreId = order.StoreId, Status = order.Status, DepositBalance = depositBalance },
                 Staff = staff,
                 DiscountApprovals = await QueryDiscountApprovalsAsync(detail.Discounts, cancellationToken)
             };
@@ -332,8 +333,8 @@ public sealed class TransactionService
 
                     await masterAccessor.UpdateTerminalLastReceiptSeqAsync(tx, entity.TerminalId, ParseReceiptSeq(entity.ReceiptNo), now, cancellationToken);
 
-                    // 受注から会計したら受注を完了にする (検証のあとで状態が変わっていれば取り消す)
-                    if (sale && (orderId is not null) && (await orderAccessor.UpdateCompletedAsync(tx, orderId.Value, entity.Id, entity.TransactedAt, now, cancellationToken) == 0))
+                    // 受注から会計したら受注を完了にする (検証のあとで状態か前受金が変わっていれば取り消す)
+                    if (sale && (orderId is not null) && (await orderAccessor.UpdateCompletedAsync(tx, orderId.Value, entity.Id, entity.TransactedAt, depositBalance, now, cancellationToken) == 0))
                     {
                         throw new RuleViolationException(ErrorCode.OrderNotReady, RuleReason.OrderNotReady);
                     }

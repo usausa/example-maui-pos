@@ -105,14 +105,23 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
             $"{totals.ReturnCount} 件",
             ViewHelper.Yen(totals.ReturnsTotal),
             $"{totals.VoidCount} 件");
-        CashRows.Replace(
-        [
-            new SummaryRow("釣銭準備金", ViewHelper.Yen(summary.Cash.OpeningCash)),
-            new SummaryRow("現金売上", ViewHelper.Yen(summary.Cash.CashSales)),
-            new SummaryRow("現金返品", ViewHelper.MinusYen(summary.Cash.CashReturns)),
-            new SummaryRow("入金", ViewHelper.Yen(summary.Cash.PaidIn)),
-            new SummaryRow("出金", ViewHelper.MinusYen(summary.Cash.PaidOut))
-        ]);
+        var rows = new List<SummaryRow>
+        {
+            new("釣銭準備金", ViewHelper.Yen(summary.Cash.OpeningCash)),
+            new("現金売上", ViewHelper.Yen(summary.Cash.CashSales)),
+            new("現金返品", ViewHelper.MinusYen(summary.Cash.CashReturns)),
+            new("入金", ViewHelper.Yen(summary.Cash.PaidIn)),
+            new("出金", ViewHelper.MinusYen(summary.Cash.PaidOut))
+        };
+
+        // 前受金は現金で受け取った・返したシフトだけ
+        if ((summary.Cash.DepositCashIn != 0m) || (summary.Cash.DepositCashOut != 0m))
+        {
+            rows.Add(new SummaryRow("前受金 受取", ViewHelper.Yen(summary.Cash.DepositCashIn)));
+            rows.Add(new SummaryRow("前受金 返金", ViewHelper.MinusYen(summary.Cash.DepositCashOut)));
+        }
+
+        CashRows.Replace(rows);
         ExpectedCashText = ViewHelper.Yen(expectedCash);
         UpdateDifference();
     }

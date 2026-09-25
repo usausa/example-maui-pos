@@ -24,6 +24,7 @@ Accessor のメソッド名 (= 2-way SQL のファイル名) は accessor.md に
 - `/*# */` の生 SQL は次の 1 トークンだけを置き換える
 - `DESC` や差分同期の `UpdatedAt, Id` のような固定の並びは `/*% if (desc) { */` … `/*% } else { */` … `/*% } */` の分岐で書き、文字列を組み立てて渡さない
 - LIKE には `ESCAPE '\'` を付ける (パターンは呼び出し側でエスケープ済み)
+- decimal の引数を集計や副問い合わせの式と比べるときは `CAST(/*@ x */0 AS NUMERIC)` にする (Microsoft.Data.Sqlite は decimal を TEXT で束縛し、列の親和性がない比較では数値にならない)
 - サーバの編集の更新は `UPDATE ... RETURNING *` で返し、`Version = Version + 1` と `AND Version = /*@ version */0` で楽観ロックし、論理削除のある表は `AND IsDeleted = 0` を付ける
 - 状態を変える更新は、遷移元の状態を `AND Status = '...'` で条件にする
 - 論理削除は `SET IsDeleted = 1, UpdatedAt = …, Version = Version + 1` と `AND IsDeleted = 0` で行い、件数で NotFound を判定する

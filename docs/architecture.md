@@ -112,7 +112,7 @@ Models/InventoryReferenceType.cs     在庫変動の参照の種類 (Transaction
 Services/                            業務の手順 (サブジェクトごと): マスタの XxxService (Store / Terminal / Staff / Category / TaxRate / Discount / PaymentMethod /
                                      AdjustmentReason / Supplier / Settings)、ProductService (画像・CSV 取込を含む)、CustomerService、TransactionService (登録・取消・照会)、
                                      ShiftService (開設・精算・入出金・集計)、DailyClosingService (日次締め・解除・店舗 × 営業日の一覧)、
-                                     OrderService (受注の登録・変更・入荷・キャンセル)、InventoryService、
+                                     OrderService (受注の登録・変更・入荷・キャンセル、前受金の受取・返金)、InventoryService、
                                      InventoryReceiptService (入荷予定の登録・受領・キャンセル)、PurchaseOrderService (発注の登録・変更・発注で入荷予定を作る・キャンセル)、InventoryTransferService (店舗間移動の依頼・出荷・受領・キャンセル)、ReportService、
                                      SyncService、DatabaseService (スキーマ作成・初期データ)、
                                      ChangeNotificationService (書き込みの後のプロセス内の通知。管理画面のダッシュボードが購読する)、
@@ -219,7 +219,7 @@ wwwroot/                             css/app.css, js/reconnect.js
 
 ```
 Enums/                列挙型を 1 型 1 ファイルで: TransactionType, TransactionStatus, ProductKind, PaymentKind, DiscountType, DiscountScope,
-                      TaxKind, StaffRole, ShiftStatus, DailyClosingStatus, OrderType, OrderStatus, CashEventType, InventoryChangeType, InventoryReceiptStatus,
+                      TaxKind, StaffRole, ShiftStatus, DailyClosingStatus, OrderType, OrderStatus, OrderDepositType, CashEventType, InventoryChangeType, InventoryReceiptStatus,
                       InventoryTransferStatus, PointHistoryType,
                       TaxRounding, PointBasis、
                       ErrorCode / WarningCode (+ ErrorCodeExtensions.ToCode: UPPER_SNAKE_CASE)、RuleReason (違反の理由)
@@ -232,7 +232,7 @@ Logic/
   AllocationLogic.cs  最大剰余法の按分、RoundingLogic.cs TaxRounding の丸め
   TransactionLogic.cs ValidateInput (入力だけの検証) / ValidateSale / ValidateReturn / ValidateVoid → TransactionValidation (Errors / Warnings / Expected)
   TransactionValidation.cs  検証結果 (RuleError = ErrorCode + RuleReason、RuleWarning) と、検証に必要な事実 (SaleContext / ReturnContext / VoidContext、ShiftFact / ProductFact / OrderFact ...)
-  OrderLogic.cs       受注の状態遷移 (最初の状態、変更・入荷・キャンセル・会計ができるか) と明細の金額
+  OrderLogic.cs       受注の状態遷移 (最初の状態、変更・入荷・キャンセル・会計ができるか)、明細の金額、前受金 (受取・返金ができるか、会計で充てる額)
   InventoryMovementLogic.cs  入荷・店舗間移動の状態遷移 (受領・出荷・キャンセルができるか)
 ```
 
@@ -255,6 +255,8 @@ Stores/ Terminals/ Staff/ Categories/ TaxRates/ Products/ Discounts/ PaymentMeth
 Sync/          SyncMastersResponse
 Customers/     CustomerResponse / CustomerResponseItem / CustomerCreateRequest / CustomerUpdateRequest,
                CustomerPointHistoryResponse / CustomerPointHistoryResponseItem, CustomerPointAdjustRequest
+Orders/        OrderCreateRequest (+ Line), OrderUpdateRequest (+ Line), OrderCancelRequest, OrderDepositRequest, OrderDepositRefundRequest,
+               OrderResponse / OrderResponseItem (+ Line / Deposit)
 Transactions/  TransactionCreateRequest (+ TransactionCreateRequestLine / Discount / TaxSummary / Payment / Delivery / Void),
                TransactionResponse / TransactionResponseItem (+ TransactionResponseLine / ... / Warning),
                TransactionVoidRequest, TransactionCalculateRequest, TransactionCalculateResponse (計算項目のみ。calculate の応答と expected)
@@ -325,7 +327,7 @@ Modules/
   Dialogs/    InputNumberView (電卓)、ReasonSelectView (理由の選択)、SelectView (一覧からの選択)
 Models/
   Cart/       SalesCart, CartLine, CartDiscount, CartPayment, CartDelivery
-  Entity/     ローカル DB のエンティティ (LocalTransaction / LocalShift / LocalCashEvent / Outbox / SyncState / HoldCart。マスタは Pos.Contract の Response をそのまま使う)
+  Entity/     ローカル DB のエンティティ (LocalTransaction / LocalShift / LocalCashEvent / LocalOrderDeposit / Outbox / SyncState / HoldCart。マスタは Pos.Contract の Response をそのまま使う)
   Input/      NumberInputParameter, NumberInputModel
   SummaryRow.cs (集計・詳細画面の行と節), StockChange.cs, SelectItem.cs, ReceivingDocument.cs (受領待ちの伝票と明細), ReceivingKind.cs, ReceivingLineState.cs
 Services/                            単機能の部品
@@ -344,12 +346,12 @@ Usecases/                            通信 → DB → 完了までの一連の�
   TransactionUsecase.cs              取引の保存 (ローカル取引 + Outbox + 自店在庫を 1 トランザクション)、取消、履歴 (送信状態付き)、端末にない取引はオンラインでサーバから
   SalesUsecase.cs / ReturnUsecase.cs 会計・返品の計算 (Pos.Domain) と確定、保留、元取引の検索 (オンラインならサーバの最新)
   ShiftUsecase.cs                    開設 (サーバに残ったシフトの引き継ぎ)、精算、入出金、集計
-  OrderUsecase.cs                    受注の登録 (カートから)、受注から会計のカートを作る
+  OrderUsecase.cs                    受注の登録 (カートから)、受注から会計のカートを作る (前受金を含む)、前受金の受取と返金 (受け付けた記録を端末に写す)
   StockUsecase.cs / SetupUsecase.cs  棚卸・在庫調整の送信、初期設定 (ペアリング・トークンと設定の保存・初回同期)
   ReceivingUsecase.cs                受領待ちの入荷・移動の取得と受領 (オンライン。受領したら在庫の差分同期を促す)
   ReceivingMapper.cs                 入荷・移動の応答 → 受領待ちの伝票、数えた数 → 受領の要求
   TransactionMapper.cs               Cart → Pos.Domain の計算入力 → TransactionCreateRequest の変換
-  ShiftSummaryCalculator.cs          ローカルの取引・入出金からのシフト集計
+  ShiftSummaryCalculator.cs          ローカルの取引・入出金・前受金からのシフト集計
 State/
   DeviceState.cs / StartupState.cs
   Settings.cs                        ApiEndPoint / StoreId / TerminalId / PairedAt / OpenSalesAfterLogin (IPreferences。トークンは CredentialService の SecureStorage)

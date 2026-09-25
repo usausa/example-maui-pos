@@ -57,6 +57,8 @@ public sealed class ShiftReportBuilder
             ["CashReturns"] = ReportText.Yen(totals.CashReturns),
             ["PaidIn"] = ReportText.Yen(totals.PaidIn),
             ["PaidOut"] = ReportText.Yen(totals.PaidOut),
+            ["DepositCashIn"] = ReportText.Yen(totals.DepositCashIn),
+            ["DepositCashOut"] = ReportText.Yen(totals.DepositCashOut),
             ["ExpectedCash"] = ReportText.Yen(detail.ExpectedCash),
             ["ActualCash"] = ReportText.Yen(shift.ActualCash),
             ["Difference"] = ReportText.Yen(shift.Difference),

@@ -45,7 +45,13 @@ public sealed class OrderResponseItem
 
     public string? CancelReason { get; set; }
 
+    // 会計で充てる前受金 (受け取った額 − 返した額。完了した受注は 0)
+    public decimal DepositAmount { get; set; }
+
     public IReadOnlyList<OrderResponseLine> Lines { get; set; } = default!;
+
+    // 前受金の受取と返金の記録
+    public IReadOnlyList<OrderResponseDeposit> Deposits { get; set; } = default!;
 
     public DateTime CreatedAt { get; set; }
 
@@ -74,6 +80,30 @@ public sealed class OrderResponseLine
     public decimal Amount { get; set; }
 
     public string? Note { get; set; }
+}
+
+public sealed class OrderResponseDeposit
+{
+    public Guid Id { get; set; }
+
+    public OrderDepositType Type { get; set; }
+
+    public Guid PaymentMethodId { get; set; }
+
+    public PaymentKind Kind { get; set; }
+
+    public decimal Amount { get; set; }
+
+    // カードの伝票番号など
+    public string? Reference { get; set; }
+
+    public Guid TerminalId { get; set; }
+
+    public Guid ShiftId { get; set; }
+
+    public Guid StaffId { get; set; }
+
+    public DateTime OccurredAt { get; set; }
 }
 
 public sealed class OrderResponse : ListResponse<OrderResponseItem>;

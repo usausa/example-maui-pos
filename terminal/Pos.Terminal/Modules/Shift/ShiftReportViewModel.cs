@@ -57,19 +57,28 @@ public sealed partial class ShiftReportViewModel : AppViewModelBase
 
         var totals = summary.Shift.Totals;
         var cash = summary.Cash;
+        var cashRows = new List<SummaryRow>
+        {
+            new("釣銭準備金", ViewHelper.Yen(cash.OpeningCash)),
+            new("現金売上", ViewHelper.Yen(cash.CashSales)),
+            new("現金返品", ViewHelper.MinusYen(cash.CashReturns)),
+            new("入金", ViewHelper.Yen(cash.PaidIn)),
+            new("出金", ViewHelper.MinusYen(cash.PaidOut))
+        };
+
+        // 前受金は現金で受け取った・返したシフトだけ
+        if ((cash.DepositCashIn != 0m) || (cash.DepositCashOut != 0m))
+        {
+            cashRows.Add(new SummaryRow("前受金 受取", ViewHelper.Yen(cash.DepositCashIn)));
+            cashRows.Add(new SummaryRow("前受金 返金", ViewHelper.MinusYen(cash.DepositCashOut)));
+        }
+
+        cashRows.Add(new SummaryRow("予想現金", ViewHelper.Yen(cash.ExpectedCash ?? 0m)));
+        cashRows.Add(new SummaryRow("実査金額", cash.ActualCash is null ? "-" : ViewHelper.Yen(cash.ActualCash.Value)));
+        cashRows.Add(new SummaryRow("過不足", cash.Difference is null ? "-" : ViewHelper.SignedYen(cash.Difference.Value)));
         Sections.Replace(
         [
-            new SummarySection("💴 現金",
-            [
-                new SummaryRow("釣銭準備金", ViewHelper.Yen(cash.OpeningCash)),
-                new SummaryRow("現金売上", ViewHelper.Yen(cash.CashSales)),
-                new SummaryRow("現金返品", ViewHelper.MinusYen(cash.CashReturns)),
-                new SummaryRow("入金", ViewHelper.Yen(cash.PaidIn)),
-                new SummaryRow("出金", ViewHelper.MinusYen(cash.PaidOut)),
-                new SummaryRow("予想現金", ViewHelper.Yen(cash.ExpectedCash ?? 0m)),
-                new SummaryRow("実査金額", cash.ActualCash is null ? "-" : ViewHelper.Yen(cash.ActualCash.Value)),
-                new SummaryRow("過不足", cash.Difference is null ? "-" : ViewHelper.SignedYen(cash.Difference.Value))
-            ]),
+            new SummarySection("💴 現金", cashRows),
             new SummarySection("🧾 取引",
             [
                 new SummaryRow("販売", $"{totals.SalesCount} 件  {ViewHelper.Yen(totals.SalesTotal)}"),

@@ -11,6 +11,8 @@ SET
     CashReturns = /*@ totals.CashReturns */0,
     PaidIn = /*@ totals.PaidIn */0,
     PaidOut = /*@ totals.PaidOut */0,
+    DepositCashIn = /*@ totals.DepositCashIn */0,
+    DepositCashOut = /*@ totals.DepositCashOut */0,
     SalesCount = /*@ totals.SalesCount */0,
     ReturnCount = /*@ totals.ReturnCount */0,
     VoidCount = /*@ totals.VoidCount */0,

@@ -248,4 +248,18 @@ CREATE TABLE IF NOT EXISTS HoldCarts (
     Total NUMERIC NOT NULL,
     Payload TEXT NOT NULL,
     PRIMARY KEY (Id)
-)
+);
+
+-- 受注の前受金 (オンラインで受け付けた記録を写し、精算の予想現金に使う)
+CREATE TABLE IF NOT EXISTS OrderDeposits (
+    Id TEXT NOT NULL,
+    OrderId TEXT NOT NULL,
+    ShiftId TEXT NOT NULL,
+    Type TEXT NOT NULL,
+    PaymentMethodId TEXT NOT NULL,
+    Kind TEXT NOT NULL,
+    Amount NUMERIC NOT NULL,
+    OccurredAt INTEGER NOT NULL,
+    PRIMARY KEY (Id)
+);
+CREATE INDEX IF NOT EXISTS IX_OrderDeposits_Shift ON OrderDeposits (ShiftId, OccurredAt)

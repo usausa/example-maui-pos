@@ -26,6 +26,9 @@ public sealed class ShiftFact
     public required ShiftStatus Status { get; init; }
 
     public required Guid TerminalId { get; init; }
+
+    // 前受金で、自店の受注かを見る
+    public Guid StoreId { get; init; }
 }
 
 public sealed class ProductFact
@@ -44,6 +47,9 @@ public sealed class OrderFact
     public required Guid StoreId { get; init; }
 
     public required OrderStatus Status { get; init; }
+
+    // 会計で充てる前受金 (受け取った額 − 返した額)
+    public decimal DepositBalance { get; init; }
 }
 
 public sealed class StaffFact

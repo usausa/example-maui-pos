@@ -97,6 +97,8 @@ public static partial class ShiftEndpoints
                 CashReturns = shift.Totals.CashReturns,
                 PaidIn = shift.Totals.PaidIn,
                 PaidOut = shift.Totals.PaidOut,
+                DepositCashIn = shift.Totals.DepositCashIn,
+                DepositCashOut = shift.Totals.DepositCashOut,
                 ExpectedCash = shift.ExpectedCash,
                 ActualCash = shift.ActualCash,
                 Difference = shift.Difference

@@ -316,9 +316,9 @@ public sealed partial class MasterAccessor
     [Execute]
     public partial ValueTask<int> DeletePaymentMethodAsync(Guid id, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // Kind = Points かつ有効な行はちょうど 1 件 (指定 ID を除いた件数)
+    // Kind = Points / Deposit の有効な行はそれぞれちょうど 1 件 (指定 ID を除いた件数)
     [ExecuteScalar]
-    public partial ValueTask<long> CountActivePointsPaymentMethodsAsync(Guid exceptId, CancellationToken cancellationToken);
+    public partial ValueTask<long> CountActivePaymentMethodsByKindAsync(PaymentKind kind, Guid exceptId, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // AdjustmentReason

@@ -174,16 +174,17 @@ public sealed class ShiftUsecase
     // Summary
     //--------------------------------------------------------------------------------
 
-    // ローカルの取引 (Payload = TransactionResponseItem) と入出金から集計する
+    // ローカルの取引 (Payload = TransactionResponseItem)・入出金・前受金から集計する
     public async ValueTask<ShiftSummaryResponse> BuildSummaryAsync(LocalShiftEntity shift)
     {
         var transactions = (await accessor.QueryTransactionListAsync(shift.Id, null, null, 10000))
             .Select(static x => JsonSerializer.Deserialize<TransactionResponseItem>(x.Payload, HttpService.JsonOptions)!)
             .ToList();
         var cashEvents = await accessor.QueryCashEventListAsync(shift.Id);
+        var deposits = await accessor.QueryOrderDepositListAsync(shift.Id);
         var paymentMethods = await accessor.QueryPaymentMethodListAsync();
         var categories = await accessor.QueryCategoryListAsync();
-        return ShiftSummaryCalculator.Calculate(shift, transactions, cashEvents, paymentMethods, categories);
+        return ShiftSummaryCalculator.Calculate(shift, transactions, cashEvents, deposits, paymentMethods, categories);
     }
 
     // 未送信がなくオンラインならサーバの集計、それ以外は端末の集計

@@ -7,7 +7,9 @@ SELECT
     COALESCE(p.CashSales, 0) AS CashSales,
     COALESCE(p.CashReturns, 0) AS CashReturns,
     COALESCE(c.PaidIn, 0) AS PaidIn,
-    COALESCE(c.PaidOut, 0) AS PaidOut
+    COALESCE(c.PaidOut, 0) AS PaidOut,
+    COALESCE(d.DepositCashIn, 0) AS DepositCashIn,
+    COALESCE(d.DepositCashOut, 0) AS DepositCashOut
 FROM
     (
         SELECT
@@ -42,3 +44,13 @@ FROM
         WHERE
             ShiftId = /*@ shiftId */''
     ) c
+    CROSS JOIN (
+        SELECT
+            SUM(CASE WHEN Type = 'Receive' THEN Amount ELSE 0 END) AS DepositCashIn,
+            SUM(CASE WHEN Type = 'Refund' THEN Amount ELSE 0 END) AS DepositCashOut
+        FROM
+            OrderDeposits
+        WHERE
+            ShiftId = /*@ shiftId */''
+            AND Kind = 'Cash'
+    ) d

@@ -64,6 +64,11 @@ public sealed class ShiftResponseTotals
 
     public decimal PaidOut { get; set; }
 
+    // 現金で受け取った前受金と、現金で返した前受金 (予想現金に入る)
+    public decimal DepositCashIn { get; set; }
+
+    public decimal DepositCashOut { get; set; }
+
     public int SalesCount { get; set; }
 
     public int ReturnCount { get; set; }

@@ -24,6 +24,9 @@ public sealed class SalesCart
 
     public string? OrderNo { get; set; }
 
+    // 受注の前受金 (会計で全額を充てる)
+    public decimal DepositAmount { get; set; }
+
     public bool IsEmpty => Lines.Count == 0;
 
     public void Clear()
@@ -35,6 +38,7 @@ public sealed class SalesCart
         Note = null;
         OrderId = null;
         OrderNo = null;
+        DepositAmount = 0m;
     }
 
     // 同じ商品 (単価変更なし) は数量を足す

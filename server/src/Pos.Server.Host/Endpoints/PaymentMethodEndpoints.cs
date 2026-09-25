@@ -68,7 +68,7 @@ public static partial class PaymentMethodEndpoints
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
             ? TypedResults.Created($"{ApiRoutes.PaymentMethods}/{entity.Id}", ToResponse(entity))
-            : ApiProblems.FromStatus(status, invalidTitle: "ポイントの支払方法は 1 件だけ有効にできます");
+            : ApiProblems.FromStatus(status, invalidTitle: "ポイント・前受金の支払方法は、それぞれ 1 件だけ有効にできます");
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(
@@ -82,7 +82,7 @@ public static partial class PaymentMethodEndpoints
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
             ? TypedResults.Ok(ToResponse(result.Entity!))
-            : ApiProblems.FromStatus(result.Status, invalidTitle: "ポイントの支払方法は 1 件だけ有効にできます");
+            : ApiProblems.FromStatus(result.Status, invalidTitle: "ポイント・前受金の支払方法は、それぞれ 1 件だけ有効にできます");
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(

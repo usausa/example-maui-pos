@@ -3,7 +3,7 @@ SELECT
 FROM
     PaymentMethods
 WHERE
-    Kind = 'Points'
+    Kind = /*@ kind */''
     AND IsActive = 1
     AND IsDeleted = 0
     AND Id <> /*@ exceptId */''

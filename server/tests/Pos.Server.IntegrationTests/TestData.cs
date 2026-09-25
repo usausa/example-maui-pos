@@ -30,6 +30,7 @@ internal static class TestData
     public static readonly Guid CashPaymentMethodId = Id(8, 1);
     public static readonly Guid CardPaymentMethodId = Id(8, 2);
     public static readonly Guid PointsPaymentMethodId = Id(8, 6);
+    public static readonly Guid DepositPaymentMethodId = Id(8, 7);
 
     public static readonly Guid Customer1Id = Id(10, 1);
 
