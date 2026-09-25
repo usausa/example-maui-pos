@@ -48,6 +48,9 @@ description: README の画面の画像 (docs/images/ の server-*.png と termin
 | `terminal-orders` | 受注一覧 |
 | `terminal-order-detail` | 受注詳細 (前受金を受け取った入荷待ちの受注) |
 | `terminal-receiving` | 入荷・移動の検品 |
+| `terminal-line-edit` | 明細の編集 (販売の明細をタップして開いたシート) |
+| `terminal-sales-menu` | 販売の操作 (販売の [⋯] で開いたシート) |
+| `terminal-pin` | PIN の入力 (スタッフ選択で担当を選び、2 桁入れた電卓のシート) |
 
 ## 仕上げ
 

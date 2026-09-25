@@ -14,8 +14,8 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | 初期設定 | 商品検索 | 精算 | 売上照会 |
 | ![取引履歴](docs/images/terminal-transactions.png) | ![商品・在庫照会](docs/images/terminal-product-inquiry.png) | ![受注](docs/images/terminal-orders.png) | ![受注詳細](docs/images/terminal-order-detail.png) |
 | 取引履歴 | 商品・在庫照会 | 受注 | 受注詳細 (前受金) |
-| ![検品](docs/images/terminal-receiving.png) | | | |
-| 入荷・移動の検品 | | | |
+| ![検品](docs/images/terminal-receiving.png) | ![明細の編集](docs/images/terminal-line-edit.png) | ![販売の操作](docs/images/terminal-sales-menu.png) | ![PIN の入力](docs/images/terminal-pin.png) |
+| 入荷・移動の検品 | 明細の編集 | 販売の操作 | PIN の入力 |
 
 ## 管理画面 (Blazor + MudBlazor)
 

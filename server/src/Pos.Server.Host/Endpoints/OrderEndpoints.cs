@@ -26,7 +26,7 @@ public static partial class OrderEndpoints
         group.MapPost("/{id:guid}/arrive", HandleArriveAsync);
         group.MapPost("/{id:guid}/cancel", HandleCancelAsync);
         group.MapPost("/{id:guid}/deposit", HandleDepositAsync);
-        group.MapPost("/{id:guid}/deposit/refund", HandleRefundDepositAsync);
+        group.MapPost("/{id:guid}/deposit/refund", HandleDepositRefundAsync);
     }
 
     //--------------------------------------------------------------------------------
@@ -244,7 +244,7 @@ public static partial class OrderEndpoints
     }
 
     // 前受金の返金 (全額を受け取った方法で)。新規は 201、同じ id は 200 で既存を返す
-    private static async ValueTask<IResult> HandleRefundDepositAsync(
+    private static async ValueTask<IResult> HandleDepositRefundAsync(
         TerminalAccess access,
         OrderService service,
         ClaimsPrincipal user,
