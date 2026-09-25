@@ -84,6 +84,31 @@ public sealed class OrderService
         return order is null ? null : await LoadDetailAsync(order, cancellationToken);
     }
 
+    // 受注票 PDF (担当と支払方法の名前は、無効・削除済みも引く)
+    public async ValueTask<OrderReportView?> QueryReportAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var detail = await QueryDetailAsync(id, cancellationToken);
+        if (detail is null)
+        {
+            return null;
+        }
+
+        var order = detail.Order;
+        var store = await masterAccessor.QueryStoreAsync(order.StoreId, cancellationToken);
+        var settings = await masterAccessor.QuerySettingsAsync(cancellationToken);
+        var staff = await masterAccessor.QueryStaffAsync(order.StaffId, cancellationToken);
+        var methods = await masterAccessor.QueryPaymentMethodListAsync(null, true, cancellationToken);
+        return new OrderReportView
+        {
+            Detail = detail,
+            CompanyName = settings?.CompanyName ?? String.Empty,
+            Store = store,
+            StaffName = staff?.Name ?? String.Empty,
+            PaymentMethodNames = methods.ToDictionary(static x => x.Id, static x => x.Name),
+            TimeZone = StoreService.ResolveTimeZone(store?.TimeZone)
+        };
+    }
+
     // 未完了の受注の件数 (入荷待ち・引き渡し待ち)
     public async ValueTask<(int Ordered, int Arrived)> CountOpenAsync(Guid? storeId, CancellationToken cancellationToken)
     {

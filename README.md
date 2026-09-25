@@ -28,7 +28,7 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | ![取引](docs/images/server-transactions.png) |
 | 取引: 営業日・店舗・端末・種別・状態・レシート番号・シリアル番号で検索、詳細からレシートの控え (PDF) |
 | ![受注](docs/images/server-orders.png) |
-| 受注: 取り寄せ・取り置きの登録・変更・入荷・キャンセル、前受金の記録 (前受金は端末で受け取り、会計で充てると完了) |
+| 受注: 取り寄せ・取り置きの登録・変更・入荷・キャンセル、前受金の記録、受注票 PDF (前受金は端末で受け取り、会計で充てると完了) |
 | ![日次締め](docs/images/server-daily-closings.png) |
 | 日次締め: 店舗 × 営業日の締めと解除 (未精算のシフトがある日は締めない)、売上日報 |
 | ![商品](docs/images/server-products.png) |
@@ -43,6 +43,13 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | レジ端末: ペアリングコード (6 桁、10 分) と設定 QR の発行、登録の状態と解除、最終通信 |
 | ![ユーザー](docs/images/server-accounts.png) |
 | ユーザー: 管理者 / オペレーターの追加・パスワード変更・無効化 (オペレーターはマスタ・設定・端末の登録を変更できない) |
+
+## 帳票 (PDF)
+
+| | | | | |
+| --- | --- | --- | --- | --- |
+| ![受注票](docs/images/report-order.png) | ![発注書](docs/images/report-purchase-order.png) | ![精算レポート](docs/images/report-shift.png) | ![売上日報](docs/images/report-daily-sales.png) | ![レシートの控え](docs/images/report-receipt.png) |
+| 受注票 (前受金の預り証を兼ねる) | 発注書 | 精算レポート | 売上日報 | レシートの控え |
 
 ## ドキュメント
 

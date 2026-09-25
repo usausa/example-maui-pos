@@ -2,6 +2,7 @@ namespace Pos.Server.Host.Endpoints;
 
 using Pos.Contract.Orders;
 using Pos.Server.Host.Helpers;
+using Pos.Server.Host.Reports;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Models.Views;
@@ -22,6 +23,7 @@ public static partial class OrderEndpoints
         group.MapPost("/", HandleCreateAsync);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
+        group.MapGet("/{id:guid}/pdf", HandlePdfAsync).RequireAuthorization(Policies.Admin);
         group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Admin);
         group.MapPost("/{id:guid}/arrive", HandleArriveAsync);
         group.MapPost("/{id:guid}/cancel", HandleCancelAsync);
@@ -181,6 +183,23 @@ public static partial class OrderEndpoints
     {
         var detail = await service.QueryDetailAsync(id, cancellationToken);
         return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(detail));
+    }
+
+    // 受注票 (お客様の控え。前受金を受け取ったときは預り証を兼ねる)
+    private static async ValueTask<IResult> HandlePdfAsync(
+        OrderService service,
+        OrderReportBuilder reportBuilder,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var report = await service.QueryReportAsync(id, cancellationToken);
+        if (report is null)
+        {
+            return ApiProblems.NotFound();
+        }
+
+        var bytes = reportBuilder.Build(report);
+        return TypedResults.File(bytes, "application/pdf", $"order-{report.Detail.Order.OrderNo}.pdf");
     }
 
     // 変更 (未完了のときだけ。完了・キャンセル済みは 422)

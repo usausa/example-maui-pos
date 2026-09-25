@@ -185,6 +185,29 @@ public static class ViewExtensions
         _ => value.ToString()
     };
 
+    public static string ToDisplayName(this OrderType value) => value switch
+    {
+        OrderType.BackOrder => "取り寄せ",
+        OrderType.Hold => "取り置き",
+        _ => value.ToString()
+    };
+
+    public static string ToDisplayName(this OrderStatus value) => value switch
+    {
+        OrderStatus.Ordered => "入荷待ち",
+        OrderStatus.Arrived => "引き渡し待ち",
+        OrderStatus.Completed => "完了",
+        OrderStatus.Cancelled => "キャンセル",
+        _ => value.ToString()
+    };
+
+    public static string ToDisplayName(this OrderDepositType value) => value switch
+    {
+        OrderDepositType.Receive => "受取",
+        OrderDepositType.Refund => "返金",
+        _ => value.ToString()
+    };
+
     public static string ToDisplayName(this CashEventType value) => value switch
     {
         CashEventType.PaidIn => "入金",

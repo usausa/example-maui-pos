@@ -101,7 +101,7 @@ Accessors/
 Models/Entity/                       {Table 単数}Entity (Smart.Data.Accessor の [Key]。テーブル名はクラスの [Name("Stores")])
 Models/Views/                        DB から読んだ結果 (XxxView: TransactionDetailView / ShiftDetailView / ShiftSummaryView / ShiftReportView / DailySalesReportView /
                                      DailyClosingDayView / DailyClosingSummaryView / OrderDetailView / OrderStatusCountView / ReceiptReportView / ShiftTotalsView / SalesSummaryView / ProductSalesView / ProductInventoryLevelView / InventoryLevelDetailView / ProductExportView /
-                                     InventoryReceiptDetailView / InventoryTransferDetailView / PurchaseOrderDetailView / PurchaseOrderReportView / SyncMasterDataView など)
+                                     InventoryReceiptDetailView / InventoryTransferDetailView / PurchaseOrderDetailView / PurchaseOrderReportView / OrderReportView / SyncMasterDataView など)
 Models/Parameters/                   Service に渡す条件と入力 (PagedParameter<TSort> を基底にした XxxQueryParameter、InventoryChangeParameter / ShiftCloseParameter / OrderUpdateParameter、
                                      ProductImportLine: CSV の 1 行を文字列のまま)
 Models/Enums/                        一覧の並び順 (StoreSort / TerminalSort / StaffSort / CategorySort / ProductSort / CustomerSort / InventoryLevelDetailSort /
@@ -148,7 +148,7 @@ Application/                         アプリ固有の部品
   Lookup/NameLookup.cs               ID → 名称 (店舗・端末・スタッフ・支払方法)
   State/StoreFilterState.cs          一覧ページ間で共有する店舗の絞り込み (scoped)
   Urls/ExportUrls.cs                 管理画面から開くダウンロード URL (CSV / PDF)
-Reports/                             OysterReport の帳票: ShiftReportBuilder (精算レポート)、DailySalesReportBuilder (売上日報)、ReceiptReportBuilder (レシートの控え)、PurchaseOrderReportBuilder (発注書)、ReportText (D-37)
+Reports/                             OysterReport の帳票: ShiftReportBuilder (精算レポート)、DailySalesReportBuilder (売上日報)、ReceiptReportBuilder (レシートの控え)、PurchaseOrderReportBuilder (発注書)、OrderReportBuilder (受注票)、ReportText (D-37)
 Endpoints/                           静的クラス + MapApiGroup (計測フィルタ付きのグループ。ハンドラは private static)。Request → Entity / Parameter の変換 ([Mapper]) と Service の呼び出しだけを担う
   ApiRoutes.cs (/api/v1), ApiDefaults.cs (ページサイズ), ApiProblems.cs (errorCode / errors / expected 付き Problem Details と DataWriteStatus からの変換),
   ApiRuleText.cs (業務ルール違反と警告の文言)

@@ -790,6 +790,19 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 ---
 
+## 受注票と README の帳票の画像 (完了)
+
+受注の控えを受注票 PDF で出し、前受金の預り証を兼ねる ([D-78](decisions.md#d-78-受注票-受注の控えを-pdf-で出し前受金の預り証を兼ねる))。  
+README に帳票の画像を載せ、端末の画像の表の空きをシートの画像で埋めた。
+
+- [x] 受注票 PDF (`OrderReportBuilder`、`Assets/Reports/Order.xlsx`、`GET /orders/{id}/pdf`)。  
+      管理画面の受注の詳細に [受注票 PDF]
+- [x] README の帳票の節 (受注票・発注書・精算レポート・売上日報・レシートの控え) と、端末の表の空き (明細の編集・販売の操作・PIN の入力)
+- [x] readme-images skill に帳票の撮り方を足す (`report_steps.py`、`capture_server.mjs` の PDF の保存、`shrink.py report`)
+- [x] 統合テスト (受注票の PDF、端末のトークンでは使えない)、docs (api-design §3.15、screen-design S-91、architecture、decisions D-78)
+
+---
+
 ## AI 向けの規則の整理 (完了)
 
 `.claude/rules/` を実装と突き合わせて直し、繰り返す手順を skills にした ([D-75](decisions.md#d-75-規則を実装に合わせて直し繰り返す手順を-skills-にする))。

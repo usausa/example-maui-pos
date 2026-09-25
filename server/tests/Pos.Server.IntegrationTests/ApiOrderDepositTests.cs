@@ -1,5 +1,6 @@
 namespace Pos.Server;
 
+using System.Text;
 using System.Text.Json;
 
 using Pos.Contract.Orders;
@@ -25,6 +26,8 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
         options = factory.JsonOptions();
     }
 
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
     // 受け取った前受金は会計で充て、会計の取消で戻り、返すとキャンセルできる
     [Fact]
     public async Task DepositIsAppliedAtCheckoutAndRefundedBeforeCancel()
@@ -49,6 +52,20 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
         await mismatchResponse.ReadProblemAsync(HttpStatusCode.Conflict, "DUPLICATE_ID_MISMATCH", options);
         using var secondResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/deposit", DepositRequest(shiftId, TestData.MainTerminal1Id, TestData.CardPaymentMethodId, 100m), options);
         await secondResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "ORDER_DEPOSIT_INVALID", options);
+
+        // Act / Assert: 受注票 (前受金の預り証を兼ねる) は管理画面だけ
+        using var pdfResponse = await client.GetAsync(new Uri($"{ApiRoutes.Orders}/{order.Id}/pdf", UriKind.Relative), Token);
+        Assert.Equal(HttpStatusCode.OK, pdfResponse.StatusCode);
+        Assert.Equal("application/pdf", pdfResponse.Content.Headers.ContentType?.MediaType);
+        var bytes = await pdfResponse.Content.ReadAsByteArrayAsync(Token);
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
+        Directory.CreateDirectory("TestResults");
+        await File.WriteAllBytesAsync(Path.Combine("TestResults", "order.pdf"), bytes, Token);
+        using var missingPdfResponse = await client.GetAsync(new Uri($"{ApiRoutes.Orders}/{Guid.NewGuid()}/pdf", UriKind.Relative), Token);
+        Assert.Equal(HttpStatusCode.NotFound, missingPdfResponse.StatusCode);
+        var terminal = await factory.CreateTerminalClientAsync(TestData.MainTerminal1Id);
+        using var terminalPdfResponse = await terminal.GetAsync(new Uri($"{ApiRoutes.Orders}/{order.Id}/pdf", UriKind.Relative), Token);
+        Assert.Equal(HttpStatusCode.Forbidden, terminalPdfResponse.StatusCode);
 
         // Act / Assert: 前受金があるうちはキャンセルできない。現金の前受金は予想現金に入る
         using var cancelHeldResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/cancel", new OrderCancelRequest(), options);

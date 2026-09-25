@@ -97,6 +97,7 @@
         @if (detail is not null)
         {
             var order = detail.Order;
+            <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@ExportUrls.OrderPdf(order.Id)" Target="_blank">受注票 PDF</MudButton>
             if (order.TransactionId is not null)
             {
                 <MudButton StartIcon="@Icons.Material.Filled.Receipt" OnClick="() => Close(OrderDialogAction.OpenTransaction)">会計した取引</MudButton>

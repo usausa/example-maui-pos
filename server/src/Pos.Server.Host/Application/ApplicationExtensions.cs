@@ -602,6 +602,7 @@ public static class ApplicationExtensions
         builder.Services.AddSingleton<DailySalesReportBuilder>();
         builder.Services.AddSingleton<ReceiptReportBuilder>();
         builder.Services.AddSingleton<PurchaseOrderReportBuilder>();
+        builder.Services.AddSingleton<OrderReportBuilder>();
 
         // Setting
         builder.Services.AddOptions<ProfilerSetting>().BindConfiguration("Profiler").ValidateDataAnnotations().ValidateOnStart();
