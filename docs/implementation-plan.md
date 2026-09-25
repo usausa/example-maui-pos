@@ -25,7 +25,7 @@
 - [x] `Directory.Build.props` をコピーし、`NoWarn` に MAUI 用の `NU1608` を含める (テンプレート間の唯一の差分)
 - [x] Jenkins のパイプライン (サーバと端末を 1 つでビルド / 検査 / テスト / 公開。Jenkins 側の設定)。  
       テストは `dotnet run --project` で実行し、`global.json` は置かない ([D-35](decisions.md#d-35-テストの実行方法))
-- [x] `AGENTS.md` を作成 (テンプレートの規約 + 本プロジェクト固有: 「DTO」不使用、Service / Usecase なし、camelCase、フォルダ構成)。  
+- [x] `AGENTS.md` を作成 (テンプレートの規約 + 本プロジェクト固有の規則)。  
       `CLAUDE.md` は置かない (Claude も `AGENTS.md` を直接読む)
 - [x] ルート `README.md` に構成と起動方法
 
@@ -700,11 +700,13 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 ---
 
-## AI 向けの規則の整理 (未着手)
+## AI 向けの規則の整理 (完了)
 
-`.claude/rules/` はこれまでの変更をいったんそのままコミットし、あとで整理する (利用者指示)。  
-あわせて skills の整備も検討する。  
-何をどう変えるかは着手時に決める。
+`.claude/rules/` を実装と突き合わせて直し、繰り返す手順を skills にした ([D-75](decisions.md#d-75-規則を実装に合わせて直し繰り返す手順を-skills-にする))。
 
-- [ ] `.claude/rules/` を整理する
-- [ ] skills (`.claude/skills/`) の整備を検討する
+- [x] `.claude/rules/` を整理する。  
+      古い記述を直し、確認できた規約 (認可、API の形、端末の通信と Outbox、ポップアップ、DDL と初期データ、テストの認証など) を足した。  
+      画面の規則は `server-ui.md` / `terminal-ui.md`、Accessor の規則は `accessor.md` に分け、進め方は `docs.md` から `AGENTS.md` に移した
+- [x] skills (`.claude/skills/`) を整える: `verify` (ビルド、テスト、InspectCode、改行コード、文書の改行)、`readme-images` (README の画像)、`emulator` (エミュレータでの確認)
+- [x] 見直しで見つかった不具合 (同じシフトの精算が同時に届いたときの 500、税率の既定の付け替えがトランザクションの外) と、Phase 8 で入れた不揃いを直す。  
+      それより前の不揃いは触ったときに揃える

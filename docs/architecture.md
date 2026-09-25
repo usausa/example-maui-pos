@@ -30,8 +30,9 @@
 ```
 example-maui-pos/
 ├─ .editorconfig / .gitattributes / .gitignore / Directory.Build.props / Directory.Build.targets
-├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md (AI 向け: 進め方と共通の規則) / LICENSE / README.md
-├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 全体と共有プロジェクト、server / terminal / sql / tests / docs は paths で対象を絞る)
+├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md (AI 向け: 全体の書き方・検証・進め方) / LICENSE / README.md
+├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 全体と共有プロジェクト、他は paths で対象を絞る)
+├─ .claude/skills/                   AI 向け: 繰り返す手順とスクリプト (verify = 検証、readme-images = README の画像、emulator = エミュレータでの確認)
 │                                    ↑ ルートに 1 セット (MAUI 用の NoWarn NU1608 を含む)
 ├─ docs/                             本設計
 ├─ shared/                           両ソリューションに含める共有プロジェクト
@@ -39,7 +40,7 @@ example-maui-pos/
 │  ├─ Pos.Domain.Tests/              計算ロジックの単体テスト。依存関係の検証テスト (Pos.Domain が UI / DB / HTTP に依存しない) を含む
 │  └─ Pos.Contract/                    通信データ: XxxRequest / XxxResponse (net10.0)
 ├─ server/                           Service-CloudManager と同じ形
-│  ├─ Pos.Server.slnx                サーバ + shared/ (Domain / Shared / Domain.Tests) + tests + tools
+│  ├─ Pos.Server.slnx                サーバ + shared/ (Domain / Contract / Domain.Tests) + tests + tools
 │  ├─ Pos.Server.sln.DotSettings
 │  ├─ src/
 │  │  ├─ Pos.Server.AppHost/         Aspire AppHost (template-blazor-server から)
@@ -51,7 +52,7 @@ example-maui-pos/
 │  └─ tools/
 │     └─ Pos.Server.SampleData/      サンプル取引の生成ツール (API 経由、§8)
 └─ terminal/                         template-maui-keyboard と同じ形
-   ├─ Pos.Terminal.slnx              端末 + shared/ (Domain / Shared)
+   ├─ Pos.Terminal.slnx              端末 + shared/ (Domain / Contract)
    ├─ Pos.Terminal.sln.DotSettings / Settings.XamlStyler
    └─ Pos.Terminal/                  MAUI (net10.0-android)
 ```
@@ -255,13 +256,14 @@ Sync/          SyncMastersResponse
 Customers/     CustomerResponse / CustomerResponseItem / CustomerCreateRequest / CustomerUpdateRequest,
                CustomerPointHistoryResponse / CustomerPointHistoryResponseItem, CustomerPointAdjustRequest
 Transactions/  TransactionCreateRequest (+ TransactionCreateRequestLine / Discount / TaxSummary / Payment / Delivery / Void),
-               TransactionResponse / TransactionResponseItem (+ TransactionResponseItemLine / ... / Warning),
+               TransactionResponse / TransactionResponseItem (+ TransactionResponseLine / ... / Warning),
                TransactionVoidRequest, TransactionCalculateRequest, TransactionCalculateResponse (計算項目のみ。calculate の応答と expected)
 Shifts/        ShiftOpenRequest, ShiftResponse / ShiftResponseItem (+ Denomination / Totals), ShiftCloseRequest (+ Denomination),
                ShiftCashEventRequest / ShiftCashEventResponse / ShiftCashEventResponseItem, ShiftSummaryResponse (+ PaymentMethod / TaxRate / Category / Points / Cash)
 Inventory/     InventoryLevelResponse / InventoryLevelResponseItem, InventoryProductResponse (+ Level),
                InventoryChangeRequest (+ Change) / InventoryChangeResultResponse (+ Result、InventoryChangeResultStatus),
-               InventoryChangeResponse / InventoryChangeResponseItem, AdjustmentReasonResponse / AdjustmentReasonResponseItem / CreateRequest / UpdateRequest
+               InventoryChangeResponse / InventoryChangeResponseItem
+AdjustmentReasons/ AdjustmentReasonResponse / AdjustmentReasonResponseItem / AdjustmentReasonCreateRequest / AdjustmentReasonUpdateRequest
 Suppliers/     SupplierResponse / SupplierResponseItem / SupplierCreateRequest / SupplierUpdateRequest
 InventoryReceipts/  InventoryReceiptCreateRequest (+ Line), InventoryReceiptReceiveRequest (+ Line), InventoryReceiptResponse / InventoryReceiptResponseItem (+ Line)
 InventoryTransfers/ InventoryTransferCreateRequest (+ Line), InventoryTransferShipRequest, InventoryTransferReceiveRequest (+ Line),
@@ -273,13 +275,13 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
   書き方は (`{ get; set; } = default!` のクラス、Request には `Required` / `MaxLength` / `Range`。文字列の長さは `Pos.Domain.Length` の定数)。  
   camelCase への変換はシリアライザ設定で行い、属性は付けない
 - クラス名はエンドポイントのクラス名 + メソッド名 (`TransactionCreateRequest` / `TransactionCalculateResponse` / `CustomerPointHistoryResponse` / `ShiftCashEventRequest` / `ReportSalesSummaryResponse`)。  
-  入れ子の要素は親の名前に要素名を続ける (`TransactionResponseItemLine`)
+  入れ子の要素は親の名前に要素名を続ける (`TransactionResponseLine`)
 - 列挙型は `Pos.Domain` のものをそのまま使う。  
   エラーコード定数は持たず、`Pos.Domain` の `ErrorCode.ToCode()` / `WarningCode.ToCode()` と端末の `ProblemResponse.ErrorCode` (文字列) で突き合わせる
 - 日付は `DateOnly`、日時は `DateTime` (UTC)。  
   `JsonDateTimeConverter` (`yyyy-MM-ddTHH:mm:ss.fffZ`) と Problem Details の型 (`ProblemResponse`) は契約ではないのでサーバと端末がそれぞれ持つ (サーバは `Pos.Server.Core` の `Infrastructure/Json`、端末は `Helpers/Json` / `Services`)。  
   サーバは `ConfigureHttpJsonOptions`、端末は `HttpService.JsonOptions` で同じ設定を登録し、形式は `Pos.Server.IntegrationTests` の `JsonContractTests` で固定
-- 名前空間 `Pos.Contract` は VB の予約語と重なるため CA1716 を、`ImageUrl` は CA1056 を `Pos.Contract` の `GlobalSuppressions.cs` で抑止している ([D-38](decisions.md#d-38-警告の抑止))
+- `ImageUrl` の CA1056 と、公開型を internal にする CA1515 は `Pos.Contract` の `GlobalSuppressions.cs` で抑止している ([D-38](decisions.md#d-38-警告の抑止))
 
 ---
 
@@ -358,10 +360,8 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CA
 ```
 
 - ViewModel は入力の検証と表示に徹し、通信 → DB → 完了までの一連の手順は `Usecases/` の `XxxUsecase`、単機能は `Services/` の `XxxService` に置く ([D-46](decisions.md#d-46-端末の-service--usecase-とナビゲーションのコンテキスト)、[D-49](decisions.md#d-49-端末の見直し-scope-プラグイン入力の種類ごとの電卓ヘルパーの置き場所))。  
-  `XxxBuilder` は文字列や画像の組み立てだけに使い、データの変換や計算は `XxxMapper` / `XxxCalculator` と呼ぶ。  
-  ViewModel から `IDbProvider` は使わない。  
-  フィールドと引数は Component (IDialog など) → State (Session、コンテキスト) → Service の順
-- 特定の機能の画面間でだけ共有する状態 (カート、返品、棚卸の入力、会員編集の下書き) は `State` ではなく `SalesContext` / `ReturnContext` / `StockContext` / `CustomerDraft` とし、ViewModel の `[Scope]` プロパティに Smart.Navigation の Scope プラグインが注入する (DI に transient 登録)。  
+  ViewModel から `IDbProvider` は使わない
+- 特定の機能の画面間でだけ共有する状態 (カート、返品、棚卸の入力、入荷・移動の検品、会員編集の下書き) は `State` ではなく `SalesContext` / `ReturnContext` / `StockContext` / `ReceivingContext` / `CustomerDraft` とし、ViewModel の `[Scope]` プロパティに Smart.Navigation の Scope プラグインが注入する (DI に transient 登録)。  
   同じ名前のプロパティを持つ画面の間で同じインスタンスが共有され、どの画面からも参照されなくなると破棄される (会計完了やメニューへ戻ると新しいカートになる)。  
   スキャンなど途中の画面は、呼び出し元の機能の状態を保持するために各コンテキストのプロパティを持つ
 - 使用者に常に紐付く情報 (店舗・端末・担当・シフト) は `Session` に集約する
@@ -406,6 +406,6 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CA
 | 1 日の流れ | 08:30 に入荷 (初日のみ、物品を 10〜30 個。入荷予定を登録して予定どおり受領する。仕入先がなければ作る) → 09:00 開設 (釣銭準備金 3 万円) → 販売 `--per-day` ± 2 件 (既定 6) → 返品 (販売の 25%) → 取消 (30% の日に 1 件) → 出金 (60% の日) → 20:00 精算 (ときどき過不足) |
 | 日次締め | 店舗ごとに、前日までの各日を締める (今日は営業中として残す)。締め済みや未精算のシフトがある日は省略する |
 | 認証 | `--user` / `--password` (既定 `admin` / `admin`) で管理画面のフォームからログインし、Cookie で API を呼ぶ (端末の一致は確かめられない) |
-| 販売の内容 | 端末と同じ手順 (`SalesCalculator` → `TransactionCreateRequest` → `POST /transactions`)。1〜3 明細、明細値引 (承認者付き) / 取引値引 15%、シリアル番号、会員 (ポイント利用は残高まで)、カード 35% (伝票番号付き) / 現金 (千円単位の預り)、サービス明細には配送先 |
+| 販売の内容 | 端末と同じ手順 (`SalesLogic.Calculate` → `TransactionCreateRequest` → `POST /transactions`)。1〜3 明細、明細値引 (承認者付き) / 取引値引 15%、シリアル番号、会員 (ポイント利用は残高まで)、カード 35% (伝票番号付き) / 現金 (千円単位の預り)、サービス明細には配送先 |
 | レシート番号 | `terminals/{id}` の `lastReceiptSeq` から連番を続ける |
 | 乱数 | `--seed` (既定 1) で再現できる。サーバが 409 / 422 で拒否した取引は省略して続行する |

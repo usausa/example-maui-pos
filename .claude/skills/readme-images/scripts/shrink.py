@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+# 撮った画面を README の大きさと色数にそろえる (管理画面は幅 1200、端末は幅 360、256 色)
+#
+#   python shrink.py server <撮った画像...> [--out-dir docs/images]
+#   python shrink.py terminal <撮った画像...> [--out-dir docs/images]
+#
+# 名前はそのまま (server-dashboard.png → docs/images/server-dashboard.png)。Pillow が要る
+import argparse
+import sys
+from pathlib import Path
+
+from PIL import Image
+
+WIDTHS = {'server': 1200, 'terminal': 360}
+
+
+def shrink(source, destination, width):
+    image = Image.open(source).convert('RGB')
+    height = round(image.height * width / image.width)
+    image = image.resize((width, height), Image.Resampling.LANCZOS)
+    # 画面の平らな色が縞にならないように、ディザを掛けずに減色する
+    image = image.quantize(256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    image.save(destination, optimize=True)
+    return image.size
+
+
+def main():
+    parser = argparse.ArgumentParser(description='撮った画面を README の大きさと色数にそろえる')
+    parser.add_argument('kind', choices=sorted(WIDTHS))
+    parser.add_argument('sources', nargs='+')
+    parser.add_argument('--out-dir', default='docs/images')
+    args = parser.parse_args()
+
+    out = Path(args.out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    for source in args.sources:
+        destination = out / Path(source).name
+        size = shrink(source, destination, WIDTHS[args.kind])
+        print(f'{destination} {size[0]}x{size[1]}')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

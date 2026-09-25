@@ -1,7 +1,7 @@
 # 起動と開発
 
 サーバと端末の起動手順、サンプル取引の生成、テストと静的解析。  
-プロジェクト構成は [architecture.md](architecture.md)、設計判断は [decisions.md](decisions.md)、AI 向けの規則は [AGENTS.md](../AGENTS.md) と `.claude/rules/`。
+プロジェクト構成は [architecture.md](architecture.md)、設計判断は [decisions.md](decisions.md)、AI 向けの規則は [AGENTS.md](../AGENTS.md) と `.claude/rules/`、繰り返す手順とスクリプトは `.claude/skills/`。
 
 ## 構成
 
@@ -104,4 +104,11 @@ jb inspectcode server/Pos.Server.slnx -f=xml -o=results-server.xml --no-build --
 
 ```bash
 jb inspectcode terminal/Pos.Terminal.slnx -f=xml -o=results-terminal.xml --no-build --properties:Configuration=Release
+```
+
+手元で繰り返すと前回の解析のキャッシュが結果に残ることがあるので、`--caches-home` に毎回新しいフォルダを渡す。  
+ビルド (警告)、テスト、InspectCode、変更したファイルの改行コードと文書の改行は、次のスクリプトでまとめて確かめられる (ログは一時フォルダの `pos-verify`)。
+
+```bash
+python .claude/skills/verify/scripts/verify.py
 ```

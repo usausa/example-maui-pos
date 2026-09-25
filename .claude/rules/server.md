@@ -1,30 +1,32 @@
 ---
 paths:
-  - "server/**"
+  - "server/src/**"
+  - "server/tools/**"
 ---
 # サーバ (ASP.NET Core)
 
+Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-ui.md に置く。
+
 ## Core
 
-- Endpoints と Blazor ページは `Services/` の `XxxService` を呼び、Service が Accessor と `Pos.Domain` を使う。Web 系の Core は Service だけで Usecase 層を置かない (件数 + ページ取得の合成程度は Service のメソッド)。Service は個別に DI 登録しない (`AddCoreServices()` が自動で登録する)
-- DB から読んだ結果は `Models/Views` の `XxxView` に統一する。列挙型 (並び順など) は `Views` や `Parameters` に混ぜず `Models/Enums` に置く。Service への入力は `Models/Parameters` (一覧は `PagedParameter<TSort>` を基底にした `XxxQueryParameter`。`Sort` は資源ごとの列挙型)
-- 1 つの Service だけが返す結果型 (`XxxResult`) は、その Service のファイルの先頭で定義する。複数の Service で使う型 (`DataWriteStatus` / `DataWriteResult<T>`) は独自のファイルにする
+- Endpoints と Blazor ページは `Services/` の `XxxService` を呼び、Service が Accessor と `Pos.Domain` を使う。Web 系の Core は Service だけで Usecase 層を置かない (件数 + ページ取得の合成程度は Service のメソッド)
+- Service は個別に DI 登録しない (`AddCoreServices()` が自動で登録する)
+- 表の行は `Models/Entity` の `XxxEntity`、結合・集計の結果と Service が組み立てる複合 (明細付き、帳票) は `Models/Views` の `XxxView` にする
+- Service への入力は `Models/Parameters` に置く。一覧は `PagedParameter<TSort>` を基底にした `XxxQueryParameter` (`Sort` は資源ごとの列挙型) にする
+- 列挙型 (並び順など) は `Views` や `Parameters` に混ぜず `Models/Enums` に置く
+- 1 つの Service だけが返す結果型 (`XxxResult`) とその状態 (`XxxResultStatus`) は、その Service のファイルの先頭で定義する。複数の Service で使う型 (`DataWriteStatus` / `DataWriteResult<T>`) は独自のファイルにする
 - 重複 (`IDialect.IsDuplicate`)、楽観ロック (`RETURNING` で行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す。「読んでから更新」で判定しない
-- LIKE のエスケープと既定値の補完は Service で行う。複数テーブルにまたがる書き込みは Service の中で `IDbProvider.UsingTxAsync` を使う
-- 現在時刻 (`TimeProvider`) を扱うのは Service と帳票だけ。「今日」「既定の期間」「通信中とみなす条件」「登録時刻」は業務の規則なので Service が持つ (`ReportService.Today` / `ResolvePeriod`、`TerminalService.IsOnline`、省略された `OccurredAt` の補完)
-- 省略された期間の既定値は逆転しないように補う (`to` は今日、`from` が未来ならその日、`from` は `to` の 30 日前)
-- Host だけが使う部品でも、アプリに依存しない基盤 (`JsonDateTimeConverter` など) は Core の `Infrastructure/` に置く
-
-## Accessor
-
-- 新しいテーブルの Accessor は処理の単位でまとめる (マスタは `MasterAccessor`、それ以外は `TransactionAccessor` のように資源ごと)。テーブルに紐付かない処理 (PRAGMA、後から増えた列、スキーマと初期データの SQL ファイルの実行) は `GenericAccessor`
-- メソッド名は DB の操作 (`Query` / `Count` / `Insert` / `Update` / `Delete`) で付ける。取消や精算のような業務の動詞は Service の名前にし、Accessor は状態を変える UPDATE として `UpdateVoidedAsync` / `UpdateClosedAsync` と呼ぶ
-- テーブル名は Entity クラスの `[Name("Stores")]` で持ち、Builder 属性 (`[SelectSingle]` / `[Insert]` / `[Delete]`) に `Table` を書かない
-- 更新は `UPDATE ... RETURNING *` を `[QueryFirst]` で受けて更新後の行を返し、更新してから読み直さない (読み直す間に削除される余地がある)。更新の引数は列ごとに渡す (`/*@ entity.Prop */` にはコンバータが効かない)
-- 列挙型は `DataProfile` の `EnumTextConverter<T>` で文字列として保存する (新しい列挙型は `DataProfile` に登録する)。日付・日時は `DateOnlyTextConverter` / `DateTimeTextConverter`
-- `SqlHelper` に置くのは 2-way SQL の `/*# */` から呼ぶ SQL 断片 (集計の GROUP BY 式など) だけ。SQL に関係しない処理 (列の追加、タイムゾーンの修飾子) は `SchemaHelper` や Service に置く
-- 後から増えた列は `SchemaHelper.EnsureColumnAsync` で起動時に足して初期値を補完し、既存の DB を壊さない
-- 初期データの追加・変更は `Host/Assets/Data/InitialData.sql` に書く (C# で組み立てない)
+- マスタの登録は、Service が `Id` (`Guid.CreateVersion7()`)、`CreatedAt`、`UpdatedAt`、`Version = 1` を補って `ServiceHelper.InsertAsync` で行う。更新は `ServiceHelper.UpdateAsync` を使う
+- LIKE のパターン (`ServiceHelper.ToLikePattern`) と既定値の補完は Service で行う
+- 状態の遷移は `UpdateXxxedAsync` で行い、行が返らなければ読み直して NotFound か業務ルール違反 (`XxxLogic.ValidateXxx`) を返す
+- 複数の文にまたがる書き込みは、Service の中で `IDbProvider.UsingTxAsync` を使う
+- 業務で使う現在時刻 (`TimeProvider`) を読むのは Service と帳票だけにし、ページとエンドポイントは時計を持たない (計測の経過時間は除く)
+- 「今日」「既定の期間」「通信中とみなす条件」「登録時刻」は業務の規則なので Service が持つ (`ReportService.Today` / `ResolvePeriod`、`TerminalService.IsOnline`、省略された `OccurredAt` の補完)
+- 取引・シフト・在庫・受注・日次締めを書いた Service は、成功後に `ChangeNotificationService.Notify(DataChangeKind.Xxx)` を呼ぶ
+- 初期データは `Host/Assets/Data/InitialData.sql` に書く (C# で組み立てない)。設定から作るもの (初期の管理者) だけ Service の `InitializeAsync` で作る
+- アカウントの役割・有効・パスワードを変える更新は `Version` を進める (版が変わるとログイン中のセッションが切れる)。最終ログインのような付随列は版を進めない
+- パスワード、PIN、端末のトークンは平文で持たず (`IPasswordProvider`、`PinHasher`、SHA-256)、応答にも出さない (`PinHash` は端末の同期応答だけ)
+- ASP.NET Core に依存しない基盤 (データ、画像の形式、JSON、パスワード) は Core の `Infrastructure/`、依存するもの (CSV、例外処理、フィルター、ログ、帳票のフォント) は Host の `Infrastructure/` に置く
 
 ## Host
 
@@ -33,50 +35,62 @@ paths:
 | 種類 | 置き場所 |
 | --- | --- |
 | ページ・コンポーネントの基底 (`PageComponentBase` / `AppComponentBase`) | `Components/` 直下 |
+| 画面の部品 (`StatusChip` など) | `Components/Controls/` |
 | ダイアログの基底と `IDialogService` の拡張 | `Components/Dialogs/` |
 | razor 表示用の加工 (`ViewHelper` = 部品の文言と色、`ViewExtensions` = 書式の拡張メソッド) | `Application/` |
-| 名称の辞書 (`NameLookup`)、共有する絞り込み (`StoreFilterState`)、ダウンロード URL (`ExportUrls`) | `Application/Lookup` / `Application/State` / `Application/Urls` |
+| 認証・認可 (`AuthClaims`、`Policies`、`TerminalAccess`、認証ハンドラ、`AuthenticationStateProvider`) | `Application/Authentication/` |
+| 名称の辞書 (`NameLookup`) | `Application/Lookup/` |
+| 共有する絞り込み (`StoreFilterState`) | `Application/State/` |
+| ダウンロード URL (`ExportUrls`) | `Application/Urls/` |
 | 帳票 (`XxxReportBuilder`) | `Reports/` (Endpoints と同階層) |
 | API の文言・既定値・経路・Problem Details (`ApiRuleText` / `ApiDefaults` / `ApiRoutes` / `ApiProblems`) | `Endpoints/` |
-| 列挙値の解析 (`EnumHelper`) | `Helpers/` |
-| CSV 出力、ログ、例外処理 | `Infrastructure/Csv` / `Infrastructure/Logging` / `Infrastructure/ExceptionHandling` |
+| 要求の解析 (`EnumHelper`、`RequestHelper`) | `Helpers/` |
+| CSV の入出力、例外処理、フィルター、ログ、帳票のフォント | `Infrastructure/` の `Csv`、`ExceptionHandling`、`Filters`、`Logging`、`Reports` |
 | API のクエリ (`[AsParameters]`) | `Models/Queries/` |
-| 複数の画面で使うフォーム | `Models/Forms/` (Entity ↔ Form の変換はフォームが持つ。`Mappers` フォルダは作らない) |
-| 1 つのページだけのフォームと検証 | そのページの内部クラス |
+| CSV の行 (`XxxExportRow` と見出しの `XxxCsvHeader`、`XxxImportRow`) | `Models/Export/`、`Models/Import/` |
+| ダイアログと受け渡すフォーム (`XxxForm` と `XxxFormValidator`) | `Models/Forms/` (Entity ↔ Form の変換はフォームが持つ。`Mappers` フォルダは作らない) |
+| ページの中で完結するフォームと検証 | そのページの内部クラス |
 
-- 自前のヘルスチェック (`DatabaseHealthCheck` のような) は置かない
+- ヘルスチェックは生存確認 (`self`) だけにし、DB などの依存先を確かめるチェックは足さない
 
 ### 基盤
 
-- `Program.cs` は `ConfigureXxx()` / `UseXxx()` / `MapXxx()` の宣言列挙だけにし、実体は `Application/ApplicationExtensions.cs` に区切りコメント付きで書く (節の順 = 呼び出し順)
-- ミドルウェアの順序は ForwardedHeaders → W3CLog → ErrorHandler → UseRouting → Compression → HttpLog → Authentication → Authorization → RateLimiter → Antiforgery → Endpoints。例外ハンドラーは圧縮の外 (標準どおり)。W3C ログは例外ハンドラーの外 (未処理例外の 500 を記録する)、HTTP ログは圧縮の内 (ダンプが展開後。未処理例外は 200 と記録される開発用)。`UseWhen` 内の `UseExceptionHandler("/error")` の再実行は暗黙のルーティングに乗らないので `UseRouting()` を明示する
-- DI の登録は `ConfigureComponents` に System → Data → Service → Report → Setting の順で区切りコメントを付けて書く。既定は Singleton
+- `Program.cs` は拡張メソッドの呼び出しの列挙だけにし、実体は `Application/ApplicationExtensions.cs` に機能ごとの節で書く (節は `ConfigureXxx` の順、`UseXxx` は同じ機能の節)
+- ミドルウェアの順序は ForwardedHeaders → W3CLog → ErrorHandler → UseRouting → Compression → HttpLog → Authentication → Authorization → RateLimiter → Antiforgery → Endpoints
+- 例外ハンドラーは圧縮の外 (標準どおり)、W3C ログは例外ハンドラーの外 (未処理例外の 500 を記録する)、HTTP ログは圧縮の内 (ダンプが展開後) に置く
+- `UseWhen` 内の `UseExceptionHandler("/error")` の再実行は暗黙のルーティングに乗らないので、`UseRouting()` を明示する
+- アプリの部品 (Core の Service、パスワード、`TerminalAccess`、帳票、設定) は `ConfigureComponents` に System → Data → Service → Report → Setting の順で区切りコメントを付けて Singleton で登録する
+- フレームワークの機能に付く登録と回線ごとの状態 (Scoped) は、その機能の `ConfigureXxx` に書く (Blazor の認証状態は `ConfigureBlazor` で `AddRazorComponents` の後)
 - 設定は `Settings/XxxSetting` (DataAnnotations で制約) を `AddOptions<T>().BindConfiguration().ValidateDataAnnotations().ValidateOnStart()` で登録し、値を Singleton で再登録する。業務コードに `IOptions<T>` を渡さない
 - ログは `Application/Log.cs` の `[LoggerMessage]` に集約する (Info~ / Warn~ / Error~ の命名、`key=[{value}]` の書式)。文字列補間でログを書かない
-- 計測は BCL の `Meter` / `ActivitySource` (`Application/Telemetry/ApplicationInstrument`) で行い、エクスポータは `ConfigureTelemetry` にだけ書く。要求ごとの文脈 (接続元アドレス) は `IHttpContextAccessor` からログ出力時に読み、`CallbackEnricher` で全ログ行に付ける (専用のミドルウェアは置かない)
-- マッピングは使うクラスの中に `[Mapper] private static partial` で局所化する。複数のクラスから使うときだけ `Application/ModelMapper`
+- 計測は BCL の `Meter` / `ActivitySource` (`Application/Telemetry/ApplicationInstrument`) で行い、エクスポータは `ConfigureTelemetry` にだけ書く
+- 要求ごとの文脈 (接続元アドレス) は `IHttpContextAccessor` からログ出力時に読み、`CallbackEnricher` で全ログ行に付ける (専用のミドルウェアは置かない)
+- 変換は使うクラスの中に `[Mapper] private static partial` で書く。他のクラスも使う変換は元のクラス (`XxxEndpoints`、`XxxForm`) で `internal` / `public` にし、変換だけのクラスは作らない
+
+### 認証と認可
+
+- 管理画面はログイン (Cookie)、端末はペアリングで受け取ったトークン (Bearer、`TerminalAuthenticationHandler`) で認証する。トークンは要求ごとに DB で照合する (登録の解除がすぐ効く)
+- ポリシーは `ConfigureAuthentication` の `BuildPolicy` で作る (認証を無効にすると素通しになる)。ポリシーを重ねるとスキームが合算されるので、管理画面と端末はスキームではなく要件 (アカウントの役割、端末のクレーム) で区別する
+- API は `MapApiGroup` の既定 `Policies.Api` (ログインか端末) を基本にし、管理画面だけの操作 (CSV、PDF、日次締め、仕入先、入荷と移動の登録など) は `Policies.Admin`、マスタ・会社設定・端末登録の書き込みと締めの解除は `Policies.Administrator`、端末自身の通信は `Policies.Terminal` を付ける
+- 端末も呼ぶ書き込みの API は `TerminalAccess` と `ClaimsPrincipal` を受け、本文や対象の店舗・端末がトークンと合わなければ `ApiProblems.TerminalMismatch()` を返す (既存の資源は読んでから確かめ、ないときは Service の NotFound に任せる)。読み取りと管理画面の要求には適用しない
+- 利用者と端末は `AuthClaims.AccountOf` / `TerminalOf` で読み、クレームを直接読まない。認証を無効にすると null になるので、記録する名前などは null を許す
+- 匿名で受ける認証の入口 (ログイン、ペアリング) は `AllowAnonymous()` と `RequireRateLimiting(RateLimits.Auth)` を対にする
+- ログインとログアウトは、静的 SSR のフォーム (`<AntiforgeryToken />` 付き) から `AuthEndpoints` (`/auth`。API ではない) に POST し、結果は転送で返す
 
 ### エンドポイント
 
-- API のグループは `MapApiGroup` で作る (要求数と長時間実行の計測が付く)
-
-
-- ハンドラは Request → Entity / Parameter の変換 (`[Mapper]`) → Service → Response の変換だけを持つ。静的なユーティリティ (`TryParse` など) はエンドポイントのクラスに書かず、`Helpers/` に置く
+- API は `XxxEndpoints` (static partial) に `// Mapping` / `// Mapper` / `// Handler` の区切りで書き、経路は `ApiRoutes` の定数にし、`MapXxxEndpoints` を `MapEndpoints` に足す
+- API のグループは `MapApiGroup` で作る (計測と既定の認可 `Policies.Api` が付く)。API の経路は `/api` の下に置く (例外処理、HTTP ログ、未認証の応答、流量制限の拒否が `/api` かどうかで分かれる)
+- ハンドラは要求の確認 (`TerminalAccess`、`RequestHelper`) → Request の変換 (`[Mapper]`) → Service → Response の変換だけを持つ。静的なユーティリティ (`TryParse` など) はエンドポイントのクラスに書かず、`Helpers/` に置く
 - 更新の応答は `DataWriteResult<T>` の行から作る
-- 大小比較 (`from` ≤ `to`) のような入力の検証は `[AsParameters]` のクエリ型の `IValidatableObject` で行い、ハンドラの中の `if` にしない。API の入力検証は DataAnnotations で統一し、FluentValidation は管理画面のフォームだけに使う
+- 失敗は `ApiProblems` で Problem Details にし (`errorCode` は `ErrorCode`)、`DataWriteStatus` は `FromStatus`、`RuleError` は `FromViolation` で写す。新しい失敗は `ErrorCode` と `ApiProblems` のメソッドを足す
+- 業務ルール違反の文言は、API・管理画面とも `ApiRuleText` から引く。それ以外の Problem Details の title は `ApiProblems` の既定値かハンドラに書く
+- 端末が `Id` を決めて送る登録は冪等にする (同じ `Id` の再送は 200 で既存、内容が違えば 409 `DUPLICATE_ID_MISMATCH`、新規は 201 で Location は `ApiRoutes` から)
+- 一覧の API は `page` (0 始まり) と `size` (`[Range(1, ApiDefaults.MaxPageSize)]`、既定は `ApiDefaults.PageSize`) を受け、`ListResponse` の形 (`total`、`page`、`size`、`items`) で返す
+- API の入力検証は DataAnnotations で統一する (FluentValidation は管理画面のフォームだけに使う)。大小比較 (`from` ≤ `to`) や「どちらか必須」は `[AsParameters]` のクエリ型か Request の `IValidatableObject` で行い、ハンドラの中の `if` にしない
 - 一覧の `sort` は文字列で受けて列挙型に解析し、不正な値は既定の列にする。レポートの `sort` / `groupBy` の不正な値は 400 にする
+- 本文をそのまま受ける API (画像、CSV) は `RequestHelper.IsMediaType` / `ReadBodyAsync` で形式と上限を確かめて 415 / 413 を返す。取込の行は文字列で受け、Service が行ごとに検証する
 
-### 管理画面
+## ツール
 
-- razor の表示用の加工は `Application/ViewHelper` と `ViewExtensions` だけに置く
-- CSV / PDF などのダウンロード URL はページで組み立てず、`Application/Urls/ExportUrls` で作る
-- 描画モードは対話型 (プリレンダリングなし)。エラーと 404 のページは再実行で描画されるため静的 SSR のままにし、常に対話型にはしない
-- フォームの検証の長さは `Length` の定数を使う
-- スタイルは `wwwroot/css/app.css` のクラスに集約する。`.razor.css` を作らず、要素に `Style=` / `style=` を書かない (テーブルの列幅も `w-120` のような幅クラスを app.css に定義して使う)。MudBlazor のユーティリティクラス (`pa-3`、`mud-width-full`、`font-weight-bold`) と併記する
-- `MudTable` の `FooterContent` は `<tr>` の中に描画されるので `MudTFootRow` を書かず `MudTd` を直接置く (太字は `FooterClass`)
-- 見出しに付ける件数の `MudBadge` は見出しの右に縦中央で並べる (`Origin="Origin.CenterRight"`、`BadgeClass="ml-1"`)。`Overlap` で右上に重ねない (見出しの余白の分だけ行から浮く)
-- 状態のチップは `ViewHelper` で (文言, 色, アイコン) の組にし、文言に絵文字を入れない (`StatusChip` が `MudChip` の `Icon` で出す)
-- 横スクロールする `MudDataGrid` (`grid-nowrap`) では操作列を `StickyRight="true"` にし、名称のように折り返してよい列は `CellClass="cell-wrap"` にする (`grid-nowrap` が表の `width: max-content` を `100%` に戻すので、幅が足りないときだけ折り返す)。一覧の日時は年なしの `ToShortDateTimeText()`、詳細は `ToDateTimeText()`
-- `MudChart` の描画領域は 650×400 の比率で `Height` に合わせて拡大される (幅は高さで決める)。金額の軸は `YAxisFormat`、ラベルは短く (日別は月日だけ)、13 本以上は `XAxisLabelRotation` で斜めにする
-- 絞り込みの入力欄は行の残りいっぱいに伸びるので、期間 (`MudDateRangePicker`) は `filter-range`、文字の検索欄は `search-field` で上限を付け、他は `min-w-*`
-- ページは `TimeProvider` を注入しない。期間の既定は `ReportService.Today` / `ResolvePeriod`、通信中の表示は `TerminalService.IsOnline`、登録時刻は Service に任せる
+- `tools/Pos.Server.SampleData` は API (`Pos.Contract`) だけで動かし、Core を参照しない。JSON の日時の変換と `ProblemResponse` は自前で持ち、ログインは管理画面のフォームで行う
