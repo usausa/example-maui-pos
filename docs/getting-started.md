@@ -3,7 +3,7 @@
 サーバと端末の起動手順、サンプル取引の生成、テストと静的解析。  
 プロジェクト構成は [architecture.md](architecture.md)、設計方針は [decisions.md](decisions.md)、AI 向けの規則は [AGENTS.md](../AGENTS.md) と `.claude/rules/`、繰り返す手順とスクリプトは `.claude/skills/`。
 
-## 構成
+## 🧱 構成
 
 ```
 shared/    Pos.Domain (ドメインロジック) / Pos.Domain.Tests / Pos.Contract (通信データ)
@@ -20,13 +20,13 @@ terminal/  Pos.Terminal.slnx: Pos.Terminal (MAUI, Android)
 | 端末 | .NET 10 MAUI (Android) / Smart.Navigation + Smart.Mvvm / SQLite ローカル DB + Outbox (オフライン対応) / カメラスキャン / レシート画像 (SkiaSharp) + 電子レシート QR |
 | 共有 | `Pos.Domain` (税・値引按分・ポイント・返品の計算、業務ルール) / `Pos.Contract` (`XxxRequest` / `XxxResponse`) |
 
-## 前提
+## 🧰 前提
 
 - .NET 10 SDK
 - 端末は MAUI の Android ワークロード (`dotnet workload install maui-android`) と、Android 11 以上のエミュレータか実機
 - InspectCode は `jb` (`dotnet tool install -g JetBrains.ReSharper.GlobalTools`)、検証のスクリプトは Python
 
-## サーバ
+## 💻 サーバ
 
 ```bash
 dotnet run --project server/src/Pos.Server.Host
@@ -40,7 +40,7 @@ dotnet run --project server/src/Pos.Server.Host
   開発・デモでは `Auth:Enabled` を `false` にすると認可を素通しにできる ([D-35](decisions.md#d-35-認証は管理画面のログイン端末のトークンスタッフの-pin-にする))
 - API 仕様 (開発時): http://localhost:8080/swagger 、http://localhost:8080/redoc 、`/openapi/v1.json`
 - ヘルスチェック: `/health`、`/alive`
-- データベース (SQLite `pos.db`、Host の出力フォルダ) は起動時に作られ、空なら初期データ ([architecture.md §6](architecture.md#6-初期データ)) が入る。  
+- データベース (SQLite `pos.db`、Host の出力フォルダ) は起動時に作られ、空なら初期データ ([architecture.md §6](architecture.md#-6-初期データ)) が入る。  
   後から増えた列は起動時に既存の DB へ足す (`SchemaHelper.EnsureColumnAsync`)
 - Aspire で起動する場合は `dotnet run --project server/src/Pos.Server.AppHost` (ダッシュボードは http://localhost:15000 。ログ・メトリクス・トレースが OTLP で送られる)
 - メトリクスは http://localhost:9464/metrics (Prometheus 形式。`Prometheus:Uri` を空にすると止まる)。  
@@ -48,7 +48,7 @@ dotnet run --project server/src/Pos.Server.Host
 - Visual Studio では `server/Pos.Server.slnx` を開いて実行する。  
   既定のスタートアップは `Pos.Server.AppHost` (Aspire) で、Aspire なしで動かすときは `Pos.Server.Host` をスタートアップにする
 
-## 端末
+## 📱 端末
 
 `terminal/Pos.Terminal.slnx` を開いて Android エミュレータまたは実機で実行する。  
 コマンドラインなら次のとおり。
@@ -75,7 +75,7 @@ dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net10.0-android -t:Run
 取引は端末のローカル DB に保存してから Outbox 経由でサーバへ送るので、オフラインでも販売・返品・精算を続けられる (復帰後に自動送信)。  
 サーバに拒否された取引は「設定・同期」で理由を確認して再送 / 破棄する。
 
-## サンプル取引の生成
+## 🧾 サンプル取引の生成
 
 レポートやダッシュボードの確認用に、起動中のサーバへ API で、初日の入荷 (発注から作った入荷予定を受領して在庫を積む) と直近数日分のシフト・販売・返品・取消・出金・精算を登録し、前日までを日次締めして、店舗ごとに入荷待ちの発注を 1 件残す。
 
@@ -85,11 +85,11 @@ dotnet run --project server/tools/Pos.Server.SampleData -- --days 7
 
 オプションは `--base <url>` (既定 `http://localhost:8080/`)、`--user <id>` / `--password <pw>` (管理画面のログイン、既定 `admin` / `admin`)、`--days <n>` (既定 7)、`--per-day <n>` (端末 1 台 1 日あたりの販売件数の目安、既定 6)、`--seed <n>` (乱数、既定 1)、`--help` (使い方)。  
 開設中のシフトがある端末は省略する。  
-詳細は [architecture.md §6](architecture.md#6-初期データ) と [D-42](decisions.md#d-42-サンプルの取引は-api-を呼ぶツールで作る)。
+詳細は [architecture.md §6](architecture.md#-6-初期データ) と [D-42](decisions.md#d-42-サンプルの取引は-api-を呼ぶツールで作る)。
 
 商品マスタの CSV 取込は、初期データと同じ 33 商品の [docs/samples/products.csv](samples/products.csv) を編集して管理画面の「商品 › CSV 取込」で試せる (列は「CSV 出力」と同じ)。
 
-## テスト・静的解析
+## 🧪 テスト・静的解析
 
 テストはテストプロジェクトごとに `dotnet run --project` で実行する (`dotnet test` は使わない。CI の Jenkins も同じコマンド)。
 

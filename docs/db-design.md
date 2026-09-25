@@ -3,16 +3,16 @@
 [api-design.md](api-design.md) に対応するサーバのデータベース (SQLite) の設計と、端末のローカル DB の概要 (§6)。  
 設計方針は [decisions.md](decisions.md)、プロジェクト構成は [architecture.md](architecture.md)。
 
-- [1. 前提](#1-前提)
-- [2. ER 図](#2-er-図)
-- [3. テーブル定義](#3-テーブル定義)
-- [4. DDL 例](#4-ddl-例)
-- [5. 整合性と更新の単位](#5-整合性と更新の単位)
-- [6. 端末ローカル DB (SQLite) の概要](#6-端末ローカル-db-sqlite-の概要)
+- [1. 前提](#-1-前提)
+- [2. ER 図](#-2-er-図)
+- [3. テーブル定義](#-3-テーブル定義)
+- [4. DDL 例](#-4-ddl-例)
+- [5. 整合性と更新の単位](#-5-整合性と更新の単位)
+- [6. 端末ローカル DB (SQLite) の概要](#-6-端末ローカル-db-sqlite-の概要)
 
 ---
 
-## 1. 前提
+## 📐 1. 前提
 
 | 項目 | 内容 |
 | --- | --- |
@@ -62,7 +62,7 @@
 
 ---
 
-## 2. ER 図
+## 🔗 2. ER 図
 
 ### 2.1 マスタ
 
@@ -315,7 +315,7 @@ erDiagram
 
 ---
 
-## 3. テーブル定義
+## 📋 3. テーブル定義
 
 「共通列」= `CreatedAt datetime`, `UpdatedAt datetime`。  
 マスタ系はさらに `IsDeleted bool`, `Version int`。
@@ -324,7 +324,7 @@ erDiagram
 
 #### Settings (会社設定、1 行)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | int | | PK。常に 1 |
 | CompanyName | string(100) | | |
@@ -336,17 +336,17 @@ erDiagram
 
 #### Stores (店舗)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(10) | | UQ。レシート番号の一部 |
 | Name | string(100) | | |
-| PostalCode | string(10) | ○ | |
-| Address | string(200) | ○ | |
-| Phone | string(20) | ○ | |
-| RegistrationNo | string(14) | ○ | 適格請求書発行事業者登録番号 |
-| ReceiptHeader | string(500) | ○ | |
-| ReceiptFooter | string(500) | ○ | |
+| PostalCode | string(10) | ✅ | |
+| Address | string(200) | ✅ | |
+| Phone | string(20) | ✅ | |
+| RegistrationNo | string(14) | ✅ | 適格請求書発行事業者登録番号 |
+| ReceiptHeader | string(500) | ✅ | |
+| ReceiptFooter | string(500) | ✅ | |
 | TimeZone | string(50) | | `Asia/Tokyo` |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
@@ -355,15 +355,15 @@ erDiagram
 
 #### Terminals (レジ端末)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | StoreId | guid | | FK → Stores |
 | TerminalNo | int | | 店舗内番号 |
 | Name | string(50) | | |
 | LastReceiptSeq | int | | 最終レシート連番。取引の登録で大きい方に更新し、`UpdatedAt` と版は進めない (差分同期には載らず、入れ直した端末がペアリングの全件同期で受け取って連番を続ける) |
-| LastSeenAt | datetime | ○ | 最終通信 (取引の登録・ペアリング・ハートビートで更新) |
-| AppVersion | string(50) | ○ | 端末が送ったアプリのバージョン (ペアリングとハートビートで更新) |
+| LastSeenAt | datetime | ✅ | 最終通信 (取引の登録・ペアリング・ハートビートで更新) |
+| AppVersion | string(50) | ✅ | 端末が送ったアプリのバージョン (ペアリングとハートビートで更新) |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
@@ -371,14 +371,14 @@ erDiagram
 
 #### Staff (スタッフ)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(20) | | UQ |
 | Name | string(50) | | |
 | Role | enum | | `Cashier` / `Manager` / `Admin` |
-| StoreId | guid | ○ | FK → Stores。NULL = 本部 |
-| PinHash | blob | ○ | PIN のハッシュ (`PinHasher`: PBKDF2 のソルト 16 + ハッシュ 32 バイト)。端末向けの同期にだけ載せる。NULL = 未設定 (端末で担当に選べない) |
+| StoreId | guid | ✅ | FK → Stores。NULL = 本部 |
+| PinHash | blob | ✅ | PIN のハッシュ (`PinHasher`: PBKDF2 のソルト 16 + ハッシュ 32 バイト)。端末向けの同期にだけ載せる。NULL = 未設定 (端末で担当に選べない) |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
@@ -386,12 +386,12 @@ erDiagram
 
 #### Categories (部門)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(20) | | UQ |
 | Name | string(100) | | |
-| ParentId | guid | ○ | FK → Categories (自己参照) |
+| ParentId | guid | ✅ | FK → Categories (自己参照) |
 | SortOrder | int | | |
 | 共通列 + IsDeleted, Version | | | |
 
@@ -399,7 +399,7 @@ erDiagram
 
 #### TaxRates (税率)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(10) | | UQ (`STD` / `RED` / `EXEMPT`) |
@@ -414,27 +414,27 @@ erDiagram
 
 #### Products (商品)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(20) | | UQ 商品コード |
-| Barcode | string(20) | ○ | UQ (NULL を除く)。JAN / EAN |
+| Barcode | string(20) | ✅ | UQ (NULL を除く)。JAN / EAN |
 | Name | string(100) | | |
-| Kana | string(100) | ○ | |
-| Brand | string(50) | ○ | |
-| ModelNo | string(50) | ○ | |
+| Kana | string(100) | ✅ | |
+| Brand | string(50) | ✅ | |
+| ModelNo | string(50) | ✅ | |
 | CategoryId | guid | | FK → Categories |
 | Kind | enum | | `Goods` / `Service` |
 | Price | money | | |
 | TaxIncluded | bool | | |
 | TaxRateId | guid | | FK → TaxRates |
-| Cost | money | ○ | |
+| Cost | money | ✅ | |
 | PointRate | rate | | |
 | RequiresSerial | bool | | |
 | TrackInventory | bool | | |
 | AllowsPriceOverride | bool | | |
-| Unit | string(10) | ○ | |
-| ImageUrl | string(500) | ○ | 画像の URL (`/api/v1/products/{id}/image?v={内容のハッシュ}`)。画像を変えると `UpdatedAt` / `Version` も進める |
+| Unit | string(10) | ✅ | |
+| ImageUrl | string(500) | ✅ | 画像の URL (`/api/v1/products/{id}/image?v={内容のハッシュ}`)。画像を変えると `UpdatedAt` / `Version` も進める |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
@@ -445,7 +445,7 @@ erDiagram
 画像は DB に持つ ([D-18](decisions.md#d-18-商品画像は-db-に持ちハッシュ付きの-url-で配る))。  
 形式 (JPEG / PNG) は `Data` の先頭のバイトで判定し、列には持たない。
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | ProductId | guid | | PK, FK → Products |
 | Data | blob | | 画像 (2 MB まで) |
@@ -453,7 +453,7 @@ erDiagram
 
 #### Discounts (値引定義)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(20) | | UQ |
@@ -470,12 +470,12 @@ erDiagram
 
 #### PaymentMethods (支払方法)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(20) | | UQ |
 | Name | string(50) | | |
-| ShortName | string(10) | ○ | 端末の支払ボタンに出す短い名前 (省略時は Name) |
+| ShortName | string(10) | ✅ | 端末の支払ボタンに出す短い名前 (省略時は Name) |
 | Kind | enum | | `Cash` / `Card` / `Qr` / `EMoney` / `Voucher` / `Points` / `Credit` / `Other` / `Deposit` (受注の前受金を会計で充てる) |
 | AllowsChange | bool | | |
 | RequiresReference | bool | | |
@@ -489,7 +489,7 @@ erDiagram
 
 #### AdjustmentReasons (在庫調整理由)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(20) | | UQ |
@@ -502,14 +502,14 @@ erDiagram
 
 #### Suppliers (仕入先)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(20) | | UQ |
 | Name | string(100) | | |
-| Phone | string(20) | ○ | |
-| Email | string(100) | ○ | |
-| Note | string(500) | ○ | |
+| Phone | string(20) | ✅ | |
+| Email | string(100) | ✅ | |
+| Note | string(500) | ✅ | |
 | IsActive | bool | | 入荷予定と発注の登録で選べる |
 | 共通列 + IsDeleted, Version | | | |
 
@@ -522,35 +522,35 @@ erDiagram
 
 #### Customers (顧客)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Code | string(20) | | UQ 会員番号 |
 | Name | string(100) | | |
-| Kana | string(100) | ○ | |
-| Phone | string(20) | ○ | |
-| Email | string(100) | ○ | |
-| PostalCode | string(10) | ○ | |
-| Address | string(200) | ○ | |
-| BirthDate | date | ○ | |
+| Kana | string(100) | ✅ | |
+| Phone | string(20) | ✅ | |
+| Email | string(100) | ✅ | |
+| PostalCode | string(10) | ✅ | |
+| Address | string(200) | ✅ | |
+| BirthDate | date | ✅ | |
 | PointBalance | int | | 現在残高 (PointHistories の集計を非正規化) |
-| Note | string(500) | ○ | |
+| Note | string(500) | ✅ | |
 | 共通列 + IsDeleted, Version | | | |
 
 索引: `UQ(Code)`, `IX(Phone)`, `IX(Kana)`, `IX(UpdatedAt)`
 
 #### PointHistories (ポイント履歴)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | CustomerId | guid | | FK → Customers |
 | Type | enum | | `Earn` / `Redeem` / `Revoke` / `Refund` / `Void` / `Adjust` |
 | Points | int | | 符号付き |
 | BalanceAfter | int | | |
-| TransactionId | guid | ○ | FK → Transactions |
-| Reason | string(200) | ○ | |
-| StaffId | guid | ○ | FK → Staff |
+| TransactionId | guid | ✅ | FK → Transactions |
+| Reason | string(200) | ✅ | |
+| StaffId | guid | ✅ | FK → Staff |
 | OccurredAt | datetime | | |
 | CreatedAt | datetime | | |
 
@@ -560,7 +560,7 @@ erDiagram
 
 #### Shifts
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (端末採番) |
 | StoreId | guid | | FK → Stores |
@@ -570,11 +570,11 @@ erDiagram
 | OpenedAt | datetime | | |
 | OpenedByStaffId | guid | | FK → Staff |
 | OpeningCash | money | | |
-| ClosedAt | datetime | ○ | |
-| ClosedByStaffId | guid | ○ | FK → Staff |
-| ActualCash | money | ○ | |
-| ExpectedCash | money | ○ | 精算時に確定 (`OpeningCash + CashSales − CashReturns + PaidIn − PaidOut + DepositCashIn − DepositCashOut`) |
-| Difference | money | ○ | `ActualCash − ExpectedCash` |
+| ClosedAt | datetime | ✅ | |
+| ClosedByStaffId | guid | ✅ | FK → Staff |
+| ActualCash | money | ✅ | |
+| ExpectedCash | money | ✅ | 精算時に確定 (`OpeningCash + CashSales − CashReturns + PaidIn − PaidOut + DepositCashIn − DepositCashOut`) |
+| Difference | money | ✅ | `ActualCash − ExpectedCash` |
 | CashSales | money | | 精算時に確定 (Open 中は取引から都度集計) |
 | CashReturns | money | | 同上 |
 | PaidIn | money | | 同上 |
@@ -586,14 +586,14 @@ erDiagram
 | VoidCount | int | | 同上 |
 | SalesTotal | money | | 同上 |
 | ReturnsTotal | money | | 同上 |
-| Note | string(500) | ○ | |
+| Note | string(500) | ✅ | |
 | 共通列 | | | |
 
 索引: `UQ(TerminalId) WHERE Status = 'Open'` (端末につき開設中は 1 つ。SQLite の部分インデックス)、`IX(StoreId, BusinessDate)`
 
 #### ShiftDenominations (金種別枚数)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | ShiftId | guid | | PK, FK → Shifts |
 | Denomination | int | | PK。額面 (端末は 10000, 5000, 2000, 1000, 500, 100, 50, 10, 5, 1) |
@@ -601,13 +601,13 @@ erDiagram
 
 #### CashEvents (入出金)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (端末採番) |
 | ShiftId | guid | | FK → Shifts |
 | Type | enum | | `PaidIn` / `PaidOut` / `NoSale` |
 | Amount | money | | |
-| Reason | string(100) | ○ | |
+| Reason | string(100) | ✅ | |
 | StaffId | guid | | FK → Staff |
 | OccurredAt | datetime | | |
 | CreatedAt | datetime | | |
@@ -621,13 +621,13 @@ erDiagram
 
 #### DailyClosings
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (サーバ採番) |
 | StoreId | guid | | FK → Stores |
 | BusinessDate | date | | 営業日 |
 | ClosedAt | datetime | | |
-| ClosedBy | string(50) | ○ | 締めた管理画面のアカウント名 (認証を無効にしているときは NULL) |
+| ClosedBy | string(50) | ✅ | 締めた管理画面のアカウント名 (認証を無効にしているときは NULL) |
 | ShiftCount | int | | その営業日のシフトと、その営業日の取引を含むシフトの数 |
 | SalesCount | int | | 以下は締めた時点の日計 (取消済みを除き、返品は負) |
 | ReturnCount | int | | |
@@ -647,7 +647,7 @@ erDiagram
 
 #### DailyClosingPayments (支払方法別)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | DailyClosingId | guid | | PK, FK → DailyClosings |
 | LineNo | int | | PK (表示順) |
@@ -659,7 +659,7 @@ erDiagram
 
 #### DailyClosingTaxes (税率別)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | DailyClosingId | guid | | PK, FK → DailyClosings |
 | LineNo | int | | PK (表示順) |
@@ -673,7 +673,7 @@ erDiagram
 
 #### Transactions
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (端末採番) |
 | Type | enum | | `Sale` / `Return` |
@@ -682,11 +682,11 @@ erDiagram
 | TerminalId | guid | | FK → Terminals |
 | StaffId | guid | | FK → Staff |
 | ShiftId | guid | | FK → Shifts |
-| CustomerId | guid | ○ | FK → Customers |
+| CustomerId | guid | ✅ | FK → Customers |
 | ReceiptNo | string(20) | | UQ |
 | BusinessDate | date | | |
 | TransactedAt | datetime | | |
-| OriginalTransactionId | guid | ○ | FK → Transactions (Return の元取引) |
+| OriginalTransactionId | guid | ✅ | FK → Transactions (Return の元取引) |
 | Subtotal | money | | |
 | DiscountTotal | money | | |
 | NetSubtotal | money | | |
@@ -696,18 +696,18 @@ erDiagram
 | ChangeAmount | money | | |
 | PointsEarned | int | | Return は負 |
 | PointsRedeemed | int | | Return は負 |
-| PointsBalanceAfter | int | ○ | |
-| Note | string(500) | ○ | |
-| VoidedAt | datetime | ○ | |
-| VoidedByStaffId | guid | ○ | 取り消した担当 (Staff の Id。FK は宣言しない) |
-| VoidReason | string(200) | ○ | |
+| PointsBalanceAfter | int | ✅ | |
+| Note | string(500) | ✅ | |
+| VoidedAt | datetime | ✅ | |
+| VoidedByStaffId | guid | ✅ | 取り消した担当 (Staff の Id。FK は宣言しない) |
+| VoidReason | string(200) | ✅ | |
 | 共通列 | | | |
 
 索引: `UQ(ReceiptNo)`, `IX(StoreId, BusinessDate)`, `IX(ShiftId)`, `IX(TerminalId, TransactedAt)`, `IX(CustomerId, TransactedAt)`, `IX(OriginalTransactionId)`, `IX(TransactedAt)`
 
 #### TransactionLines
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (端末採番) |
 | TransactionId | guid | | FK → Transactions |
@@ -730,15 +730,15 @@ erDiagram
 | NetAmount | money | | |
 | PointsRedeemed | int | | 按分 |
 | PointsEarned | int | | |
-| OriginalLineId | guid | ○ | FK → TransactionLines (Return の元明細) |
+| OriginalLineId | guid | ✅ | FK → TransactionLines (Return の元明細) |
 | ReturnedQuantity | qty | | 元明細側で更新される唯一の列 |
-| Note | string(200) | ○ | |
+| Note | string(200) | ✅ | |
 
 索引: `UQ(TransactionId, LineNo)`, `IX(ProductId)`, `IX(OriginalLineId)`
 
 #### TransactionLineSerials
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | TransactionLineId | guid | | PK, FK → TransactionLines |
 | SerialNumber | string | | PK |
@@ -747,25 +747,25 @@ erDiagram
 
 #### TransactionDiscounts
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | TransactionId | guid | | FK → Transactions |
-| LineId | guid | ○ | FK → TransactionLines。NULL = 取引値引 |
-| DiscountId | guid | ○ | FK → Discounts。NULL = 任意値引 |
+| LineId | guid | ✅ | FK → TransactionLines。NULL = 取引値引 |
+| DiscountId | guid | ✅ | FK → Discounts。NULL = 任意値引 |
 | SortNo | int | | |
 | Name | string(50) | | |
 | Type | enum | | `Amount` / `Percent` |
 | Value | decimal | | |
 | Amount | money | | |
-| Reason | string(200) | ○ | |
-| ApprovedByStaffId | guid | ○ | FK → Staff。承認が必要な値引の承認者 |
+| Reason | string(200) | ✅ | |
+| ApprovedByStaffId | guid | ✅ | FK → Staff。承認が必要な値引の承認者 |
 
 索引: `IX(TransactionId)`
 
 #### TransactionTaxSummaries
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | TransactionId | guid | | PK, FK → Transactions |
 | TaxRateId | guid | | PK, FK → TaxRates |
@@ -776,7 +776,7 @@ erDiagram
 
 #### TransactionPayments
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | TransactionId | guid | | FK → Transactions |
@@ -785,23 +785,23 @@ erDiagram
 | Kind | enum | | スナップショット |
 | Amount | money | | |
 | TenderedAmount | money | | |
-| Reference | string(50) | ○ | |
-| Note | string(200) | ○ | |
+| Reference | string(50) | ✅ | |
+| Note | string(200) | ✅ | |
 
 索引: `UQ(TransactionId, SeqNo)`, `IX(PaymentMethodId)`
 
 #### TransactionDeliveries
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | TransactionId | guid | | PK, FK → Transactions |
 | RecipientName | string(100) | | |
-| Phone | string(20) | ○ | |
-| PostalCode | string(10) | ○ | |
+| Phone | string(20) | ✅ | |
+| PostalCode | string(10) | ✅ | |
 | Address | string(200) | | |
-| RequestedDate | date | ○ | |
-| TimeSlot | string(20) | ○ | |
-| Note | string(200) | ○ | |
+| RequestedDate | date | ✅ | |
+| TimeSlot | string(20) | ✅ | |
+| Note | string(200) | ✅ | |
 
 ### 3.6 受注
 
@@ -810,33 +810,33 @@ erDiagram
 
 #### Orders
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (端末 / 管理画面が採番) |
 | StoreId | guid | | FK → Stores |
 | Seq | int | | 店舗ごとの連番 (登録時に採番) |
 | OrderNo | string | | `{店舗コード}-O-{Seq:000000}` |
-| TerminalId | guid | ○ | FK → Terminals (管理画面で登録したときは NULL) |
+| TerminalId | guid | ✅ | FK → Terminals (管理画面で登録したときは NULL) |
 | StaffId | guid | | FK → Staff |
-| CustomerId | guid | ○ | FK → Customers |
+| CustomerId | guid | ✅ | FK → Customers |
 | CustomerName | string(100) | | 宛名 (省略すると会員の名前) |
-| Phone | string(20) | ○ | 省略すると会員の電話番号 |
+| Phone | string(20) | ✅ | 省略すると会員の電話番号 |
 | Type | enum | | `BackOrder` / `Hold` |
 | Status | enum | | `Ordered` / `Arrived` / `Completed` / `Cancelled`。取り置き (`Hold`) は `Arrived` から始める |
-| RequestedDate | date | ○ | 希望日 |
-| Note | string(500) | ○ | |
+| RequestedDate | date | ✅ | 希望日 |
+| Note | string(500) | ✅ | |
 | Total | money | | 明細の金額の合計 |
-| TransactionId | guid | ○ | FK → Transactions (完了のとき) |
+| TransactionId | guid | ✅ | FK → Transactions (完了のとき) |
 | OrderedAt | datetime | | |
-| ArrivedAt / CompletedAt / CancelledAt | datetime | ○ | |
-| CancelReason | string(200) | ○ | |
+| ArrivedAt / CompletedAt / CancelledAt | datetime | ✅ | |
+| CancelReason | string(200) | ✅ | |
 | 共通列 + Version | | | |
 
 索引: `UQ(StoreId, Seq)`、`UQ(OrderNo)`、`IX(StoreId, Status)`、`IX(CustomerId)`、`IX(TransactionId)`
 
 #### OrderLines
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | OrderId | guid | | FK → Orders |
@@ -846,7 +846,7 @@ erDiagram
 | Quantity | qty | | |
 | UnitPrice | money | | 約束した単価 |
 | Amount | money | | 単価 × 数量 (切り捨て) |
-| Note | string(200) | ○ | |
+| Note | string(200) | ✅ | |
 
 索引: `IX(OrderId)`
 
@@ -856,7 +856,7 @@ erDiagram
 会計で充てた分は取引の支払 (`TransactionPayments.Kind = Deposit`) に残り、ここには書かない。  
 会計で充てる額は、未完了の受注の「受取の合計 − 返金の合計」。
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (端末が採番。同じ Id の再送は受け取り済み) |
 | OrderId | guid | | FK → Orders |
@@ -868,7 +868,7 @@ erDiagram
 | PaymentMethodId | guid | | FK → PaymentMethods (返金は受け取った方法) |
 | Kind | enum | | 支払方法の種別 (`Cash` / `Card` / `Qr` / `EMoney`) |
 | Amount | money | | 正の値 (返金は前受金の全額) |
-| Reference | string(50) | ○ | カードの伝票番号など |
+| Reference | string(50) | ✅ | カードの伝票番号など |
 | OccurredAt | datetime | | |
 | CreatedAt | datetime | | |
 
@@ -878,7 +878,7 @@ erDiagram
 
 #### InventoryLevels (現在庫)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | StoreId | guid | | PK, FK → Stores |
 | ProductId | guid | | PK, FK → Products |
@@ -889,7 +889,7 @@ erDiagram
 
 #### InventoryChanges (在庫変動履歴)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (端末採番 or サーバ採番) |
 | StoreId | guid | | FK → Stores |
@@ -897,12 +897,12 @@ erDiagram
 | Type | enum | | `Sale` / `Return` / `Void` / `PhysicalCount` / `Adjustment` / `Receive` / `TransferOut` / `TransferIn` |
 | QuantityDelta | qty | | |
 | QuantityAfter | qty | | |
-| ReasonId | guid | ○ | FK → AdjustmentReasons |
-| Reason | string(200) | ○ | 自由記述 (入荷は納品書番号、移動は移動番号) |
-| ReferenceType | string(20) | ○ | `Transaction` / `InventoryReceipt` / `InventoryTransfer` |
-| ReferenceId | guid | ○ | 取引・入荷・移動の ID |
-| ReferenceLineId | guid | ○ | その明細の ID |
-| StaffId | guid | ○ | FK → Staff |
+| ReasonId | guid | ✅ | FK → AdjustmentReasons |
+| Reason | string(200) | ✅ | 自由記述 (入荷は納品書番号、移動は移動番号) |
+| ReferenceType | string(20) | ✅ | `Transaction` / `InventoryReceipt` / `InventoryTransfer` |
+| ReferenceId | guid | ✅ | 取引・入荷・移動の ID |
+| ReferenceLineId | guid | ✅ | その明細の ID |
+| StaffId | guid | ✅ | FK → Staff |
 | OccurredAt | datetime | | |
 | CreatedAt | datetime | | |
 
@@ -912,25 +912,25 @@ erDiagram
 
 入荷予定を登録し、受領で在庫に入れる ([D-16](decisions.md#d-16-入荷と店舗間移動は伝票で持つ))。
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (サーバ採番) |
 | StoreId | guid | | FK → Stores (入荷する店舗) |
 | SupplierId | guid | | FK → Suppliers |
-| SlipNo | string(50) | ○ | 仕入先の納品書番号 |
-| ExpectedDate | date | ○ | 入荷予定日 |
+| SlipNo | string(50) | ✅ | 仕入先の納品書番号 |
+| ExpectedDate | date | ✅ | 入荷予定日 |
 | Status | enum | | `Draft` / `Received` / `Cancelled` |
-| Note | string(500) | ○ | |
-| ReceivedAt | datetime | ○ | |
-| ReceivedByStaffId | guid | ○ | FK → Staff |
-| CancelledAt | datetime | ○ | |
+| Note | string(500) | ✅ | |
+| ReceivedAt | datetime | ✅ | |
+| ReceivedByStaffId | guid | ✅ | FK → Staff |
+| CancelledAt | datetime | ✅ | |
 | 共通列 + Version | | | |
 
 索引: `IX(StoreId, Status)`
 
 #### InventoryReceiptLines
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | ReceiptId | guid | | FK → InventoryReceipts |
@@ -938,8 +938,8 @@ erDiagram
 | ProductId | guid | | FK → Products |
 | ProductCode / ProductName | string | | 登録時点のスナップショット |
 | Quantity | qty | | 予定の数 |
-| ReceivedQuantity | qty | ○ | 受領した数 (受領まで NULL) |
-| Cost | money | ○ | 仕入単価 |
+| ReceivedQuantity | qty | ✅ | 受領した数 (受領まで NULL) |
+| Cost | money | ✅ | 仕入単価 |
 
 索引: `IX(ReceiptId)`
 
@@ -948,7 +948,7 @@ erDiagram
 仕入先への注文。  
 [発注] で明細を写した入荷予定を作り、入荷予定の受領とキャンセルで状態が変わる ([D-17](decisions.md#d-17-発注は入荷予定を作りその受領とキャンセルに合わせる))。
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (サーバ採番) |
 | StoreId | guid | | FK → Stores (発注して入荷する店舗) |
@@ -956,19 +956,19 @@ erDiagram
 | PurchaseOrderNo | string | | `{店舗コード}-P-{Seq:000000}` |
 | SupplierId | guid | | FK → Suppliers |
 | Status | enum | | `Draft` / `Ordered` / `Received` / `Cancelled` |
-| ExpectedDate | date | ○ | 希望納期 (入荷予定日になる) |
-| Note | string(500) | ○ | |
-| OrderedAt | datetime | ○ | 発注の日時 |
-| OrderedBy | string(50) | ○ | 発注した管理画面のアカウント名 (認証を無効にしているときは NULL) |
-| ReceiptId | guid | ○ | FK → InventoryReceipts (発注で作った入荷予定) |
-| CancelledAt | datetime | ○ | |
+| ExpectedDate | date | ✅ | 希望納期 (入荷予定日になる) |
+| Note | string(500) | ✅ | |
+| OrderedAt | datetime | ✅ | 発注の日時 |
+| OrderedBy | string(50) | ✅ | 発注した管理画面のアカウント名 (認証を無効にしているときは NULL) |
+| ReceiptId | guid | ✅ | FK → InventoryReceipts (発注で作った入荷予定) |
+| CancelledAt | datetime | ✅ | |
 | 共通列 + Version | | | |
 
 索引: `UQ(StoreId, Seq)`、`UQ(PurchaseOrderNo)`、`IX(StoreId, Status)`、`IX(ReceiptId)`
 
 #### PurchaseOrderLines
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | PurchaseOrderId | guid | | FK → PurchaseOrders |
@@ -976,13 +976,13 @@ erDiagram
 | ProductId | guid | | FK → Products |
 | ProductCode / ProductName | string | | 登録・変更時点のスナップショット |
 | Quantity | qty | | 発注の数 |
-| Cost | money | ○ | 仕入単価 |
+| Cost | money | ✅ | 仕入単価 |
 
 索引: `IX(PurchaseOrderId)`
 
 #### InventoryTransfers (店舗間移動)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK (サーバ採番) |
 | FromStoreId | guid | | FK → Stores (出荷店) |
@@ -990,16 +990,16 @@ erDiagram
 | TransferNo | string | | `{出荷店コード}-T-{Seq:000000}` |
 | ToStoreId | guid | | FK → Stores (入荷店) |
 | Status | enum | | `Requested` / `Shipped` / `Received` / `Cancelled` |
-| Note | string(500) | ○ | |
-| ShippedAt / ReceivedAt / CancelledAt | datetime | ○ | |
-| ShippedByStaffId / ReceivedByStaffId | guid | ○ | FK → Staff |
+| Note | string(500) | ✅ | |
+| ShippedAt / ReceivedAt / CancelledAt | datetime | ✅ | |
+| ShippedByStaffId / ReceivedByStaffId | guid | ✅ | FK → Staff |
 | 共通列 + Version | | | |
 
 索引: `UQ(FromStoreId, Seq)`、`UQ(TransferNo)`、`IX(ToStoreId, Status)`
 
 #### InventoryTransferLines
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | TransferId | guid | | FK → InventoryTransfers |
@@ -1007,7 +1007,7 @@ erDiagram
 | ProductId | guid | | FK → Products |
 | ProductCode / ProductName | string | | 依頼時点のスナップショット |
 | Quantity | qty | | 依頼・出荷の数 |
-| ReceivedQuantity | qty | ○ | 受領した数 (受領まで NULL) |
+| ReceivedQuantity | qty | ✅ | 受領した数 (受領まで NULL) |
 
 索引: `IX(TransferId)`
 
@@ -1018,14 +1018,14 @@ erDiagram
 
 #### Accounts (管理画面のアカウント)
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | Name | string(50) | | UQ。ログイン ID |
 | Password | blob | | PBKDF2 (SHA-256、310,000 回) のソルト 32 + ハッシュ 32 バイト (`IPasswordProvider`) |
 | Role | enum | | `Administrator` / `Operator` |
 | IsActive | bool | | 無効はログインできない |
-| LastLoginAt | datetime | ○ | 最終ログイン (版を変えずに更新する) |
+| LastLoginAt | datetime | ✅ | 最終ログイン (版を変えずに更新する) |
 | CreatedAt, UpdatedAt | | | |
 | Version | int | | 役割・有効・パスワードを変えると +1。ログイン中のセッションは版が変わると無効になる |
 
@@ -1037,16 +1037,16 @@ erDiagram
 
 ペアリングコードを発行した行が、ペアリングでトークンを持つ行になる (コードは消費する)。
 
-| 列 | 型 | NULL | 説明 |
+| 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
 | TerminalId | guid | | FK → Terminals |
-| PairingCode | string(6) | ○ | 未使用のペアリングコード (ペアリングで NULL) |
-| PairingExpiresAt | datetime | ○ | コードの有効期限 (発行から 10 分) |
-| TokenHash | blob | ○ | トークンの SHA-256 (トークン自体は持たない) |
-| DeviceName | string(100) | ○ | 端末が送った機種名 |
-| PairedAt | datetime | ○ | |
-| RevokedAt | datetime | ○ | 登録の解除・再ペアリングで失効した日時 |
+| PairingCode | string(6) | ✅ | 未使用のペアリングコード (ペアリングで NULL) |
+| PairingExpiresAt | datetime | ✅ | コードの有効期限 (発行から 10 分) |
+| TokenHash | blob | ✅ | トークンの SHA-256 (トークン自体は持たない) |
+| DeviceName | string(100) | ✅ | 端末が送った機種名 |
+| PairedAt | datetime | ✅ | |
+| RevokedAt | datetime | ✅ | 登録の解除・再ペアリングで失効した日時 |
 | CreatedAt | datetime | | |
 
 索引: `IX(TerminalId)`、`UQ(TokenHash) WHERE TokenHash IS NOT NULL`、`IX(PairingCode) WHERE PairingCode IS NOT NULL`。  
@@ -1054,7 +1054,7 @@ erDiagram
 
 ---
 
-## 4. DDL 例
+## 📝 4. DDL 例
 
 `Host/Assets/Data/Schema.sql` に置く SQLite の DDL (端末は `Resources/Raw/Schema.sql`)。  
 他のテーブルも同じ規則 (guid = TEXT、money / rate / qty = NUMERIC、enum = TEXT、datetime = TEXT) で書く。
@@ -1141,7 +1141,7 @@ public sealed partial class TransactionAccessor
 }
 ```
 
-初期データは Host の `Assets/Data/InitialData.sql` (複数の `INSERT`。`@now` は投入時刻) を起動時に読み、`GenericAccessor.ExecuteScriptAsync` (`[DirectSql]`) で会社設定がない DB へ 1 トランザクションで投入する (内容は [architecture.md §6](architecture.md#6-初期データ))。
+初期データは Host の `Assets/Data/InitialData.sql` (複数の `INSERT`。`@now` は投入時刻) を起動時に読み、`GenericAccessor.ExecuteScriptAsync` (`[DirectSql]`) で会社設定がない DB へ 1 トランザクションで投入する (内容は [architecture.md §6](architecture.md#-6-初期データ))。
 
 起動時の PRAGMA (`GenericAccessor.ExecutePragmaAsync.sql`。WAL は DB ファイルに永続化される):
 
@@ -1153,7 +1153,7 @@ PRAGMA foreign_keys = ON
 
 ---
 
-## 5. 整合性と更新の単位
+## 🔒 5. 整合性と更新の単位
 
 SQLite は書き込みが直列化される (単一ライター) が、検証はトランザクションの前に読むので、その後に変わりうる条件 (状態・版・前受金の残り・返品数量) は書き込みの文の条件に入れ、条件に合わなければ書き込みを戻す。  
 トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、Service が Accessor の `DbTransaction` 付きメソッドを束ねる (Usecase 層は置かない。[D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く))。
@@ -1228,11 +1228,11 @@ CSV 取込は全行を検証してから、登録と更新を 1 トランザク�
 
 ---
 
-## 6. 端末ローカル DB (SQLite) の概要
+## 📱 6. 端末ローカル DB (SQLite) の概要
 
 MAUI 側のローカル DB。  
 `Microsoft.Data.Sqlite` + Smart.Data.Accessor (`DataAccessor` + `Services/Sql/*.sql`) で扱い、日時は INTEGER (UTC ticks) + `DateTimeTicksConverter` で保存する ([D-30](decisions.md#d-30-金額は-decimalid-は-guid-v7日時は-utc-にする))。  
-スキーマはアプリに同梱した `Resources/Raw/Schema.sql` を起動時に実行する (列の追加は [§1](#1-前提))。
+スキーマはアプリに同梱した `Resources/Raw/Schema.sql` を起動時に実行する (列の追加は [§1](#-1-前提))。
 
 | テーブル | 内容 |
 | --- | --- |

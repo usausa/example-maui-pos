@@ -4,7 +4,7 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 家電・カメラ・ホームセンターの物販を想定し、販売・会計・レシート、取り寄せ・取り置きの受注と前受金、レジ開閉と精算、日次締め、返品・取消、会員ポイント、在庫 (棚卸・調整、仕入先への発注と入荷、店舗間移動)、売上レポートを扱う。  
 管理画面はログイン (管理者 / オペレーター)、端末はペアリングコードで登録し、スタッフは PIN でログインする (値引と取消の承認も PIN)。
 
-## 端末 (MAUI Android)
+## 📱 端末 (MAUI Android)
 
 | | | | |
 | --- | --- | --- | --- |
@@ -17,7 +17,7 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | ![検品](docs/images/terminal-receiving.png) | ![明細の編集](docs/images/terminal-line-edit.png) | ![販売の操作](docs/images/terminal-sales-menu.png) | ![PIN の入力](docs/images/terminal-pin.png) |
 | 入荷・移動の検品 | 明細の編集 | 販売の操作 | PIN の入力 |
 
-## 管理画面 (Blazor + MudBlazor)
+## 💻 管理画面 (Blazor + MudBlazor)
 
 | |
 | --- |
@@ -44,14 +44,14 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | ![ユーザー](docs/images/server-accounts.png) |
 | ユーザー: 管理者 / オペレーターの追加・パスワード変更・無効化 (オペレーターはマスタ・設定・端末の登録を変更できない) |
 
-## 帳票 (PDF)
+## 📄 帳票 (PDF)
 
 | | | | | |
 | --- | --- | --- | --- | --- |
 | ![受注票](docs/images/report-order.png) | ![発注書](docs/images/report-purchase-order.png) | ![精算レポート](docs/images/report-shift.png) | ![売上日報](docs/images/report-daily-sales.png) | ![レシートの控え](docs/images/report-receipt.png) |
 | 受注票 (前受金の預り証を兼ねる) | 発注書 | 精算レポート | 売上日報 | レシートの控え |
 
-## ドキュメント
+## 📚 ドキュメント
 
 | 文書 | 内容 |
 | --- | --- |

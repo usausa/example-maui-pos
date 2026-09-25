@@ -3,16 +3,16 @@
 プロジェクト・層・パッケージと初期データ。  
 設計方針は [decisions.md](decisions.md)、起動方法は [getting-started.md](getting-started.md)。
 
-- [1. 方針](#1-方針)
-- [2. プロジェクト構成](#2-プロジェクト構成)
-- [3. サーバ (`Pos.Server.*`)](#3-サーバ-posserver)
-- [4. 共有プロジェクト (`Pos.Domain` / `Pos.Contract`)](#4-共有プロジェクト-posdomain--poscontract)
-- [5. 端末 (`Pos.Terminal`)](#5-端末-posterminal)
-- [6. 初期データ](#6-初期データ)
+- [1. 方針](#-1-方針)
+- [2. プロジェクト構成](#-2-プロジェクト構成)
+- [3. サーバ (`Pos.Server.*`)](#-3-サーバ-posserver)
+- [4. 共有プロジェクト (`Pos.Domain` / `Pos.Contract`)](#-4-共有プロジェクト-posdomain--poscontract)
+- [5. 端末 (`Pos.Terminal`)](#-5-端末-posterminal)
+- [6. 初期データ](#-6-初期データ)
 
 ---
 
-## 1. 方針
+## 🧭 1. 方針
 
 - SQL は Accessor だけが持ち、業務の手順はサーバは **Service**、端末は **Service / Usecase** にまとめる。  
   Endpoints / Blazor ページ / ViewModel は入力の検証と表示に徹し、Service を呼ぶだけにする ([D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く), [D-28](decisions.md#d-28-端末は-viewmodel-から-service-と-usecase-を呼ぶ))
@@ -23,7 +23,7 @@
 
 ---
 
-## 2. プロジェクト構成
+## 🧱 2. プロジェクト構成
 
 1 つのリポジトリに端末とサーバを同居させ (モノレポ)、Visual Studio では**サーバと端末を別々のソリューションで開いて個別に動かせる**ようにする ([D-39](decisions.md#d-39-モノレポにしサーバと端末のソリューションを分ける))。
 
@@ -97,7 +97,7 @@ Pos.Server.Host ───────┤                      ▲
 
 ---
 
-## 3. サーバ (`Pos.Server.*`)
+## 💻 3. サーバ (`Pos.Server.*`)
 
 ### 3.1 `Pos.Server.Core`
 
@@ -143,7 +143,7 @@ ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistrati
 ```
 
 - SQL は Accessor だけが持つ。  
-  Service が Accessor を束ね、複数テーブルにまたがる書き込み (取引登録・取消・精算・日次締め・受注・発注・入荷・移動など) は Service の中で `IDbProvider.UsingTxAsync` を使う ([db-design.md §5](db-design.md#5-整合性と更新の単位))
+  Service が Accessor を束ね、複数テーブルにまたがる書き込み (取引登録・取消・精算・日次締め・受注・発注・入荷・移動など) は Service の中で `IDbProvider.UsingTxAsync` を使う ([db-design.md §5](db-design.md#-5-整合性と更新の単位))
 - 業務ルールは `Pos.Domain`、LIKE のエスケープ・既定値・現在時刻 (`TimeProvider`) は Service が扱う
 - 重複 (`IDialect.IsDuplicate`)、楽観ロック (`UPDATE ... RETURNING *` で更新後の行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す (API と管理画面で同じ規則)
 - Accessor の DI 登録は Host の `AddDataAccessors(typeof(DataProfile).Assembly)`、Service は `AddCoreServices()`
@@ -225,7 +225,7 @@ wwwroot/                             css/app.css, js/reconnect.js
 
 ---
 
-## 4. 共有プロジェクト (`Pos.Domain` / `Pos.Contract`)
+## 🧩 4. 共有プロジェクト (`Pos.Domain` / `Pos.Contract`)
 
 ドメインロジックの共有と通信データの共有は別の概念なので、プロジェクトを分ける ([D-26](decisions.md#d-26-サーバ端末共有のプロジェクトに分ける))。
 
@@ -308,7 +308,7 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
 
 ---
 
-## 5. 端末 (`Pos.Terminal`)
+## 📱 5. 端末 (`Pos.Terminal`)
 
 `net10.0-android`。
 
@@ -403,7 +403,7 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CA
 
 ---
 
-## 6. 初期データ
+## 🌱 6. 初期データ
 
 起動時に会社設定がない (空の DB) なら投入する ([D-42](decisions.md#d-42-サンプルの取引は-api-を呼ぶツールで作る))。  
 支払方法「前受金」は、それより前に作った DB にも起動時に足す。  
