@@ -214,7 +214,7 @@ internal sealed class SampleGenerator
         var openedAt = ToUtc(date, 9, 0);
         var shift = new ShiftOpenRequest
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             StoreId = store.Id,
             TerminalId = terminal.Id,
             BusinessDate = date,
@@ -278,7 +278,7 @@ internal sealed class SampleGenerator
             paidOut = random.Next(1, 4) * 5000m;
             await client.PostAsync<ShiftCashEventResponseItem>($"shifts/{shift.Id}/cash-events", new ShiftCashEventRequest
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 Type = CashEventType.PaidOut,
                 Amount = paidOut,
                 Reason = Pick(PaidOutReasons),
@@ -323,7 +323,7 @@ internal sealed class SampleGenerator
             }
 
             var quantity = product.Kind == ProductKind.Service ? 1m : random.Next(1, 4);
-            var lineId = Guid.NewGuid();
+            var lineId = Guid.CreateVersion7();
             lines.Add(new SalesInputLine
             {
                 Id = lineId,
@@ -348,7 +348,7 @@ internal sealed class SampleGenerator
             if ((lineDiscounts.Count > 0) && (random.Next(100) < 20))
             {
                 var definition = Pick(lineDiscounts);
-                var id = Guid.NewGuid();
+                var id = Guid.CreateVersion7();
                 inputDiscounts.Add(new SalesInputDiscount { Id = id, LineId = lineId, Type = definition.Type, Value = definition.Value });
                 discounts.Add(new TransactionCreateRequestDiscount
                 {
@@ -366,7 +366,7 @@ internal sealed class SampleGenerator
         // 取引値引 (定義済み or 端数値引)
         if (random.Next(100) < 15)
         {
-            var id = Guid.NewGuid();
+            var id = Guid.CreateVersion7();
             if ((transactionDiscounts.Count > 0) && (random.Next(2) == 0))
             {
                 var definition = Pick(transactionDiscounts);
@@ -417,7 +417,7 @@ internal sealed class SampleGenerator
 
         var request = new TransactionCreateRequest
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Type = TransactionType.Sale,
             Status = TransactionStatus.Completed,
             StoreId = store.Id,
@@ -486,7 +486,7 @@ internal sealed class SampleGenerator
                 TaxRate = x.TaxRate,
                 TaxIncluded = x.TaxIncluded
             }).ToList(),
-            Lines = [new ReturnInputLine { Id = Guid.NewGuid(), LineNo = 1, OriginalLineId = line.Id, Quantity = 1m }]
+            Lines = [new ReturnInputLine { Id = Guid.CreateVersion7(), LineNo = 1, OriginalLineId = line.Id, Quantity = 1m }]
         };
         var provisional = ReturnLogic.Calculate(input);
         if (provisional.Total <= 0)
@@ -520,7 +520,7 @@ internal sealed class SampleGenerator
 
         var request = new TransactionCreateRequest
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Type = TransactionType.Return,
             Status = TransactionStatus.Completed,
             StoreId = store.Id,
@@ -648,7 +648,7 @@ internal sealed class SampleGenerator
 
     private static void AddPayment(List<SalesInputPayment> payments, List<TransactionCreateRequestPayment> requestPayments, PaymentMethodResponseItem method, decimal amount, decimal tendered, string? reference)
     {
-        var id = Guid.NewGuid();
+        var id = Guid.CreateVersion7();
         payments.Add(new SalesInputPayment { Id = id, Kind = method.Kind, Amount = amount, TenderedAmount = tendered, AllowsChange = method.AllowsChange });
         requestPayments.Add(new TransactionCreateRequestPayment { Id = id, SeqNo = requestPayments.Count + 1, PaymentMethodId = method.Id, Kind = method.Kind, Amount = amount, TenderedAmount = tendered, Reference = reference });
     }

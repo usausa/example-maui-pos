@@ -28,17 +28,17 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | ![取引](docs/images/server-transactions.png) |
 | 取引: 営業日・店舗・端末・種別・状態・レシート番号・シリアル番号で検索、詳細からレシートの控え (PDF) |
 | ![受注](docs/images/server-orders.png) |
-| 受注: 取り寄せ・取り置きの登録・変更・入荷・キャンセル、前受金の記録、受注票 PDF (前受金は端末で受け取り、会計で充てると完了) |
+| 受注: 取り寄せ・取り置きの登録・変更・入荷・キャンセル、前受金、受注票 PDF |
 | ![日次締め](docs/images/server-daily-closings.png) |
 | 日次締め: 店舗 × 営業日の締めと解除 (未精算のシフトがある日は締めない)、売上日報 |
 | ![商品](docs/images/server-products.png) |
 | 商品: 画像のサムネイル、編集で画像の登録、CSV 出力・取込 |
 | ![発注](docs/images/server-purchase-orders.png) |
-| 発注: 下書きの作成と変更、[発注] で入荷予定を作る、発注書 PDF (入荷予定を受領すると入荷済みになる) |
+| 発注: 下書きの作成と変更、[発注] で入荷予定を作る、発注書 PDF |
 | ![入荷](docs/images/server-inventory-receipts.png) |
-| 入荷: 仕入先からの入荷予定の登録と受領 (届いた数で在庫に入れ、予定との差を残す) |
+| 入荷: 仕入先からの入荷予定の登録と受領 |
 | ![店舗間移動](docs/images/server-inventory-transfers.png) |
-| 店舗間移動: 依頼・出荷・受領 (出荷で出荷店の在庫が減り、受領で入荷店に届いた数だけ入る) |
+| 店舗間移動: 依頼・出荷・受領 |
 | ![レジ端末](docs/images/server-terminals.png) |
 | レジ端末: ペアリングコード (6 桁、10 分) と設定 QR の発行、登録の状態と解除、最終通信 |
 | ![ユーザー](docs/images/server-accounts.png) |
@@ -56,10 +56,9 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | 文書 | 内容 |
 | --- | --- |
 | [docs/getting-started.md](docs/getting-started.md) | 構成、サーバと端末の起動、サンプル取引の生成、テストと静的解析 |
-| [docs/architecture.md](docs/architecture.md) | ソリューション構成。プロジェクト・層・パッケージ、初期データ |
+| [docs/architecture.md](docs/architecture.md) | ソリューション構成。プロジェクト・層・パッケージ、初期データとサンプル取引の生成ツール |
 | [docs/api-design.md](docs/api-design.md) | サーバ API 設計。共通仕様、リソース別エンドポイントと Request / Response、金額・税・ポイント計算仕様、エラーコード、端末の同期フロー |
 | [docs/db-design.md](docs/db-design.md) | サーバ DB 設計 (SQLite)。ER 図、テーブル定義、DDL 例、更新の単位、端末ローカル DB |
 | [docs/screen-design.md](docs/screen-design.md) | 画面設計。端末と管理画面の画面一覧・遷移・レイアウト |
-| [docs/decisions.md](docs/decisions.md) | 前提の要約と設計判断の記録 |
-| [docs/implementation-plan.md](docs/implementation-plan.md) | 実装プラン。フェーズごとのチェックリストと完了条件、後回し項目の計画 |
-| [AGENTS.md](AGENTS.md) | AI 向けの規則 (全体の書き方・検証・進め方)。コードの書き方は領域別に `.claude/rules/`、繰り返す手順は `.claude/skills/` |
+| [docs/decisions.md](docs/decisions.md) | 設計方針。機能とアーキテクチャについて、何をどこまでサポートし、どうあるべきか |
+| [docs/backlog.md](docs/backlog.md) | 未実装と今後の検討事項。後回しにしているもの、作らないと決めたもの、前提として残る制約 |

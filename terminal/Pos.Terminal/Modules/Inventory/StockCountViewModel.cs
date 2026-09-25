@@ -137,7 +137,7 @@ public sealed partial class StockCountViewModel : AppViewModelBase
                 StockContext.Changes.Remove(existing);
             }
 
-            StockContext.Changes.Add(new StockChange { Id = Guid.NewGuid(), Product = product, Type = InventoryChangeType.Adjustment, Quantity = delta, Before = before, ReasonId = reason.Id, Reason = reason.Text });
+            StockContext.Changes.Add(new StockChange { Id = Guid.CreateVersion7(), Product = product, Type = InventoryChangeType.Adjustment, Quantity = delta, Before = before, ReasonId = reason.Id, Reason = reason.Text });
         }
         else
         {
@@ -152,7 +152,7 @@ public sealed partial class StockCountViewModel : AppViewModelBase
                 StockContext.Changes.Remove(existing);
             }
 
-            StockContext.Changes.Add(new StockChange { Id = Guid.NewGuid(), Product = product, Type = InventoryChangeType.PhysicalCount, Quantity = quantity, Before = before });
+            StockContext.Changes.Add(new StockChange { Id = Guid.CreateVersion7(), Product = product, Type = InventoryChangeType.PhysicalCount, Quantity = quantity, Before = before });
         }
 
         Refresh();

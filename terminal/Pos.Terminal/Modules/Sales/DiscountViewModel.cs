@@ -101,7 +101,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
 
         await popupNavigator.CloseAsync(new CartDiscount
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             DiscountId = definition.Id,
             Name = definition.Name,
             Type = definition.Type,
@@ -132,7 +132,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
 
         await popupNavigator.CloseAsync(new CartDiscount
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Name = IsAmount ? $"値引 {ViewHelper.Yen(value)}" : $"値引 {value:0.#}%",
             Type = IsAmount ? DiscountType.Amount : DiscountType.Percent,
             Value = IsAmount ? value : value / 100m,

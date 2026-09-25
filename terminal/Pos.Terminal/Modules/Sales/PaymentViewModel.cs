@@ -197,7 +197,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
             return false;
         }
 
-        payments.Insert(0, new CartPayment { Id = Guid.NewGuid(), Method = depositMethod, Amount = deposit, TenderedAmount = deposit });
+        payments.Insert(0, new CartPayment { Id = Guid.CreateVersion7(), Method = depositMethod, Amount = deposit, TenderedAmount = deposit });
         return true;
     }
 
@@ -275,7 +275,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
         SalesContext.Payments.Add(new CartPayment
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Method = method,
             Amount = amount,
             TenderedAmount = tendered,
@@ -326,7 +326,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
         if (points > 0)
         {
-            SalesContext.Payments.Insert(0, new CartPayment { Id = Guid.NewGuid(), Method = pointsMethod, Amount = points, TenderedAmount = points });
+            SalesContext.Payments.Insert(0, new CartPayment { Id = Guid.CreateVersion7(), Method = pointsMethod, Amount = points, TenderedAmount = points });
         }
 
         Refresh();

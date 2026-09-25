@@ -53,7 +53,7 @@ public sealed class SalesCart
 
         var line = new CartLine
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Product = product,
             TaxRate = taxRate,
             UnitPrice = product.Price,

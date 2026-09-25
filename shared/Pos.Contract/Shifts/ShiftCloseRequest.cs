@@ -19,7 +19,7 @@ public sealed class ShiftCloseRequest
 
 public sealed class ShiftCloseRequestDenomination
 {
-    // 10000, 5000, 1000, 500, 100, 50, 10, 5, 1
+    // 10000, 5000, 2000, 1000, 500, 100, 50, 10, 5, 1
     public int Denomination { get; set; }
 
     [Range(0, int.MaxValue)]

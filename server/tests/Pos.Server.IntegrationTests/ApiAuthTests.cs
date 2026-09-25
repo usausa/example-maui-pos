@@ -172,12 +172,14 @@ public sealed class ApiAuthTests : IClassFixture<TestApplicationFactory>
         using var currentResponse = await client.GetAsync(new Uri($"{ApiRoutes.Shifts}/current?terminalId={TestData.MainTerminal1Id}", UriKind.Relative), Token);
         using var changeResponse = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", change, options);
         using var shiftListResponse = await client.GetAsync(new Uri(ApiRoutes.Shifts, UriKind.Relative), Token);
+        using var productSalesResponse = await client.GetAsync(new Uri($"{ApiRoutes.Reports}/sales/products", UriKind.Relative), Token);
 
         // Assert
         await openResponse.ReadProblemAsync(HttpStatusCode.Forbidden, "TERMINAL_MISMATCH", options);
         await currentResponse.ReadProblemAsync(HttpStatusCode.Forbidden, "TERMINAL_MISMATCH", options);
         await changeResponse.ReadProblemAsync(HttpStatusCode.Forbidden, "TERMINAL_MISMATCH", options);
         Assert.Equal(HttpStatusCode.Forbidden, shiftListResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, productSalesResponse.StatusCode);
     }
 
     // 端末向けの同期にだけ PIN のハッシュが載る (初期データの PIN で照合できる)。heartbeat は端末のトークンで記録する (管理画面のログインは 403)

@@ -78,7 +78,7 @@ public sealed class ShiftUsecase
         var now = DateTime.UtcNow;
         var entity = new LocalShiftEntity
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             StoreId = session.Store!.Id,
             TerminalId = session.Terminal!.Id,
             Status = ShiftStatus.Open,
@@ -143,7 +143,7 @@ public sealed class ShiftUsecase
         var shiftId = session.CurrentShift!.Id;
         var entity = new LocalCashEventEntity
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             ShiftId = shiftId,
             Type = type,
             Amount = amount,

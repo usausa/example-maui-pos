@@ -25,7 +25,7 @@ public static partial class ReportEndpoints
         var group = app.MapApiGroup(ApiRoutes.Reports);
         group.MapGet("/sales/summary", HandleSalesSummaryAsync);
         group.MapGet("/sales/summary/csv", HandleSalesSummaryCsvAsync).RequireAuthorization(Policies.Admin);
-        group.MapGet("/sales/products", HandleProductSalesAsync);
+        group.MapGet("/sales/products", HandleProductSalesAsync).RequireAuthorization(Policies.Admin);
         group.MapGet("/sales/products/csv", HandleProductSalesCsvAsync).RequireAuthorization(Policies.Admin);
         group.MapGet("/sales/daily/pdf", HandleDailySalesPdfAsync).RequireAuthorization(Policies.Admin);
     }

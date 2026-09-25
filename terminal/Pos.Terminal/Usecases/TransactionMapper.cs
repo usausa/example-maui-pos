@@ -105,7 +105,7 @@ public static class TransactionMapper
 
         return new TransactionCreateRequest
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Type = TransactionType.Sale,
             Status = TransactionStatus.Completed,
             StoreId = context.StoreId,
@@ -180,7 +180,7 @@ public static class TransactionMapper
                 TaxRate = x.TaxRate,
                 TaxIncluded = x.TaxIncluded
             }).ToList(),
-            Lines = returns.Select((x, i) => new ReturnInputLine { Id = Guid.NewGuid(), LineNo = i + 1, OriginalLineId = x.Line.Id, Quantity = x.Quantity }).ToList(),
+            Lines = returns.Select((x, i) => new ReturnInputLine { Id = Guid.CreateVersion7(), LineNo = i + 1, OriginalLineId = x.Line.Id, Quantity = x.Quantity }).ToList(),
             Payments = payments.Select(static x => new SalesInputPayment { Id = x.Id, Kind = x.Method.Kind, Amount = x.Amount, TenderedAmount = x.TenderedAmount, AllowsChange = x.Method.AllowsChange }).ToList()
         };
     }
@@ -194,7 +194,7 @@ public static class TransactionMapper
             var calculated = result.Lines[i];
             lines.Add(new TransactionCreateRequestLine
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 LineNo = i + 1,
                 ProductId = line.ProductId,
                 ProductCode = line.ProductCode,
@@ -220,7 +220,7 @@ public static class TransactionMapper
 
         return new TransactionCreateRequest
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Type = TransactionType.Return,
             Status = TransactionStatus.Completed,
             StoreId = context.StoreId,

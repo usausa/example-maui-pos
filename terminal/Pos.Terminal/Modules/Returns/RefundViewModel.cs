@@ -150,7 +150,7 @@ public sealed partial class RefundViewModel : AppViewModelBase
         var payments = new List<CartPayment>();
         if (pointsRefund > 0)
         {
-            payments.Add(new CartPayment { Id = Guid.NewGuid(), Method = pointsMethod!, Amount = pointsRefund, TenderedAmount = pointsRefund });
+            payments.Add(new CartPayment { Id = Guid.CreateVersion7(), Method = pointsMethod!, Amount = pointsRefund, TenderedAmount = pointsRefund });
         }
 
         if (refund > 0)
@@ -161,7 +161,7 @@ public sealed partial class RefundViewModel : AppViewModelBase
                 return;
             }
 
-            payments.Add(new CartPayment { Id = Guid.NewGuid(), Method = selected.Method, Amount = refund, TenderedAmount = refund });
+            payments.Add(new CartPayment { Id = Guid.CreateVersion7(), Method = selected.Method, Amount = refund, TenderedAmount = refund });
         }
 
         if (!await dialog.AskAsync($"{ViewHelper.Yen(result.Total)} を返金しますか？", "返品", "確定"))

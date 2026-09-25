@@ -62,7 +62,7 @@ public sealed class OrderUsecase
     {
         var request = new OrderCreateRequest
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             StoreId = session.Store!.Id,
             TerminalId = session.Terminal!.Id,
             StaffId = session.Staff!.Id,
@@ -75,7 +75,7 @@ public sealed class OrderUsecase
             OrderedAt = DateTime.UtcNow,
             Lines = cart.Lines.Select(static (x, i) => new OrderCreateRequestLine
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 LineNo = i + 1,
                 ProductId = x.Product.Id,
                 ProductCode = x.Product.Code,
@@ -131,7 +131,7 @@ public sealed class OrderUsecase
     {
         var request = new OrderDepositRequest
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             ShiftId = session.CurrentShift!.Id,
             TerminalId = session.Terminal!.Id,
             StaffId = session.Staff!.Id,
@@ -150,7 +150,7 @@ public sealed class OrderUsecase
     {
         var request = new OrderDepositRefundRequest
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             ShiftId = session.CurrentShift!.Id,
             TerminalId = session.Terminal!.Id,
             StaffId = session.Staff!.Id,

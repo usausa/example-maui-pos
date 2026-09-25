@@ -32,6 +32,6 @@
 - Request / Response ごとにファイルを分け、子要素と一覧の要素の型は同じファイルに置く
 - 通信データは `sealed class` と `{ get; set; }` で書き、null にならない参照型は `= default!` にする (record、`required`、JSON の属性は使わない)
 - 日付は `DateOnly` (`yyyy-MM-dd`)、日時は UTC の `DateTime` (`yyyy-MM-ddTHH:mm:ss.fffZ`)、列挙型は文字列にする。名前は既定の camelCase に任せる
-- 更新の Request は楽観ロックの `Version` を持つ。端末から送る登録は端末が採番した `Id` を持つ
+- 更新の Request は楽観ロックの `Version` を持つ。端末から送る登録は端末が採番した `Id` (サーバと同じ `Guid.CreateVersion7()`) を持つ
 - 項目をまたぐ検証は Request の `IValidatableObject` で 400 にし、DB の事実が要る業務ルールは `Pos.Domain.Logic` で 422 にする
 - Contract には通信データと、その型への判定の拡張メソッドだけを置く。JSON の変換器や Problem Details の型は、サーバ・端末・ツールがそれぞれ持つ

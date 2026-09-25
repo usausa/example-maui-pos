@@ -65,7 +65,7 @@ public sealed class SalesUsecase
     {
         await accessor.InsertHoldCartAsync(new HoldCartEntity
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             CreatedAt = DateTime.UtcNow,
             Summary = cart.Summary,
             Total = Calculate(cart, []).Total,

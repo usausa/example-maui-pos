@@ -381,7 +381,7 @@ public sealed class SyncService : IDisposable
 
     public static OutboxEntity CreateEntry(OutboxKind kind, Guid targetId, object payload, DateTime now) => new()
     {
-        Id = Guid.NewGuid(),
+        Id = Guid.CreateVersion7(),
         Kind = kind,
         TargetId = targetId,
         Payload = JsonSerializer.Serialize(payload, payload.GetType(), HttpService.JsonOptions),

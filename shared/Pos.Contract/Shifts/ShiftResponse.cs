@@ -31,7 +31,7 @@ public sealed class ShiftResponseItem
 
     public IReadOnlyList<ShiftResponseDenomination> Denominations { get; set; } = [];
 
-    // openingCash + cashSales − cashReturns + paidIn − paidOut
+    // openingCash + cashSales − cashReturns + paidIn − paidOut + depositCashIn − depositCashOut
     public decimal? ExpectedCash { get; set; }
 
     // actualCash − expectedCash

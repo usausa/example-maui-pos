@@ -7,7 +7,7 @@ public sealed class ReportSalesSummaryResponse
 
     public DateOnly To { get; set; }
 
-    // day / hour / terminal / staff / paymentMethod / taxRate / category
+    // day / store / hour / terminal / staff / paymentMethod / taxRate / category
     public string GroupBy { get; set; } = default!;
 
     public IReadOnlyList<ReportSalesSummaryResponseRow> Rows { get; set; } = default!;

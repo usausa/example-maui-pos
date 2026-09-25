@@ -2,7 +2,7 @@ namespace Pos.Domain;
 
 using System.Reflection;
 
-// Pos.Domain は UI / DB / HTTP / 通信データに依存しない (docs/architecture.md)
+// Pos.Domain は UI / DB / HTTP / 通信データに依存しない
 public sealed class DependencyTests
 {
     private static readonly string[] ForbiddenPrefixes =

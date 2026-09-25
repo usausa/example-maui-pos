@@ -71,7 +71,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 
 - 管理画面はログイン (Cookie)、端末はペアリングで受け取ったトークン (Bearer、`TerminalAuthenticationHandler`) で認証する。トークンは要求ごとに DB で照合する (登録の解除がすぐ効く)
 - ポリシーは `ConfigureAuthentication` の `BuildPolicy` で作る (認証を無効にすると素通しになる)。ポリシーを重ねるとスキームが合算されるので、管理画面と端末はスキームではなく要件 (アカウントの役割、端末のクレーム) で区別する
-- API は `MapApiGroup` の既定 `Policies.Api` (ログインか端末) を基本にし、管理画面だけの操作 (CSV、PDF、日次締め、仕入先、入荷と移動の登録など) は `Policies.Admin`、マスタ・会社設定・端末登録の書き込みと締めの解除は `Policies.Administrator`、端末自身の通信は `Policies.Terminal` を付ける
+- API は `MapApiGroup` の既定 `Policies.Api` (ログインか端末) を基本にし、用途が管理だけの API (シフト一覧や商品別売上などの参照、CSV、PDF、日次締め、仕入先、入荷と移動の登録など) は `Policies.Admin`、マスタ・会社設定・端末登録の書き込みと締めの解除は `Policies.Administrator`、端末自身の通信は `Policies.Terminal` を付ける
 - 端末も呼ぶ書き込みの API は `TerminalAccess` と `ClaimsPrincipal` を受け、本文や対象の店舗・端末がトークンと合わなければ `ApiProblems.TerminalMismatch()` を返す (既存の資源は読んでから確かめ、ないときは Service の NotFound に任せる)。読み取りと管理画面の要求には適用しない
 - 利用者と端末は `AuthClaims.AccountOf` / `TerminalOf` で読み、クレームを直接読まない。認証を無効にすると null になるので、記録する名前などは null を許す
 - 匿名で受ける認証の入口 (ログイン、ペアリング) は `AllowAnonymous()` と `RequireRateLimiting(RateLimits.Auth)` を対にする

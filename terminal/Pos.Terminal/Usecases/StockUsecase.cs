@@ -79,7 +79,7 @@ public sealed class StockUsecase
                 }
             }
 
-            await accessor.InsertOutboxAsync(tx, SyncService.CreateEntry(OutboxKind.InventoryChanges, Guid.NewGuid(), request, now));
+            await accessor.InsertOutboxAsync(tx, SyncService.CreateEntry(OutboxKind.InventoryChanges, Guid.CreateVersion7(), request, now));
             await tx.CommitAsync();
         });
         await sync.UpdateCountsAsync();
