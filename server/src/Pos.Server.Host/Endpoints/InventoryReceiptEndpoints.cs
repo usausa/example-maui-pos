@@ -21,10 +21,8 @@ public static partial class InventoryReceiptEndpoints
         var group = app.MapApiGroup(ApiRoutes.InventoryReceipts);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
-        // 認証の導入時: 登録とキャンセルは管理画面だけ (Admin)
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPost("/{id:guid}/cancel", HandleCancelAsync);
-        // 認証の導入時: 端末の受領は入荷の店舗が端末トークンのクレームと一致することを確かめる
+        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Admin);
+        group.MapPost("/{id:guid}/cancel", HandleCancelAsync).RequireAuthorization(Policies.Admin);
         group.MapPost("/{id:guid}/receive", HandleReceiveAsync);
     }
 
@@ -115,12 +113,20 @@ public static partial class InventoryReceiptEndpoints
     }
 
     // 受領 (入荷予定のときだけ)。明細を省略すると予定の数で受け取る
+    // 端末の受領は入荷の店舗が自店であること
     private static async ValueTask<IResult> HandleReceiveAsync(
+        TerminalAccess access,
         InventoryReceiptService service,
+        ClaimsPrincipal user,
         Guid id,
         InventoryReceiptReceiveRequest request,
         CancellationToken cancellationToken)
     {
+        if ((await service.QueryDetailAsync(id, cancellationToken) is { } detail) && !access.CanAccess(user, detail.Receipt.StoreId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         var quantities = request.Lines.ToDictionary(static x => x.LineId, static x => x.Quantity);
         return ToResult(await service.ReceiveAsync(id, request.StaffId, request.ReceivedAt, quantities, cancellationToken));
     }

@@ -250,6 +250,7 @@ public sealed class TransactionService
         var shiftFact = shift is null ? null : new ShiftFact { Id = shift.Id, Status = shift.Status, TerminalId = shift.TerminalId };
         var dayClosed = await dailyClosingAccessor.QueryByBusinessDateAsync(entity.StoreId, entity.BusinessDate, cancellationToken) is not null;
         var order = (orderId is null) || (entity.Type != TransactionType.Sale) ? null : await orderAccessor.QueryAsync(orderId.Value, cancellationToken);
+        var staff = await QueryStaffFactAsync(entity.StaffId, cancellationToken);
 
         TransactionValidation validation;
         if (entity.Type == TransactionType.Return)
@@ -259,12 +260,14 @@ public sealed class TransactionService
             var input = ToReturnInput(settings, originalLines, detail.Lines, detail.Payments, paymentMethods);
             var context = new ReturnContext
             {
+                StoreId = entity.StoreId,
                 TerminalId = entity.TerminalId,
                 Shift = shiftFact,
                 ReceiptNoInUse = receiptNoInUse,
                 Original = original is null ? null : new OriginalTransactionFact { Id = original.Id, Type = original.Type, Status = original.Status },
                 HasCustomer = customer is not null,
-                DayClosed = dayClosed
+                DayClosed = dayClosed,
+                Staff = staff
             };
             validation = TransactionLogic.ValidateReturn(context, input, claimed);
         }
@@ -282,7 +285,9 @@ public sealed class TransactionService
                 CustomerPointBalance = customer?.PointBalance,
                 DayClosed = dayClosed,
                 OrderId = orderId,
-                Order = order is null ? null : new OrderFact { Id = order.Id, StoreId = order.StoreId, Status = order.Status }
+                Order = order is null ? null : new OrderFact { Id = order.Id, StoreId = order.StoreId, Status = order.Status },
+                Staff = staff,
+                DiscountApprovals = await QueryDiscountApprovalsAsync(detail.Discounts, cancellationToken)
             };
             validation = TransactionLogic.ValidateSale(context, input, claimed);
         }
@@ -494,8 +499,8 @@ public sealed class TransactionService
     // Void
     //--------------------------------------------------------------------------------
 
-    // 取消: Status を Voided にし、在庫は逆方向の履歴、ポイントは Void 履歴を追加する
-    public async ValueTask<TransactionResult> VoidAsync(Guid id, DateTime voidedAt, Guid staffId, string reason, CancellationToken cancellationToken)
+    // 取消: Status を Voided にし、在庫は逆方向の履歴、ポイントは Void 履歴を追加する。レジ係の取消は店長以上の承認者が要る
+    public async ValueTask<TransactionResult> VoidAsync(Guid id, DateTime voidedAt, Guid staffId, Guid? approvedByStaffId, string reason, CancellationToken cancellationToken)
     {
         var entity = await transactionAccessor.QueryAsync(id, cancellationToken);
         if (entity is null)
@@ -506,9 +511,12 @@ public sealed class TransactionService
         var shift = await shiftAccessor.QueryAsync(entity.ShiftId, cancellationToken);
         var context = new VoidContext
         {
-            Transaction = new TransactionFact { Id = entity.Id, Type = entity.Type, Status = entity.Status, HasReturns = await transactionAccessor.CountReturnsAsync(id, cancellationToken) > 0 },
+            Transaction = new TransactionFact { Id = entity.Id, StoreId = entity.StoreId, Type = entity.Type, Status = entity.Status, HasReturns = await transactionAccessor.CountReturnsAsync(id, cancellationToken) > 0 },
             ShiftStatus = shift?.Status,
-            DayClosed = await dailyClosingAccessor.QueryByBusinessDateAsync(entity.StoreId, entity.BusinessDate, cancellationToken) is not null
+            DayClosed = await dailyClosingAccessor.QueryByBusinessDateAsync(entity.StoreId, entity.BusinessDate, cancellationToken) is not null,
+            Staff = await QueryStaffFactAsync(staffId, cancellationToken),
+            ApproverId = approvedByStaffId,
+            Approver = await QueryStaffFactAsync(approvedByStaffId, cancellationToken)
         };
         var validation = TransactionLogic.ValidateVoid(context);
         if (!validation.IsValid)
@@ -575,6 +583,40 @@ public sealed class TransactionService
 
     private async ValueTask<Dictionary<Guid, PaymentMethodEntity>> QueryPaymentMethodsAsync(CancellationToken cancellationToken) =>
         (await masterAccessor.QueryPaymentMethodListAsync(null, true, cancellationToken)).ToDictionary(static x => x.Id);
+
+    // 担当・承認者の事実 (null = 指定なし・見つからない。削除済みは無効として扱う)
+    private async ValueTask<StaffFact?> QueryStaffFactAsync(Guid? id, CancellationToken cancellationToken)
+    {
+        if (id is null)
+        {
+            return null;
+        }
+
+        var staff = await masterAccessor.QueryStaffAsync(id.Value, cancellationToken);
+        return staff is null ? null : new StaffFact { Id = staff.Id, Role = staff.Role, StoreId = staff.StoreId, IsActive = staff.IsActive && !staff.IsDeleted };
+    }
+
+    // 承認が必要な値引 (定義の RequiresApproval) ごとの承認者。任意の値引は承認なし
+    private async ValueTask<List<DiscountApprovalFact>> QueryDiscountApprovalsAsync(IEnumerable<TransactionDiscountEntity> discounts, CancellationToken cancellationToken)
+    {
+        var approvals = new List<DiscountApprovalFact>();
+        foreach (var discount in discounts)
+        {
+            if ((discount.DiscountId is null) || (await masterAccessor.QueryDiscountAsync(discount.DiscountId.Value, cancellationToken) is not { RequiresApproval: true }))
+            {
+                continue;
+            }
+
+            approvals.Add(new DiscountApprovalFact
+            {
+                LineId = discount.LineId,
+                ApproverId = discount.ApprovedByStaffId,
+                Approver = await QueryStaffFactAsync(discount.ApprovedByStaffId, cancellationToken)
+            });
+        }
+
+        return approvals;
+    }
 
     // 同一 id の再送かどうか (主要項目の一致で判定)
     private static bool IsSameTransaction(TransactionEntity existing, TransactionEntity entity) =>

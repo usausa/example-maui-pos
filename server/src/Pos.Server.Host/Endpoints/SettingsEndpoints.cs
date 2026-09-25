@@ -16,7 +16,7 @@ public static partial class SettingsEndpoints
     {
         var group = app.MapApiGroup(ApiRoutes.Settings);
         group.MapGet("/", HandleGetAsync);
-        group.MapPut("/", HandleUpdateAsync);
+        group.MapPut("/", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
     }
 
     //--------------------------------------------------------------------------------

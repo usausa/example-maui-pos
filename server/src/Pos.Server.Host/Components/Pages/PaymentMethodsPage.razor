@@ -7,7 +7,9 @@
     <MudText Typo="Typo.h5">🏷️ 支払方法</MudText>
     <MudSpacer />
     <MudSwitch T="bool" @bind-Value="includeDeleted" @bind-Value:after="LoadAsync" Label="削除済みを表示" Color="Color.Primary" />
-    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+    <AuthorizeView Policy="@Policies.Administrator">
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+    </AuthorizeView>
     <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
 </MudStack>
 
@@ -39,8 +41,10 @@
         <MudTd Class="no-wrap">
             @if (!context.IsDeleted)
             {
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="IsBusy" OnClick="() => EditAsync(context)" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="IsBusy" OnClick="() => DeleteAsync(context)" />
+                <AuthorizeView Policy="@Policies.Administrator" Context="auth">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="IsBusy" OnClick="() => EditAsync(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="IsBusy" OnClick="() => DeleteAsync(context)" />
+                </AuthorizeView>
             }
         </MudTd>
     </RowTemplate>

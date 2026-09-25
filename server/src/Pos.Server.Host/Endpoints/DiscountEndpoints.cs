@@ -17,9 +17,9 @@ public static partial class DiscountEndpoints
         var group = app.MapApiGroup(ApiRoutes.Discounts);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPut("/{id:guid}", HandleUpdateAsync);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync);
+        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
     }
 
     //--------------------------------------------------------------------------------

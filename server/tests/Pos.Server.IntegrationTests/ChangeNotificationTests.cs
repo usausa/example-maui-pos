@@ -29,7 +29,7 @@ public sealed class ChangeNotificationTests : IClassFixture<TestApplicationFacto
     public async Task WritesNotifyChanges()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var kinds = new ConcurrentQueue<DataChangeKind>();
         var notification = factory.Services.GetRequiredService<ChangeNotificationService>();
         notification.Changed += (_, e) => kinds.Enqueue(e.Kind);

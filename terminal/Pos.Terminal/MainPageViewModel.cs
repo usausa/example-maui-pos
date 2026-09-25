@@ -8,11 +8,13 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
 {
     private readonly IScreen screen;
 
+    private readonly IDialog dialog;
+
     private readonly StartupState startup;
 
-    private readonly Settings settings;
-
     private readonly Session session;
+
+    private readonly CredentialService credential;
 
     private readonly SyncService syncService;
 
@@ -74,16 +76,19 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
         ILogger<MainPageViewModel> log,
         INavigator navigator,
         IScreen screen,
+        IDialog dialog,
         StartupState startup,
-        Settings settings,
         Session session,
+        ApiContext apiContext,
+        CredentialService credential,
         SyncService syncService)
     {
         Navigator = navigator;
         this.screen = screen;
+        this.dialog = dialog;
         this.startup = startup;
-        this.settings = settings;
         this.session = session;
+        this.credential = credential;
         this.syncService = syncService;
 
         Function1Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function1), () => Function1Enabled);
@@ -94,6 +99,11 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
         Disposables.Add(session.PropertyChangedAsObservable().ObserveOnCurrentContext().Subscribe(_ => UpdateHeader()));
         UpdateHeader();
 
+        // サーバで端末の登録が解除された (要求が 401): 知らせて初期設定へ
+        Disposables.Add(Observable.FromEventPattern(h => apiContext.Unauthorized += h, h => apiContext.Unauthorized -= h)
+            .ObserveOnCurrentContext()
+            .Subscribe(_ => HandleUnauthorized()));
+
         // Screen lock detection
         Disposables.Add(screen.StateChangedAsObservable().ObserveOnCurrentContext().Subscribe(x =>
         {
@@ -103,6 +113,15 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
                 syncService.Trigger();
             }
         }));
+    }
+
+    // ReSharper disable once AsyncVoidMethod
+    private async void HandleUnauthorized()
+    {
+        credential.Clear();
+        session.Staff = null;
+        await dialog.InformationAsync("この端末の登録が解除されました。\n管理画面でペアリングコードを発行し、登録し直してください。\n未送信の取引は再登録後に送信します。", "端末の登録");
+        await Navigator.ForwardAsync(ViewId.Setup);
     }
 
     private void UpdateHeader()
@@ -131,7 +150,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
         }
 
         Navigator.Exit();
-        await Navigator.ForwardAsync(settings.IsConfigured ? ViewId.StaffSelect : ViewId.Setup);
+        await Navigator.ForwardAsync(credential.IsRegistered ? ViewId.StaffSelect : ViewId.Setup);
     }
 
     public void OnActivated()

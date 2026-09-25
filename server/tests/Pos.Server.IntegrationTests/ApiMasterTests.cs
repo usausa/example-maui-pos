@@ -29,7 +29,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task SyncMastersReturnsAllThenDelta()
     {
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
 
         var all = await client.GetJsonAsync<SyncMastersResponse>($"{ApiRoutes.Sync}/masters", options);
         Assert.NotNull(all.Settings);
@@ -56,7 +56,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task CategoryCrudAndConflicts()
     {
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var code = $"T{Guid.NewGuid():N}"[..10];
 
         using var createResponse = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = code, Name = "テスト部門", SortOrder = 99 }, options);
@@ -98,7 +98,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task ValidationErrorReturnsProblem()
     {
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
 
         using var response = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = string.Empty, Name = string.Empty, SortOrder = 1 }, options);
         var problem = await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
@@ -112,7 +112,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     public async Task MalformedJsonReturnsValidationProblem()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         using var content = new StringContent("{", Encoding.UTF8, "application/json");
 
         // Act
@@ -125,7 +125,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task ProductLookupAndList()
     {
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
 
         var camera = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/lookup?barcode=4901234567894", options);
         Assert.Equal("CAM-X100", camera.Code);
@@ -146,7 +146,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task SettingsUpdateUsesVersion()
     {
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
 
         var settings = await client.GetJsonAsync<SettingsResponse>(ApiRoutes.Settings, options);
         Assert.Equal("うさぎ電機", settings.CompanyName);
@@ -165,7 +165,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task CustomerPointsAdjust()
     {
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
 
         var customer = await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/lookup?code=M0003", options);
         Assert.Equal(500, customer.PointBalance);

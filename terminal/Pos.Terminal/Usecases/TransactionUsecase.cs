@@ -120,11 +120,11 @@ public sealed class TransactionUsecase
         sync.Trigger();
     }
 
-    // 取消: ローカル取引の状態を更新し、在庫を戻す
-    public async ValueTask VoidAsync(TransactionResponseItem transaction, Guid staffId, string reason)
+    // 取消: ローカル取引の状態を更新し、在庫を戻す。approvedByStaffId はレジ係の取消を承認した店長以上
+    public async ValueTask VoidAsync(TransactionResponseItem transaction, Guid staffId, Guid? approvedByStaffId, string reason)
     {
         var now = DateTime.UtcNow;
-        var request = new TransactionVoidRequest { StaffId = staffId, Reason = reason, VoidedAt = now };
+        var request = new TransactionVoidRequest { StaffId = staffId, ApprovedByStaffId = approvedByStaffId, Reason = reason, VoidedAt = now };
         var sign = transaction.Type == TransactionType.Return ? -1m : 1m;
         var deltas = await ResolveInventoryDeltasAsync(transaction.Lines.Select(x => (x.ProductId, x.Quantity * sign)));
 

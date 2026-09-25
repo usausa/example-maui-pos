@@ -22,13 +22,13 @@ public static partial class ShiftEndpoints
         var group = app.MapApiGroup(ApiRoutes.Shifts);
         group.MapPost("/", HandleOpenAsync);
         group.MapGet("/current", HandleCurrentAsync);
-        group.MapGet("/", HandleListAsync);
+        group.MapGet("/", HandleListAsync).RequireAuthorization(Policies.Admin);
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/{id:guid}/cash-events", HandleCashEventAsync);
         group.MapGet("/{id:guid}/cash-events", HandleCashEventListAsync);
         group.MapPost("/{id:guid}/close", HandleCloseAsync);
         group.MapGet("/{id:guid}/summary", HandleSummaryAsync);
-        group.MapGet("/{id:guid}/summary/pdf", HandleSummaryPdfAsync);
+        group.MapGet("/{id:guid}/summary/pdf", HandleSummaryPdfAsync).RequireAuthorization(Policies.Admin);
     }
 
     //--------------------------------------------------------------------------------
@@ -110,10 +110,17 @@ public static partial class ShiftEndpoints
 
     // 開設。同じ id は 200 で既存を返し、端末に Open のシフトがあれば 409
     private static async ValueTask<IResult> HandleOpenAsync(
+        TerminalAccess access,
         ShiftService service,
+        ClaimsPrincipal user,
         ShiftOpenRequest request,
         CancellationToken cancellationToken)
     {
+        if (!access.CanAccess(user, request.StoreId, request.TerminalId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         var entity = ToEntity(request);
         var result = await service.OpenAsync(entity, cancellationToken);
         return result.Status switch
@@ -126,10 +133,17 @@ public static partial class ShiftEndpoints
     }
 
     private static async ValueTask<IResult> HandleCurrentAsync(
+        TerminalAccess access,
         ShiftService service,
+        ClaimsPrincipal user,
         Guid terminalId,
         CancellationToken cancellationToken)
     {
+        if (!access.CanAccessTerminal(user, terminalId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         var detail = await service.QueryCurrentAsync(terminalId, cancellationToken);
         return detail is null ? ApiProblems.NotFound("開設中のシフトはありません") : TypedResults.Ok(ToResponse(detail));
     }
@@ -163,11 +177,18 @@ public static partial class ShiftEndpoints
 
     // 入出金 (Open のみ)。同じ id は 200 で既存を返す
     private static async ValueTask<IResult> HandleCashEventAsync(
+        TerminalAccess access,
         ShiftService service,
+        ClaimsPrincipal user,
         Guid id,
         ShiftCashEventRequest request,
         CancellationToken cancellationToken)
     {
+        if ((await service.QueryAsync(id, cancellationToken) is { } shift) && !access.CanAccessTerminal(user, shift.TerminalId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         var entity = ToEntity(request);
         entity.ShiftId = id;
         var result = await service.AddCashEventAsync(entity, cancellationToken);
@@ -196,11 +217,18 @@ public static partial class ShiftEndpoints
 
     // 精算: 集計を確定して Closed にする (取引・入出金は送信済みであること)。同じ内容の再送は 200
     private static async ValueTask<IResult> HandleCloseAsync(
+        TerminalAccess access,
         ShiftService service,
+        ClaimsPrincipal user,
         Guid id,
         ShiftCloseRequest request,
         CancellationToken cancellationToken)
     {
+        if ((await service.QueryAsync(id, cancellationToken) is { } shift) && !access.CanAccessTerminal(user, shift.TerminalId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         var result = await service.CloseAsync(id, ToParameter(request), cancellationToken);
         return result.Status switch
         {

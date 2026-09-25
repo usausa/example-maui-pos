@@ -32,7 +32,7 @@ public static class SyncEndpoints
             Settings = data.Settings is null ? null : SettingsEndpoints.ToResponse(data.Settings),
             Stores = data.Stores.Select(StoreEndpoints.ToResponse).ToList(),
             Terminals = data.Terminals.Select(TerminalEndpoints.ToResponse).ToList(),
-            Staff = data.Staff.Select(StaffEndpoints.ToResponse).ToList(),
+            Staff = data.Staff.Select(StaffEndpoints.ToSyncResponse).ToList(),
             Categories = data.Categories.Select(CategoryEndpoints.ToResponse).ToList(),
             TaxRates = data.TaxRates.Select(TaxRateEndpoints.ToResponse).ToList(),
             Products = data.Products.Select(ProductEndpoints.ToResponse).ToList(),

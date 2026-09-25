@@ -1,0 +1,52 @@
+@page "/accounts"
+@attribute [Authorize(Policy = Policies.Administrator)]
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - ユーザー</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">⚙️ ユーザー</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+    <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
+</MudStack>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudTable T="AccountEntity" Items="items" Dense="true" Hover="true" Bordered="true" Striped="true" Loading="IsLoading">
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>役割</MudTh>
+        <MudTh>状態</MudTh>
+        <MudTh>最終ログイン</MudTh>
+        <MudTh>更新日時</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>
+            @context.Name
+            @if (IsSelf(context))
+            {
+                <MudText Typo="Typo.caption" Class="ml-1">(ログイン中)</MudText>
+            }
+        </MudTd>
+        <MudTd><StatusChip Value="@ViewHelper.AccountRoleChip(context.Role)" /></MudTd>
+        <MudTd><StatusChip Value="@ViewHelper.ActiveChip(context.IsActive)" /></MudTd>
+        <MudTd Class="no-wrap">@context.LastLoginAt.ToDateTimeText()</MudTd>
+        <MudTd Class="no-wrap">@context.UpdatedAt.ToDateTimeText()</MudTd>
+        <MudTd Class="no-wrap">
+            <MudTooltip Text="パスワード変更">
+                <MudIconButton Icon="@Icons.Material.Filled.Key" Size="Size.Small" Disabled="IsBusy" OnClick="() => ChangePasswordAsync(context)" />
+            </MudTooltip>
+            @* 自分自身は役割・有効の変更と削除をできない (管理者がいなくなるのを防ぐ) *@
+            @if (!IsSelf(context))
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="IsBusy" OnClick="() => EditAsync(context)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="IsBusy" OnClick="() => DeleteAsync(context)" />
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>ユーザーがいません。</MudText>
+    </NoRecordsContent>
+</MudTable>

@@ -3,25 +3,32 @@ namespace Pos.Server.SampleData;
 using System.Net.Http.Json;
 using System.Text.Encodings.Web;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Text.Unicode;
 
-// サーバと同じ JSON 契約 (camelCase / null 省略 / 列挙型は文字列 / 日時は UTC) で API を呼ぶ
-internal sealed class ApiClient : IDisposable
+// サーバと同じ JSON 契約 (camelCase / null 省略 / 列挙型は文字列 / 日時は UTC) で API を呼ぶ。
+// 管理画面のログイン (Cookie) で呼ぶので、端末の店舗・端末の一致は確かめられない
+internal sealed partial class ApiClient : IDisposable
 {
     private const string Prefix = "api/v1/";
 
     private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
 
+    private readonly HttpClientHandler handler;
+
     private readonly HttpClient client;
 
     public ApiClient(Uri baseAddress)
     {
-        client = new HttpClient { BaseAddress = baseAddress, Timeout = TimeSpan.FromSeconds(30) };
+        // ログインの Cookie を持ち回り、ログインの成否は転送先で判断するので自動では追わない
+        handler = new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new CookieContainer(), CheckCertificateRevocationList = true };
+        client = new HttpClient(handler, false) { BaseAddress = baseAddress, Timeout = TimeSpan.FromSeconds(30) };
     }
 
     public void Dispose()
     {
         client.Dispose();
+        handler.Dispose();
     }
 
     private static JsonSerializerOptions CreateJsonOptions()
@@ -34,6 +41,30 @@ internal sealed class ApiClient : IDisposable
         options.Converters.Add(new JsonDateTimeConverter());
         options.Converters.Add(new JsonStringEnumConverter());
         return options;
+    }
+
+    // ログイン画面のフォーム (偽造防止トークン付き) を送る。成功するとトップへ、失敗するとログイン画面へ転送される
+    public async Task LoginAsync(string user, string password)
+    {
+        var page = await client.GetStringAsync(new Uri("login", UriKind.Relative)).ConfigureAwait(false);
+        var match = AntiforgeryPattern().Match(page);
+        if (!match.Success)
+        {
+            throw new ApiException(HttpStatusCode.OK, null, "ログイン画面を読めません");
+        }
+
+        using var content = new FormUrlEncodedContent(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["__RequestVerificationToken"] = WebUtility.HtmlDecode(match.Groups[1].Value),
+            ["name"] = user,
+            ["password"] = password
+        });
+        using var response = await client.PostAsync(new Uri("auth/login", UriKind.Relative), content).ConfigureAwait(false);
+        var location = response.Headers.Location?.OriginalString;
+        if ((response.StatusCode != HttpStatusCode.Redirect) || (location is null) || location.Contains("login", StringComparison.Ordinal))
+        {
+            throw new ApiException(response.StatusCode, null, $"ログインできません: {user}");
+        }
     }
 
     public async Task<T> GetAsync<T>(string path)
@@ -88,4 +119,7 @@ internal sealed class ApiClient : IDisposable
             : $"{(int)response.StatusCode} {problem.ErrorCode}: {problem.Detail ?? problem.Title}";
         throw new ApiException(response.StatusCode, problem?.ErrorCode, message);
     }
+
+    [GeneratedRegex("name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"")]
+    private static partial Regex AntiforgeryPattern();
 }

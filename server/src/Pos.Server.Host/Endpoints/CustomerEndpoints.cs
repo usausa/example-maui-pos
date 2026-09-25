@@ -25,9 +25,9 @@ public static partial class CustomerEndpoints
         group.MapGet("/{id:guid}", HandleGetAsync);
         group.MapPost("/", HandleCreateAsync);
         group.MapPut("/{id:guid}", HandleUpdateAsync);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Admin);
         group.MapGet("/{id:guid}/points/history", HandlePointHistoryAsync);
-        group.MapPost("/{id:guid}/points/adjust", HandlePointAdjustAsync);
+        group.MapPost("/{id:guid}/points/adjust", HandlePointAdjustAsync).RequireAuthorization(Policies.Admin);
         group.MapGet("/{id:guid}/transactions", HandleTransactionsAsync);
     }
 

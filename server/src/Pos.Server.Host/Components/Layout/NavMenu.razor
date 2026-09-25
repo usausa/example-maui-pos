@@ -44,5 +44,8 @@
     <MudNavGroup Title="設定" Icon="@Icons.Material.Filled.Settings"
                  Expanded="@IsExpanded(NavGroup.Settings)" ExpandedChanged="@(x => SetExpanded(NavGroup.Settings, x))">
         <MudNavLink Href="settings" Icon="@Icons.Material.Filled.Business">会社設定</MudNavLink>
+        <AuthorizeView Policy="@Policies.Administrator">
+            <MudNavLink Href="accounts" Icon="@Icons.Material.Filled.ManageAccounts">ユーザー</MudNavLink>
+        </AuthorizeView>
     </MudNavGroup>
 </MudNavMenu>

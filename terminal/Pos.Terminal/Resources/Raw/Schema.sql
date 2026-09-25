@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS Staff (
     Name TEXT NOT NULL,
     Role TEXT NOT NULL,
     StoreId TEXT,
+    PinHash BLOB,
     IsActive INTEGER NOT NULL,
     IsDeleted INTEGER NOT NULL,
     CreatedAt INTEGER NOT NULL,

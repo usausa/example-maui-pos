@@ -48,5 +48,9 @@ public enum RuleReason
     SupplierNotFound,
     InventoryReceiptNotDraft,
     InventoryTransferNotRequested,
-    InventoryTransferNotShipped
+    InventoryTransferNotShipped,
+    DiscountApprovalRequired,
+    VoidApprovalRequired,
+    ApproverNotAllowed,
+    StaffNotAllowed
 }

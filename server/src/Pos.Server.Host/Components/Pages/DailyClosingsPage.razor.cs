@@ -1,6 +1,7 @@
 namespace Pos.Server.Host.Components.Pages;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 
 using MudBlazor;
 
@@ -21,6 +22,9 @@ public sealed partial class DailyClosingsPage
     private DateRange? period;
     private Guid? storeId;
     private DailyClosingStatus? status;
+
+    [CascadingParameter]
+    public required Task<AuthenticationState> AuthenticationState { get; set; }
 
     [Inject]
     public required DailyClosingService DailyClosingService { get; set; }
@@ -133,8 +137,9 @@ public sealed partial class DailyClosingsPage
     private Task CloseAsync(DailyClosingDayView day) =>
         RunAsync(async () =>
         {
-            // 認証の導入時: 締めた人 (closedBy) にログイン中のアカウント名を渡す
-            var result = await DailyClosingService.CloseAsync(day.StoreId, day.BusinessDate, null, CancellationToken);
+            // 締めた人はログイン中のアカウント (認証を無効にしてログインしていなければ記録しない)
+            var closedBy = AuthClaims.AccountOf((await AuthenticationState).User)?.Name;
+            var result = await DailyClosingService.CloseAsync(day.StoreId, day.BusinessDate, closedBy, CancellationToken);
             switch (result.Status)
             {
                 case DailyClosingResultStatus.Success:
@@ -152,7 +157,7 @@ public sealed partial class DailyClosingsPage
             }
         }, SearchAsync);
 
-    // 認証の導入時: 締め解除は Administrator に限る (ダイアログのボタンも Administrator だけに出す)
+    // 締めの解除は管理者だけ (ダイアログのボタンを管理者だけに出す)
     private async Task ReopenAsync(DailyClosingDayView day)
     {
         if (!await DialogService.ShowConfirm("締め解除", $"{names.Store(day.StoreId)} {day.BusinessDate.ToDateText()} の締めを解除しますか？ 解除すると、この営業日の取引を取消できるようになります。"))

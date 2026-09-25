@@ -52,6 +52,25 @@ CREATE TABLE IF NOT EXISTS Terminals (
 );
 CREATE INDEX IF NOT EXISTS IX_Terminals_UpdatedAt ON Terminals (UpdatedAt);
 
+-- 端末の登録。ペアリングコードを発行した行が、ペアリングでトークン (のハッシュ) を持つ行になる
+CREATE TABLE IF NOT EXISTS TerminalTokens (
+    Id                TEXT     NOT NULL,
+    TerminalId        TEXT     NOT NULL,
+    PairingCode       TEXT,
+    PairingExpiresAt  TEXT,
+    TokenHash         BLOB,
+    DeviceName        TEXT,
+    PairedAt          TEXT,
+    RevokedAt         TEXT,
+    CreatedAt         TEXT     NOT NULL,
+    PRIMARY KEY (Id),
+    FOREIGN KEY (TerminalId) REFERENCES Terminals (Id)
+);
+
+CREATE INDEX IF NOT EXISTS IX_TerminalTokens_TerminalId ON TerminalTokens (TerminalId);
+CREATE UNIQUE INDEX IF NOT EXISTS IX_TerminalTokens_TokenHash ON TerminalTokens (TokenHash) WHERE TokenHash IS NOT NULL;
+CREATE INDEX IF NOT EXISTS IX_TerminalTokens_PairingCode ON TerminalTokens (PairingCode) WHERE PairingCode IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS Staff (
     Id         TEXT     NOT NULL,
     Code       TEXT     NOT NULL,
@@ -70,6 +89,21 @@ CREATE TABLE IF NOT EXISTS Staff (
 );
 CREATE INDEX IF NOT EXISTS IX_Staff_StoreId ON Staff (StoreId);
 CREATE INDEX IF NOT EXISTS IX_Staff_UpdatedAt ON Staff (UpdatedAt);
+
+-- 管理画面のアカウント (端末には同期しない)
+CREATE TABLE IF NOT EXISTS Accounts (
+    Id           TEXT     NOT NULL,
+    Name         TEXT     NOT NULL,
+    Password     BLOB     NOT NULL,
+    Role         TEXT     NOT NULL,
+    IsActive     INTEGER  NOT NULL,
+    LastLoginAt  TEXT,
+    CreatedAt    TEXT     NOT NULL,
+    UpdatedAt    TEXT     NOT NULL,
+    Version      INTEGER  NOT NULL,
+    PRIMARY KEY (Id),
+    UNIQUE (Name)
+);
 
 CREATE TABLE IF NOT EXISTS Categories (
     Id         TEXT     NOT NULL,

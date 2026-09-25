@@ -32,7 +32,7 @@ public sealed class MetricsTests : IClassFixture<TestApplicationFactory>
         listener.SetMeasurementEventCallback<long>((_, measurement, _, _) => Interlocked.Add(ref count, measurement));
         listener.Start();
 
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
 
         // Act
         var response = await client.GetAsync(new Uri(ApiRoutes.Stores, UriKind.Relative), TestContext.Current.CancellationToken);

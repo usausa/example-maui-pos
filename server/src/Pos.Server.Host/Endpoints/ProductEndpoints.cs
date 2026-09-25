@@ -30,16 +30,15 @@ public static partial class ProductEndpoints
         var group = app.MapApiGroup(ApiRoutes.Products);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/lookup", HandleLookupAsync);
-        group.MapGet("/csv", HandleExportCsvAsync);
+        group.MapGet("/csv", HandleExportCsvAsync).RequireAuthorization(Policies.Admin);
         group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPut("/{id:guid}", HandleUpdateAsync);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync);
+        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
         group.MapGet("/{id:guid}/image", HandleGetImageAsync);
-        // 認証の導入時: 画像の登録・削除と CSV の取込はマスタの書き込みなので Administrator に限る
-        group.MapPut("/{id:guid}/image", HandleSaveImageAsync);
-        group.MapDelete("/{id:guid}/image", HandleDeleteImageAsync);
-        group.MapPost("/import", HandleImportAsync);
+        group.MapPut("/{id:guid}/image", HandleSaveImageAsync).RequireAuthorization(Policies.Administrator);
+        group.MapDelete("/{id:guid}/image", HandleDeleteImageAsync).RequireAuthorization(Policies.Administrator);
+        group.MapPost("/import", HandleImportAsync).RequireAuthorization(Policies.Administrator);
     }
 
     //--------------------------------------------------------------------------------

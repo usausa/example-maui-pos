@@ -35,7 +35,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
     public async Task BackOrderArrivesCompletesByCheckoutAndReopensByVoid()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var customer = await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/{TestData.Customer1Id}", options);
         var shiftId = await OpenShiftAsync(client);
         var create = CreateOrderRequest(OrderType.BackOrder, TestData.Customer1Id, null, null);
@@ -121,7 +121,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
     public async Task HoldStartsArrivedAndListFilters()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var name = $"T{Guid.NewGuid():N}"[..10];
         var first = CreateOrderRequest(OrderType.Hold, null, name, "03-0000-0000");
         var second = CreateOrderRequest(OrderType.BackOrder, null, name, null);

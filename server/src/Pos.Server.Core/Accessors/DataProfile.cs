@@ -23,6 +23,7 @@ using Pos.Server.Infrastructure.Data;
 [TypeHandler(typeof(EnumTextConverter<PointHistoryType>))]
 [TypeHandler(typeof(EnumTextConverter<TaxRounding>))]
 [TypeHandler(typeof(EnumTextConverter<PointBasis>))]
+[TypeHandler(typeof(EnumTextConverter<AccountRole>))]
 [TypeHandler(typeof(DateOnlyTextConverter))]
 [TypeHandler(typeof(DateTimeTextConverter))]
 public static class DataProfile;

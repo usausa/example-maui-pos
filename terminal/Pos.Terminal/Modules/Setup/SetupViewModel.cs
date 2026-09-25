@@ -1,9 +1,11 @@
 namespace Pos.Terminal.Modules.Setup;
 
-// 初期設定: 設定 QR または手入力でサーバ・店舗・端末を決め、SetupUsecase で確認・保存・初回同期する
+// 初期設定: 設定 QR (サーバ URL + ペアリングコード) を読むか、URL を入れてコードを電卓で入力し、SetupUsecase で登録・初回同期する
 public sealed partial class SetupViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
+
+    private readonly IPopupNavigator popupNavigator;
 
     private readonly Settings settings;
 
@@ -11,24 +13,29 @@ public sealed partial class SetupViewModel : AppViewModelBase
 
     public EntryController ApiEndPoint { get; } = new();
 
-    public EntryController StoreId { get; } = new();
-
-    public EntryController TerminalId { get; } = new();
+    [ObservableProperty]
+    public partial string? PairingCode { get; set; }
 
     [ObservableProperty]
     public partial string Message { get; set; } = string.Empty;
+
+    public IObserveCommand InputPairingCodeCommand { get; }
 
     // 根の画面: 戻るはプラットフォームに任せる (タスクを背面へ)
     public override bool HandlesBack => false;
 
     public SetupViewModel(
         IDialog dialog,
+        IPopupNavigator popupNavigator,
         Settings settings,
         SetupUsecase setup)
     {
         this.dialog = dialog;
+        this.popupNavigator = popupNavigator;
         this.settings = settings;
         this.setup = setup;
+
+        InputPairingCodeCommand = MakeAsyncCommand(InputPairingCodeAsync);
     }
 
     public override Task OnNavigatedToAsync(INavigationContext context)
@@ -38,28 +45,30 @@ public sealed partial class SetupViewModel : AppViewModelBase
         {
             var parser = new SettingParser(scanned);
             ApiEndPoint.Text = parser.GetString(nameof(Settings.ApiEndPoint));
-            StoreId.Text = parser.GetString(nameof(Settings.StoreId));
-            TerminalId.Text = parser.GetString(nameof(Settings.TerminalId));
-            Message = String.IsNullOrEmpty(ApiEndPoint.Text) ? "設定 QR ではありません。" : "QR を読み取りました。「開始」で接続を確認します。";
+            PairingCode = parser.GetString(nameof(PairingCode));
+            Message = String.IsNullOrEmpty(ApiEndPoint.Text) || String.IsNullOrEmpty(PairingCode)
+                ? "設定 QR ではありません。"
+                : "QR を読み取りました。「登録」で端末を登録します。";
         }
         else
         {
+            // 登録し直しのときは前の接続先を残す (コードは毎回発行し直す)
             ApiEndPoint.Text = settings.ApiEndPoint;
-            StoreId.Text = settings.StoreId?.ToString() ?? string.Empty;
-            TerminalId.Text = settings.TerminalId?.ToString() ?? string.Empty;
+            PairingCode = null;
         }
 
         return Task.CompletedTask;
+    }
+
+    private async Task InputPairingCodeAsync()
+    {
+        PairingCode = await popupNavigator.InputPairingCodeAsync(PairingCode) ?? PairingCode;
     }
 
     protected override Task OnNotifyFunction2() =>
         Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Setup, ViewId.Setup));
 
-    protected override Task OnNotifyFunction3()
-    {
-        ApiEndPoint.Focus();
-        return Task.CompletedTask;
-    }
+    protected override Task OnNotifyFunction3() => InputPairingCodeAsync();
 
     protected override async Task OnNotifyFunction4()
     {
@@ -70,51 +79,37 @@ public sealed partial class SetupViewModel : AppViewModelBase
             return;
         }
 
-        if (!Guid.TryParse(StoreId.Text?.Trim(), out var storeId))
+        if ((PairingCode is null) || (PairingCode.Length != Length.PairingCodeDigits))
         {
-            await dialog.InformationAsync("店舗 ID を入力してください。");
-            StoreId.Focus();
+            await dialog.InformationAsync($"管理画面で発行したペアリングコード ({Length.PairingCodeDigits} 桁) を入力してください。");
             return;
         }
 
-        if (!Guid.TryParse(TerminalId.Text?.Trim(), out var terminalId))
-        {
-            await dialog.InformationAsync("端末 ID を入力してください。");
-            TerminalId.Focus();
-            return;
-        }
-
-        // 接続先を切り替えて店舗・端末を確認する
+        // 接続先を切り替えて登録する (コードは一度だけ使える)
         var endPoint = new Uri(uri.ToString().EndsWith('/') ? uri.ToString() : uri + "/");
-        var (target, error) = await setup.VerifyAsync(endPoint, storeId, terminalId);
-        if (error is not null)
-        {
-            await dialog.InformationAsync(error);
-            return;
-        }
-
-        if (target is null)
+        var paired = await setup.PairAsync(endPoint, PairingCode);
+        if (paired is null)
         {
             return;
         }
 
-        Message = $"店舗: {target.Store.Name}\n端末: {target.Terminal.Name}";
-        if (!await dialog.AskAsync($"店舗: {target.Store.Name}\n端末: {target.Terminal.Name}\nこの設定で開始しますか？", "接続確認", "開始"))
-        {
-            return;
-        }
+        PairingCode = null;
+        Message = $"店舗: {paired.Store.Name}\n端末: {paired.Terminal.Name}";
 
-        // 設定を保存して初回同期 (全件)
+        // 初回同期 (全件)
         ApiResult<Pos.Contract.Sync.SyncMastersResponse> result;
         using (var loading = dialog.Loading("同期しています..."))
         {
-            result = await setup.ApplyAsync(endPoint, storeId, terminalId, new Progress<string>(loading.Update));
+            result = await setup.ApplyAsync(new Progress<string>(loading.Update));
         }
 
-        if (!result.IsSuccess)
+        if (result.IsSuccess)
         {
-            await dialog.InformationAsync("同期に失敗しました。\n" + result.Message);
-            return;
+            await dialog.Toast($"{paired.Store.Name} {paired.Terminal.Name} として登録しました。");
+        }
+        else
+        {
+            await dialog.InformationAsync("登録しましたが、同期に失敗しました。\n設定・同期から同期してください。\n" + result.Message);
         }
 
         await Navigator.ForwardAsync(ViewId.StaffSelect);

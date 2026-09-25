@@ -9,18 +9,18 @@ public sealed class TerminalService
     // 最終通信からこの時間内なら通信中とみなす
     private static readonly TimeSpan OnlineThreshold = TimeSpan.FromMinutes(5);
 
+    private readonly TimeProvider timeProvider;
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
-    private readonly TimeProvider timeProvider;
 
     public TerminalService(
+        TimeProvider timeProvider,
         IDialect dialect,
-        MasterAccessor masterAccessor,
-        TimeProvider timeProvider)
+        MasterAccessor masterAccessor)
     {
+        this.timeProvider = timeProvider;
         this.dialect = dialect;
         this.masterAccessor = masterAccessor;
-        this.timeProvider = timeProvider;
     }
 
     public async ValueTask<PagedResult<TerminalEntity>> QueryPageAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, TerminalSort sort, bool desc, int page, int size, CancellationToken cancellationToken)
@@ -39,6 +39,10 @@ public sealed class TerminalService
 
     public bool IsOnline(DateTime? lastSeenAt) =>
         (lastSeenAt is not null) && (timeProvider.GetUtcNow().UtcDateTime - lastSeenAt.Value < OnlineThreshold);
+
+    // 端末からの通信 (heartbeat) を記録する
+    public ValueTask<int> UpdateSeenAsync(Guid id, string? appVersion, CancellationToken cancellationToken) =>
+        masterAccessor.UpdateTerminalSeenAsync(id, timeProvider.GetUtcNow().UtcDateTime, appVersion, cancellationToken);
 
     public ValueTask<DataWriteStatus> InsertAsync(TerminalEntity entity, CancellationToken cancellationToken)
     {

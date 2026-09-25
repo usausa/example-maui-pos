@@ -14,6 +14,12 @@ public sealed class TransactionLogicTests
 
     private static readonly Guid ReturnLineId = new("00000000-0000-0000-0005-000000000001");
 
+    private static readonly Guid OtherStoreId = new("00000000-0000-0000-0001-000000000002");
+
+    private static readonly Guid CashierId = new("00000000-0000-0000-0003-000000000003");
+
+    private static readonly Guid ManagerId = new("00000000-0000-0000-0003-000000000002");
+
     // ------------------------------------------------------------
     // Sale
     // ------------------------------------------------------------
@@ -352,26 +358,94 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateVoid()
     {
-        var valid = TransactionLogic.ValidateVoid(new VoidContext { Transaction = Transaction(), ShiftStatus = ShiftStatus.Open });
+        var valid = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Open));
         Assert.True(valid.IsValid);
 
-        var notFound = TransactionLogic.ValidateVoid(new VoidContext { Transaction = null, ShiftStatus = ShiftStatus.Open });
+        var notFound = TransactionLogic.ValidateVoid(VoidContext(null, ShiftStatus.Open));
         Assert.Contains(notFound.Errors, static x => x.Code == ErrorCode.NotFound);
 
-        var voided = TransactionLogic.ValidateVoid(new VoidContext { Transaction = Transaction(status: TransactionStatus.Voided), ShiftStatus = ShiftStatus.Open });
+        var voided = TransactionLogic.ValidateVoid(VoidContext(Transaction(status: TransactionStatus.Voided), ShiftStatus.Open));
         Assert.Contains(voided.Errors, static x => x.Code == ErrorCode.ValidationError);
 
-        var closed = TransactionLogic.ValidateVoid(new VoidContext { Transaction = Transaction(), ShiftStatus = ShiftStatus.Closed });
+        var closed = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Closed));
         Assert.Contains(closed.Errors, static x => x.Code == ErrorCode.ShiftClosed);
 
-        var hasReturns = TransactionLogic.ValidateVoid(new VoidContext { Transaction = Transaction(hasReturns: true), ShiftStatus = ShiftStatus.Open });
+        var hasReturns = TransactionLogic.ValidateVoid(VoidContext(Transaction(hasReturns: true), ShiftStatus.Open));
         Assert.Contains(hasReturns.Errors, static x => x.Code == ErrorCode.HasReturns);
 
-        var returnWithFlag = TransactionLogic.ValidateVoid(new VoidContext { Transaction = Transaction(TransactionType.Return, hasReturns: true), ShiftStatus = ShiftStatus.Open });
+        var returnWithFlag = TransactionLogic.ValidateVoid(VoidContext(Transaction(TransactionType.Return, hasReturns: true), ShiftStatus.Open));
         Assert.True(returnWithFlag.IsValid);
 
-        var dayClosed = TransactionLogic.ValidateVoid(new VoidContext { Transaction = Transaction(), ShiftStatus = ShiftStatus.Open, DayClosed = true });
+        var dayClosed = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Open, dayClosed: true));
         Assert.Equal(ErrorCode.DayClosed, Assert.Single(dayClosed.Errors).Code);
+    }
+
+    // レジ係の取消は店長以上の承認が要る。店長以上は承認なしで取消せる
+    [Fact]
+    public void ValidateVoidApproval()
+    {
+        // Arrange
+        var cashier = Staff(CashierId, StaffRole.Cashier);
+        var manager = Staff(ManagerId, StaffRole.Manager);
+
+        // Act
+        var withoutApprover = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Open, staff: cashier));
+        var cashierApprover = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Open, staff: cashier, approver: Staff(CashierId, StaffRole.Cashier)));
+        var managerApprover = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Open, staff: cashier, approver: manager));
+        var byManager = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Open, staff: manager));
+
+        // Assert
+        Assert.Equal(RuleReason.VoidApprovalRequired, Assert.Single(withoutApprover.Errors).Reason);
+        Assert.Equal(ErrorCode.ApprovalRequired, Assert.Single(withoutApprover.Errors).Code);
+        Assert.Equal(RuleReason.ApproverNotAllowed, Assert.Single(cashierApprover.Errors).Reason);
+        Assert.True(managerApprover.IsValid);
+        Assert.True(byManager.IsValid);
+    }
+
+    // 担当は有効で、その店舗か本部に所属していること
+    [Fact]
+    public void ValidateSaleStaff()
+    {
+        // Arrange
+        var input = SalesExample.Input();
+        var claimed = SalesLogic.Calculate(input);
+
+        // Act
+        var missing = TransactionLogic.ValidateSale(SaleContext(staffMissing: true), input, claimed);
+        var otherStore = TransactionLogic.ValidateSale(SaleContext(staff: Staff(CashierId, StaffRole.Cashier, OtherStoreId)), input, claimed);
+        var inactive = TransactionLogic.ValidateSale(SaleContext(staff: Staff(CashierId, StaffRole.Cashier, isActive: false)), input, claimed);
+        var headquarters = TransactionLogic.ValidateSale(SaleContext(staff: Staff(CashierId, StaffRole.Admin, headquarters: true)), input, claimed);
+
+        // Assert
+        Assert.Equal(ErrorCode.StaffInvalid, Assert.Single(missing.Errors).Code);
+        Assert.Equal(RuleReason.StaffNotAllowed, Assert.Single(otherStore.Errors).Reason);
+        Assert.Equal(RuleReason.StaffNotAllowed, Assert.Single(inactive.Errors).Reason);
+        Assert.True(headquarters.IsValid);
+    }
+
+    // 承認が必要な値引は、その店舗 (または本部) の店長以上の承認者が要る
+    [Fact]
+    public void ValidateSaleDiscountApproval()
+    {
+        // Arrange
+        var input = SalesExample.Input();
+        var claimed = SalesLogic.Calculate(input);
+        var manager = Staff(ManagerId, StaffRole.Manager);
+
+        // Act
+        var withoutApprover = TransactionLogic.ValidateSale(SaleContext(approvals: [new DiscountApprovalFact()]), input, claimed);
+        var cashierApprover = TransactionLogic.ValidateSale(SaleContext(approvals: [new DiscountApprovalFact { ApproverId = CashierId, Approver = Staff(CashierId, StaffRole.Cashier) }]), input, claimed);
+        var unknownApprover = TransactionLogic.ValidateSale(SaleContext(approvals: [new DiscountApprovalFact { ApproverId = ManagerId }]), input, claimed);
+        var otherStoreApprover = TransactionLogic.ValidateSale(SaleContext(approvals: [new DiscountApprovalFact { ApproverId = ManagerId, Approver = Staff(ManagerId, StaffRole.Manager, OtherStoreId) }]), input, claimed);
+        var approved = TransactionLogic.ValidateSale(SaleContext(approvals: [new DiscountApprovalFact { ApproverId = ManagerId, Approver = manager }]), input, claimed);
+
+        // Assert
+        Assert.Equal(RuleReason.DiscountApprovalRequired, Assert.Single(withoutApprover.Errors).Reason);
+        Assert.Equal(ErrorCode.ApprovalRequired, Assert.Single(withoutApprover.Errors).Code);
+        Assert.Equal(RuleReason.ApproverNotAllowed, Assert.Single(cashierApprover.Errors).Reason);
+        Assert.Equal(RuleReason.ApproverNotAllowed, Assert.Single(unknownApprover.Errors).Reason);
+        Assert.Equal(RuleReason.ApproverNotAllowed, Assert.Single(otherStoreApprover.Errors).Reason);
+        Assert.True(approved.IsValid);
     }
 
     // ------------------------------------------------------------
@@ -392,7 +466,16 @@ public sealed class TransactionLogicTests
         IsActive = isActive
     };
 
-    private static SaleContext SaleContext(ShiftFact? shift = null, bool shiftMissing = false, bool receiptNoInUse = false, IReadOnlyList<ProductFact>? products = null, bool hasCustomer = true, int? pointBalance = 6000, bool dayClosed = false, OrderFact? order = null, Guid? orderId = null)
+    // 既定は自店の有効なスタッフ (headquarters = true なら本部)
+    private static StaffFact Staff(Guid id, StaffRole role, Guid? storeId = null, bool headquarters = false, bool isActive = true) => new()
+    {
+        Id = id,
+        Role = role,
+        StoreId = headquarters ? null : storeId ?? StoreId,
+        IsActive = isActive
+    };
+
+    private static SaleContext SaleContext(ShiftFact? shift = null, bool shiftMissing = false, bool receiptNoInUse = false, IReadOnlyList<ProductFact>? products = null, bool hasCustomer = true, int? pointBalance = 6000, bool dayClosed = false, OrderFact? order = null, Guid? orderId = null, StaffFact? staff = null, bool staffMissing = false, IReadOnlyList<DiscountApprovalFact>? approvals = null)
     {
         products ??= [Product(SalesExample.CameraProduct), Product(SalesExample.SdCardProduct), Product(SalesExample.DeliveryProduct)];
         return new SaleContext
@@ -406,7 +489,9 @@ public sealed class TransactionLogicTests
             DayClosed = dayClosed,
             StoreId = StoreId,
             OrderId = orderId,
-            Order = order
+            Order = order,
+            Staff = staffMissing ? null : (staff ?? Staff(ManagerId, StaffRole.Manager)),
+            DiscountApprovals = approvals ?? []
         };
     }
 
@@ -419,11 +504,24 @@ public sealed class TransactionLogicTests
 
     private static ReturnContext ReturnContext(OriginalTransactionFact? original = null, bool originalMissing = false, bool hasCustomer = true, bool dayClosed = false) => new()
     {
+        StoreId = StoreId,
         TerminalId = TerminalId,
         Shift = Shift(),
         Original = originalMissing ? null : (original ?? Original(TransactionType.Sale, TransactionStatus.Completed)),
         HasCustomer = hasCustomer,
-        DayClosed = dayClosed
+        DayClosed = dayClosed,
+        Staff = Staff(ManagerId, StaffRole.Manager)
+    };
+
+    // 取消の担当は既定で自店の店長
+    private static VoidContext VoidContext(TransactionFact? transaction, ShiftStatus shiftStatus, bool dayClosed = false, StaffFact? staff = null, StaffFact? approver = null) => new()
+    {
+        Transaction = transaction,
+        ShiftStatus = shiftStatus,
+        DayClosed = dayClosed,
+        Staff = staff ?? Staff(ManagerId, StaffRole.Manager),
+        ApproverId = approver?.Id,
+        Approver = approver
     };
 
     // SD カードを quantity 個返品 (の元取引)
@@ -442,6 +540,7 @@ public sealed class TransactionLogicTests
     private static TransactionFact Transaction(TransactionType type = TransactionType.Sale, TransactionStatus status = TransactionStatus.Completed, bool hasReturns = false) => new()
     {
         Id = OriginalTransactionId,
+        StoreId = StoreId,
         Type = type,
         Status = status,
         HasReturns = hasReturns

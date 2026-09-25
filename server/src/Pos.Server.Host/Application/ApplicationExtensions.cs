@@ -6,7 +6,12 @@ using System.Text.Encodings.Web;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Text.Unicode;
+using System.Threading.RateLimiting;
 
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
@@ -14,6 +19,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.OpenApi;
 
 using MiniDataProfiler;
 using MiniDataProfiler.Listener.Logging;
@@ -36,6 +42,7 @@ using Pos.Server.Host.Infrastructure.ExceptionHandling;
 using Pos.Server.Host.Infrastructure.Logging;
 using Pos.Server.Host.Reports;
 using Pos.Server.Infrastructure.Json;
+using Pos.Server.Infrastructure.Security;
 using Pos.Server.Services;
 
 using Serilog;
@@ -248,6 +255,112 @@ public static class ApplicationExtensions
     }
 
     //--------------------------------------------------------------------------------
+    // Authentication
+    //--------------------------------------------------------------------------------
+
+    public static IHostApplicationBuilder ConfigureAuthentication(this IHostApplicationBuilder builder)
+    {
+        var setting = builder.Configuration.GetSection("Auth").Get<AuthSetting>()!;
+
+        // 管理画面はログイン (Cookie)、端末はペアリングで受け取ったトークン (Bearer)
+        builder.Services
+            .AddAuthentication(AuthSchemes.Cookie)
+            .AddCookie(AuthSchemes.Cookie, options =>
+            {
+                options.LoginPath = "/login";
+                options.AccessDeniedPath = "/access-denied";
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(setting.ExpireMinutes);
+                options.SlidingExpiration = true;
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                // 店内の LAN で HTTP のまま動かすこともあるので、HTTPS のときだけ Secure にする
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                options.Events = new CookieAuthenticationEvents
+                {
+                    // API はログイン画面へ転送せず、状態コードを返す
+                    OnRedirectToLogin = static context => RedirectOrStatusAsync(context, StatusCodes.Status401Unauthorized),
+                    OnRedirectToAccessDenied = static context => RedirectOrStatusAsync(context, StatusCodes.Status403Forbidden),
+                    OnValidatePrincipal = ValidateAccountAsync
+                };
+            })
+            .AddScheme<AuthenticationSchemeOptions, TerminalAuthenticationHandler>(AuthSchemes.Terminal, null);
+
+        // 認証を無効にしたときも、スキームは残して (ログインやトークンがあれば) クレームを付ける
+        AuthorizationPolicy BuildPolicy(Action<AuthorizationPolicyBuilder> require, params string[] schemes)
+        {
+            var policy = new AuthorizationPolicyBuilder(schemes);
+            if (setting.Enabled)
+            {
+                require(policy);
+            }
+            else
+            {
+                policy.RequireAssertion(static _ => true);
+            }
+
+            return policy.Build();
+        }
+
+        // グループ (Api) とエンドポイント (Admin など) のポリシーを重ねるとスキームは合算されるので、
+        // 管理画面と端末はスキームではなく要件 (アカウントの役割・端末のクレーム) で区別する
+        builder.Services.AddAuthorization(options =>
+        {
+            options.DefaultPolicy = BuildPolicy(static x => x.RequireRole(nameof(AccountRole.Administrator), nameof(AccountRole.Operator)), AuthSchemes.Cookie);
+            options.AddPolicy(Policies.Admin, options.DefaultPolicy);
+            options.AddPolicy(Policies.Administrator, BuildPolicy(static x => x.RequireRole(nameof(AccountRole.Administrator)), AuthSchemes.Cookie));
+            options.AddPolicy(Policies.Api, BuildPolicy(static x => x.RequireAuthenticatedUser(), AuthSchemes.Cookie, AuthSchemes.Terminal));
+            options.AddPolicy(Policies.Terminal, BuildPolicy(static x => x.RequireAssertion(static context => AuthClaims.TerminalOf(context.User) is not null), AuthSchemes.Terminal));
+        });
+
+        // ログインとペアリングの総当たりを防ぐ (接続元ごと)
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(RateLimits.Auth, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? string.Empty,
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = setting.AttemptsPerMinute, Window = TimeSpan.FromMinutes(1) }));
+            // ログイン画面からの送信は画面に戻して知らせる
+            options.OnRejected = static (context, _) =>
+            {
+                if (!context.HttpContext.Request.Path.StartsWithSegments(ApiPathPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    context.HttpContext.Response.Redirect("/login?error=limit");
+                }
+
+                return ValueTask.CompletedTask;
+            };
+        });
+
+        return builder;
+    }
+
+    private static Task RedirectOrStatusAsync(RedirectContext<CookieAuthenticationOptions> context, int statusCode)
+    {
+        if (context.Request.Path.StartsWithSegments(ApiPathPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = statusCode;
+        }
+        else
+        {
+            context.Response.Redirect(context.RedirectUri);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // アカウントの削除・無効化・変更 (版が変わる) でログイン中のセッションを無効にする
+    private static async Task ValidateAccountAsync(CookieValidatePrincipalContext context)
+    {
+        var account = context.Principal is null ? null : AuthClaims.AccountOf(context.Principal);
+        var service = context.HttpContext.RequestServices.GetRequiredService<AccountService>();
+        if ((account is null) || !await service.IsSessionValidAsync(account.Id, account.Version, context.HttpContext.RequestAborted))
+        {
+            context.RejectPrincipal();
+            await context.HttpContext.SignOutAsync(AuthSchemes.Cookie);
+        }
+    }
+
+    //--------------------------------------------------------------------------------
     // Compress
     //--------------------------------------------------------------------------------
 
@@ -283,6 +396,18 @@ public static class ApplicationExtensions
                 document.Info.Title = "POS API";
                 document.Info.Version = "v1";
                 document.Info.Description = "POS server API.";
+
+                // 端末のトークン (Swagger UI の Authorize で試せる。管理向けはログイン中のブラウザの Cookie で通る)
+                document.Components ??= new OpenApiComponents();
+                document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>(StringComparer.Ordinal);
+                document.Components.SecuritySchemes[AuthSchemes.Terminal] = new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    Description = "端末のトークン (POST /api/v1/terminals/pair で受け取る)"
+                };
+                document.Security ??= [];
+                document.Security.Add(new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference(AuthSchemes.Terminal, document)] = [] });
                 return Task.CompletedTask;
             });
         });
@@ -300,6 +425,10 @@ public static class ApplicationExtensions
         builder.Services
             .AddRazorComponents()
             .AddInteractiveServerComponents();
+
+        // 認証の状態 (回線の中でもアカウントの変更を反映する。既定の提供元を置き換えるので Razor components の後に登録する)
+        builder.Services.AddCascadingAuthenticationState();
+        builder.Services.AddScoped<AuthenticationStateProvider, AccountAuthenticationStateProvider>();
 
         // Error boundary logging
         builder.Services.AddScoped<Microsoft.AspNetCore.Components.Web.IErrorBoundaryLogger, ErrorBoundaryLogger>();
@@ -463,7 +592,10 @@ public static class ApplicationExtensions
         builder.Services.AddDataAccessors(typeof(DataProfile).Assembly);
 
         // Service
+        builder.Services.AddSingleton(new DefaultPasswordProviderOptions());
+        builder.Services.AddSingleton<IPasswordProvider, DefaultPasswordProvider>();
         builder.Services.AddCoreServices();
+        builder.Services.AddSingleton<TerminalAccess>();
 
         // Report
         builder.Services.AddSingleton<ShiftReportBuilder>();
@@ -477,6 +609,8 @@ public static class ApplicationExtensions
         builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<LogSetting>>().Value);
         builder.Services.AddOptions<TelemetrySetting>().BindConfiguration("Telemetry").ValidateDataAnnotations().ValidateOnStart();
         builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<TelemetrySetting>>().Value);
+        builder.Services.AddOptions<AuthSetting>().BindConfiguration("Auth").ValidateDataAnnotations().ValidateOnStart();
+        builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<AuthSetting>>().Value);
 
         return builder;
     }
@@ -539,6 +673,9 @@ public static class ApplicationExtensions
             Predicate = static r => r.Tags.Contains("live")
         });
 
+        // Authentication (管理画面のログイン・ログアウト)
+        app.MapAuthEndpoints();
+
         // API
         app.MapSettingsEndpoints();
         app.MapStoreEndpoints();
@@ -569,11 +706,15 @@ public static class ApplicationExtensions
     // Startup
     //--------------------------------------------------------------------------------
 
-    public static ValueTask InitializeApplicationAsync(this WebApplication app)
+    public static async ValueTask InitializeApplicationAsync(this WebApplication app)
     {
         app.Services.GetRequiredService<ApplicationInstrument>();
 
-        return app.Services.GetRequiredService<DatabaseService>().InitializeAsync(SchemaPath, InitialDataPath, CancellationToken.None);
+        await app.Services.GetRequiredService<DatabaseService>().InitializeAsync(SchemaPath, InitialDataPath, CancellationToken.None);
+
+        // アカウントがなければ初期の管理者を作る
+        var setting = app.Services.GetRequiredService<AuthSetting>();
+        await app.Services.GetRequiredService<AccountService>().InitializeAsync(setting.InitialName, setting.InitialPassword, CancellationToken.None);
     }
 
     //--------------------------------------------------------------------------------

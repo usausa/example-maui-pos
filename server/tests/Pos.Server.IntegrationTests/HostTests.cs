@@ -1,5 +1,7 @@
 namespace Pos.Server;
 
+using Microsoft.AspNetCore.Mvc.Testing;
+
 public sealed class HostTests : IClassFixture<TestApplicationFactory>
 {
     private readonly TestApplicationFactory factory;
@@ -22,11 +24,26 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         response.EnsureSuccessStatusCode();
     }
 
+    // ログインしていなければログイン画面へ
+    [Fact]
+    public async Task RootRedirectsToLoginWhenAnonymous()
+    {
+        // Arrange
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        // Act
+        var response = await client.GetAsync(new Uri("/", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.StartsWith("http://localhost/login", response.Headers.Location?.ToString(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task RootShowsHomePage()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
 
         // Act
         var response = await client.GetAsync(new Uri("/", UriKind.Relative), TestContext.Current.CancellationToken);

@@ -18,14 +18,13 @@ public static partial class DailyClosingEndpoints
 
     public static void MapDailyClosingEndpoints(this WebApplication app)
     {
-        // 認証の導入時: 日次締めは管理画面だけ (Admin)
-        var group = app.MapApiGroup(ApiRoutes.DailyClosings);
+        // 日次締めは管理画面だけで行い、締めの解除は管理者に限る
+        var group = app.MapApiGroup(ApiRoutes.DailyClosings).RequireAuthorization(Policies.Admin);
         group.MapPost("/", HandleCloseAsync);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/preview", HandlePreviewAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
-        // 認証の導入時: 締め解除は Administrator に限る
-        group.MapDelete("/{id:guid}", HandleReopenAsync);
+        group.MapDelete("/{id:guid}", HandleReopenAsync).RequireAuthorization(Policies.Administrator);
     }
 
     //--------------------------------------------------------------------------------
@@ -60,11 +59,12 @@ public static partial class DailyClosingEndpoints
     // 締め。シフトがなければ 422、未精算のシフトがあれば 422、締め済みは 409
     private static async ValueTask<IResult> HandleCloseAsync(
         DailyClosingService service,
+        ClaimsPrincipal user,
         DailyClosingCreateRequest request,
         CancellationToken cancellationToken)
     {
-        // 認証の導入時: 締めた人 (closedBy) にログイン中のアカウント名を渡す
-        var result = await service.CloseAsync(request.StoreId, request.BusinessDate, null, cancellationToken);
+        // 締めた人はログイン中のアカウント (認証を無効にしてログインしていなければ記録しない)
+        var result = await service.CloseAsync(request.StoreId, request.BusinessDate, AuthClaims.AccountOf(user)?.Name, cancellationToken);
         return result.Status switch
         {
             DailyClosingResultStatus.Success => TypedResults.Created($"{ApiRoutes.DailyClosings}/{result.Summary!.Day.Id}", ToResponse(result.Summary)),

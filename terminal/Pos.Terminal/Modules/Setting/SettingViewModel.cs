@@ -24,7 +24,7 @@ public sealed class OutboxItem : NotificationObject
     }
 }
 
-// 設定・同期: 端末情報、手動同期、未送信一覧 (要確認の再送・破棄)、ログイン後の画面、スタッフ切替、接続設定
+// 設定・同期: 端末情報と登録、手動同期、未送信一覧 (要確認の再送・破棄)、ログイン後の画面、スタッフ切替、登録の解除
 public sealed partial class SettingViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
@@ -38,6 +38,8 @@ public sealed partial class SettingViewModel : AppViewModelBase
     private readonly Session session;
 
     private readonly DataAccessor accessor;
+
+    private readonly CredentialService credential;
 
     private readonly SyncService sync;
 
@@ -69,7 +71,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
 
     public IObserveCommand SwitchStaffCommand { get; }
 
-    public IObserveCommand SetupCommand { get; }
+    public IObserveCommand UnregisterCommand { get; }
 
     public SettingViewModel(
         IDialog dialog,
@@ -78,6 +80,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
         Settings settings,
         Session session,
         DataAccessor accessor,
+        CredentialService credential,
         SyncService sync)
     {
         this.dialog = dialog;
@@ -86,18 +89,13 @@ public sealed partial class SettingViewModel : AppViewModelBase
         this.settings = settings;
         this.session = session;
         this.accessor = accessor;
+        this.credential = credential;
         this.sync = sync;
 
         OutboxCommand = MakeAsyncCommand<OutboxItem>(HandleOutboxAsync);
         ExpandCommand = MakeDelegateCommand<OutboxItem>(static x => x.IsExpanded = !x.IsExpanded);
         SwitchStaffCommand = MakeAsyncCommand(() => Navigator.ForwardAsync(ViewId.StaffSelect));
-        SetupCommand = MakeAsyncCommand(async () =>
-        {
-            if (await dialog.AskAsync("接続設定をやり直しますか？\n未送信の取引は残ります。", null, "設定へ"))
-            {
-                await Navigator.ForwardAsync(ViewId.Setup);
-            }
-        });
+        UnregisterCommand = MakeAsyncCommand(UnregisterAsync);
 
         Disposables.Add(session.PropertyChangedAsObservable().ObserveOnCurrentContext().Subscribe(_ => UpdateSync()));
         SubscribeOpenSalesAfterLogin(x => settings.OpenSalesAfterLogin = x);
@@ -113,6 +111,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
             new SummaryRow("端末", session.Terminal is null ? "-" : $"{session.Terminal.Name} (No.{session.Terminal.TerminalNo})"),
             new SummaryRow("担当", session.Staff?.Name ?? "-"),
             new SummaryRow("サーバ", settings.ApiEndPoint),
+            new SummaryRow("登録", settings.PairedAt is { } pairedAt ? ViewHelper.DateTime(pairedAt) : "-"),
             new SummaryRow("バージョン", appInfo.VersionString)
         ]);
         UpdateSync();
@@ -169,6 +168,19 @@ public sealed partial class SettingViewModel : AppViewModelBase
         }
 
         await LoadOutboxAsync();
+    }
+
+    // 端末のトークンを捨てて初期設定へ。ローカル DB と未送信は残し、登録し直すと続きを送る
+    private async Task UnregisterAsync()
+    {
+        if (!await dialog.AskAsync("この端末の登録を解除しますか？\n未送信の取引は残り、登録し直すと送信します。", "登録の解除", "解除"))
+        {
+            return;
+        }
+
+        credential.Clear();
+        session.Staff = null;
+        await Navigator.ForwardAsync(ViewId.Setup);
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(returnTo);

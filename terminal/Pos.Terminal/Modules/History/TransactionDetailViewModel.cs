@@ -1,6 +1,7 @@
 namespace Pos.Terminal.Modules.History;
 
 using Pos.Contract.Transactions;
+using Pos.Domain.Logic;
 using Pos.Terminal.Models.Entity;
 using Pos.Terminal.Modules.Dialogs;
 
@@ -21,6 +22,8 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
     private readonly Session session;
 
     private readonly DataAccessor accessor;
+
+    private readonly PinService pins;
 
     private readonly TransactionUsecase transactions;
 
@@ -60,12 +63,14 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
         IPopupNavigator popupNavigator,
         Session session,
         DataAccessor accessor,
+        PinService pins,
         TransactionUsecase transactions)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
         this.session = session;
         this.accessor = accessor;
+        this.pins = pins;
         this.transactions = transactions;
     }
 
@@ -192,7 +197,18 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             return;
         }
 
-        await transactions.VoidAsync(transaction, session.Staff.Id, reason.Text);
+        // レジ係の取消は店長以上の承認 (PIN) が要る
+        StaffResponseItem? approver = null;
+        if (StaffLogic.RequiresVoidApproval(session.Staff.Role))
+        {
+            approver = await pins.ChooseApproverAsync("取消の承認者");
+            if (approver is null)
+            {
+                return;
+            }
+        }
+
+        await transactions.VoidAsync(transaction, session.Staff.Id, approver?.Id, reason.Text);
         await dialog.Toast("取り消しました。");
         await LoadAsync();
     }

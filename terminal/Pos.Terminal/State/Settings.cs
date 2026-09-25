@@ -1,6 +1,6 @@
 namespace Pos.Terminal.State;
 
-// 端末設定 (IPreferences)。サーバ URL・店舗・端末は設定 QR で投入する
+// 端末設定 (IPreferences)。サーバ URL・店舗・端末はペアリングで決まる
 #pragma warning disable CA1724
 public sealed class Settings
 {
@@ -27,6 +27,13 @@ public sealed class Settings
     {
         get => Guid.TryParse(preferences.Get(nameof(TerminalId), string.Empty), out var id) ? id : null;
         set => preferences.Set(nameof(TerminalId), value?.ToString() ?? string.Empty);
+    }
+
+    // 端末を登録 (ペアリング) した日時。トークンは SecureStorage (CredentialService)
+    public DateTime? PairedAt
+    {
+        get => DateTime.TryParse(preferences.Get(nameof(PairedAt), string.Empty), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value) ? value : null;
+        set => preferences.Set(nameof(PairedAt), value?.ToString("O", CultureInfo.InvariantCulture) ?? string.Empty);
     }
 
     // スタッフ選択後にシフト開設済みなら販売画面を直接開く

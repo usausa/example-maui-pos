@@ -113,6 +113,10 @@ public sealed partial class MasterAccessor
     [Execute]
     public partial ValueTask<int> UpdateTerminalLastReceiptSeqAsync(DbTransaction tx, Guid id, int receiptSeq, DateTime seenAt, CancellationToken cancellationToken);
 
+    // 端末の通信 (ペアリング・heartbeat): 最終通信時刻とアプリのバージョン (null なら変えない)
+    [Execute]
+    public partial ValueTask<int> UpdateTerminalSeenAsync(Guid id, DateTime seenAt, string? appVersion, CancellationToken cancellationToken);
+
     // 削除可否 (開設中シフトがあれば IN_USE)
     [ExecuteScalar]
     public partial ValueTask<long> CountTerminalOpenShiftsAsync(Guid terminalId, CancellationToken cancellationToken);
@@ -151,6 +155,10 @@ public sealed partial class MasterAccessor
         DateTime updatedAt,
         int version,
         CancellationToken cancellationToken);
+
+    // PIN の設定。更新日時を進めて端末の差分同期に載せる
+    [QueryFirst]
+    public partial ValueTask<StaffEntity?> UpdateStaffPinAsync(Guid id, byte[] pinHash, DateTime updatedAt, int version, CancellationToken cancellationToken);
 
     [Execute]
     public partial ValueTask<int> DeleteStaffAsync(Guid id, DateTime updatedAt, CancellationToken cancellationToken);

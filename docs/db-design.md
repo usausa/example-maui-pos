@@ -62,6 +62,7 @@ erDiagram
     Categories ||--o{ Products : has
     TaxRates ||--o{ Products : applies
     Products ||--o| ProductImages : "image (nullable)"
+    Terminals ||--o{ TerminalTokens : "registration"
     Stores {
         guid Id PK
         string Code UK
@@ -76,6 +77,18 @@ erDiagram
     Staff {
         guid Id PK
         string Code UK
+        string Role
+        blob PinHash
+    }
+    TerminalTokens {
+        guid Id PK
+        guid TerminalId FK
+        string PairingCode
+        blob TokenHash
+    }
+    Accounts {
+        guid Id PK
+        string Name UK
         string Role
     }
     Categories {
@@ -324,7 +337,7 @@ erDiagram
 | Name | string(50) | | |
 | Role | enum | | `Cashier` / `Manager` / `Admin` |
 | StoreId | guid | ○ | FK → Stores。NULL = 本部 |
-| PinHash | BLOB | ○ | 未使用 (スタッフ PIN のハッシュ用) |
+| PinHash | BLOB | ○ | PIN のハッシュ (`PinHasher`: PBKDF2 のソルト 16 + ハッシュ 32 バイト)。端末向けの同期にだけ載せる。NULL = 未設定 (端末で担当に選べない) |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
@@ -884,6 +897,47 @@ erDiagram
 
 索引: `IX(TransferId)`
 
+### 3.8 認証
+
+管理画面のアカウントと端末の登録 ([D-73](decisions.md#d-73-認証と端末登録-管理画面はログイン端末はペアリングのトークンスタッフは-pin))。  
+端末には同期しない。
+
+#### Accounts (管理画面のアカウント)
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK |
+| Name | string(50) | | UQ。ログイン ID |
+| Password | BLOB | | PBKDF2 (SHA-256、310,000 回) のソルト 32 + ハッシュ 32 バイト (`IPasswordProvider`) |
+| Role | enum | | `Administrator` / `Operator` |
+| IsActive | bool | | 無効はログインできない |
+| LastLoginAt | datetime | ○ | 最終ログイン (版を変えずに更新する) |
+| CreatedAt, UpdatedAt | | | |
+| Version | int | | 役割・有効・パスワードを変えると +1。ログイン中のセッションは版が変わると無効になる |
+
+索引: `UQ(Name)`。  
+起動時に 1 件もなければ設定 (`Auth:InitialName` / `InitialPassword`) の管理者を作る。  
+削除は行ごと消す (他の表から参照しない)
+
+#### TerminalTokens (端末の登録)
+
+ペアリングコードを発行した行が、ペアリングでトークンを持つ行になる (コードは消費する)。
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK |
+| TerminalId | guid | | FK → Terminals |
+| PairingCode | string(6) | ○ | 未使用のペアリングコード (ペアリングで NULL) |
+| PairingExpiresAt | datetime | ○ | コードの有効期限 (発行から 10 分) |
+| TokenHash | BLOB | ○ | トークンの SHA-256 (トークン自体は持たない) |
+| DeviceName | string(100) | ○ | 端末が送った機種名 |
+| PairedAt | datetime | ○ | |
+| RevokedAt | datetime | ○ | 登録の解除・再ペアリングで失効した日時 |
+| CreatedAt | datetime | | |
+
+索引: `IX(TerminalId)`、`UQ(TokenHash) WHERE TokenHash IS NOT NULL`、`IX(PairingCode) WHERE PairingCode IS NOT NULL`。  
+コードを発行すると端末の未使用のコードは消し、ペアリングで端末の有効なトークンを失効させる (端末ごとに有効なトークンは 1 つ)
+
 ---
 
 ## 4. DDL 例
@@ -1101,5 +1155,5 @@ MAUI 側のローカル DB。
 | `Shifts` / `CashEvents` | 端末で開設したシフトと入出金 (精算の予想現金の計算に使う) |
 | `Transactions` | 検索用の列 (種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引) + `Payload` (`TransactionResponse` の JSON。送信後はサーバの応答で置き換える)。取引履歴・再印字・返品の元取引参照に使う |
 | `Outbox` | `Id` (guid)、`Kind` (ShiftOpen / Transaction / TransactionVoid / CashEvent / ShiftClose / InventoryChanges)、`TargetId` (取引 ID やシフト ID)、`Payload` (JSON、`XxxRequest` をそのまま直列化)、`CreatedAt`、`Status` (Pending / Sent / Failed)、`Attempts`、`LastError`、`SentAt`。Sent は 7 日で削除 |
-| `SyncState` | `Key` / `Value` (最終 `ServerTime`、在庫の同期時刻、レシート番号の連番)。端末設定 (サーバ URL・店舗 ID・端末 ID) は `IPreferences` (`Settings`) に置く |
+| `SyncState` | `Key` / `Value` (最終 `ServerTime`、在庫の同期時刻、レシート番号の連番)。端末設定 (サーバ URL・店舗 ID・端末 ID・登録日時) は `IPreferences` (`Settings`)、端末のトークンは `SecureStorage` (`CredentialService`) に置く。`Staff.PinHash` の列を足したときは `ServerTime` を消して全件同期し直す (PIN は全員分が要るため) |
 | `HoldCarts` | 会計途中の保留 (端末ローカルのみ、T-17)。`Summary` / `Total` と `Cart` の JSON |

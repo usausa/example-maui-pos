@@ -390,125 +390,108 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 ---
 
-## Phase 8: 認証・端末登録
+## Phase 8: 認証・端末登録 (完了)
 
-[D-09](decisions.md#d-09-認証端末登録-後回し) で後回しにした認証を入れる。  
-`template-maui-server` の 2 スキーム構成 (管理画面 = Cookie、API = Bearer) を土台にする。  
-方針 (着手時に decisions に記録する):
-
-- **管理画面**: `Accounts` テーブル (テンプレートの `AccountEntity` + `IPasswordProvider`) による Cookie ログイン。  
-  役割は `Administrator` (すべて) / `Operator` (参照と、取引・在庫・顧客の操作。マスタ・設定・ユーザー・端末登録は不可)
-- **端末**: 管理画面で発行するペアリングコードで `POST /terminals/pair` を呼び、**端末トークン** (ランダム値、サーバはハッシュを `TerminalTokens` に保存) を受け取って `SecureStorage` に持つ。  
-  以後の API は `Authorization: Bearer` で呼ぶ。  
-  JWT ではなく DB 照合にする (管理画面からの即時失効、署名鍵の運用が不要、端末は数か月単位で動き続ける)
-- **スタッフ**: PIN は端末でローカル検証する (オフラインでもログインできるように)。  
-  `Staff.PinHash` (PBKDF2 + salt、`Pos.Domain` の `PinHasher` を端末とサーバで共用) を端末向けの同期応答にだけ含める。  
-  サーバ向けの `POST /auth/login` (スタッフ JWT) は置かず、端末の要求は端末トークンで認証し、担当は本文の `staffId` (サーバは有効・所属・役割を検証する)
-- **認可**: 端末の要求は本文 / クエリの `storeId` / `terminalId` がトークンのクレームと一致すること (`TERMINAL_MISMATCH` 403)。  
-  役割: 承認が必要な値引の承認者と取消の承認者は Manager 以上 (`APPROVAL_REQUIRED` 422)。  
-  管理画面のマスタ・設定・ユーザー・端末登録は Administrator
-- **開発・デモ**: `Auth:Enabled` (既定 `true`)。  
-  `false` なら認可ポリシーを素通しにし、端末の一致検証も省く (`template-web-mvc` の「認証なしで使える」と同じ考え。テストと SampleData ツールは両方で通す)
+[D-09](decisions.md#d-09-認証端末登録-後回し) で後回しにした認証を入れた ([D-73](decisions.md#d-73-認証と端末登録-管理画面はログイン端末はペアリングのトークンスタッフは-pin)、[D-74](decisions.md#d-74-認可-ポリシーは要件で分け端末は自店自端末の操作だけ))。  
+管理画面のログインは `template-blazor-server` (アカウントと PBKDF2 のパスワード、Cookie、ログイン画面) に合わせた。  
+計画では `template-maui-server` を土台にするとしていたが、今のテンプレートからはアカウントと Cookie のログインが外れている。
 
 ### 8a 管理画面ログイン (サーバ)
 
-- [ ] `Core`: `AccountEntity` / `AccountAccessor` (`Create` / 一覧 / 名前検索 / 追加 / 更新 / 削除)、`Infrastructure/Security` の `IPasswordProvider` + `DefaultPasswordProvider` (PBKDF2) を `template-maui-server` から移植。  
-      `Accounts` は db-design §3 に追加 (§7 の「テンプレート既存」は誤り。ベースの `Service-CloudManager` に認証はない)
-- [ ] `Host`: `AuthSetting` (`Enabled` / `ExpireMinutes` / `InitialName` / `InitialPassword`)、`ConfigureAuthentication` (Cookie: `LoginPath=/login`、`/api` 配下は 401 / 403 を返す)、`/auth/login` `/auth/logout` (form POST)、`Login.razor` + `LoginLayout` + `RedirectToLogin`、`Routes.razor` を `AuthorizeRouteView` に、`NavMenu` にユーザー名とログアウト。  
-      起動時に `Accounts` が空なら初期アカウント (`appsettings` の `Auth:InitialName` / `InitialPassword`、既定 `admin` / `admin`) を投入
-- [ ] ユーザー S-92 (`/accounts`、ナビ「設定 › ユーザー」): 一覧、追加、パスワード変更、役割、無効化、削除 (自分自身は不可)
-- [ ] 全ページに `[Authorize]`。  
-      マスタ (商品 / 部門 / 税率 / 値引 / 支払方法 / 調整理由 / 店舗 / 端末 / スタッフ) の編集・削除、会社設定、ユーザー、端末登録は `Policies.Administrator` (Operator にはボタンを出さない + `AuthorizeView`)
+- [x] `Core`: `AccountEntity` / `AccountAccessor` / `AccountService`、`Infrastructure/Security` の `IPasswordProvider` + `DefaultPasswordProvider` (PBKDF2)。  
+      `Accounts` は db-design §3.8
+- [x] `Host`: `AuthSetting` (`Enabled` / `ExpireMinutes` / `AttemptsPerMinute` / `InitialName` / `InitialPassword`)、`ConfigureAuthentication` (Cookie: `LoginPath=/login`、`AccessDeniedPath=/access-denied`、`/api` 配下は 401 / 403 を返す)、`/auth/login` `/auth/logout` (フォーム)、`Login.razor` (S-02) + `RedirectToLogin`、`Routes.razor` を `AuthorizeRouteView` に、AppBar にアカウント名とログアウト。  
+      起動時に `Accounts` が空なら初期の管理者 (既定 `admin` / `admin`)
+- [x] ユーザー S-92 (`/accounts`、ナビ「設定 › ユーザー」): 一覧、追加、パスワード変更、役割、無効化、削除 (自分自身は役割・有効・削除を変えられない)
+- [x] 全ページに `[Authorize]` (`Pages/_Imports.razor`)。  
+      マスタの追加・編集・削除、会社設定の保存、商品の取込、端末の登録、PIN、締めの解除は `AuthorizeView` (`Administrator`) で Operator に出さない
+- [x] アカウントの削除・無効化・変更で版を進め、Cookie のセッションを無効にする。  
+      開いている回線も 1 分ごとに確かめる (`AccountAuthenticationStateProvider`)
 
 ### 8b 端末登録 (サーバ)
 
-- [ ] `TerminalTokens` テーブル (`Id`, `TerminalId`, `PairingCode`, `PairingExpiresAt`, `TokenHash`, `DeviceName`, `PairedAt`, `RevokedAt`, `CreatedAt`)。  
+- [x] `TerminalTokens` テーブル (`Id`, `TerminalId`, `PairingCode`, `PairingExpiresAt`, `TokenHash`, `DeviceName`, `PairedAt`, `RevokedAt`, `CreatedAt`)。  
       端末ごとに有効なトークンは 1 つ (再ペアリングで旧トークンは失効)
-- [ ] S-71 レジ端末: [ペアリングコード発行] (6 桁、10 分有効。ダイアログにコードと設定 QR (`ApiEndPoint` + `PairingCode`、[D-24](decisions.md#d-24-端末セットアップ-qr-テンプレート互換フォーマット) の形式に項目追加) を表示)、[登録の解除]、一覧に登録状態チップ (未登録 / 登録済み (端末名・日時) / 解除)
-- [ ] `POST /terminals/pair` (匿名): `{ pairingCode, deviceName, appVersion }` → `{ token, terminal, store }`。  
+- [x] S-71 レジ端末: [ペアリングコードを発行] (6 桁、10 分有効、一度だけ。ダイアログにコードと設定 QR (`ApiEndPoint` + `PairingCode`))、[登録の解除]、一覧に登録状態チップ (未登録 / 登録済み (日時・機種) / 解除)
+- [x] `POST /terminals/pair` (匿名。接続元ごとに 1 分 10 回まで): `{ pairingCode, deviceName, appVersion }` → `{ token, terminal, store }`。  
       不一致・期限切れ・使用済みは 422 `PAIRING_CODE_INVALID`。  
       成功でコードを消費し `LastSeenAt` / `AppVersion` を更新
-- [ ] `POST /terminals/me/heartbeat` (端末): `{ appVersion }` → `LastSeenAt` / `AppVersion`。  
-      現状は取引登録時にしか `LastSeenAt` が動かないため、ダッシュボードの通信状態をこれで出す
-- [ ] `TerminalTokenAuthenticationHandler` (スキーム `Terminal`): Bearer → SHA-256 → `TerminalTokens` 照合 → クレーム `terminalId` / `storeId` / 役割 `Terminal`。  
+- [x] `POST /terminals/me/heartbeat` (端末): `{ appVersion }` → `LastSeenAt` / `AppVersion`
+- [x] `TerminalAuthenticationHandler` (スキーム `Terminal`): Bearer → SHA-256 → `TerminalTokens` 照合 → クレーム `terminalId` / `storeId`。  
       失効済み・不明は 401。  
-      照合結果は短時間 (1 分) キャッシュ
-- [ ] OpenAPI に Bearer のセキュリティスキームを載せ、Swagger UI から試せるようにする (管理向けは Cookie のままブラウザで通る)
+      照合は要求ごとに DB で行う (計画の 1 分キャッシュは持たない。解除がすぐ効く)
+- [x] OpenAPI に Bearer のセキュリティスキームを載せ、Swagger UI から試せるようにした (管理向けはログイン中のブラウザの Cookie で通る)
 
 ### 8c 認可 (サーバ)
 
-- [ ] ポリシー: `Api` (Cookie または Terminal)、`Admin` (Cookie)、`Administrator` (Cookie + 役割)。  
-      `/api/v1` 全体に `Api`、api-design の用途が「管理」だけの endpoint は `Admin`、マスタ・会社設定の書き込みは `Administrator`。  
-      api-design §2 に「認証」節を追加し、各表に列を足す
-- [ ] 端末クレームとの一致検証 (`TERMINAL_MISMATCH` 403): `sync/*` (自店在庫)、`shifts` (開設・入出金・精算・current)、`transactions` (登録・取消)、`orders` (登録・入荷・キャンセル)、`inventory/changes`、`inventory/receipts|transfers/{id}/receive` (伝票の入荷店)、`terminals/me/*`。  
-      Cookie の要求には適用しない
-- [ ] 役割検証: `requiresApproval` の値引は `approvedByStaffId` が必須で Manager 以上 (現状は保存するだけで検証していない)。  
+- [x] ポリシー: `Api` (既定。Cookie または Terminal)、`Admin` (用途が「管理」だけ)、`Administrator` (マスタ・会社設定の書き込み、商品の取込と画像、締めの解除)、`Terminal` (`terminals/me`)。  
+      ポリシーを重ねるとスキームが合算されるので、要件 (アカウントの役割・端末のクレーム) で分けた。  
+      api-design §2.6 に「認証・認可」、各表の用途に「管理 (管理者)」
+- [x] 端末クレームとの一致検証 (`TERMINAL_MISMATCH` 403): `shifts` (開設・入出金・精算・current)、`transactions` (登録・取消)、`orders` (登録・入荷・キャンセル)、`inventory/changes`、`inventory/receipts|transfers/{id}/receive` (伝票の入荷店)。  
+      読み取り (`sync` を含む) と Cookie の要求には適用しない
+- [x] 役割検証: `requiresApproval` の値引は `approvedByStaffId` が必須で Manager 以上。  
       取消は `TransactionVoidRequest` に `approvedByStaffId?` を追加し、`staffId` が Cashier なら承認者が必須。  
-      担当・承認者は有効で、その店舗 (または本部) に所属していること
-- [ ] `Auth:Enabled=false`: 全ポリシーを `RequireAssertion(true)` にし、一致検証と役割検証のうちクレームに依存する部分を省く (役割検証は残す)
+      担当・承認者は有効で、その店舗 (または本部) に所属していること (`STAFF_INVALID` / `APPROVAL_REQUIRED`。`Pos.Domain` の `StaffLogic`)
+- [x] `Auth:Enabled=false`: 全ポリシーを素通しにし、端末の一致検証を省く (役割検証は残す)
 
 ### 8d 端末
 
-- [ ] `HttpService`: `SecureStorage` の端末トークンを Bearer で付与。  
-      401 は「端末登録が無効です」の通知 → トークンを破棄して T-00 へ (ローカル DB と Outbox は保持し、再登録後に送信を続ける)
-- [ ] T-00 初期設定: 入力を「サーバ URL + ペアリングコード」に変更 (店舗 ID / 端末 ID の手入力は廃止)。  
-      設定 QR (`ApiEndPoint` + `PairingCode`) の読取 → `POST /terminals/pair` → トークン・店舗・端末を保存 → 全件同期。  
-      `SettingParser` は `PairingCode` を読む
-- [ ] T-91 PIN ログイン: T-01 で担当を選んだら PIN 入力 (`InputNumber` のマスク表示、4〜6 桁) → `PinHasher.Verify`。  
+- [x] `HttpService`: 端末トークン (`SecureStorage`、`CredentialService`) を要求ごとに Bearer で付与。  
+      401 は「端末の登録が解除されました」の通知 → トークンを破棄して T-00 へ (ローカル DB と Outbox は保持し、再登録後に送信を続ける。401 と 429 は要確認にしない)
+- [x] T-00 初期設定: 入力を「サーバ URL + ペアリングコード (電卓)」に変更 (店舗 ID / 端末 ID の手入力は廃止)。  
+      設定 QR (`ApiEndPoint` + `PairingCode`) の読取 → `POST /terminals/pair` → トークン・店舗・端末を保存 → 全件同期
+- [x] T-01 で担当を選んだら PIN 入力 (電卓の伏せ字、4〜6 桁) → `PinHasher.Verify` (背景スレッド)。  
       PIN 未設定のスタッフはチップ「PIN 未設定」で選べない。  
-      3 回失敗で担当選択へ戻る。  
-      ログイン中の担当の役割を `Session` に持つ
-- [ ] 承認: 明細値引 / 取引値引の承認者選択 (P-13 / P-15) に承認者の PIN 入力を追加。  
+      3 回失敗で担当選択へ戻る (計画の T-91 は画面にせず、電卓のポップアップにした)
+- [x] 承認: 明細値引 / 取引値引の承認者選択 (P-13 / P-15) に承認者の PIN 入力を追加。  
       取消 (T-31) は担当が Cashier なら承認者選択 + PIN (`approvedByStaffId`)、Manager 以上はそのまま
-- [ ] T-90 設定・同期: 端末登録の状態 (端末名・登録日時)、[登録の解除] (トークン破棄 → T-00)。  
-      `SyncService` の周期で heartbeat (5 分に 1 回)
-- [ ] ローカル DB: `Staff.PinHash` 列 (端末向け `StaffResponse.PinHash`)、`SyncState` のスキーマ版 (違えばマスタ表を作り直して全件同期)
-- [ ] スタッフ S-72 に PIN 設定 (Administrator。`PinHasher` でハッシュ化)。  
-      初期データのスタッフに PIN (`0000` 〜) を入れる
+- [x] T-90 設定・同期: 端末の登録日時、[登録の解除] (トークン破棄 → T-00)。  
+      `SyncService` の周期で heartbeat (1 分に 1 回。計画の 5 分はサーバが通信中とみなす時間と同じなので短くした)
+- [x] ローカル DB: `Staff.PinHash` 列 (端末向けの同期応答にだけ載る `StaffResponseItem.PinHash`)。  
+      列を足したときは `ServerTime` を消して全件同期し直す (計画のスキーマ版は持たない)
+- [x] スタッフ S-72 に PIN 設定 (Administrator。`PinHasher` でハッシュ化)。  
+      初期データのスタッフに PIN (A001 = 0000、M001 = 1111、C001 = 2222、C002 = 3333)
 
 ### 8e ツール・テスト・docs
 
-- [ ] `Pos.Server.SampleData`: `--user` / `--password` (既定 `admin` / `admin`) で `/auth/login` し、Cookie で呼ぶ。  
-      `Auth:Enabled=false` のサーバではそのまま通る
-- [ ] 統合テスト: `TestApplicationFactory` に管理者ログイン (Cookie) と端末ペアリング (Bearer) のヘルパーを足し、既存テストは管理者クライアントに切り替える。  
-      追加: 匿名 401、Operator のマスタ更新 403、端末の店舗不一致 403、期限切れペアリングコード 422、承認なし値引 422、Cashier の取消 422、失効トークン 401、`Auth:Enabled=false` で匿名が通ること
-- [ ] 単体テスト: `PinHasher` (`Pos.Domain.Tests`)、`Login` ページ (bUnit)
-- [ ] docs: api-design §2 に認証、§3.3 にペアリング / heartbeat、§5 にエラーコード。  
-      db-design §3 に `Accounts` / `TerminalTokens`。  
-      screen-design の T-00 / T-01 / T-91 / S-71 / S-72 / S-92。  
-      architecture §3 / §5 / §6。  
-      D-09 の「当面の扱い」を更新し、方針を decisions に追加。  
-      README の起動手順 (ログイン、ペアリング)
+- [x] `Pos.Server.SampleData`: `--user` / `--password` (既定 `admin` / `admin`) でログイン画面のフォームからログインし、Cookie で呼ぶ。  
+      レジ係の取消に店長を承認者として付ける
+- [x] 統合テスト: `TestApplicationFactory` に管理者ログイン (Cookie) と端末ペアリング (Bearer) のヘルパーを足し、既存テストは管理者クライアントに切り替えた。  
+      `ApiAuthTests`: 匿名 401、ログインの失敗、Operator のマスタ更新 403、無効化したアカウントのセッション 401、ペアリングコードの使用済み・期限切れ 422、失効トークン 401 と再ペアリング、端末の店舗不一致 403 と管理だけの API 403、同期の PIN のハッシュと heartbeat、承認なし値引 422 とレジ係の取消 422。  
+      `ApiAuthDisabledTests`: `Auth:Enabled=false` で匿名が通ること
+- [x] 単体テスト: `PinHasher`・担当と承認者 (`Pos.Domain.Tests`)、`Login` ページとナビのユーザーの出し分け (bUnit)
+- [x] docs: api-design (§1 / §2.6 認証・認可 / §3.3 ペアリング・heartbeat / §3.4 / §3.12 / §5 エラーコード)、db-design (§3.8 `Accounts` / `TerminalTokens`、`Staff.PinHash`、§6)、screen-design (T-00 / T-01 / T-31 / T-90 / S-00 / S-02 / S-71 / S-72 / S-80 / S-92)、architecture (§1 / §3 / §5 / §6)、decisions (D-09 の追記、D-73 / D-74)、getting-started (ログイン、ペアリング、PIN)。  
+      README の画像を撮り直し、レジ端末 (端末の登録) とユーザーを加えた
 
 ### 認証の導入時に変える箇所
 
-先に作ったフェーズで、認証がないため仮にしている箇所。  
-ソースの注記 (`// 認証の導入時:`、razor は `@* 認証の導入時: … *@`) を grep して、すべて直したら注記を消す。
+先に作ったフェーズで、認証がないため仮にしていた箇所。  
+すべて直し、ソースの注記 (`// 認証の導入時:`) は消した。
 
-| フェーズ | 箇所 | 変えること |
+| フェーズ | 箇所 | 変えたこと |
 | --- | --- | --- |
 | 9 | `DailyClosingEndpoints` (`DELETE /daily-closings/{id}`) | 締め解除は Administrator に限る |
-| 9 | `DailyClosingEndpoints.HandleCloseAsync`、`DailyClosingsPage.CloseAsync` | 締めた人 (`closedBy`) にログイン中のアカウント名を渡す (今は `null`) |
-| 9 | `DailyClosingsPage.ReopenAsync`、`DailyClosingDialog` の [締めを解除] | Administrator だけに出す・実行させる |
+| 9 | `DailyClosingEndpoints.HandleCloseAsync`、`DailyClosingsPage.CloseAsync` | 締めた人 (`closedBy`) にログイン中のアカウント名を渡す |
+| 9 | `DailyClosingsPage.ReopenAsync`、`DailyClosingDialog` の [締めを解除] | Administrator だけに出す |
 | 9 | `DailyClosingEndpoints` のグループ | 日次締めの API は管理画面だけ (`Admin`) |
 | 10 | `OrderEndpoints` (登録・入荷・キャンセル) | 端末の要求は `storeId` / `terminalId` (入荷・キャンセルは受注の店舗) が端末トークンのクレームと一致すること (`TERMINAL_MISMATCH`) |
 | 10 | `OrderEndpoints` (`PUT /orders/{id}`) | 変更は管理画面だけ (`Admin`) |
 | 11 | `ProductEndpoints` (`PUT` / `DELETE /products/{id}/image`、`POST /products/import`) | マスタの書き込みなので Administrator に限る |
 | 11 | `ProductsPage` の [CSV 取込] | Administrator だけに出す (商品の編集・画像と同じ) |
-| 14 | `SupplierEndpoints` (登録・更新・削除) | マスタの書き込みなので Administrator に限る |
+| 14 | `SupplierEndpoints` (登録・更新・削除) | マスタの書き込みなので Administrator に限る (一覧・取得は管理画面だけ) |
 | 14 | `SuppliersPage` の [追加] と行の編集・削除 | Administrator だけに出す (他のマスタと同じ) |
 | 14 | `InventoryReceiptEndpoints` (登録・キャンセル)、`InventoryTransferEndpoints` (依頼・出荷・キャンセル) | 管理画面だけ (`Admin`) |
 | 14 | `InventoryReceiptEndpoints` / `InventoryTransferEndpoints` (受領) | 端末の要求は伝票の入荷店が端末トークンのクレームと一致すること (`TERMINAL_MISMATCH`) |
 
 ### 完了条件
 
-- [ ] 未ログインで管理画面を開くと `/login` へ。  
+- [x] 未ログインで管理画面を開くと `/login` へ。  
       `admin` でログインしてユーザーを追加し、Operator でログインするとマスタ編集の操作が出ず、API も 403
-- [ ] 初期化した端末からペアリングコードで登録 → PIN ログイン → 販売 → 送信が通る。  
+- [x] 初期化した端末からペアリングコードで登録 → PIN ログイン → 販売 → 送信が通る。  
       管理画面で登録を解除すると次の通信で 401 になり T-00 に戻り、再登録後に Outbox の送信が続く。  
       機内モードでも PIN ログインできる
-- [ ] Cashier で承認が必要な値引・取消を行うと承認者の PIN が求められ、承認なしの要求はサーバでも 422 になる
-- [ ] 統合テスト緑、警告ゼロ、InspectCode の指摘ゼロ
+- [x] Cashier で承認が必要な値引・取消を行うと承認者の PIN が求められ、承認なしの要求はサーバでも 422 になる
+- [x] 統合テスト緑、警告ゼロ、InspectCode の指摘ゼロ
 
 ---
 

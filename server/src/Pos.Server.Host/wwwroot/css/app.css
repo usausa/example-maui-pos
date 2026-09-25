@@ -27,6 +27,25 @@ body {
 }
 
 
+/* ログイン (静的 SSR のフォームなので MudBlazor の入力部品を使わない) */
+.login-field {
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+}
+
+.login-field label {
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+}
+
+.login-field input {
+    padding: 8px 12px;
+    font-size: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
 /* Page layout */
 .page-card {
     max-width: 400px;
@@ -68,6 +87,11 @@ body {
 
 .kpi-card {
     height: 110px;
+}
+
+.pairing-code {
+    font-family: monospace;
+    letter-spacing: 0.3em;
 }
 
 .qr-text {

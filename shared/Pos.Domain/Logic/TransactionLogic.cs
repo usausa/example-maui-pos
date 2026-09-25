@@ -28,6 +28,19 @@ public static class TransactionLogic
             errors.Add(orderError);
         }
 
+        if (StaffLogic.ValidateStaff(context.Staff, context.StoreId) is { } staffError)
+        {
+            errors.Add(staffError);
+        }
+
+        foreach (var approval in context.DiscountApprovals)
+        {
+            if (StaffLogic.ValidateApprover(approval.ApproverId, approval.Approver, context.StoreId, RuleReason.DiscountApprovalRequired, approval.LineId) is { } approvalError)
+            {
+                errors.Add(approvalError);
+            }
+        }
+
         foreach (var line in input.Lines)
         {
             if (!context.Products.TryGetValue(line.ProductId, out var product))
@@ -246,6 +259,11 @@ public static class TransactionLogic
             errors.Add(new RuleError(ErrorCode.OriginalNotReturnable, RuleReason.OriginalNotReturnable));
         }
 
+        if (StaffLogic.ValidateStaff(context.Staff, context.StoreId) is { } staffError)
+        {
+            errors.Add(staffError);
+        }
+
         if (!ValidateReturnInput(input, errors))
         {
             return new TransactionValidation { Errors = errors, Warnings = warnings };
@@ -390,6 +408,17 @@ public static class TransactionLogic
         if ((context.Transaction.Type == TransactionType.Sale) && context.Transaction.HasReturns)
         {
             errors.Add(new RuleError(ErrorCode.HasReturns, RuleReason.HasReturns));
+        }
+
+        var storeId = context.Transaction.StoreId;
+        if (StaffLogic.ValidateStaff(context.Staff, storeId) is { } staffError)
+        {
+            errors.Add(staffError);
+        }
+        else if (StaffLogic.RequiresVoidApproval(context.Staff!.Role) &&
+                 (StaffLogic.ValidateApprover(context.ApproverId, context.Approver, storeId, RuleReason.VoidApprovalRequired) is { } approvalError))
+        {
+            errors.Add(approvalError);
         }
 
         return new TransactionValidation { Errors = errors, Warnings = [] };

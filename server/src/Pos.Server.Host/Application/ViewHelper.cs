@@ -3,6 +3,7 @@ namespace Pos.Server.Host.Application;
 using MudBlazor;
 
 using Pos.Server.Models;
+using Pos.Server.Models.Views;
 
 // 状態をチップで示す (文言・色・アイコンの組)。塗りつぶしのチップの上では色付きの絵文字が背景に溶けるため、記号は単色の Material Icons にする
 public static class ViewHelper
@@ -155,6 +156,25 @@ public static class ViewHelper
         _ when online => ("通信中", Color.Success, Icons.Material.Filled.Wifi),
         { } seen => ("通信なし " + seen.ToShortDateTimeText(), Color.Default, Icons.Material.Filled.WifiOff)
     };
+
+    // 端末の登録: ペアリング済みの最新の行 (null = 一度も登録していない)
+    public static (string Text, Color Color, string? Icon) RegistrationChip(TerminalRegistrationView? registration) => registration switch
+    {
+        null => ("未登録", Color.Default, Icons.Material.Filled.LinkOff),
+        { RevokedAt: not null } => ("解除", Color.Dark, Icons.Material.Filled.LinkOff),
+        _ => ("登録済み", Color.Success, Icons.Material.Filled.Link)
+    };
+
+    public static (string Text, Color Color, string? Icon) AccountRoleChip(AccountRole role) => role switch
+    {
+        AccountRole.Administrator => ("管理者", Color.Error, Icons.Material.Filled.Shield),
+        AccountRole.Operator => ("オペレーター", Color.Default, Icons.Material.Filled.Person),
+        _ => (role.ToString(), Color.Default, null)
+    };
+
+    // 端末のログインに PIN が要る (未設定のスタッフは端末で選べない)
+    public static (string Text, Color Color, string? Icon) PinChip(bool hasPin) =>
+        hasPin ? ("設定済み", Color.Success, Icons.Material.Filled.Lock) : ("未設定", Color.Warning, Icons.Material.Filled.LockOpen);
 
     public static (string Text, Color Color, string? Icon) PointBalanceChip(int balance) =>
         balance < 0 ? ($"{balance:N0} pt", Color.Error, Icons.Material.Filled.Error) : ($"{balance:N0} pt", Color.Default, null);

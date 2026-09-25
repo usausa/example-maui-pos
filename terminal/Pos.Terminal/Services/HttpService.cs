@@ -1,5 +1,6 @@
 namespace Pos.Terminal.Services;
 
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -25,11 +26,16 @@ public sealed class HttpService
     // IHttpClientFactory が返すクライアントはハンドラがプール管理されるため Dispose 不要
     private readonly IHttpClientFactory httpClientFactory;
 
+    private readonly ApiContext apiContext;
+
     public static JsonSerializerOptions JsonOptions { get; } = CreateJsonOptions();
 
-    public HttpService(IHttpClientFactory httpClientFactory)
+    public HttpService(
+        IHttpClientFactory httpClientFactory,
+        ApiContext apiContext)
     {
         this.httpClientFactory = httpClientFactory;
+        this.apiContext = apiContext;
     }
 
     public static JsonSerializerOptions CreateJsonOptions()
@@ -43,6 +49,17 @@ public sealed class HttpService
         options.Converters.Add(new JsonStringEnumConverter());
         return options;
     }
+
+    //--------------------------------------------------------------------------------
+    // Terminal
+    //--------------------------------------------------------------------------------
+
+    // ペアリング (トークンはまだないので付けない)
+    public ValueTask<ApiResult<TerminalPairResponse>> PairAsync(TerminalPairRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<TerminalPairResponse>("terminals/pair", request, cancellationToken);
+
+    public ValueTask<ApiResult<object>> HeartbeatAsync(TerminalHeartbeatRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<object>("terminals/me/heartbeat", request, cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Master
@@ -192,7 +209,10 @@ public sealed class HttpService
         try
         {
             var client = httpClientFactory.CreateClient(ApiNames.Default);
-            using var response = await client.GetAsync(path, cancellationToken).ConfigureAwait(false);
+            using var message = new HttpRequestMessage(HttpMethod.Get, path);
+            var token = Authorize(message);
+            using var response = await client.SendAsync(message, cancellationToken).ConfigureAwait(false);
+            NotifyIfUnauthorized(response, token);
             return response.IsSuccessStatusCode
                 ? new ApiResult<byte[]>(ApiStatus.Success, response.StatusCode, await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false), null, null)
                 : new ApiResult<byte[]>(ApiStatus.HttpError, response.StatusCode, null, null, null);
@@ -214,6 +234,27 @@ public sealed class HttpService
 
     private static string Format(DateTime value) => DateTimeHelper.ToIsoDateTime(value);
 
+    // 端末のトークンを付ける (付けたトークンを返す)
+    private string? Authorize(HttpRequestMessage message)
+    {
+        var token = apiContext.Token;
+        if (token is not null)
+        {
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        return token;
+    }
+
+    // 付けたトークンが 401 になったら登録が無効になったと知らせる (未登録の要求の 401 は知らせない)
+    private void NotifyIfUnauthorized(HttpResponseMessage response, string? token)
+    {
+        if ((response.StatusCode == HttpStatusCode.Unauthorized) && (token is not null))
+        {
+            apiContext.NotifyUnauthorized(token);
+        }
+    }
+
     private ValueTask<ApiResult<T>> GetAsync<T>(string path, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Get, path, null, cancellationToken);
 
@@ -227,12 +268,14 @@ public sealed class HttpService
         {
             var client = httpClientFactory.CreateClient(ApiNames.Default);
             using var message = new HttpRequestMessage(method, Prefix + path);
+            var token = Authorize(message);
             if (request is not null)
             {
                 message.Content = JsonContent.Create(request, request.GetType(), options: JsonOptions);
             }
 
             using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            NotifyIfUnauthorized(response, token);
             if (response.IsSuccessStatusCode)
             {
                 var content = response.Content.Headers.ContentLength == 0

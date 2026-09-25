@@ -34,6 +34,16 @@ public static class PopupNavigatorExtensions
     public static ValueTask<string?> InputReferenceAsync(this IPopupNavigator popupNavigator, string methodName) =>
         popupNavigator.InputDigitsAsync($"{methodName} の伝票番号", null, Length.ReferenceDigits);
 
+    // 管理画面で発行したペアリングコード
+    public static ValueTask<string?> InputPairingCodeAsync(this IPopupNavigator popupNavigator, string? value) =>
+        popupNavigator.InputDigitsAsync("ペアリングコード", value, Length.PairingCodeDigits);
+
+    // スタッフの PIN (入力を伏せる)
+    public static ValueTask<string?> InputPinAsync(this IPopupNavigator popupNavigator, string title) =>
+        popupNavigator.PopupAsync<NumberInputParameter, string?>(
+            DialogId.InputNumber,
+            new NumberInputParameter(title, string.Empty, Length.PinDigits, digits: true, masked: true));
+
     //--------------------------------------------------------------------------------
     // 数値
     //--------------------------------------------------------------------------------

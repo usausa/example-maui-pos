@@ -162,6 +162,13 @@ public static class ViewExtensions
         _ => value.ToString()
     };
 
+    public static string ToDisplayName(this AccountRole value) => value switch
+    {
+        AccountRole.Administrator => "管理者",
+        AccountRole.Operator => "オペレーター",
+        _ => value.ToString()
+    };
+
     public static string ToDisplayName(this StaffRole value) => value switch
     {
         StaffRole.Admin => "管理者",

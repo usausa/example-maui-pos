@@ -5,11 +5,12 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
 using Pos.Server.Models.Entity;
+using Pos.Server.Services;
 
 using QRCoder;
 
-// 端末の設定 QR。template-maui の SettingParser 互換 (行単位の Key=Value)
-public sealed partial class TerminalQrDialog
+// 端末の登録: 発行したペアリングコードと設定 QR。QR は template-maui の SettingParser 互換 (行単位の Key=Value)
+public sealed partial class TerminalPairingDialog
 {
     private string qrText = string.Empty;
 
@@ -21,6 +22,9 @@ public sealed partial class TerminalQrDialog
     [Parameter]
     public required string StoreName { get; set; }
 
+    [Parameter]
+    public required TerminalPairingCode Code { get; set; }
+
     [CascadingParameter]
     public required IMudDialogInstance MudDialog { get; set; }
 
@@ -30,7 +34,7 @@ public sealed partial class TerminalQrDialog
     protected override void OnInitialized()
     {
         // 接続先はサーバ自身の URL
-        qrText = $"ApiEndPoint={Navigation.BaseUri}\nStoreId={Terminal.StoreId}\nTerminalId={Terminal.Id}\n";
+        qrText = $"ApiEndPoint={Navigation.BaseUri}\nPairingCode={Code.Code}\n";
 
         using var generator = new QRCodeGenerator();
         using var data = generator.CreateQrCode(qrText, QRCodeGenerator.ECCLevel.M);

@@ -30,6 +30,7 @@ public sealed partial class InputNumberViewModel : AppDialogViewModelBase, IPopu
         Input.AllowEmpty = parameter.Digits;
         Input.KeepLeadingZeros = parameter.Digits;
         Input.MaxLength = parameter.MaxLength;
+        Input.Masked = parameter.Masked;
         Input.Text = parameter.Value;
     }
 }

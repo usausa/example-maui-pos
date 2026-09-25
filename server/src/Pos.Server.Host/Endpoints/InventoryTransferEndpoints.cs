@@ -21,11 +21,9 @@ public static partial class InventoryTransferEndpoints
         var group = app.MapApiGroup(ApiRoutes.InventoryTransfers);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
-        // 認証の導入時: 依頼・出荷・キャンセルは管理画面だけ (Admin)
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPost("/{id:guid}/ship", HandleShipAsync);
-        group.MapPost("/{id:guid}/cancel", HandleCancelAsync);
-        // 認証の導入時: 端末の受領は入荷店が端末トークンのクレームと一致することを確かめる
+        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Admin);
+        group.MapPost("/{id:guid}/ship", HandleShipAsync).RequireAuthorization(Policies.Admin);
+        group.MapPost("/{id:guid}/cancel", HandleCancelAsync).RequireAuthorization(Policies.Admin);
         group.MapPost("/{id:guid}/receive", HandleReceiveAsync);
     }
 
@@ -125,12 +123,20 @@ public static partial class InventoryTransferEndpoints
     }
 
     // 受領 (出荷済みのときだけ)。明細を省略すると出荷した数で受け取る
+    // 端末の受領は入荷店が自店であること
     private static async ValueTask<IResult> HandleReceiveAsync(
+        TerminalAccess access,
         InventoryTransferService service,
+        ClaimsPrincipal user,
         Guid id,
         InventoryTransferReceiveRequest request,
         CancellationToken cancellationToken)
     {
+        if ((await service.QueryDetailAsync(id, cancellationToken) is { } detail) && !access.CanAccess(user, detail.Transfer.ToStoreId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         var quantities = request.Lines.ToDictionary(static x => x.LineId, static x => x.Quantity);
         return ToResult(await service.ReceiveAsync(id, request.StaffId, request.ReceivedAt, quantities, cancellationToken));
     }

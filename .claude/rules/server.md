@@ -49,7 +49,7 @@ paths:
 ### 基盤
 
 - `Program.cs` は `ConfigureXxx()` / `UseXxx()` / `MapXxx()` の宣言列挙だけにし、実体は `Application/ApplicationExtensions.cs` に区切りコメント付きで書く (節の順 = 呼び出し順)
-- ミドルウェアの順序は ForwardedHeaders → W3CLog → ErrorHandler → UseRouting → Compression → HttpLog → Antiforgery → Endpoints。例外ハンドラーは圧縮の外 (標準どおり)。W3C ログは例外ハンドラーの外 (未処理例外の 500 を記録する)、HTTP ログは圧縮の内 (ダンプが展開後。未処理例外は 200 と記録される開発用)。`UseWhen` 内の `UseExceptionHandler("/error")` の再実行は暗黙のルーティングに乗らないので `UseRouting()` を明示する
+- ミドルウェアの順序は ForwardedHeaders → W3CLog → ErrorHandler → UseRouting → Compression → HttpLog → Authentication → Authorization → RateLimiter → Antiforgery → Endpoints。例外ハンドラーは圧縮の外 (標準どおり)。W3C ログは例外ハンドラーの外 (未処理例外の 500 を記録する)、HTTP ログは圧縮の内 (ダンプが展開後。未処理例外は 200 と記録される開発用)。`UseWhen` 内の `UseExceptionHandler("/error")` の再実行は暗黙のルーティングに乗らないので `UseRouting()` を明示する
 - DI の登録は `ConfigureComponents` に System → Data → Service → Report → Setting の順で区切りコメントを付けて書く。既定は Singleton
 - 設定は `Settings/XxxSetting` (DataAnnotations で制約) を `AddOptions<T>().BindConfiguration().ValidateDataAnnotations().ValidateOnStart()` で登録し、値を Singleton で再登録する。業務コードに `IOptions<T>` を渡さない
 - ログは `Application/Log.cs` の `[LoggerMessage]` に集約する (Info~ / Warn~ / Error~ の命名、`key=[{value}]` の書式)。文字列補間でログを書かない

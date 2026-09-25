@@ -7,9 +7,10 @@
     <MudText Typo="Typo.h5">🏷️ 商品</MudText>
     <MudSpacer />
     <MudButton StartIcon="@Icons.Material.Filled.FileDownload" Variant="Variant.Outlined" Size="Size.Small" Href="@ExportUrls.ProductsCsv">CSV 出力</MudButton>
-    @* 認証の導入時: 取込は Administrator だけに出す *@
-    <MudButton StartIcon="@Icons.Material.Filled.UploadFile" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="ImportAsync">CSV 取込</MudButton>
-    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+    <AuthorizeView Policy="@Policies.Administrator">
+        <MudButton StartIcon="@Icons.Material.Filled.UploadFile" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="ImportAsync">CSV 取込</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+    </AuthorizeView>
 </MudStack>
 
 <MudPaper Class="pa-2 mb-2">
@@ -90,8 +91,10 @@
             <CellTemplate>
                 @if (!context.Item.IsDeleted)
                 {
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="IsBusy" OnClick="() => EditAsync(context.Item)" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="IsBusy" OnClick="() => DeleteAsync(context.Item)" />
+                    <AuthorizeView Policy="@Policies.Administrator" Context="auth">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="IsBusy" OnClick="() => EditAsync(context.Item)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="IsBusy" OnClick="() => DeleteAsync(context.Item)" />
+                    </AuthorizeView>
                 }
             </CellTemplate>
         </TemplateColumn>

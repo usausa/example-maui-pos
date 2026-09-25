@@ -19,12 +19,10 @@ public static partial class OrderEndpoints
     public static void MapOrderEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Orders);
-        // 認証の導入時: 端末の要求は storeId / terminalId (入荷・キャンセルは受注の店舗) が端末トークンのクレームと一致することを確かめる
         group.MapPost("/", HandleCreateAsync);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
-        // 認証の導入時: 変更は管理画面だけ (Admin)
-        group.MapPut("/{id:guid}", HandleUpdateAsync);
+        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Admin);
         group.MapPost("/{id:guid}/arrive", HandleArriveAsync);
         group.MapPost("/{id:guid}/cancel", HandleCancelAsync);
     }
@@ -85,10 +83,17 @@ public static partial class OrderEndpoints
 
     // 登録。同じ id は 200 で既存を返し、内容が違えば 409
     private static async ValueTask<IResult> HandleCreateAsync(
+        TerminalAccess access,
         OrderService service,
+        ClaimsPrincipal user,
         OrderCreateRequest request,
         CancellationToken cancellationToken)
     {
+        if (!access.CanAccess(user, request.StoreId, request.TerminalId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         var result = await service.CreateAsync(ToDetail(request), cancellationToken);
         return result.Status == OrderResultStatus.Success
             ? TypedResults.Created($"{ApiRoutes.Orders}/{request.Id}", ToResponse(result.Detail!))
@@ -152,20 +157,34 @@ public static partial class OrderEndpoints
 
     // 入荷 (入荷待ちのときだけ)
     private static async ValueTask<IResult> HandleArriveAsync(
+        TerminalAccess access,
         OrderService service,
+        ClaimsPrincipal user,
         Guid id,
         CancellationToken cancellationToken)
     {
+        if ((await service.QueryDetailAsync(id, cancellationToken) is { } detail) && !access.CanAccess(user, detail.Order.StoreId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         return ToResult(await service.ArriveAsync(id, cancellationToken));
     }
 
     // キャンセル (未完了のときだけ)
     private static async ValueTask<IResult> HandleCancelAsync(
+        TerminalAccess access,
         OrderService service,
+        ClaimsPrincipal user,
         Guid id,
         OrderCancelRequest request,
         CancellationToken cancellationToken)
     {
+        if ((await service.QueryDetailAsync(id, cancellationToken) is { } detail) && !access.CanAccess(user, detail.Order.StoreId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         return ToResult(await service.CancelAsync(id, request.Reason, cancellationToken));
     }
 }

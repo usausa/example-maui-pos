@@ -1,0 +1,44 @@
+@inherits EditDialogBase<AccountForm>
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="EditForm" Model="Form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Form.Name" For="@(() => Form.Name)" Validation="@Validator.ValidateValue" Label="ID" Immediate="true" ReadOnly="!Form.IsNew" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="AccountRole" @bind-Value="Form.Role" Label="役割">
+                        @foreach (var role in Enum.GetValues<AccountRole>())
+                        {
+                            <MudSelectItem T="AccountRole" Value="role">@role.ToDisplayName()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                @if (Form.IsNew)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="Form.Password" For="@(() => Form.Password)" Validation="@Validator.ValidateValue" Label="パスワード" InputType="InputType.Password" Immediate="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="Form.PasswordConfirm" For="@(() => Form.PasswordConfirm)" Validation="@Validator.ValidateValue" Label="パスワード (確認)" InputType="InputType.Password" Immediate="true" />
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12">
+                        <MudSwitch T="bool" @bind-Value="Form.IsActive" Label="有効" Color="Color.Primary" />
+                    </MudItem>
+                }
+            </MudGrid>
+            <MudText Typo="Typo.caption" Class="mt-2 d-block">オペレーターは参照と、取引・在庫・顧客の操作だけができます (マスタ・設定・ユーザー・端末登録は変更できません)。</MudText>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnCancelClick">キャンセル</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnOkClick">保存</MudButton>
+    </DialogActions>
+</MudDialog>

@@ -15,6 +15,11 @@ public sealed class StaffResponseItem
     // null = 本部 (全店)
     public Guid? StoreId { get; set; }
 
+    // PIN のハッシュ (PinHasher)。端末向けの同期応答にだけ含め、端末がオフラインでも PIN を照合する (null = 未設定)
+#pragma warning disable CA1819
+    public byte[]? PinHash { get; set; }
+#pragma warning restore CA1819
+
     public bool IsActive { get; set; }
 
     public bool IsDeleted { get; set; }

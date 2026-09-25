@@ -136,7 +136,7 @@ public sealed partial class ProductsPage
         }
     }
 
-    // 認証の導入時: 取込は Administrator に限る
+    // 取込はマスタの書き込みなので管理者だけ (ボタンを管理者だけに出す)
     private async Task ImportAsync()
     {
         var reference = await DialogService.ShowAsync<ProductImportDialog>(string.Empty, Styles.LargeDialog);

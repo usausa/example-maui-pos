@@ -7,7 +7,9 @@
     <MudText Typo="Typo.h5">🏬 レジ端末</MudText>
     <MudSpacer />
     <MudSwitch T="bool" @bind-Value="includeDeleted" @bind-Value:after="LoadAsync" Label="削除済みを表示" Color="Color.Primary" />
-    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+    <AuthorizeView Policy="@Policies.Administrator">
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
+    </AuthorizeView>
     <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
 </MudStack>
 
@@ -19,27 +21,50 @@
         <MudTh>端末番号</MudTh>
         <MudTh>名称</MudTh>
         <MudTh>状態</MudTh>
+        <MudTh>登録</MudTh>
         <MudTh>最終通信</MudTh>
         <MudTh>アプリ版</MudTh>
         <MudTh Class="text-right">最終レシート連番</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd>@StoreName(context.StoreId)</MudTd>
+        <MudTd Class="no-wrap">@StoreName(context.StoreId)</MudTd>
         <MudTd>@context.TerminalNo.ToTerminalNoText()</MudTd>
-        <MudTd>@context.Name</MudTd>
+        <MudTd Class="no-wrap">@context.Name</MudTd>
         <MudTd><StatusChip Value="@(context.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.IsActive))" /></MudTd>
+        <MudTd Class="no-wrap">
+            @* 登録した日時はチップの下、機種はチップのツールチップに出す (横に並べると操作の列が画面から出る) *@
+            @if (Registration(context.Id) is { RevokedAt: null, PairedAt: { } pairedAt } registration)
+            {
+                <MudTooltip Text="@registration.DeviceName">
+                    <StatusChip Value="@ViewHelper.RegistrationChip(registration)" />
+                </MudTooltip>
+                <MudText Typo="Typo.caption" Class="d-block">@pairedAt.ToShortDateTimeText()</MudText>
+            }
+            else
+            {
+                <StatusChip Value="@ViewHelper.RegistrationChip(Registration(context.Id))" />
+            }
+        </MudTd>
         <MudTd Class="no-wrap"><StatusChip Value="@ViewHelper.OnlineChip(context.LastSeenAt, TerminalService.IsOnline(context.LastSeenAt))" /></MudTd>
         <MudTd>@context.AppVersion</MudTd>
         <MudTd Class="text-right">@context.LastReceiptSeq</MudTd>
         <MudTd Class="no-wrap">
             @if (!context.IsDeleted)
             {
-                <MudTooltip Text="設定 QR">
-                    <MudIconButton Icon="@Icons.Material.Filled.QrCode" Size="Size.Small" Disabled="IsBusy" OnClick="() => ShowQrAsync(context)" />
-                </MudTooltip>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="IsBusy" OnClick="() => EditAsync(context)" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="IsBusy" OnClick="() => DeleteAsync(context)" />
+                <AuthorizeView Policy="@Policies.Administrator" Context="auth">
+                    <MudTooltip Text="ペアリングコードを発行">
+                        <MudIconButton Icon="@Icons.Material.Filled.QrCode" Size="Size.Small" Disabled="@(IsBusy || !context.IsActive)" OnClick="() => IssuePairingCodeAsync(context)" />
+                    </MudTooltip>
+                    @if (Registration(context.Id) is { RevokedAt: null })
+                    {
+                        <MudTooltip Text="登録の解除">
+                            <MudIconButton Icon="@Icons.Material.Filled.LinkOff" Size="Size.Small" Color="Color.Warning" Disabled="IsBusy" OnClick="() => RevokeAsync(context)" />
+                        </MudTooltip>
+                    }
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="IsBusy" OnClick="() => EditAsync(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="IsBusy" OnClick="() => DeleteAsync(context)" />
+                </AuthorizeView>
             }
         </MudTd>
     </RowTemplate>

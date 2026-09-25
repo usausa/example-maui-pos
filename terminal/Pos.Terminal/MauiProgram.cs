@@ -284,6 +284,8 @@ public static partial class MauiProgram
         services.AddSingleton<DatabaseService>();
         services.AddSingleton<HttpService>();
         services.AddSingleton<NetworkService>();
+        services.AddSingleton<CredentialService>();
+        services.AddSingleton<PinService>();
         services.AddSingleton<SyncService>();
         services.AddSingleton<ReceiptService>();
         services.AddSingleton<ProductImageService>();

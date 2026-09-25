@@ -33,7 +33,7 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="{x:Type module:StaffItem}">
                     <Grid Style="{StaticResource PosListRowGrid}"
-                          ColumnDefinitions="*,Auto">
+                          ColumnDefinitions="*,Auto,Auto">
                         <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
                         <Grid.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:StaffSelectViewModel}}, Path=SelectCommand, x:DataType={x:Type module:StaffSelectViewModel}}"
@@ -44,6 +44,14 @@
                                Style="{StaticResource PosListNameLabel}"
                                Text="{Binding Name}" />
                         <Border Grid.Column="1"
+                                Style="{StaticResource PosChipBorder}"
+                                Margin="0,0,6,0"
+                                BackgroundColor="{StaticResource GrayDarken1}"
+                                IsVisible="{Binding HasPin, Converter={StaticResource ReverseConverter}}">
+                            <Label Style="{StaticResource PosChipLabel}"
+                                   Text="PIN 未設定" />
+                        </Border>
+                        <Border Grid.Column="2"
                                 Style="{StaticResource PosChipBorder}"
                                 BackgroundColor="{Binding Role, Converter={StaticResource StaffRoleColorConverter}}">
                             <Label Style="{StaticResource PosChipLabel}"

@@ -28,7 +28,7 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
     public async Task ReceiptAddsCountedQuantity()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var sdCardBefore = await QuantityAsync(client, TestData.MainStoreId, TestData.SdCardProductId);
         var cameraBefore = await QuantityAsync(client, TestData.MainStoreId, TestData.CameraProductId);
         var create = new InventoryReceiptCreateRequest
@@ -91,7 +91,7 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
     public async Task TransferMovesStockBetweenStores()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var fromBefore = await QuantityAsync(client, TestData.MainStoreId, TestData.SdCardProductId);
         var toBefore = await QuantityAsync(client, TestData.BranchStoreId, TestData.SdCardProductId);
         var create = new InventoryTransferCreateRequest
@@ -138,7 +138,7 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
     public async Task ChangesRejectMovementTypes()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var request = new InventoryChangeRequest
         {
             Changes =

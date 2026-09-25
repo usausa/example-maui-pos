@@ -18,8 +18,8 @@
   Endpoints / Blazor ページ / ViewModel は入力の検証と表示に徹し、Service を呼ぶだけにする ([D-45](decisions.md#d-45-サーバの-service-層), [D-46](decisions.md#d-46-端末の-service--usecase-とナビゲーションのコンテキスト))
 - 通信データ (`XxxRequest` / `XxxResponse`) は `Pos.Contract` に置いてサーバと端末で共有する ([D-22](decisions.md#d-22-共有プロジェクト-通信データとドメインロジックは別プロジェクト))
 - JSON は camelCase ([D-20](decisions.md#d-20-json-契約-camelcase))
-- 認証は持たない ([D-09](decisions.md#d-09-認証端末登録-後回し))。  
-  端末発の要求は本文の `storeId` / `terminalId` / `staffId` で識別する
+- 管理画面はログイン (Cookie)、端末はペアリングで受け取るトークン (Bearer)、スタッフは端末で照合する PIN ([D-73](decisions.md#d-73-認証と端末登録-管理画面はログイン端末はペアリングのトークンスタッフは-pin))。  
+  端末発の要求は本文の `storeId` / `terminalId` / `staffId` で識別し、サーバはトークンと一致することを確かめる ([D-74](decisions.md#d-74-認可-ポリシーは要件で分け端末は自店自端末の操作だけ))
 
 ---
 
@@ -90,6 +90,8 @@ Accessors/
   MasterAccessor.cs                  マスタ (設定・店舗・端末・スタッフ・部門・税率・値引・支払方法・調整理由・仕入先) の一覧 / 取得 / 登録 / 更新 / 論理削除 / 件数
   ProductAccessor.cs, CustomerAccessor.cs, TransactionAccessor.cs, ShiftAccessor.cs, DailyClosingAccessor.cs, OrderAccessor.cs, InventoryAccessor.cs,
   InventoryReceiptAccessor.cs, InventoryTransferAccessor.cs, ReportAccessor.cs
+  AccountAccessor.cs                 管理画面のアカウント (一覧 / 取得 / ログイン ID で取得 / 登録 / 更新 / パスワード / 最終ログイン / 削除)
+  TerminalTokenAccessor.cs           端末の登録 (ペアリングコードの登録と照合、トークンのハッシュの照合、失効、端末ごとの登録の状態)
   GenericAccessor.cs                 テーブルに紐付かない処理: PRAGMA、後から増えた列の初期値、SQL ファイルの実行 ([DirectSql]。初期データ)
   Sql/{Accessor}.{Method}.sql       2-way SQL (DDL は Host の Assets/Data/Schema.sql)
   SqlHelper.cs                       2-way SQL の /*# */ から呼ぶ SQL 断片だけ (集計の GROUP BY 式、商品別売上の並び順の列)。/*!helper */ で参照する
@@ -103,7 +105,7 @@ Models/Parameters/                   Service に渡す条件と入力 (PagedPara
                                      ProductImportLine: CSV の 1 行を文字列のまま)
 Models/Enums/                        一覧の並び順 (StoreSort / TerminalSort / StaffSort / CategorySort / ProductSort / CustomerSort / InventoryLevelDetailSort /
                                      ShiftSort / DailyClosingSort / OrderSort / TransactionSort / InventoryReceiptSort / InventoryTransferSort。列挙名 = 列名、先頭が既定)、SalesSummaryGroupBy / ProductSalesSort、
-                                     ProductImportColumn / ProductImportProblem (CSV 取込の誤りの列と種類)、DataChangeKind (変更の通知の種類)
+                                     ProductImportColumn / ProductImportProblem (CSV 取込の誤りの列と種類)、DataChangeKind (変更の通知の種類)、AccountRole (管理画面の役割)
 Models/PagedResult.cs                一覧の結果 (Total / Page / Size / Items)
 Models/InventoryReferenceType.cs     在庫変動の参照の種類 (Transaction / InventoryReceipt / InventoryTransfer)
 Services/                            業務の手順 (サブジェクトごと): マスタの XxxService (Store / Terminal / Staff / Category / TaxRate / Discount / PaymentMethod /
@@ -112,7 +114,8 @@ Services/                            業務の手順 (サブジェクトごと):
                                      OrderService (受注の登録・変更・入荷・キャンセル)、InventoryService、
                                      InventoryReceiptService (入荷予定の登録・受領・キャンセル)、InventoryTransferService (店舗間移動の依頼・出荷・受領・キャンセル)、ReportService、
                                      SyncService、DatabaseService (スキーマ作成・初期データ)、
-                                     ChangeNotificationService (書き込みの後のプロセス内の通知。管理画面のダッシュボードが購読する)
+                                     ChangeNotificationService (書き込みの後のプロセス内の通知。管理画面のダッシュボードが購読する)、
+                                     AccountService (ログイン・セッションの版の確認・アカウントの管理)、TerminalTokenService (ペアリングコードの発行・ペアリング・登録の解除・トークンの照合)
   DataWriteStatus.cs                 書き込みの結果 (Success / NotFound / Duplicate / VersionMismatch / InUse / Invalid)
   DataWriteResult.cs                 更新の結果 (Status + 更新後の行)
   RuleViolationException.cs          DB トランザクション内の業務ルール違反
@@ -120,6 +123,7 @@ Services/                            業務の手順 (サブジェクトごと):
 Infrastructure/Data/                 EnumTextConverter<T> (列挙型 ↔ TEXT)、DateOnlyTextConverter、DateTimeTextConverter (UTC)
 Infrastructure/Json/                 JsonDateTimeConverter (yyyy-MM-ddTHH:mm:ss.fffZ。Host の JSON 設定で使う)
 Infrastructure/Imaging/              ImageContentType (画像の形式を先頭のバイトで判定する)
+Infrastructure/Security/             IPasswordProvider / DefaultPasswordProvider (PBKDF2 のソルト + ハッシュ。template-blazor-server から)
 ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistration で Services/ の XxxService を Singleton 登録)
 ```
 
@@ -133,7 +137,9 @@ ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistrati
 
 ```
 Application/                         アプリ固有の部品
-  ApplicationExtensions.cs           起動構成 (camelCase JSON、Problem Details、Serilog、ヘルスチェック、MudBlazor、OpenAPI (開発時 /swagger, /redoc))
+  ApplicationExtensions.cs           起動構成 (camelCase JSON、Problem Details、認証・認可・試行回数の制限、Serilog、ヘルスチェック、MudBlazor、OpenAPI (開発時 /swagger, /redoc。端末のトークンの Bearer))
+  Authentication/                    Policies (Api / Admin / Administrator / Terminal)、AuthClaims (クレームの組み立てと読み取り)、TerminalAuthenticationHandler (Bearer を DB で照合)、
+                                     TerminalAccess (端末のトークンと本文の店舗・端末の一致)、AccountAuthenticationStateProvider (開いている回線でアカウントの版を 1 分ごとに確かめる)
   ViewHelper.cs                      画面の部品の文言と色 (チップ・マーク・見出し)
   ViewExtensions.cs                  表示用の書式 (金額・数量・日時・列挙型の日本語名) の拡張メソッド
   SnackbarExtensions.cs, Styles.cs, Log.cs ([LoggerMessage] の集約), NamingPolicy.cs
@@ -145,7 +151,8 @@ Reports/                             OysterReport の帳票: ShiftReportBuilder 
 Endpoints/                           静的クラス + MapApiGroup (計測フィルタ付きのグループ。ハンドラは private static)。Request → Entity / Parameter の変換 ([Mapper]) と Service の呼び出しだけを担う
   ApiRoutes.cs (/api/v1), ApiDefaults.cs (ページサイズ), ApiProblems.cs (errorCode / errors / expected 付き Problem Details と DataWriteStatus からの変換),
   ApiRuleText.cs (業務ルール違反と警告の文言)
-  SettingsEndpoints, StoreEndpoints, TerminalEndpoints, StaffEndpoints, CategoryEndpoints, TaxRateEndpoints,
+  AuthEndpoints (管理画面のログイン・ログアウトのフォーム。API ではない)
+  SettingsEndpoints, StoreEndpoints, TerminalEndpoints (+ pair, me/heartbeat), StaffEndpoints, CategoryEndpoints, TaxRateEndpoints,
   ProductEndpoints, DiscountEndpoints, PaymentMethodEndpoints, SyncEndpoints, CustomerEndpoints,
   TransactionEndpoints, ShiftEndpoints (+ summary/pdf), DailyClosingEndpoints, OrderEndpoints, InventoryEndpoints, AdjustmentReasonEndpoints (/inventory/adjustment-reasons),
   SupplierEndpoints (/inventory/suppliers), InventoryReceiptEndpoints (/inventory/receipts), InventoryTransferEndpoints (/inventory/transfers), ReportEndpoints (+ daily/pdf)
@@ -169,13 +176,16 @@ Components/
           InventoryChangesPage (S-42), AdjustmentReasonsPage (S-44), InventoryReceiptsPage (S-45), InventoryTransfersPage (S-46), SuppliersPage (S-47),
           ProductsPage (S-50), CategoriesPage (S-53), TaxRatesPage (S-54), DiscountsPage (S-55),
           PaymentMethodsPage (S-56), CustomersPage (S-60), CustomerDetailPage (S-61), StoresPage (S-70), TerminalsPage (S-71), StaffPage (S-72), SettingsPage (S-80),
-          Error, NotFound。ページは .razor + .razor.cs
+          AccountsPage (S-92), Login (S-02), AccessDenied, Error, NotFound。ページは .razor + .razor.cs。_Imports.razor で全ページに [Authorize] (ログイン・エラー・404 は AllowAnonymous)
   Controls/ (ErrorBanner, ProgressOverlay, StoreSelect (店舗セレクタ), StatusChip (ViewHelper の文言 + 色))
   Dialogs/ (EditDialogBase<TForm>, DialogServiceExtensions (情報・確認), AppMessageBox, XxxEditDialog (マスタ 11 種 + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31), DailyClosingDialog (S-90),
             OrderDialog (S-91), OrderEditDialog, ProductImportDialog (S-52), ProductInventoryDialog (S-41), InventoryChangeDialog (S-43), InventoryReceiptDialog (S-45), InventoryReceiptEditDialog,
-            InventoryTransferDialog (S-46), InventoryTransferEditDialog, InventoryMovementDialog (出荷・受領の確認), PointAdjustDialog (S-62), TerminalQrDialog (S-71))
+            InventoryTransferDialog (S-46), InventoryTransferEditDialog, InventoryMovementDialog (出荷・受領の確認), PointAdjustDialog (S-62), TerminalPairingDialog (S-71),
+            StaffPinDialog (S-72), AccountEditDialog / AccountPasswordDialog (S-92))
+  RedirectToLogin.razor              ログインしていないときにログイン画面へ (戻り先を付ける)
 Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート)、Data/Schema.sql (DDL) と Data/InitialData.sql (初期データ)。起動時に読んで実行する (出力ディレクトリへコピー)
-Settings/                            LogSetting (HTTP ログ・本文ダンプ・W3C アクセスログ) / ProfilerSetting (SQL のログとトレース) / TelemetrySetting (長時間実行のしきい値)
+Settings/                            LogSetting (HTTP ログ・本文ダンプ・W3C アクセスログ) / ProfilerSetting (SQL のログとトレース) / TelemetrySetting (長時間実行のしきい値) /
+                                     AuthSetting (認証の有効、Cookie の期限、試行回数、初期の管理者)
 wwwroot/                             css/app.css, js/reconnect.js
 ```
 
@@ -184,7 +194,12 @@ wwwroot/                             css/app.css, js/reconnect.js
   取引登録 (`POST /transactions`) の流れは [db-design.md §5.1](db-design.md#51-取引登録-post-transactions-は-1-つの-db-トランザクション)
 - Blazor ページも同じ Service を `[Inject]` して使う。  
   Razor の表示用の加工は `ViewHelper` / `ViewExtensions` に集約し、Accessor / `IDbProvider` はページから使わない
-- `InitializeApplicationAsync` で `DatabaseService.InitializeAsync` (スキーマ作成、後から増えた列の追加、初期データ) を行う
+- `InitializeApplicationAsync` で `DatabaseService.InitializeAsync` (スキーマ作成、後から増えた列の追加、初期データ) を行い、アカウントがなければ初期の管理者を作る
+- 認証は管理画面が Cookie、端末が `Terminal` スキーム (Bearer を要求ごとに DB で照合)。  
+  API のグループは既定で `Api` ポリシー、管理だけの API は `Admin`、マスタ・会社設定の書き込みは `Administrator` を重ねる。  
+  ポリシーを重ねるとスキームが合算されるので、管理画面と端末は要件 (役割・端末のクレーム) で分ける ([D-74](decisions.md#d-74-認可-ポリシーは要件で分け端末は自店自端末の操作だけ))。  
+  端末の一致は各ハンドラで `TerminalAccess` を使って確かめる。  
+  管理者だけの操作は `AuthorizeView` (`Administrator`) で Operator に出さない
 - テレメトリは OpenTelemetry。  
   `OTEL_EXPORTER_OTLP_ENDPOINT` があるとき (Aspire から起動したときなど) だけログ・メトリクス・トレースを OTLP で送り、`Prometheus:Uri` が設定されていればメトリクスを HTTP で公開する (既定 9464)。  
   SQL のトレース (`Profiler:SqlTelemetry`) と API の要求数・長時間実行 (`Telemetry:LongExecutionThreshold`) も同じ経路
@@ -275,9 +290,9 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
 ```
 MauiProgram.cs                       BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド (D-36)、NavigationFeedbackPlugin)、Dialog / Popup、フォントは MaterialIcons のみ
                                      + BarcodeScanning、HttpClient (IHttpClientFactory)、IDbProvider (SQLite)、DataAccessor、Service / Usecase、State
-MainPage.xaml / MainPageViewModel    シェル (タイトル + 店舗-端末 担当 + 未送信バッジ + F1〜F4)。起動時に Setup (未設定) または StaffSelect へ。  
+MainPage.xaml / MainPageViewModel    シェル (タイトル + 店舗-端末 担当 + 未送信バッジ + F1〜F4)。起動時に Setup (未登録) または StaffSelect へ。要求が 401 になったら知らせて Setup へ。  
                                      根の画面 (AppViewModelBase.HandlesBack = false) の戻るはプラットフォームに任せる (MainActivity がタスクを背面へ回す)
-App.xaml.cs                          起動時に DatabaseService でローカル DB を作り、SyncService でセッションを復元して同期を始める
+App.xaml.cs                          起動時に DatabaseService でローカル DB を作り、CredentialService でトークンを読み、SyncService でセッションを復元して同期を始める
 Extensions.cs                        拡張メソッド (リソース、IDialog の日本語ボタン、PostForwardAsync / PostActionAsync、TrimToNull、ObservableCollection.Replace)
 Shell/ ShellProperty (+ Active: 表示中の View だけがシェルを更新) / ShellEvent / ShellUpdateBehavior / IShellControl
 Behaviors/                           Entry / Label / Scroll などの動作、EntryBind (EntryController)、BarcodeBind (CameraView)
@@ -313,9 +328,12 @@ Models/
 Services/                            単機能の部品
   DataAccessor.cs + Sql/            ローカル SQLite (Smart.Data.Accessor、2-way SQL。DDL は Resources/Raw/Schema.sql。ローカルのエンティティのキーによる取得・削除は [SelectSingle] / [Delete])、DataProfile (型変換)
   DatabaseService.cs                 ローカル DB の初期化 (PRAGMA、テーブル作成、後から増えた列の追加)
-  HttpService.cs / ApiResult.cs / ApiContext.cs / ApiNames.cs / ProblemResponse.cs   HttpClient による API 呼び出し (Pos.Contract の Request / Response、失敗時は Problem Details、D-40)
+  HttpService.cs / ApiResult.cs / ApiContext.cs / ApiNames.cs / ProblemResponse.cs   HttpClient による API 呼び出し (Pos.Contract の Request / Response、失敗時は Problem Details、D-40)。  
+                                     要求ごとに端末のトークンを Bearer で付け、401 は ApiContext が一度だけ知らせる
+  CredentialService.cs               端末のトークン (SecureStorage) と登録日時。登録済みか、保存、解除
+  PinService.cs                      PIN の照合 (3 回まで、背景スレッドで PBKDF2) と承認者の選択 (自店か本部の店長以上で PIN があるスタッフ)
   NetworkService.cs                  オンライン限定操作の接続確認・インジケータ・エラー通知
-  SyncService.cs                     マスタ差分同期と Outbox 送信のバックグラウンド実行、レシート番号の採番
+  SyncService.cs                     マスタ差分同期と Outbox 送信のバックグラウンド実行 (未登録の間は止める)、heartbeat (1 分ごと)、レシート番号の採番
   ReceiptService.cs                  レシート画像の組み立て (ReceiptTextBuilder: 等幅 32 桁、ReceiptImageBuilder: SkiaSharp で桁位置に描画)
   ProductImageService.cs             商品画像の取得と CacheDirectory へのキャッシュ (URL の v ごと。オフラインはキャッシュだけ)
   ShiftReportTextBuilder.cs          精算レポートの共有テキストの組み立て
@@ -324,14 +342,14 @@ Usecases/                            通信 → DB → 完了までの一連の�
   SalesUsecase.cs / ReturnUsecase.cs 会計・返品の計算 (Pos.Domain) と確定、保留、元取引の検索 (オンラインならサーバの最新)
   ShiftUsecase.cs                    開設 (サーバに残ったシフトの引き継ぎ)、精算、入出金、集計
   OrderUsecase.cs                    受注の登録 (カートから)、受注から会計のカートを作る
-  StockUsecase.cs / SetupUsecase.cs  棚卸・在庫調整の送信、初期設定 (接続確認・設定の保存・初回同期)
+  StockUsecase.cs / SetupUsecase.cs  棚卸・在庫調整の送信、初期設定 (ペアリング・トークンと設定の保存・初回同期)
   ReceivingUsecase.cs                受領待ちの入荷・移動の取得と受領 (オンライン。受領したら在庫の差分同期を促す)
   ReceivingMapper.cs                 入荷・移動の応答 → 受領待ちの伝票、数えた数 → 受領の要求
   TransactionMapper.cs               Cart → Pos.Domain の計算入力 → TransactionCreateRequest の変換
   ShiftSummaryCalculator.cs          ローカルの取引・入出金からのシフト集計
 State/
   DeviceState.cs / StartupState.cs
-  Settings.cs                        ApiEndPoint / StoreId / TerminalId / OpenSalesAfterLogin (IPreferences)
+  Settings.cs                        ApiEndPoint / StoreId / TerminalId / PairedAt / OpenSalesAfterLogin (IPreferences。トークンは CredentialService の SecureStorage)
   Session.cs                         使用者に紐付く状態: 会社設定、店舗、端末、選択中スタッフ、開設中シフト、未送信 / 要確認件数、営業日、CanTransact
 Resources/
   Fonts/      MaterialIcons のみ
@@ -367,7 +385,8 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CA
 | 会社設定 | 1 | 税端数 `Floor`、ポイント基準 `TaxIncluded`、営業日切替 `05:00` |
 | 店舗 | 2 | `S001` 本店、`S002` 支店 (他店在庫照会のため 2 店舗) |
 | レジ端末 | 3 | 本店 01 / 02、支店 01 |
-| スタッフ | 4 | 本部管理者 (Admin)、店長 (Manager)、レジ担当 × 2 (Cashier) |
+| スタッフ | 4 | 本部管理者 (Admin)、店長 (Manager)、レジ担当 × 2 (Cashier)。PIN は A001 = 0000、M001 = 1111、C001 = 2222、C002 = 3333 |
+| 管理画面のアカウント | 1 | アカウントが 1 件もなければ設定 (`Auth:InitialName` / `InitialPassword`、既定 `admin` / `admin`) の管理者を作る (初期データの SQL ではなく起動処理) |
 | 税率 | 3 | 標準 10% / 軽減 8% / 非課税 |
 | 支払方法 | 6 | 現金 (釣銭あり) / クレジット (参照要) / QR / 電子マネー / 商品券 / ポイント |
 | 部門 | 大分類 3 + 中分類 9 | 家電 (テレビ・冷蔵庫・生活家電)、カメラ (デジタルカメラ・レンズ・アクセサリ)、ホームセンター (工具・園芸・日用品) + サービス |
@@ -386,6 +405,7 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CA
 | 対象 | 有効な店舗 × 端末ごとに、`--days` 日分 (既定 7)。開設中のシフトがある端末は省略 |
 | 1 日の流れ | 08:30 に入荷 (初日のみ、物品を 10〜30 個。入荷予定を登録して予定どおり受領する。仕入先がなければ作る) → 09:00 開設 (釣銭準備金 3 万円) → 販売 `--per-day` ± 2 件 (既定 6) → 返品 (販売の 25%) → 取消 (30% の日に 1 件) → 出金 (60% の日) → 20:00 精算 (ときどき過不足) |
 | 日次締め | 店舗ごとに、前日までの各日を締める (今日は営業中として残す)。締め済みや未精算のシフトがある日は省略する |
+| 認証 | `--user` / `--password` (既定 `admin` / `admin`) で管理画面のフォームからログインし、Cookie で API を呼ぶ (端末の一致は確かめられない) |
 | 販売の内容 | 端末と同じ手順 (`SalesCalculator` → `TransactionCreateRequest` → `POST /transactions`)。1〜3 明細、明細値引 (承認者付き) / 取引値引 15%、シリアル番号、会員 (ポイント利用は残高まで)、カード 35% (伝票番号付き) / 現金 (千円単位の預り)、サービス明細には配送先 |
 | レシート番号 | `terminals/{id}` の `lastReceiptSeq` から連番を続ける |
 | 乱数 | `--seed` (既定 1) で再現できる。サーバが 409 / 422 で拒否した取引は省略して続行する |

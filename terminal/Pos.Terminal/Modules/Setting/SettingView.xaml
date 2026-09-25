@@ -178,8 +178,8 @@
                         Text="👤 スタッフ切替" />
                 <Button Grid.Column="1"
                         Style="{StaticResource PosSelectButton}"
-                        Command="{Binding SetupCommand}"
-                        Text="🔗 接続設定" />
+                        Command="{Binding UnregisterCommand}"
+                        Text="🔓 登録の解除" />
             </Grid>
         </VerticalStackLayout>
     </ScrollView>

@@ -14,7 +14,7 @@ public sealed partial class NavMenu
         [NavGroup.Inventory] = ["inventory"],
         [NavGroup.Products] = ["products", "categories", "tax-rates", "discounts", "payment-methods"],
         [NavGroup.Stores] = ["stores", "terminals", "staff"],
-        [NavGroup.Settings] = ["settings"]
+        [NavGroup.Settings] = ["settings", "accounts"]
     };
 
     private readonly Dictionary<NavGroup, bool> expanded = Enum.GetValues<NavGroup>().ToDictionary(static x => x, static _ => false);

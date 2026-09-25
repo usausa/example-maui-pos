@@ -26,7 +26,7 @@ public static partial class TransactionEndpoints
         group.MapGet("/", HandleListAsync);
         group.MapGet("/lookup", HandleLookupAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapGet("/{id:guid}/receipt/pdf", HandleReceiptPdfAsync);
+        group.MapGet("/{id:guid}/receipt/pdf", HandleReceiptPdfAsync).RequireAuthorization(Policies.Admin);
         group.MapPost("/{id:guid}/void", HandleVoidAsync);
     }
 
@@ -168,10 +168,17 @@ public static partial class TransactionEndpoints
 
     // 冪等: 同じ id は 200 で既存を返す (内容が違えば 409)
     private static async ValueTask<IResult> HandleCreateAsync(
+        TerminalAccess access,
         TransactionService service,
+        ClaimsPrincipal user,
         TransactionCreateRequest request,
         CancellationToken cancellationToken)
     {
+        if (!access.CanAccess(user, request.StoreId, request.TerminalId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         var detail = ToDetail(request);
         var result = await service.RegisterAsync(detail, request.OrderId, cancellationToken);
         return result.Status switch
@@ -294,12 +301,19 @@ public static partial class TransactionEndpoints
 
     // 取消: Status を Voided にし、在庫は逆方向の履歴、ポイントは Void 履歴を追加する
     private static async ValueTask<IResult> HandleVoidAsync(
+        TerminalAccess access,
         TransactionService service,
+        ClaimsPrincipal user,
         Guid id,
         TransactionVoidRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await service.VoidAsync(id, request.VoidedAt, request.StaffId, request.Reason, cancellationToken);
+        if ((await service.QueryAsync(id, cancellationToken) is { } transaction) && !access.CanAccess(user, transaction.StoreId, transaction.TerminalId))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
+        var result = await service.VoidAsync(id, request.VoidedAt, request.StaffId, request.ApprovedByStaffId, request.Reason, cancellationToken);
         return result.Status switch
         {
             TransactionResultStatus.Success => TypedResults.Ok(ToResponse(result.Detail!)),

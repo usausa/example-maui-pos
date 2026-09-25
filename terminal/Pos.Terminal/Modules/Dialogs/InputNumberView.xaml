@@ -15,7 +15,7 @@
 
         <!-- display -->
         <Label Style="{StaticResource LeftInputLabel}"
-               Text="{Binding Input.Text}" />
+               Text="{Binding Input.DisplayText}" />
 
         <!-- pad -->
         <Grid Style="{StaticResource InputGrid}"

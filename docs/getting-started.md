@@ -28,6 +28,10 @@ dotnet run --project server/src/Pos.Server.Host
 
 - 管理画面: http://localhost:8080/ 。  
   ポートは `appsettings.json` の `http_ports`
+- 管理画面はログインしてから使う。  
+  初回はアカウントが 1 件もないので、設定 (`Auth:InitialName` / `InitialPassword`、既定 `admin` / `admin`) の管理者が作られる。  
+  運用ではログイン後に「設定 › ユーザー」でパスワードを変え、オペレーター (参照と、取引・在庫・顧客の操作だけ) を追加する。  
+  開発・デモでは `Auth:Enabled` を `false` にすると認可を素通しにできる ([D-73](decisions.md#d-73-認証と端末登録-管理画面はログイン端末はペアリングのトークンスタッフは-pin))
 - API 仕様 (開発時): http://localhost:8080/swagger 、http://localhost:8080/redoc 、`/openapi/v1.json`
 - データベース (SQLite `pos.db`、実行ディレクトリ) は起動時に自動作成され、初期データ (店舗 2 / 端末 3 / スタッフ / 税率 / 支払方法 / 部門・商品 33 / 値引 / 会員 5 / 在庫) が投入される ([architecture.md §6](architecture.md#6-初期データ))。  
   後から増えた列は起動時に既存の DB へ足す (`SchemaHelper.EnsureColumnAsync`)
@@ -45,14 +49,18 @@ dotnet run --project server/src/Pos.Server.Host
 dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net10.0-android -t:Run -p:AdbTarget="-s emulator-5554"
 ```
 
-初回起動の初期設定で接続先を決める。
+初回起動の初期設定で端末を登録する。  
+管理画面の「店舗 › レジ端末」で端末の [ペアリングコードを発行] を押し、表示された 6 桁のコード (10 分間、一度だけ使える) を端末で使う。
 
 | 方法 | 手順 |
 | --- | --- |
-| 設定 QR | 管理画面の「店舗 › レジ端末」で端末を選んで設定 QR を表示し、端末の「QR 読取」で読み取る (実機向け) |
-| 手入力 | サーバ URL・店舗 ID・端末 ID を入力する。エミュレータからホストのサーバへは `http://10.0.2.2:8080/`。初期データの本店 / 本店 レジ 1 は店舗 ID `00000000-0000-0000-0001-000000000001`、端末 ID `00000000-0000-0000-0002-000000000001` (管理画面の店舗 / レジ端末の画面でも確認できる) |
+| 設定 QR | 発行のダイアログの設定 QR (`ApiEndPoint` と `PairingCode`) を、端末の「QR 読取」で読み取る (実機向け) |
+| 手入力 | サーバ URL を入力し、「コード」でペアリングコードを電卓で入れる。エミュレータからホストのサーバへは `http://10.0.2.2:8080/` |
 
-「開始」でサーバに店舗・端末を確認してマスタを全件同期し、スタッフ選択 → ホームへ進む。  
+「登録」で端末を登録してマスタを全件同期し、スタッフ選択へ進む。  
+スタッフを選んで PIN を入れるとホームへ進む (初期データの PIN は A001 = 0000、M001 = 1111、C001 = 2222、C002 = 3333。管理画面の「店舗 › スタッフ」で設定する)。  
+承認が必要な値引とレジ係の取消は、店長以上を承認者に選んでその PIN を入れる。  
+管理画面で登録を解除すると、端末は次の通信で初期設定に戻る (未送信の取引は残り、登録し直すと送る)。  
 「レジ開設」で釣銭準備金を入れてシフトを開くと販売できる。  
 取引は端末のローカル DB に保存してから Outbox 経由でサーバへ送るので、オフラインでも販売・返品・精算を続けられる (復帰後に自動送信)。  
 サーバに拒否された取引は「設定・同期」で理由を確認して再送 / 破棄する。
@@ -65,7 +73,7 @@ dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net10.0-android -t:Run
 dotnet run --project server/tools/Pos.Server.SampleData -- --days 7
 ```
 
-オプションは `--base <url>` (既定 `http://localhost:8080/`)、`--days <n>` (既定 7)、`--per-day <n>` (端末 1 台 1 日あたりの販売件数の目安、既定 6)、`--seed <n>` (乱数、既定 1)。  
+オプションは `--base <url>` (既定 `http://localhost:8080/`)、`--user <id>` / `--password <pw>` (管理画面のログイン、既定 `admin` / `admin`)、`--days <n>` (既定 7)、`--per-day <n>` (端末 1 台 1 日あたりの販売件数の目安、既定 6)、`--seed <n>` (乱数、既定 1)。  
 開設中のシフトがある端末は省略する。  
 詳細は [architecture.md §6](architecture.md#6-初期データ) と [D-41](decisions.md#d-41-サンプル取引の生成-api-経由のコンソールツール)。
 

@@ -2,61 +2,71 @@ namespace Pos.Terminal.Usecases;
 
 using Pos.Contract.Sync;
 
-public sealed record SetupTarget(StoreResponseItem Store, TerminalResponseItem Terminal);
-
-// 初期設定: 接続先を切り替えて店舗・端末を確認し、設定を保存して初回同期する
+// 初期設定: 管理画面で発行したペアリングコードで端末を登録し、トークンと店舗・端末を保存して初回同期する
 public sealed class SetupUsecase
 {
+    private readonly IAppInfo appInfo;
+
+    private readonly IDeviceInfo deviceInfo;
+
     private readonly Settings settings;
 
     private readonly ApiContext apiContext;
+
+    private readonly CredentialService credential;
 
     private readonly NetworkService network;
 
     private readonly SyncService sync;
 
     public SetupUsecase(
+        IAppInfo appInfo,
+        IDeviceInfo deviceInfo,
         Settings settings,
         ApiContext apiContext,
+        CredentialService credential,
         NetworkService network,
         SyncService sync)
     {
+        this.appInfo = appInfo;
+        this.deviceInfo = deviceInfo;
         this.settings = settings;
         this.apiContext = apiContext;
+        this.credential = credential;
         this.network = network;
         this.sync = sync;
     }
 
-    // 通信の失敗は NetworkService が通知する (Target も Error も null)
-    public async ValueTask<(SetupTarget? Target, string? Error)> VerifyAsync(Uri endPoint, Guid storeId, Guid terminalId)
+    // 接続先を切り替えてペアリングする。コードの不一致・期限切れ・通信の失敗は NetworkService が通知する (null)。
+    // 同じ端末の登録し直しならローカル DB と未送信はそのまま使い、再登録後に送る
+    public async ValueTask<TerminalPairResponse?> PairAsync(Uri endPoint, string pairingCode)
     {
         apiContext.BaseAddress = endPoint;
-        var store = await network.ExecuteAsync(h => h.GetStoreAsync(storeId), notifyNotFound: true);
-        if (!store.IsSuccess)
+        var request = new TerminalPairRequest
         {
-            return (null, null);
+            PairingCode = pairingCode,
+            DeviceName = $"{deviceInfo.Manufacturer} {deviceInfo.Model}".Trim(),
+            AppVersion = appInfo.VersionString
+        };
+        var result = await network.ExecuteAsync(h => h.PairAsync(request));
+        if (!result.IsSuccess)
+        {
+            return null;
         }
 
-        var terminal = await network.ExecuteAsync(h => h.GetTerminalAsync(terminalId), notifyNotFound: true);
-        if (!terminal.IsSuccess)
-        {
-            return (null, null);
-        }
-
-        if (terminal.Content!.StoreId != storeId)
-        {
-            return (null, "端末が店舗に属していません。");
-        }
-
-        return (new SetupTarget(store.Content!, terminal.Content), null);
+        var paired = result.Content!;
+        settings.ApiEndPoint = endPoint.ToString();
+        settings.StoreId = paired.Store.Id;
+        settings.TerminalId = paired.Terminal.Id;
+        await credential.SaveAsync(paired.Token, DateTime.UtcNow);
+        return paired;
     }
 
-    // 設定を保存して初回同期 (全件)
-    public ValueTask<ApiResult<SyncMastersResponse>> ApplyAsync(Uri endPoint, Guid storeId, Guid terminalId, IProgress<string>? progress)
+    // 初回同期 (全件)。終われば未送信の送信も再開する
+    public async ValueTask<ApiResult<SyncMastersResponse>> ApplyAsync(IProgress<string>? progress)
     {
-        settings.ApiEndPoint = endPoint.ToString();
-        settings.StoreId = storeId;
-        settings.TerminalId = terminalId;
-        return sync.SyncMastersAsync(true, progress, CancellationToken.None);
+        var result = await sync.SyncMastersAsync(true, progress, CancellationToken.None);
+        sync.Trigger();
+        return result;
     }
 }

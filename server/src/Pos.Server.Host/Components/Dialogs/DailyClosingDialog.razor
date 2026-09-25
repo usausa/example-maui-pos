@@ -125,8 +125,9 @@
         <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@ExportUrls.DailySalesPdf(StoreId, BusinessDate)" Target="_blank">売上日報 PDF</MudButton>
         @if (summary?.Day.Status == DailyClosingStatus.Closed)
         {
-            @* 認証の導入時: 締め解除は Administrator だけに出す *@
-            <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.LockOpen" OnClick="() => MudDialog.Close(DialogResult.Ok(summary.Day))">締めを解除</MudButton>
+            <AuthorizeView Policy="@Policies.Administrator">
+                <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.LockOpen" OnClick="() => MudDialog.Close(DialogResult.Ok(summary.Day))">締めを解除</MudButton>
+            </AuthorizeView>
         }
         else
         {

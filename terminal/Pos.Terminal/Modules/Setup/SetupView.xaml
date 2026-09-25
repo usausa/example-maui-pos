@@ -11,8 +11,8 @@
              shell:ShellProperty.Title="初期設定"
              shell:ShellProperty.Function1Text="—"
              shell:ShellProperty.Function2Text="QR 読取"
-             shell:ShellProperty.Function3Text="手入力"
-             shell:ShellProperty.Function4Text="開始"
+             shell:ShellProperty.Function3Text="コード"
+             shell:ShellProperty.Function4Text="登録"
              shell:ShellProperty.Function1Enabled="False"
              shell:ShellProperty.Function2Enabled="True"
              shell:ShellProperty.Function3Enabled="True"
@@ -23,7 +23,7 @@
         <VerticalStackLayout Grid.Row="0"
                              Style="{StaticResource FillVerticalStack}">
             <Label Style="{StaticResource PosMessageLabel}"
-                   Text="管理画面の設定 QR を読み取るか、接続先を入力してください。" />
+                   Text="管理画面の「レジ端末」でペアリングコードを発行し、設定 QR を読み取るか、サーバ URL とコードを入力してください。" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="サーバ URL" />
@@ -33,16 +33,10 @@
                    Placeholder="http://server:8080/" />
 
             <Label Style="{StaticResource PosFieldLabel}"
-                   Text="店舗 ID" />
-            <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding StoreId}"
-                   Placeholder="00000000-0000-0000-0000-000000000000" />
-
-            <Label Style="{StaticResource PosFieldLabel}"
-                   Text="端末 ID" />
-            <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding TerminalId}"
-                   Placeholder="00000000-0000-0000-0000-000000000000" />
+                   Text="ペアリングコード" />
+            <Button Style="{StaticResource PosFieldInputButton}"
+                    Command="{Binding InputPairingCodeCommand}"
+                    Text="{Binding PairingCode, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして入力'}" />
 
             <Label Style="{StaticResource PosMessageLabel}"
                    IsVisible="{Binding Message, Converter={StaticResource NotEmptyConverter}}"

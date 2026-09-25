@@ -57,6 +57,13 @@ public static class Length
     public const int Currency = 3;
     public const int BusinessDayStartTime = 5;
 
+    // 認証 (管理画面のアカウント、端末の登録)
+    public const int AccountName = 50;
+    public const int Password = 100;
+    public const int PasswordMin = 8;
+    public const int DeviceName = 100;
+    public const int AppVersion = 50;
+
     // 端末の電卓入力の桁数
     public const int PhoneDigits = 13;
     public const int PostalCodeDigits = 7;
@@ -71,4 +78,7 @@ public static class Length
     public const int StockDigits = 6;
     public const int DiscountValueDigits = 7;
     public const int ReceiptNoDigits = 8;
+    public const int PairingCodeDigits = 6;
+    public const int PinMinDigits = 4;
+    public const int PinDigits = 6;
 }

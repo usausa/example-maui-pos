@@ -17,10 +17,10 @@ public static partial class CategoryEndpoints
     {
         var group = app.MapApiGroup(ApiRoutes.Categories);
         group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPut("/{id:guid}", HandleUpdateAsync);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync);
+        group.MapGet("/{id:guid}", HandleGetAsync).RequireAuthorization(Policies.Admin);
+        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
     }
 
     //--------------------------------------------------------------------------------

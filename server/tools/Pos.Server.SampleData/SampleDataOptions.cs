@@ -6,6 +6,8 @@ internal sealed class SampleDataOptions
         使い方: dotnet run --project server/tools/Pos.Server.SampleData -- [オプション]
 
           --base <url>     サーバ (既定 http://localhost:8080/)
+          --user <id>      管理画面のログイン ID (既定 admin)
+          --password <pw>  パスワード (既定 admin)
           --days <n>       今日から遡る日数 (既定 7)
           --per-day <n>    端末 1 台 1 日あたりの販売件数の目安 (既定 6)
           --seed <n>       乱数シード (既定 1。同じシードなら同じ内容)
@@ -13,6 +15,10 @@ internal sealed class SampleDataOptions
         """;
 
     public Uri BaseAddress { get; private set; } = new("http://localhost:8080/");
+
+    public string User { get; private set; } = "admin";
+
+    public string Password { get; private set; } = "admin";
 
     public int Days { get; private set; } = 7;
 
@@ -35,6 +41,12 @@ internal sealed class SampleDataOptions
                     break;
                 case "--base":
                     options.BaseAddress = new Uri(Next(args, ref i), UriKind.Absolute);
+                    break;
+                case "--user":
+                    options.User = Next(args, ref i);
+                    break;
+                case "--password":
+                    options.Password = Next(args, ref i);
                     break;
                 case "--days":
                     options.Days = Math.Max(1, ParseInt(Next(args, ref i)));

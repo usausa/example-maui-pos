@@ -42,4 +42,5 @@ global using Pos.Domain.Enums;
 global using Pos.Server.Models.Enums;
 global using Pos.Server;
 global using Pos.Server.Host.Application;
+global using Pos.Server.Host.Application.Authentication;
 global using Pos.Server.Host.Settings;

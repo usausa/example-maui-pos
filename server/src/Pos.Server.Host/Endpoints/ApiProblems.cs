@@ -50,6 +50,13 @@ public static class ApiProblems
     public static IResult Unprocessable(ErrorCode code, string title, string? detail = null) =>
         Problem(StatusCodes.Status422UnprocessableEntity, code, title, detail);
 
+    // 端末のトークンと、本文・クエリの店舗・端末が一致しない
+    public static IResult TerminalMismatch() =>
+        Problem(StatusCodes.Status403Forbidden, ErrorCode.TerminalMismatch, "この端末からは操作できません");
+
+    public static IResult PairingCodeInvalid() =>
+        Problem(StatusCodes.Status422UnprocessableEntity, ErrorCode.PairingCodeInvalid, "ペアリングコードが正しくないか、期限が切れています");
+
     // 書き込みの失敗 (Success 以外) を応答にする
     public static IResult FromStatus(DataWriteStatus status, string? duplicateTitle = null, string? inUseTitle = null, string? invalidTitle = null) =>
         status switch

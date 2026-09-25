@@ -7,7 +7,7 @@ public sealed record DiscountParameter(string Title, IReadOnlyList<DiscountRespo
 
 public sealed record DiscountItem(DiscountResponseItem Discount, string Name, string ValueText);
 
-// 値引 (取引・明細): 定義済みの選択、または任意額・任意率 + 理由。承認が必要な値引は承認者を選ぶ
+// 値引 (取引・明細): 定義済みの選択、または任意額・任意率 + 理由。承認が必要な値引は承認者を選び、その PIN で確かめる
 public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupInitialize<DiscountParameter>
 {
     private static readonly ReasonItem[] Reasons =
@@ -22,9 +22,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
 
     private readonly IPopupNavigator popupNavigator;
 
-    private readonly Session session;
-
-    private readonly DataAccessor accessor;
+    private readonly PinService pins;
 
     private decimal baseAmount;
 
@@ -57,13 +55,11 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
     public DiscountViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
-        Session session,
-        DataAccessor accessor)
+        PinService pins)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
-        this.session = session;
-        this.accessor = accessor;
+        this.pins = pins;
 
         SelectCommand = MakeAsyncCommand<DiscountItem>(SelectAsync);
         SelectTypeCommand = MakeDelegateCommand<string>(x => IsAmount = x == "Amount");
@@ -96,16 +92,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
         StaffResponseItem? approver = null;
         if (definition.RequiresApproval)
         {
-            var staff = session.StoreId is null
-                ? []
-                : (await accessor.QueryStaffListAsync(session.StoreId.Value)).Where(static x => x.Role is StaffRole.Manager or StaffRole.Admin).ToList();
-            if (staff.Count == 0)
-            {
-                await dialog.InformationAsync("承認できるスタッフ (店長・管理者) が登録されていません。");
-                return;
-            }
-
-            approver = await popupNavigator.ChooseAsync(staff, static x => $"{x.Name} ({ViewHelper.Name(x.Role)})", "承認者");
+            approver = await pins.ChooseApproverAsync("値引の承認者");
             if (approver is null)
             {
                 return;

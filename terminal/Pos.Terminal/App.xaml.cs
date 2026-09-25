@@ -31,8 +31,9 @@ public sealed partial class App
         // Report previous exception
         await CrashReport.ShowReport();
 
-        // ローカル DB とセッション
+        // ローカル DB と端末の登録 (トークン) とセッション
         await serviceProvider.GetRequiredService<DatabaseService>().InitializeAsync();
+        await serviceProvider.GetRequiredService<CredentialService>().LoadAsync();
 
         var syncService = serviceProvider.GetRequiredService<SyncService>();
         await syncService.RefreshSessionAsync();

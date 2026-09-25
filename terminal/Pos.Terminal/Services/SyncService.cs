@@ -13,7 +13,8 @@ using Smart.Data;
 // マスタ差分同期と Outbox 送信。バックグラウンドで定期実行し、書き込み直後は Trigger で早める
 public sealed class SyncService : IDisposable
 {
-    private const string ServerTimeKey = "ServerTime";
+    // マスタの差分同期の位置 (ないと全件)
+    public const string ServerTimeKey = "ServerTime";
     private const string InventorySyncKey = "InventorySyncAt";
     private const string ReceiptSeqKey = "ReceiptSeq";
 
@@ -23,13 +24,20 @@ public sealed class SyncService : IDisposable
     private static readonly TimeSpan MasterSyncInterval = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(5);
 
+    // サーバが通信中とみなす時間 (5 分) より短く、取引がないときも管理画面に通信中と出す
+    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromMinutes(1);
+
     private readonly ILogger<SyncService> log;
+
+    private readonly IAppInfo appInfo;
 
     private readonly IDbProvider provider;
 
     private readonly DataAccessor accessor;
 
     private readonly HttpService httpService;
+
+    private readonly ApiContext apiContext;
 
     private readonly Settings settings;
 
@@ -49,19 +57,25 @@ public sealed class SyncService : IDisposable
 
     private DateTime lastMasterSync = DateTime.MinValue;
 
+    private DateTime lastHeartbeat = DateTime.MinValue;
+
     public SyncService(
         ILogger<SyncService> log,
+        IAppInfo appInfo,
         IDbProvider provider,
         DataAccessor accessor,
         HttpService httpService,
+        ApiContext apiContext,
         Settings settings,
         Session session,
         DeviceState deviceState)
     {
         this.log = log;
+        this.appInfo = appInfo;
         this.provider = provider;
         this.accessor = accessor;
         this.httpService = httpService;
+        this.apiContext = apiContext;
         this.settings = settings;
         this.session = session;
         this.deviceState = deviceState;
@@ -111,12 +125,18 @@ public sealed class SyncService : IDisposable
             {
                 // 間隔を待つ間に Trigger されたらすぐ回る (待ち受けを周回ごとに作り直すと解放が古い待ち受けに渡る)
                 await wake.WaitAsync(Interval, token);
-                if (token.IsCancellationRequested || !settings.IsConfigured || !deviceState.NetworkState.IsConnected() || (DateTime.UtcNow < nextAttempt))
+                // 未登録 (登録を解除した後を含む) の間は送らない。再登録すると続きを送る
+                if (token.IsCancellationRequested || !settings.IsConfigured || (apiContext.Token is null) || !deviceState.NetworkState.IsConnected() || (DateTime.UtcNow < nextAttempt))
                 {
                     continue;
                 }
 
                 await SendOutboxAsync(token);
+
+                if (DateTime.UtcNow - lastHeartbeat > HeartbeatInterval)
+                {
+                    await SendHeartbeatAsync(token);
+                }
 
                 if (DateTime.UtcNow - lastMasterSync > MasterSyncInterval)
                 {
@@ -134,6 +154,16 @@ public sealed class SyncService : IDisposable
         }
     }
 #pragma warning restore CA1031
+
+    // 最終通信時刻とアプリのバージョンをサーバに記録する
+    private async ValueTask SendHeartbeatAsync(CancellationToken cancellationToken)
+    {
+        var result = await httpService.HeartbeatAsync(new TerminalHeartbeatRequest { AppVersion = appInfo.VersionString }, cancellationToken);
+        if (result.IsSuccess)
+        {
+            lastHeartbeat = DateTime.UtcNow;
+        }
+    }
 
     //--------------------------------------------------------------------------------
     // Master

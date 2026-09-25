@@ -18,17 +18,26 @@ public static partial class StaffEndpoints
         var group = app.MapApiGroup(ApiRoutes.Staff);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPut("/{id:guid}", HandleUpdateAsync);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync);
+        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
     }
 
     //--------------------------------------------------------------------------------
     // Mapper
     //--------------------------------------------------------------------------------
 
+    // PIN のハッシュは端末向けの同期応答 (ToSyncResponse) にだけ含める
     [Mapper]
+    [MapIgnore(nameof(StaffResponseItem.PinHash))]
     internal static partial StaffResponseItem ToResponse(StaffEntity entity);
+
+    internal static StaffResponseItem ToSyncResponse(StaffEntity entity)
+    {
+        var response = ToResponse(entity);
+        response.PinHash = entity.PinHash;
+        return response;
+    }
 
     [Mapper]
     private static partial StaffEntity ToEntity(StaffCreateRequest request);

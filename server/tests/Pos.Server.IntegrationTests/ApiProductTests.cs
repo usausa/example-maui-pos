@@ -36,7 +36,7 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
     public async Task ImageIsServedWithVersionedUrlAndSynced()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var imageUrl = ApiRoutes.ProductImage(TestData.CameraProductId);
         var original = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/{TestData.CameraProductId}", options);
         var sync = await client.GetJsonAsync<SyncMastersResponse>($"{ApiRoutes.Sync}/masters", options);
@@ -97,7 +97,7 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
     public async Task ImportPreviewsThenAppliesAllOrNothing()
     {
         // Arrange: SD カードの価格を変え、新しい商品を足す
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         using var exportResponse = await client.GetAsync(new Uri($"{ApiRoutes.Products}/csv", UriKind.Relative), Token);
         var rows = FromCsv(await exportResponse.Content.ReadAsStringAsync(Token));
         var sdCard = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options);

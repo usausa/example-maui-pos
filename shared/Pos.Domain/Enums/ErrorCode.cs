@@ -30,5 +30,9 @@ public enum ErrorCode
     OrderNotReady,
     OrderStatusInvalid,
     InventoryReceiptStatusInvalid,
-    InventoryTransferStatusInvalid
+    InventoryTransferStatusInvalid,
+    TerminalMismatch,
+    PairingCodeInvalid,
+    ApprovalRequired,
+    StaffInvalid
 }

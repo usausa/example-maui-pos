@@ -21,7 +21,7 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 | 実装基盤 | Minimal API + Blazor Server (MudBlazor) + SQLite、Aspire、OpenAPI ([D-19](decisions.md#d-19-技術スタックプロジェクト構成-テンプレート準拠)) |
 | 取引モデル | 一体型。会計完了後に取引を 1 回で送信 ([D-01](decisions.md#d-01-取引モデル-一体型-vs-分離型)) |
 | 金額計算 | 端末が計算し、サーバは同じ `Pos.Domain` で再計算して検証 ([D-02](decisions.md#d-02-金額計算の主体-端末計算--サーバ検証-vs-サーバ計算のみ)) |
-| 認証 | なし ([D-09](decisions.md#d-09-認証端末登録-後回し))。端末発の要求は `storeId` / `terminalId` / `staffId` を本文またはクエリで明示する |
+| 認証 | 管理画面はログイン (Cookie)、端末はペアリングで受け取るトークン (Bearer) ([§2.6](#26-認証認可)、[D-73](decisions.md#d-73-認証と端末登録-管理画面はログイン端末はペアリングのトークンスタッフは-pin))。端末発の要求は `storeId` / `terminalId` / `staffId` を本文またはクエリで明示し、サーバはトークンと一致することを確かめる |
 | テナント | 単一 ([D-06](decisions.md#d-06-テナント構成)) |
 
 ---
@@ -103,11 +103,36 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | `createdAt` / `updatedAt` | datetime | サーバ付与 |
 | `version` | int | 楽観ロック用 (マスタ系)。更新のたびに +1 |
 
+### 2.6 認証・認可
+
+| 利用者 | 方式 | 取得 |
+| --- | --- | --- |
+| 管理画面 (ブラウザ) | Cookie (`/login` の画面から `POST /auth/login` のフォーム。API ではない) | アカウント (`Accounts`) の ID とパスワード。役割は `Administrator` / `Operator` |
+| 端末 | `Authorization: Bearer {token}` | 管理画面で発行したペアリングコードで `POST /terminals/pair` ([§3.3](#33-レジ端末-terminals)) |
+
+| ポリシー | 対象 | 通る要求 |
+| --- | --- | --- |
+| `Api` | `/api/v1` 全体の既定 | 管理画面のログインか端末のトークン |
+| `Admin` | 用途が「管理」だけの API | 管理画面のログイン (役割は問わない) |
+| `Administrator` | 用途が「管理 (管理者)」の API (マスタ・会社設定の書き込み、商品の取込と画像、締めの解除) | 管理画面の管理者 |
+| `Terminal` | `/terminals/me/*` | 端末のトークン |
+| なし | `POST /terminals/pair` | 匿名 (接続元ごとに 1 分 10 回まで。超えると `429`) |
+
+- ログインもトークンもない (トークンが解除済み・不明を含む) 要求は `401`、役割が足りない要求は `403` (本文なし)。  
+  端末は `401` を受けたら登録が解除されたとして初期設定に戻る
+- 端末のトークンで認証された要求は、本文・クエリの店舗・端末がトークンと一致すること (違えば `403` `TERMINAL_MISMATCH`)。  
+  確かめるのはシフトの開設・入出金・精算・`current`、取引の登録と取消 (取引の店舗・端末)、受注の登録と入荷・キャンセル (受注の店舗)、在庫の変更、入荷と移動の受領 (伝票の入荷店)。  
+  管理画面のログインの要求と読み取りは確かめない ([D-74](decisions.md#d-74-認可-ポリシーは要件で分け端末は自店自端末の操作だけ))
+- 担当 (`staffId`) は、その店舗 (または本部) の有効なスタッフであること (`422` `STAFF_INVALID`)。  
+  承認が必要な値引は `approvedByStaffId` に店長以上、レジ係の取消も `approvedByStaffId` に店長以上が要る (`422` `APPROVAL_REQUIRED`)。  
+  取引の登録と取消で確かめる
+- 開発・デモ用に `Auth:Enabled = false` で認可を素通しにできる (端末の一致も確かめない。担当と承認者の検証は残す)
+
 ---
 
 ## 3. リソース別 API
 
-各表の「用途」: **端末** = MAUI レジアプリが使う / **管理** = Blazor 管理画面が使う。  
+各表の「用途」: **端末** = MAUI レジアプリが使う / **管理** = Blazor 管理画面が使う / **管理 (管理者)** = 管理画面の管理者だけ ([§2.6](#26-認証認可))。  
 フィールド表は `XxxResponseItem` の項目。  
 `XxxCreateRequest` / `XxxUpdateRequest` はそこからサーバ付与項目 (`id`, `createdAt`, `updatedAt`) を除いたもの (`version` は Update のみ)。
 
@@ -128,7 +153,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | GET | `/settings` | 端末 / 管理 | 会社設定取得 (`SettingsResponse`) |
-| PUT | `/settings` | 管理 | 会社設定更新 (`SettingsUpdateRequest`) |
+| PUT | `/settings` | 管理 (管理者) | 会社設定更新 (`SettingsUpdateRequest`) |
 
 ### 3.2 店舗 (Stores)
 
@@ -147,9 +172,9 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | --- | --- | --- | --- |
 | GET | `/stores?updatedSince&includeDeleted&page&size` | 端末 / 管理 | 店舗一覧 (`StoreResponse`) |
 | GET | `/stores/{id}` | 端末 / 管理 | 店舗詳細 (`StoreResponse`) |
-| POST | `/stores` | 管理 | 登録 (`StoreCreateRequest`) |
-| PUT | `/stores/{id}` | 管理 | 更新 (`StoreUpdateRequest`) |
-| DELETE | `/stores/{id}` | 管理 | 論理削除 (端末・在庫が残っていれば 422) |
+| POST | `/stores` | 管理 (管理者) | 登録 (`StoreCreateRequest`) |
+| PUT | `/stores/{id}` | 管理 (管理者) | 更新 (`StoreUpdateRequest`) |
+| DELETE | `/stores/{id}` | 管理 (管理者) | 論理削除 (端末・在庫が残っていれば 422) |
 
 ### 3.3 レジ端末 (Terminals)
 
@@ -168,14 +193,19 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | --- | --- | --- | --- |
 | GET | `/terminals?storeId&updatedSince&includeDeleted&page&size` | 端末 / 管理 | 端末一覧 |
 | GET | `/terminals/{id}` | 端末 / 管理 | 端末詳細 |
-| POST | `/terminals` | 管理 | 登録 |
-| PUT | `/terminals/{id}` | 管理 | 更新 |
-| DELETE | `/terminals/{id}` | 管理 | 論理削除 (開設中シフトがあれば 422) |
+| POST | `/terminals` | 管理 (管理者) | 登録 |
+| PUT | `/terminals/{id}` | 管理 (管理者) | 更新 |
+| DELETE | `/terminals/{id}` | 管理 (管理者) | 論理削除 (開設中シフトがあれば 422) |
+| POST | `/terminals/pair` | 端末 (匿名) | 端末の登録 `TerminalPairRequest { pairingCode, deviceName, appVersion? }` → `200` `TerminalPairResponse { token, terminal, store }`。コードの不一致・期限切れ・使用済み、無効・削除済みの端末は `422` (`PAIRING_CODE_INVALID`) |
+| POST | `/terminals/me/heartbeat` | 端末 | `TerminalHeartbeatRequest { appVersion? }` → `204`。トークンの端末の `lastSeenAt` / `appVersion` を更新する |
 
 `TerminalCreateRequest` / `TerminalUpdateRequest` は `storeId` / `terminalNo` / `name` / `isActive` (+ `version`)。  
-`lastReceiptSeq` は取引登録で、`lastSeenAt` / `appVersion` は端末の通信でサーバが更新する。
+`lastReceiptSeq` は取引登録で、`lastSeenAt` / `appVersion` は端末のペアリング・heartbeat・取引登録でサーバが更新する。
 
-端末のセットアップは管理画面が表示する **設定 QR** (`ApiEndPoint` / `StoreId` / `TerminalId`、[D-24](decisions.md#d-24-端末セットアップ-qr-テンプレート互換フォーマット)) を端末で読み取る。
+端末の登録は、管理画面で端末ごとにペアリングコード (6 桁、10 分、一度だけ) を発行し、端末で **設定 QR** (`ApiEndPoint` / `PairingCode`、[D-24](decisions.md#d-24-端末セットアップ-qr-テンプレート互換フォーマット)) を読み取るか、URL とコードを入力して `POST /terminals/pair` を呼ぶ ([D-73](decisions.md#d-73-認証と端末登録-管理画面はログイン端末はペアリングのトークンスタッフは-pin))。  
+トークンは応答でだけ返し、サーバは SHA-256 だけを持つ。  
+同じ端末を登録し直すと古いトークンは失効する。  
+管理画面で登録を解除すると、その端末の次の要求は `401` になる。
 
 ### 3.4 スタッフ (Staff)
 
@@ -184,17 +214,18 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | `id` | guid | |
 | `code` | string(20) | スタッフコード (一意)。ログイン・レシート印字用 |
 | `name` | string(50) | |
-| `role` | enum | `Cashier` / `Manager` / `Admin`。表示と承認者の選択に使う (サーバは認可に使わない) |
+| `role` | enum | `Cashier` / `Manager` / `Admin`。承認 (承認が必要な値引、レジ係の取消) は `Manager` 以上 |
 | `storeId` | guid? | 所属店舗。`null` = 本部 (全店) |
+| `pinHash` | base64? | PIN (4〜6 桁) のハッシュ (`PinHasher`: PBKDF2 のソルト + ハッシュ)。端末向けの同期 (`/sync/masters`) にだけ載せ、端末がオフラインでも照合する。設定は管理画面だけ |
 | `isActive`, `isDeleted`, `createdAt`, `updatedAt`, `version` | | |
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | GET | `/staff?storeId&updatedSince&includeDeleted&page&size` | 端末 / 管理 | スタッフ一覧 (端末のログイン画面用。PIN は含めない) |
 | GET | `/staff/{id}` | 端末 / 管理 | スタッフ詳細 |
-| POST | `/staff` | 管理 | 登録 |
-| PUT | `/staff/{id}` | 管理 | 更新 |
-| DELETE | `/staff/{id}` | 管理 | 論理削除 |
+| POST | `/staff` | 管理 (管理者) | 登録 |
+| PUT | `/staff/{id}` | 管理 (管理者) | 更新 |
+| DELETE | `/staff/{id}` | 管理 (管理者) | 論理削除 |
 
 ### 3.5 部門 (Categories)
 
@@ -213,9 +244,9 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | --- | --- | --- | --- |
 | GET | `/categories?updatedSince&includeDeleted&page&size` | 端末 / 管理 | 部門一覧 (階層は `parentId` で組み立てる) |
 | GET | `/categories/{id}` | 管理 | 部門詳細 |
-| POST | `/categories` | 管理 | 登録 |
-| PUT | `/categories/{id}` | 管理 | 更新 |
-| DELETE | `/categories/{id}` | 管理 | 論理削除 (所属商品があれば 422) |
+| POST | `/categories` | 管理 (管理者) | 登録 |
+| PUT | `/categories/{id}` | 管理 (管理者) | 更新 |
+| DELETE | `/categories/{id}` | 管理 (管理者) | 論理削除 (所属商品があれば 422) |
 
 ### 3.6 税率 (TaxRates)
 
@@ -232,9 +263,9 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | GET | `/tax-rates?updatedSince&includeDeleted` | 端末 / 管理 | 税率一覧 (少数なのでページングなし) |
-| POST | `/tax-rates` | 管理 | 登録 |
-| PUT | `/tax-rates/{id}` | 管理 | 更新 (取引には税率のスナップショットが残るので過去取引は影響しない) |
-| DELETE | `/tax-rates/{id}` | 管理 | 論理削除 (使用中商品があれば 422) |
+| POST | `/tax-rates` | 管理 (管理者) | 登録 |
+| PUT | `/tax-rates/{id}` | 管理 (管理者) | 更新 (取引には税率のスナップショットが残るので過去取引は影響しない) |
+| DELETE | `/tax-rates/{id}` | 管理 (管理者) | 論理削除 (使用中商品があれば 422) |
 
 ### 3.7 商品 (Products)
 
@@ -270,14 +301,14 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | GET | `/products?categoryId&keyword&isActive&updatedSince&includeDeleted&sort&desc&page&size` | 端末 / 管理 | 商品一覧。`keyword` は code / barcode / name / kana / modelNo の部分一致。`sort` は code / name / price / updatedAt |
 | GET | `/products/{id}` | 端末 / 管理 | 商品詳細 |
 | GET | `/products/lookup?barcode=` または `?code=` | 端末 | スキャン用 1 件取得。見つからなければ 404 |
-| POST | `/products` | 管理 | 登録 |
-| PUT | `/products/{id}` | 管理 | 更新 |
-| DELETE | `/products/{id}` | 管理 | 論理削除 |
+| POST | `/products` | 管理 (管理者) | 登録 |
+| PUT | `/products/{id}` | 管理 (管理者) | 更新 |
+| DELETE | `/products/{id}` | 管理 (管理者) | 論理削除 |
 | GET | `/products/csv` | 管理 | CSV 出力 (BOM 付き UTF-8、削除済みを除く全件) |
-| POST | `/products/import?dryRun` | 管理 | CSV 取込 (本文に CSV、`Content-Type: text/csv`)。後述 |
+| POST | `/products/import?dryRun` | 管理 (管理者) | CSV 取込 (本文に CSV、`Content-Type: text/csv`)。後述 |
 | GET | `/products/{id}/image?v=` | 端末 / 管理 | 画像 (JPEG / PNG)。`v` が今の画像と一致すれば `Cache-Control: private, max-age=31536000, immutable`、それ以外は `no-cache`。`ETag` で再検証できる (`304`)。画像がなければ `404` |
-| PUT | `/products/{id}/image` | 管理 | 画像の登録・置き換え。本文に画像そのもの (`Content-Type: image/jpeg` / `image/png`、2 MB まで。形式は先頭のバイトでも確かめる)。応答は商品 (`imageUrl` が変わり、`updatedAt` / `version` が進むので端末の差分同期に載る)。Content-Type が違えば `415`、2 MB を超えれば `413`、画像でなければ `422` |
-| DELETE | `/products/{id}/image` | 管理 | 画像の削除 (`204`。画像がなければ何もしない) |
+| PUT | `/products/{id}/image` | 管理 (管理者) | 画像の登録・置き換え。本文に画像そのもの (`Content-Type: image/jpeg` / `image/png`、2 MB まで。形式は先頭のバイトでも確かめる)。応答は商品 (`imageUrl` が変わり、`updatedAt` / `version` が進むので端末の差分同期に載る)。Content-Type が違えば `415`、2 MB を超えれば `413`、画像でなければ `422` |
+| DELETE | `/products/{id}/image` | 管理 (管理者) | 画像の削除 (`204`。画像がなければ何もしない) |
 
 #### CSV 取込 (`POST /products/import`)
 
@@ -316,7 +347,7 @@ CSV にない商品は削除しない ([D-66](decisions.md#d-66-商品の-csv-�
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | GET | `/discounts?updatedSince&includeDeleted` | 端末 / 管理 | 値引一覧 |
-| POST / PUT / DELETE | `/discounts`, `/discounts/{id}` | 管理 | 登録 / 更新 / 論理削除 |
+| POST / PUT / DELETE | `/discounts`, `/discounts/{id}` | 管理 (管理者) | 登録 / 更新 / 論理削除 |
 
 ### 3.9 支払方法 (PaymentMethods)
 
@@ -336,7 +367,7 @@ CSV にない商品は削除しない ([D-66](decisions.md#d-66-商品の-csv-�
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | GET | `/payment-methods?updatedSince&includeDeleted` | 端末 / 管理 | 支払方法一覧 |
-| POST / PUT / DELETE | `/payment-methods`, `/payment-methods/{id}` | 管理 | 登録 / 更新 / 論理削除 |
+| POST / PUT / DELETE | `/payment-methods`, `/payment-methods/{id}` | 管理 (管理者) | 登録 / 更新 / 論理削除 |
 
 ### 3.10 マスタ同期 (Sync)
 
@@ -577,7 +608,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionResponse`) |
 | GET | `/transactions/{id}/receipt/pdf` | 管理 | レシートの控え (再発行) の PDF。項目は端末のレシートと同じ ([D-67](decisions.md#d-67-レシートの控え-pdf-サーバの帳票で端末と同じ項目を出す)) |
 | GET | `/transactions/lookup?receiptNo=` | 端末 | 返品時のレシート番号検索 |
-| POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, reason, voidedAt }` → `200` 取引 |
+| POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, approvedByStaffId?, reason, voidedAt }` → `200` 取引。レジ係の取消は店長以上の `approvedByStaffId` が要る |
 | POST | `/transactions/calculate` | 端末 / 管理 | 入力項目 (`type`, `originalTransactionId`, `lines[]`, `discounts[]`, `payments[]`) を送り (`TransactionCalculateRequest`)、計算項目 (`TransactionCalculateResponse`) を返す (登録しない)。共有ライブラリの検証用 |
 
 #### 業務ルール
@@ -614,7 +645,9 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 1. 対象が `Completed` で、そのシフトが `Open` であること (精算後は取消不可、返品で対応) (`SHIFT_CLOSED`)
 2. `Sale` に返品が紐付いていれば取消不可 (`HAS_RETURNS`)
 3. 取引の店舗 × 営業日が締め済みなら取消不可 (`DAY_CLOSED`。返品で対応)
-4. 副作用: 在庫変動 (`Void`, 逆方向)、ポイント履歴 (`Void`)、`Return` の取消なら元明細の `returnedQuantity` を戻し、受注から会計した `Sale` の取消なら受注を引き渡し待ちに戻す。  
+4. 担当は取引の店舗 (または本部) の有効なスタッフ (`STAFF_INVALID`)。  
+   レジ係なら、その店舗 (または本部) の店長以上の承認者が要る (`APPROVAL_REQUIRED`)
+5. 副作用: 在庫変動 (`Void`, 逆方向)、ポイント履歴 (`Void`)、`Return` の取消なら元明細の `returnedQuantity` を戻し、受注から会計した `Sale` の取消なら受注を引き渡し待ちに戻す。  
    取消済み取引は集計から除外
 
 ### 3.13 レジ開閉・現金管理 (Shifts)
@@ -738,7 +771,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | GET | `/daily-closings?storeId&status&from&to&sort&desc&page&size` | 管理 | 店舗 × 営業日の一覧 (`DailyClosingResponse`)。営業日の降順、同じ日は店舗コード順。`sort` = `businessDate` / `netSales` |
 | GET | `/daily-closings/preview?storeId&businessDate` | 管理 | その日の内容 (`DailyClosingSummaryResponse`)。未締めの日は締める前の確認に使う |
 | GET | `/daily-closings/{id}` | 管理 | 締めた内容 (`DailyClosingSummaryResponse`) |
-| DELETE | `/daily-closings/{id}` | 管理 | 締め解除 (日計と内訳を消して未締めに戻す) → `204` |
+| DELETE | `/daily-closings/{id}` | 管理 (管理者) | 締め解除 (日計と内訳を消して未締めに戻す) → `204` |
 
 売上日報の PDF は [§3.17](#317-レポート-reports) の `/reports/sales/daily/pdf` (取引から都度集計) を使う。
 
@@ -832,9 +865,9 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | POST | `/inventory/changes` | 端末 / 管理 | 棚卸・調整の一括登録 (`InventoryChangeRequest`、下記) |
 | GET | `/inventory/changes?storeId&productId&type&from&to&page&size` | 端末 / 管理 | 変動履歴 |
 | GET | `/inventory/adjustment-reasons?updatedSince&includeDeleted` | 端末 / 管理 | 調整理由一覧 (破損 / 廃棄 / 万引き / 自家消費 / 棚卸差異 ...) |
-| POST / PUT / DELETE | `/inventory/adjustment-reasons`, `.../{id}` | 管理 | 登録 / 更新 / 論理削除 |
+| POST / PUT / DELETE | `/inventory/adjustment-reasons`, `.../{id}` | 管理 (管理者) | 登録 / 更新 / 論理削除 |
 | GET | `/inventory/suppliers?includeDeleted`, `.../{id}` | 管理 | 仕入先一覧 / 詳細 (`SupplierResponseItem`: コード・名称・電話・メール・備考・有効) |
-| POST / PUT / DELETE | `/inventory/suppliers`, `.../{id}` | 管理 | 登録 / 更新 (`version`) / 論理削除。コードの重複は `409` |
+| POST / PUT / DELETE | `/inventory/suppliers`, `.../{id}` | 管理 (管理者) | 登録 / 更新 (`version`) / 論理削除。コードの重複は `409` |
 
 `POST /inventory/changes`:
 
@@ -1057,6 +1090,10 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | HTTP | `errorCode` | 発生箇所 |
 | --- | --- | --- |
 | 400 | `VALIDATION_ERROR` | 入力形式・必須項目 (詳細は `errors`) |
+| 401 | (本文なし) | ログインもトークンもない、トークンが解除済み・不明 ([§2.6](#26-認証認可)) |
+| 403 | (本文なし) | 役割が足りない (管理者だけの API、端末からの管理だけの API) |
+| 403 | `TERMINAL_MISMATCH` | 端末のトークンと、本文・クエリの店舗・端末が一致しない |
+| 429 | (本文なし) | ログイン・ペアリングの試行回数の上限 |
 | 413 / 415 | `VALIDATION_ERROR` | 本文をそのまま送る API (商品画像・CSV 取込) の大きさ・`Content-Type` |
 | 422 | `VALIDATION_ERROR` | 商品画像の形式、CSV 取込の誤りのある行 (`errors` は行番号ごと) |
 | 404 | `NOT_FOUND` | 対象なし |
@@ -1081,6 +1118,9 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 422 | `RETURN_QUANTITY_EXCEEDED` | 返品数量超過 |
 | 422 | `HAS_RETURNS` | 返品済み取引の取消 |
 | 422 | `IN_USE` | 使用中マスタの削除 |
+| 422 | `PAIRING_CODE_INVALID` | ペアリングコードの不一致・期限切れ・使用済み、無効な端末 |
+| 422 | `STAFF_INVALID` | 担当がその店舗 (または本部) の有効なスタッフでない (取引の登録・取消) |
+| 422 | `APPROVAL_REQUIRED` | 承認が必要な値引・レジ係の取消に、店長以上の承認者がない (承認者が無効・役割不足を含む) |
 
 警告 (受理するが応答の `warnings[]` に含める): `POINT_BALANCE_NEGATIVE`、`PRODUCT_INACTIVE`、`INVENTORY_NEGATIVE`、`DAY_ALREADY_CLOSED` (締め済みの営業日の取引)。
 

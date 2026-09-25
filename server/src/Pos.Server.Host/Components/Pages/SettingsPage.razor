@@ -6,7 +6,9 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
     <MudText Typo="Typo.h5">⚙️ 会社設定</MudText>
     <MudSpacer />
-    <MudButton StartIcon="@Icons.Material.Filled.Save" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="SaveAsync">保存</MudButton>
+    <AuthorizeView Policy="@Policies.Administrator">
+        <MudButton StartIcon="@Icons.Material.Filled.Save" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="SaveAsync">保存</MudButton>
+    </AuthorizeView>
     <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">再読み込み</MudButton>
 </MudStack>
 

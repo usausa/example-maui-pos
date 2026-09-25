@@ -30,7 +30,7 @@ public sealed class ApiDailyClosingTests : IClassFixture<TestApplicationFactory>
     public async Task CloseBlocksVoidAndRecloseIncludesLateTransactions()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var date = new DateOnly(2026, 9, 12);
         var request = new DailyClosingCreateRequest { StoreId = TestData.MainStoreId, BusinessDate = date };
         var shiftId = await OpenShiftAsync(client, TestData.MainStoreId, TestData.MainTerminal1Id, date);
@@ -111,7 +111,7 @@ public sealed class ApiDailyClosingTests : IClassFixture<TestApplicationFactory>
     public async Task CloseWaitsForShiftCarryingTransactionsOfTheDay()
     {
         // Arrange
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var openedDate = new DateOnly(2026, 9, 20);
         var saleDate = openedDate.AddDays(1);
         var shiftId = await OpenShiftAsync(client, TestData.BranchStoreId, TestData.BranchTerminalId, openedDate);
@@ -165,7 +165,7 @@ public sealed class ApiDailyClosingTests : IClassFixture<TestApplicationFactory>
             Status = TransactionStatus.Completed,
             StoreId = storeId,
             TerminalId = terminalId,
-            StaffId = TestData.ManagerStaffId,
+            StaffId = TestData.AdminStaffId,
             ShiftId = shiftId,
             ReceiptNo = receiptNo,
             BusinessDate = businessDate,

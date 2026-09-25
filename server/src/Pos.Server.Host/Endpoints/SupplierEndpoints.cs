@@ -15,13 +15,13 @@ public static partial class SupplierEndpoints
 
     public static void MapSupplierEndpoints(this WebApplication app)
     {
-        var group = app.MapApiGroup(ApiRoutes.Suppliers);
+        // 仕入先は管理画面だけで使う
+        var group = app.MapApiGroup(ApiRoutes.Suppliers).RequireAuthorization(Policies.Admin);
         group.MapGet("/", HandleListAsync);
         group.MapGet("/{id:guid}", HandleGetAsync);
-        // 認証の導入時: 仕入先の登録・更新・削除はマスタの書き込みなので Administrator に限る
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPut("/{id:guid}", HandleUpdateAsync);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync);
+        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
     }
 
     //--------------------------------------------------------------------------------

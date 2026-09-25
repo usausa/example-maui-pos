@@ -27,6 +27,7 @@ internal static class Program
         var generator = new SampleGenerator(client, options, Console.Out);
         try
         {
+            await client.LoginAsync(options.User, options.Password).ConfigureAwait(false);
             await generator.RunAsync().ConfigureAwait(false);
             return 0;
         }

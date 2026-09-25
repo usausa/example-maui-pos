@@ -236,7 +236,7 @@ internal sealed class SampleGenerator
         if ((sales.Count > 2) && (random.Next(100) < 30))
         {
             var target = sales[^1];
-            var voided = await PostVoidAsync(target, cashier, openedAt.AddMinutes(700)).ConfigureAwait(false);
+            var voided = await PostVoidAsync(target, cashier, manager, openedAt.AddMinutes(700)).ConfigureAwait(false);
             if (voided)
             {
                 cashTotal -= target.Payments.Where(static x => x.Kind == PaymentKind.Cash).Sum(static x => x.Amount);
@@ -581,11 +581,19 @@ internal sealed class SampleGenerator
         }
     }
 
-    private async Task<bool> PostVoidAsync(TransactionResponseItem target, StaffResponseItem cashier, DateTime at)
+    // レジ係の取消は店長以上の承認者を付ける
+    private async Task<bool> PostVoidAsync(TransactionResponseItem target, StaffResponseItem cashier, StaffResponseItem manager, DateTime at)
     {
         try
         {
-            await client.PostAsync<TransactionResponseItem>($"transactions/{target.Id}/void", new TransactionVoidRequest { StaffId = cashier.Id, Reason = "登録誤り", VoidedAt = at }).ConfigureAwait(false);
+            var request = new TransactionVoidRequest
+            {
+                StaffId = cashier.Id,
+                ApprovedByStaffId = StaffLogic.RequiresVoidApproval(cashier.Role) ? manager.Id : null,
+                Reason = "登録誤り",
+                VoidedAt = at
+            };
+            await client.PostAsync<TransactionResponseItem>($"transactions/{target.Id}/void", request).ConfigureAwait(false);
             return true;
         }
         catch (ApiException ex) when (ex.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.UnprocessableEntity)

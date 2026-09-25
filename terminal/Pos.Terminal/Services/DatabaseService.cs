@@ -31,6 +31,12 @@ public sealed class DatabaseService
 
             // 後から増えた列 (マスタは次の同期で埋まる)
             await SchemaHelper.EnsureColumnAsync(con, "PaymentMethods", "ShortName", "TEXT");
+
+            // PIN は全員分が要るので、差分ではなく全件を同期し直す
+            if (await SchemaHelper.EnsureColumnAsync(con, "Staff", "PinHash", "BLOB"))
+            {
+                await accessor.DeleteSyncStateAsync(con, SyncService.ServerTimeKey);
+            }
         });
     }
 

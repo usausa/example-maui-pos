@@ -272,6 +272,9 @@ public sealed partial class DataAccessor
     [Execute]
     public partial ValueTask<int> UpsertSyncStateAsync(string key, string value);
 
+    [Execute]
+    public partial ValueTask<int> DeleteSyncStateAsync(DbConnection con, string key);
+
     //--------------------------------------------------------------------------------
     // HoldCarts
     //--------------------------------------------------------------------------------

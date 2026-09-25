@@ -1,0 +1,31 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@layout EmptyLayout
+
+<PageTitle>POS 管理 - ログイン</PageTitle>
+
+<MudPaper Class="page-card pa-8 mx-auto mt-16">
+    <MudText Typo="Typo.h5" Class="mb-4">🔐 POS 管理</MudText>
+
+    @if (ErrorText is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@ErrorText</MudAlert>
+    }
+
+    @* ReSharper disable Html.PathError *@
+    <form method="post" action="auth/login">
+        <AntiforgeryToken />
+        <input type="hidden" name="returnUrl" value="@ReturnPath" />
+        <div class="login-field">
+            <label for="name">ID</label>
+            <input id="name" name="name" maxlength="@Length.AccountName" autocomplete="username" required autofocus />
+        </div>
+        <div class="login-field">
+            <label for="password">パスワード</label>
+            <input id="password" name="password" type="password" maxlength="@Length.Password" autocomplete="current-password" required />
+        </div>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-6">ログイン</MudButton>
+    </form>
+    @* ReSharper restore Html.PathError *@
+</MudPaper>

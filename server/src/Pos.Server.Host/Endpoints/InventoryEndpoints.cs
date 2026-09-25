@@ -87,10 +87,17 @@ public static partial class InventoryEndpoints
 
     // 棚卸 (絶対数量) と調整 (増減) の一括登録。同じ id は Duplicate として既存の結果を返す
     private static async ValueTask<IResult> HandleChangesAsync(
+        TerminalAccess access,
         InventoryService service,
+        ClaimsPrincipal user,
         InventoryChangeRequest request,
         CancellationToken cancellationToken)
     {
+        if (!request.Changes.All(x => access.CanAccess(user, x.StoreId)))
+        {
+            return ApiProblems.TerminalMismatch();
+        }
+
         var results = await service.ApplyChangesAsync(request.Changes.Select(ToParameter).ToList(), cancellationToken);
         return TypedResults.Ok(new InventoryChangeResultResponse
         {

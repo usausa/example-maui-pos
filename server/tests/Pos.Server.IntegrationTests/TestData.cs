@@ -1,6 +1,6 @@
 namespace Pos.Server;
 
-// 初期データ (Host の Assets/Data/TestData.sql) の値に合わせた固定 ID
+// 初期データ (Host の Assets/Data/InitialData.sql) の値に合わせた固定 ID
 internal static class TestData
 {
     public static readonly Guid MainStoreId = Id(1, 1);
@@ -10,6 +10,8 @@ internal static class TestData
     public static readonly Guid MainTerminal2Id = Id(2, 2);
     public static readonly Guid BranchTerminalId = Id(2, 3);
 
+    // 本部の管理者 (どの店舗でも担当・承認者になれる)
+    public static readonly Guid AdminStaffId = Id(3, 1);
     public static readonly Guid ManagerStaffId = Id(3, 2);
     public static readonly Guid MainCashierStaffId = Id(3, 3);
     public static readonly Guid BranchCashierStaffId = Id(3, 4);

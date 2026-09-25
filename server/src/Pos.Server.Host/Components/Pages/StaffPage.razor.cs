@@ -7,7 +7,7 @@ using Pos.Server.Host.Models.Forms;
 using Pos.Server.Models.Entity;
 using Pos.Server.Services;
 
-// スタッフ
+// スタッフ。追加・編集・削除と PIN の設定は管理者だけ
 public sealed partial class StaffPage
 {
     private List<StaffEntity> items = [];
@@ -52,6 +52,18 @@ public sealed partial class StaffPage
         }
 
         await RunAsync(async () => NotifyResult(await StaffService.UpdateAsync(StaffForm.ToEntity(form), CancellationToken), "更新しました。"), LoadAsync);
+    }
+
+    // PIN がないスタッフは端末で担当に選べない
+    private async Task SetPinAsync(StaffEntity entity)
+    {
+        var form = await ShowEditDialogAsync<StaffPinDialog, StaffPinForm>("PIN 設定", new StaffPinForm { Id = entity.Id, Name = entity.Name, Version = entity.Version }, Styles.SmallDialog);
+        if (form is null)
+        {
+            return;
+        }
+
+        await RunAsync(async () => NotifyResult(await StaffService.UpdatePinAsync(form.Id, form.Pin, form.Version, CancellationToken), "PIN を設定しました。"), LoadAsync);
     }
 
     private async Task DeleteAsync(StaffEntity entity)

@@ -41,7 +41,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     [Fact]
     public async Task ShiftSaleReturnVoidCloseAndReports()
     {
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var shiftId = Guid.NewGuid();
 
         // 開設 (再送は 200、別 id で再開設は 409)
@@ -256,7 +256,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     [Fact]
     public async Task InventoryChangesAreIdempotent()
     {
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
         var before = (await client.GetJsonAsync<InventoryProductResponse>($"{ApiRoutes.Inventory}/{TestData.SdCardProductId}", options)).Levels.Single(static x => x.StoreId == TestData.BranchStoreId).Quantity;
         var request = new InventoryChangeRequest
         {
