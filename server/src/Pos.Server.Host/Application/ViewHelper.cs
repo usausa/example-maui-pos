@@ -60,6 +60,16 @@ public static class ViewHelper
         _ => (status.ToString(), Color.Default, null)
     };
 
+    // 発注: 下書き → 発注済み (入荷予定を作った。入荷待ち) → 入荷済み (入荷予定を受領)
+    public static (string Text, Color Color, string? Icon) PurchaseOrderStatusChip(PurchaseOrderStatus status) => status switch
+    {
+        PurchaseOrderStatus.Draft => ("下書き", Color.Default, Icons.Material.Filled.EditNote),
+        PurchaseOrderStatus.Ordered => ("発注済み", Color.Info, Icons.Material.Filled.HourglassTop),
+        PurchaseOrderStatus.Received => ("入荷済み", Color.Success, Icons.Material.Filled.CheckCircle),
+        PurchaseOrderStatus.Cancelled => ("キャンセル", Color.Default, Icons.Material.Filled.Cancel),
+        _ => (status.ToString(), Color.Default, null)
+    };
+
     // 店舗間移動: 依頼 (出荷待ち) → 出荷済み (入荷店の受領待ち) → 受領
     public static (string Text, Color Color, string? Icon) InventoryTransferStatusChip(InventoryTransferStatus status) => status switch
     {

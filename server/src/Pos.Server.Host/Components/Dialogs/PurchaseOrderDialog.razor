@@ -1,0 +1,93 @@
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudText Typo="Typo.h6">📝 発注</MudText>
+            @if (detail is not null)
+            {
+                <MudText Typo="Typo.h6">@detail.PurchaseOrder.PurchaseOrderNo</MudText>
+                <StatusChip Value="@ViewHelper.PurchaseOrderStatusChip(detail.PurchaseOrder.Status)" />
+            }
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (detail is null)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            var order = detail.PurchaseOrder;
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">🏭 発注</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary w-110">店舗</td><td>@Names.Store(order.StoreId)</td></tr>
+                            <tr><td class="mud-text-secondary">仕入先</td><td>@detail.SupplierName</td></tr>
+                            <tr><td class="mud-text-secondary">希望納期</td><td>@order.ExpectedDate.ToDateText()</td></tr>
+                            <tr><td class="mud-text-secondary">金額</td><td>@detail.TotalCost.ToYen()</td></tr>
+                            <tr><td class="mud-text-secondary">備考</td><td>@order.Note</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">🕒 経過</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            <tr><td class="mud-text-secondary w-110">登録</td><td>@order.CreatedAt.ToDateTimeText()</td></tr>
+                            <tr><td class="mud-text-secondary">発注</td><td>@order.OrderedAt.ToDateTimeText() @order.OrderedBy</td></tr>
+                            @if (order.ReceiptId is not null)
+                            {
+                                <tr><td class="mud-text-secondary">入荷予定</td><td><MudLink Href="@($"inventory/receipts?id={order.ReceiptId}")" Typo="Typo.body2" OnClick="() => MudDialog.Close()">入荷予定を開く</MudLink></td></tr>
+                            }
+                            @if (order.CancelledAt is not null)
+                            {
+                                <tr><td class="mud-text-secondary">キャンセル</td><td>@order.CancelledAt.ToDateTimeText()</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2">明細</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <thead>
+                            <tr><th>#</th><th>商品</th><th class="text-right">発注</th><th class="text-right">入荷</th><th class="text-right">仕入単価</th><th class="text-right">金額</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in detail.Lines)
+                            {
+                                var received = detail.ReceivedQuantityOf(line);
+                                <tr>
+                                    <td>@line.LineNo</td>
+                                    <td>@line.ProductCode @line.ProductName</td>
+                                    <td class="text-right">@line.Quantity.ToQuantityText()</td>
+                                    <td class="text-right">@received.ToQuantityText() <span class="mud-warning-text">@ViewHelper.QuantityDifferenceText(line.Quantity, received)</span></td>
+                                    <td class="text-right">@line.Cost.ToYen()</td>
+                                    <td class="text-right">@line.ToAmountText()</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (detail is not null)
+        {
+            var order = detail.PurchaseOrder;
+            <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@ExportUrls.PurchaseOrderPdf(order.Id)" Target="_blank">発注書 PDF</MudButton>
+            <MudSpacer />
+            @if (order.Status.IsOpen())
+            {
+                <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" OnClick="() => Close(PurchaseOrderDialogAction.Cancel)">発注をキャンセル</MudButton>
+            }
+            @if (order.Status == PurchaseOrderStatus.Draft)
+            {
+                <MudButton StartIcon="@Icons.Material.Filled.Edit" OnClick="() => Close(PurchaseOrderDialogAction.Edit)">変更</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send" OnClick="() => Close(PurchaseOrderDialogAction.Order)">発注</MudButton>
+            }
+        }
+        <MudButton OnClick="() => MudDialog.Cancel()">閉じる</MudButton>
+    </DialogActions>
+</MudDialog>

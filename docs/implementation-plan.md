@@ -375,6 +375,8 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 | Phase 12 | レシート・帳票・検索の拡張 (レシート PDF、端末の印刷、シリアル検索、一括送信) | サーバ + 管理画面 + 端末 | 小 |
 | Phase 13 | 通知 (管理画面の自動更新。端末向けの SignalR は作らない) | サーバ + 管理画面 | 小 |
 | Phase 14 | 在庫移動・入荷 (仕入先、入荷、店舗間移動) | サーバ + 管理画面 + 端末 | 中 |
+| Phase 15 | 発注 (仕入先への注文。発注で入荷予定を作る) | サーバ + 管理画面 (+ 端末の検品の表示) | 中 |
+| Phase 16 | 受注の前受金 (受注で受け取り、会計で差し引き、キャンセルで返す) | サーバ + 管理画面 + 端末 | 中 |
 
 各フェーズ共通の進め方 (Phase 0〜7 と同じ):
 
@@ -384,8 +386,8 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
   避けられない場合は `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確かめて `ALTER TABLE ADD COLUMN`) で起動時に足す。  
   端末のローカル DB は `SyncState` にスキーマ版を持ち、違えばマスタ表を作り直して全件同期する
 - 完了条件は共通: 該当画面 / 端末の流れを実機 (エミュレータ) とブラウザで確認、統合テストの追加、`dotnet build` 警告ゼロ、テスト緑、`jb inspectcode` の指摘ゼロ、docs (api / db / screen / architecture / README) を実装に合わせる
-- 引き続き後回し (本計画の対象外): Bluetooth ラインプリンタ (端末の印刷、[D-68](decisions.md#d-68-端末の印刷は-bluetooth-ラインプリンタを前提にし今は作らない))、受注の前受金 (内金)、発注 (仕入先への注文)。  
-  前受金と発注はサーバと端末の中で完結させる。  
+- 引き続き後回し (本計画の対象外): Bluetooth ラインプリンタ (端末の印刷、[D-68](decisions.md#d-68-端末の印刷は-bluetooth-ラインプリンタを前提にし今は作らない))。  
+  発注 (Phase 15) と受注の前受金 (Phase 16) はサーバと端末の中で完結させる。  
   作らない: 外部向け Webhook、管理画面の MFA / パスキー、端末向けの通知 (SignalR)、他システムとの連携 (発注の送信など。[D-72](decisions.md#d-72-後回しにしていた機能の扱い-外部連携と端末向けの通知は作らない))
 
 ---
@@ -697,6 +699,44 @@ MVP (Phase 0〜7) で後回しにした項目を機能単位のフェーズに�
 
 - [x] 入荷と店舗間移動が在庫と変動履歴に反映される (管理画面と端末で受領し、他店在庫・変動履歴で確認)。  
       統合テスト (`ApiInventoryMovementTests`、`InventoryMovementLogicTests`)、警告ゼロ、InspectCode ゼロ
+
+---
+
+## Phase 15: 発注 (完了)
+
+仕入先への注文を記録し、[発注] で入荷予定を作る ([D-76](decisions.md#d-76-発注-下書きを発注すると入荷予定を作り受領とキャンセルで状態を合わせる))。  
+受領は今までどおり入荷予定で行い、発注の状態は入荷予定の受領とキャンセルに合わせる。
+
+### 15a DB / API
+
+- [x] `PurchaseOrders` (店舗ごとの連番 `{店舗コード}-P-{連番}`、状態 `Draft` / `Ordered` / `Received` / `Cancelled`、希望納期、発注の日時と発注した人、作った入荷予定 `ReceiptId`) と `PurchaseOrderLines`
+- [x] `GET/POST /inventory/purchase-orders`、`GET/PUT .../{id}`、`.../order`、`.../cancel`、`.../pdf` (すべて `Policies.Admin`)。  
+      状態に合わない操作は 422 `PURCHASE_ORDER_STATUS_INVALID`
+- [x] [発注] は明細を写した入荷予定を作る (1 トランザクション)。  
+      入荷予定の受領で発注は入荷済みに、入荷予定のキャンセルで発注もキャンセルに、発注のキャンセルで入荷予定もキャンセルになる
+- [x] 入荷の応答に `purchaseOrderId` / `purchaseOrderNo`
+- [x] `Pos.Domain`: `PurchaseOrderStatus`、`PurchaseOrderLogic` (変更・発注は下書き、キャンセルは未完了)
+
+### 15b 管理画面
+
+- [x] 発注 S-48 (`/inventory/purchase-orders`、ナビ「在庫 › 発注」): 一覧 (既定は未完了)、[発注を作成]、詳細から [変更] [発注] [発注をキャンセル] [発注書 PDF] と入荷予定へのリンク
+- [x] 入荷 S-45 に発注番号 (一覧の列、詳細から発注へのリンク)
+- [x] 発注書 PDF (`PurchaseOrderReportBuilder`、`Assets/Reports/PurchaseOrder.xlsx`)
+
+### 15c 端末
+
+- [x] 検品の一覧で、納品書番号がない入荷予定は発注番号を出す (発注から作った入荷予定)
+
+### 15d ツール・テスト・docs
+
+- [x] `Pos.Server.SampleData`: 初日の入荷を発注から行い、店舗ごとに入荷待ちの発注を 1 件残す
+- [x] 統合テスト `ApiPurchaseOrderTests` (下書きの変更と版、発注で入荷予定、受領で入荷済み、キャンセルの連動、検証、PDF、端末は 403)、単体テスト `PurchaseOrderLogicTests`
+- [x] docs: api-design §3.16、db-design (ER、§3.7、§5.7)、screen-design (S-45、S-48、T-71、ナビ)、architecture、decisions (D-76)、README (発注の画像)
+
+### 完了条件
+
+- [x] 管理画面で発注を作って発注すると入荷予定ができ、入荷の画面か端末の検品で受領すると発注が入荷済みになる
+- [x] 統合テスト緑、警告ゼロ、InspectCode の指摘ゼロ
 
 ---
 

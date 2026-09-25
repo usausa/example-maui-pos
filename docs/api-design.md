@@ -837,7 +837,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 現在庫 (`InventoryLevelResponse`) と変動履歴 (`InventoryChangeResponse`)。  
 取引による変動はサーバが自動生成し、端末からは棚卸・調整だけを送る ([D-12](decisions.md#d-12-在庫-変動履歴ベース))。  
-仕入先からの入荷と店舗間移動は伝票で持ち、受領・出荷の操作で変動を記録する ([D-71](decisions.md#d-71-入荷と店舗間移動-伝票で持ち受領出荷で在庫を動かす))。
+仕入先からの入荷と店舗間移動は伝票で持ち、受領・出荷の操作で変動を記録する ([D-71](decisions.md#d-71-入荷と店舗間移動-伝票で持ち受領出荷で在庫を動かす))。  
+仕入先への発注も伝票で持ち、[発注] で入荷予定を作る ([D-76](decisions.md#d-76-発注-下書きを発注すると入荷予定を作り受領とキャンセルで状態を合わせる))。
 
 | `InventoryLevelResponse` | 型 | 説明 |
 | --- | --- | --- |
@@ -897,6 +898,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | `storeId` | guid | 入力 | 入荷する店舗 |
 | `supplierId` | guid | 入力 | 仕入先 |
 | `supplierName` | string | サーバ | 仕入先の名前 (削除済みでも引く) |
+| `purchaseOrderId`, `purchaseOrderNo` | | サーバ | 発注から作った入荷予定はその発注 (ほかは `null`) |
 | `slipNo` | string(50)? | 入力 | 仕入先の納品書番号 |
 | `expectedDate` | date? | 入力 | 入荷予定日 |
 | `status` | enum | サーバ | `Draft` (入荷予定) / `Received` (受領済み) / `Cancelled` (キャンセル) |
@@ -944,6 +946,43 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 - 入荷の受領は入荷する店舗に `Receive` (+)、移動の出荷は出荷店に `TransferOut` (−依頼の数)、移動の受領は入荷店に `TransferIn` (+受領した数) を記録する。  
   出荷と受領の差は移動の明細に残る
 - 端末の受領はオンライン限定 (自店の入荷予定と、自店宛に出荷済みの移動)
+
+#### 発注の項目 (`PurchaseOrderResponseItem`)
+
+発注は仕入先への注文の記録で、[発注] で入荷予定を作る ([D-76](decisions.md#d-76-発注-下書きを発注すると入荷予定を作り受領とキャンセルで状態を合わせる))。  
+受領は入荷予定で行い、発注の状態は入荷予定の受領とキャンセルに合わせて変わる。
+
+| フィールド | 型 | 区分 | 説明 |
+| --- | --- | --- | --- |
+| `id` | guid | サーバ | |
+| `purchaseOrderNo` | string | サーバ | `{店舗コード}-P-{連番:000000}` (店舗ごとの連番) |
+| `storeId` | guid | 入力 | 発注する店舗 (入荷する店舗。登録の後は変えられない) |
+| `supplierId` | guid | 入力 | 仕入先 |
+| `supplierName` | string | サーバ | 仕入先の名前 (削除済みでも引く) |
+| `status` | enum | サーバ | `Draft` (下書き) / `Ordered` (発注済み) / `Received` (入荷済み) / `Cancelled` (キャンセル) |
+| `expectedDate` | date? | 入力 | 希望納期 (作る入荷予定の入荷予定日) |
+| `note` | string(500)? | 入力 | |
+| `orderedAt`, `orderedBy` | | サーバ | 発注の日時と、発注した管理画面のアカウント名 |
+| `receiptId` | guid? | サーバ | 発注で作った入荷予定 |
+| `cancelledAt` | datetime? | サーバ | |
+| `totalCost` | money | サーバ | 明細の数量 × 仕入単価の合計 (単価のない明細は含めない) |
+| `lines[]` | object[] | 入力 | `{ id, lineNo, productId, productCode, productName, quantity, cost, receivedQuantity }`。`receivedQuantity` は入荷予定で受領した数 (受領まで `null`) |
+| `createdAt`, `updatedAt`, `version` | | サーバ | |
+
+#### 発注のエンドポイント
+
+| Method | Path | 用途 | 概要 |
+| --- | --- | --- | --- |
+| GET | `/inventory/purchase-orders?storeId&supplierId&status&open&from&to&sort&desc&page&size` | 管理 | 発注一覧 (`PurchaseOrderResponse`)。`open=true` は未完了 (下書き・発注済み) だけ、`from` / `to` は希望納期、`sort` = `createdAt` / `expectedDate` / `purchaseOrderNo` |
+| GET | `/inventory/purchase-orders/{id}` | 管理 | 詳細 |
+| GET | `/inventory/purchase-orders/{id}/pdf` | 管理 | 発注書 (PDF) |
+| POST | `/inventory/purchase-orders` | 管理 | 登録 (`PurchaseOrderCreateRequest`: 店舗・仕入先・希望納期・備考・明細 `{ productId, quantity, cost }`)。下書きで `201`。店舗・仕入先がなければ `422` `VALIDATION_ERROR`、商品がなければ `422` `PRODUCT_NOT_FOUND` |
+| PUT | `/inventory/purchase-orders/{id}` | 管理 | 変更 (`PurchaseOrderUpdateRequest`: 仕入先・希望納期・備考・明細・`version`)。下書きのときだけで、明細は置き換える |
+| POST | `/inventory/purchase-orders/{id}/order` | 管理 | 発注 (本文なし)。下書きのときだけ。明細を写した入荷予定を作り、`receiptId` に入れる。仕入先が削除済みなら `422` `VALIDATION_ERROR` |
+| POST | `/inventory/purchase-orders/{id}/cancel` | 管理 | キャンセル。下書きと発注済みのときで、発注済みは入荷予定もキャンセルする |
+
+- 状態に合わない変更・発注・キャンセルは `422` (`PURCHASE_ORDER_STATUS_INVALID`)、版が合わない変更は `409` (`VERSION_MISMATCH`)、発注がなければ `404`
+- 入荷予定を受領すると発注は入荷済みに、入荷予定をキャンセルすると発注もキャンセルになる
 
 ### 3.17 レポート (Reports)
 
@@ -1108,6 +1147,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 422 | `ORDER_NOT_FOUND` / `ORDER_NOT_READY` | 受注から会計したが、受注が見つからない (他店を含む) / 引き渡し待ちでない |
 | 422 | `ORDER_STATUS_INVALID` | 受注の状態に合わない変更・入荷・キャンセル |
 | 422 | `INVENTORY_RECEIPT_STATUS_INVALID` / `INVENTORY_TRANSFER_STATUS_INVALID` | 入荷・店舗間移動の状態に合わない受領・出荷・キャンセル |
+| 422 | `PURCHASE_ORDER_STATUS_INVALID` | 発注の状態に合わない変更・発注・キャンセル |
 | 422 | `DUPLICATE_RECEIPT_NO` | レシート番号重複 |
 | 422 | `PRODUCT_NOT_FOUND` | 取引明細 |
 | 422 | `PRICE_OVERRIDE_NOT_ALLOWED` | 売価変更不可商品の単価相違 |

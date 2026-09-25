@@ -13,6 +13,11 @@ public sealed class InventoryReceiptResponseItem
 
     public string SupplierName { get; set; } = default!;
 
+    // 発注から作った入荷予定はその発注 (ほかは null)
+    public Guid? PurchaseOrderId { get; set; }
+
+    public string? PurchaseOrderNo { get; set; }
+
     public string? SlipNo { get; set; }
 
     public DateOnly? ExpectedDate { get; set; }

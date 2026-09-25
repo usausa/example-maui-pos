@@ -49,6 +49,9 @@
         <TemplateColumn Title="納品書番号" Sortable="false">
             <CellTemplate>@context.Item.Receipt.SlipNo</CellTemplate>
         </TemplateColumn>
+        <TemplateColumn Title="発注番号" Sortable="false">
+            <CellTemplate>@context.Item.PurchaseOrder?.PurchaseOrderNo</CellTemplate>
+        </TemplateColumn>
         <TemplateColumn Title="状態" Sortable="false">
             <CellTemplate><StatusChip Value="@ViewHelper.InventoryReceiptStatusChip(context.Item.Receipt.Status)" /></CellTemplate>
         </TemplateColumn>

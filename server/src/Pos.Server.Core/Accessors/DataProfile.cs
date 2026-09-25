@@ -18,6 +18,7 @@ using Pos.Server.Infrastructure.Data;
 [TypeHandler(typeof(EnumTextConverter<OrderStatus>))]
 [TypeHandler(typeof(EnumTextConverter<InventoryReceiptStatus>))]
 [TypeHandler(typeof(EnumTextConverter<InventoryTransferStatus>))]
+[TypeHandler(typeof(EnumTextConverter<PurchaseOrderStatus>))]
 [TypeHandler(typeof(EnumTextConverter<CashEventType>))]
 [TypeHandler(typeof(EnumTextConverter<InventoryChangeType>))]
 [TypeHandler(typeof(EnumTextConverter<PointHistoryType>))]

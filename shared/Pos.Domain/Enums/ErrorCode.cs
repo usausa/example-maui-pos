@@ -34,5 +34,6 @@ public enum ErrorCode
     TerminalMismatch,
     PairingCodeInvalid,
     ApprovalRequired,
-    StaffInvalid
+    StaffInvalid,
+    PurchaseOrderStatusInvalid
 }

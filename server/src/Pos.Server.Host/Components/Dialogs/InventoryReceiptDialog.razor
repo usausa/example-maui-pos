@@ -25,6 +25,10 @@
                             <tr><td class="mud-text-secondary w-110">店舗</td><td>@Names.Store(receipt.StoreId)</td></tr>
                             <tr><td class="mud-text-secondary">仕入先</td><td>@detail.SupplierName</td></tr>
                             <tr><td class="mud-text-secondary">納品書番号</td><td>@receipt.SlipNo</td></tr>
+                            @if (detail.PurchaseOrder is not null)
+                            {
+                                <tr><td class="mud-text-secondary">発注</td><td><MudLink Href="@($"inventory/purchase-orders?id={detail.PurchaseOrder.Id}")" Typo="Typo.body2" OnClick="() => MudDialog.Close()">@detail.PurchaseOrder.PurchaseOrderNo</MudLink></td></tr>
+                            }
                             <tr><td class="mud-text-secondary">入荷予定日</td><td>@receipt.ExpectedDate.ToDateText()</td></tr>
                             <tr><td class="mud-text-secondary">備考</td><td>@receipt.Note</td></tr>
                         </tbody>

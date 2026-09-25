@@ -22,7 +22,7 @@ public sealed class NavMenuTests : MudBlazorTestBase
         string[] expected =
         [
             string.Empty, "reports/sales", "reports/products", "transactions", "orders", "shifts", "daily-closings",
-            "inventory", "inventory/changes", "inventory/receipts", "inventory/transfers", "inventory/reasons", "inventory/suppliers",
+            "inventory", "inventory/changes", "inventory/purchase-orders", "inventory/receipts", "inventory/transfers", "inventory/reasons", "inventory/suppliers",
             "products", "categories", "tax-rates", "discounts", "payment-methods", "customers", "stores", "terminals", "staff", "settings", "accounts"
         ];
         foreach (var href in expected)

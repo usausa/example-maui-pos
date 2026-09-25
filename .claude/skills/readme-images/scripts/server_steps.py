@@ -17,6 +17,7 @@ PAGES = [
     ('server-orders', 'orders'),
     ('server-daily-closings', 'daily-closings'),
     ('server-products', 'products'),
+    ('server-purchase-orders', 'inventory/purchase-orders'),
     ('server-inventory-receipts', 'inventory/receipts'),
     ('server-inventory-transfers', 'inventory/transfers'),
     ('server-accounts', 'accounts'),

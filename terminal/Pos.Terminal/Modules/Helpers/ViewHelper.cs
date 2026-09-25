@@ -203,6 +203,8 @@ public static class ViewHelper
         RuleReason.InventoryReceiptNotDraft => "受領・キャンセルした入荷です",
         RuleReason.InventoryTransferNotRequested => "出荷・キャンセルした移動です",
         RuleReason.InventoryTransferNotShipped => "出荷済みの移動ではありません",
+        RuleReason.PurchaseOrderNotDraft => "下書きの発注ではありません",
+        RuleReason.PurchaseOrderNotOpen => "入荷済み・キャンセルした発注です",
         RuleReason.DiscountApprovalRequired => "承認が必要な値引です",
         RuleReason.VoidApprovalRequired => "取消には店長以上の承認が必要です",
         RuleReason.ApproverNotAllowed => "承認者が店長以上の有効なスタッフではありません",

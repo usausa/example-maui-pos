@@ -54,6 +54,8 @@ public static class ApiRuleText
         RuleReason.InventoryReceiptNotDraft => "受領・キャンセルした入荷です",
         RuleReason.InventoryTransferNotRequested => "出荷・キャンセルした移動です",
         RuleReason.InventoryTransferNotShipped => "出荷済みの移動ではありません",
+        RuleReason.PurchaseOrderNotDraft => "下書きの発注ではありません",
+        RuleReason.PurchaseOrderNotOpen => "入荷済み・キャンセルした発注です",
         RuleReason.DiscountApprovalRequired => "承認が必要な値引です。店長以上の承認者を指定してください",
         RuleReason.VoidApprovalRequired => "レジ係の取消には店長以上の承認が必要です",
         RuleReason.ApproverNotAllowed => "承認者は、その店舗 (または本部) の有効な店長以上のスタッフにしてください",

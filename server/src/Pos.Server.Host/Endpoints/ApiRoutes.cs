@@ -44,6 +44,8 @@ public static class ApiRoutes
 
     public const string InventoryTransfers = Inventory + "/transfers";
 
+    public const string PurchaseOrders = Inventory + "/purchase-orders";
+
     public const string Reports = Prefix + "/reports";
 
     // 商品画像 (ImageUrl はこれに ?v={内容のハッシュ} を付けたもの)

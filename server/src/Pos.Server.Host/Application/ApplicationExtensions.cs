@@ -601,6 +601,7 @@ public static class ApplicationExtensions
         builder.Services.AddSingleton<ShiftReportBuilder>();
         builder.Services.AddSingleton<DailySalesReportBuilder>();
         builder.Services.AddSingleton<ReceiptReportBuilder>();
+        builder.Services.AddSingleton<PurchaseOrderReportBuilder>();
 
         // Setting
         builder.Services.AddOptions<ProfilerSetting>().BindConfiguration("Profiler").ValidateDataAnnotations().ValidateOnStart();
@@ -697,6 +698,7 @@ public static class ApplicationExtensions
         app.MapSupplierEndpoints();
         app.MapInventoryReceiptEndpoints();
         app.MapInventoryTransferEndpoints();
+        app.MapPurchaseOrderEndpoints();
         app.MapReportEndpoints();
 
         return app;

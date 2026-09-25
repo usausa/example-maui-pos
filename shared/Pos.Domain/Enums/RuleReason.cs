@@ -49,6 +49,8 @@ public enum RuleReason
     InventoryReceiptNotDraft,
     InventoryTransferNotRequested,
     InventoryTransferNotShipped,
+    PurchaseOrderNotDraft,
+    PurchaseOrderNotOpen,
     DiscountApprovalRequired,
     VoidApprovalRequired,
     ApproverNotAllowed,

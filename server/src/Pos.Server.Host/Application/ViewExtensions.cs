@@ -84,6 +84,13 @@ public static class ViewExtensions
     public static string ToLineSummary(this InventoryTransferDetailView transfer) =>
         LineSummary(transfer.Lines.Count == 0 ? null : transfer.Lines[0].ProductName, transfer.Lines.Count);
 
+    public static string ToLineSummary(this PurchaseOrderDetailView order) =>
+        LineSummary(order.Lines.Count == 0 ? null : order.Lines[0].ProductName, order.Lines.Count);
+
+    // 発注の明細の金額 (数量 × 仕入単価。単価がなければ -)
+    public static string ToAmountText(this PurchaseOrderLineEntity line) =>
+        line.Cost is null ? "-" : (line.Quantity * line.Cost.Value).ToYen();
+
     public static string ToProductText(this InventoryLevelDetailView level)
     {
         return $"{level.ProductCode} {level.ProductName}";

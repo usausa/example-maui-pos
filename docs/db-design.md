@@ -228,6 +228,10 @@ erDiagram
     Stores ||--o{ InventoryReceipts : receives
     InventoryReceipts ||--o{ InventoryReceiptLines : has
     InventoryReceipts |o--o{ InventoryChanges : "reference"
+    Suppliers ||--o{ PurchaseOrders : "ordered from"
+    Stores ||--o{ PurchaseOrders : orders
+    PurchaseOrders ||--o{ PurchaseOrderLines : has
+    PurchaseOrders |o--o| InventoryReceipts : creates
     Stores ||--o{ InventoryTransfers : "from / to"
     InventoryTransfers ||--o{ InventoryTransferLines : has
     InventoryTransfers |o--o{ InventoryChanges : "reference"
@@ -250,6 +254,13 @@ erDiagram
         guid Id PK
         guid SupplierId FK
         string SlipNo
+        string Status
+    }
+    PurchaseOrders {
+        guid Id PK
+        string PurchaseOrderNo UK
+        guid SupplierId FK
+        guid ReceiptId FK
         string Status
     }
     InventoryTransfers {
@@ -866,6 +877,43 @@ erDiagram
 
 索引: `IX(ReceiptId)`
 
+#### PurchaseOrders (発注)
+
+仕入先への注文。  
+[発注] で明細を写した入荷予定を作り、入荷予定の受領とキャンセルで状態が変わる ([D-76](decisions.md#d-76-発注-下書きを発注すると入荷予定を作り受領とキャンセルで状態を合わせる))。
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK (サーバ採番) |
+| StoreId | guid | | FK → Stores (発注して入荷する店舗) |
+| Seq | int | | 店舗ごとの連番 (登録時に採番) |
+| PurchaseOrderNo | string | | `{店舗コード}-P-{Seq:000000}` |
+| SupplierId | guid | | FK → Suppliers |
+| Status | enum | | `Draft` / `Ordered` / `Received` / `Cancelled` |
+| ExpectedDate | date | ○ | 希望納期 (入荷予定日になる) |
+| Note | string(500) | ○ | |
+| OrderedAt | datetime | ○ | 発注の日時 |
+| OrderedBy | string(50) | ○ | 発注した管理画面のアカウント名 (認証を無効にしているときは NULL) |
+| ReceiptId | guid | ○ | FK → InventoryReceipts (発注で作った入荷予定) |
+| CancelledAt | datetime | ○ | |
+| 共通列 | | | Version を含む |
+
+索引: `UQ(StoreId, Seq)`、`UQ(PurchaseOrderNo)`、`IX(StoreId, Status)`、`IX(ReceiptId)`
+
+#### PurchaseOrderLines
+
+| 列 | 型 | NULL | 説明 |
+| --- | --- | --- | --- |
+| Id | guid | | PK |
+| PurchaseOrderId | guid | | FK → PurchaseOrders |
+| LineNo | int | | 入荷予定の明細と同じ番号 |
+| ProductId | guid | | FK → Products |
+| ProductCode / ProductName | string | | 登録・変更時点のスナップショット |
+| Quantity | qty | | 発注の数 |
+| Cost | money | ○ | 仕入単価 |
+
+索引: `IX(PurchaseOrderId)`
+
 #### InventoryTransfers (店舗間移動)
 
 | 列 | 型 | NULL | 説明 |
@@ -1130,7 +1178,9 @@ CSV 取込は全行を検証してから、登録と更新を 1 トランザク�
 入荷の受領は、状態を条件にした `UPDATE InventoryReceipts ... WHERE Status = 'Draft' RETURNING *` と、明細ごとの受領数の更新・`InventoryLevels` の UPSERT・`InventoryChanges (Type = Receive)` の INSERT を 1 トランザクションで行う。  
 行が返らなければ状態が合わないか伝票がない。  
 移動の番号は受注と同じく 1 文の `INSERT ... SELECT MAX(Seq) + 1 ... RETURNING *` で採番する。  
-出荷 (`TransferOut`、出荷店を依頼の数だけ減らす) と受領 (`TransferIn`、入荷店を受領した数だけ増やす) もそれぞれ状態を条件にした UPDATE と在庫の加減算を 1 トランザクションで行う。
+出荷 (`TransferOut`、出荷店を依頼の数だけ減らす) と受領 (`TransferIn`、入荷店を受領した数だけ増やす) もそれぞれ状態を条件にした UPDATE と在庫の加減算を 1 トランザクションで行う。  
+発注の [発注] は、状態を条件にした `UPDATE PurchaseOrders ... WHERE Status = 'Draft'` と入荷予定・明細の INSERT を 1 トランザクションで行う。  
+入荷予定の受領とキャンセルは、同じトランザクションで `ReceiptId` の発注を入荷済み・キャンセルにする。
 
 ### 5.8 集計の考え方
 

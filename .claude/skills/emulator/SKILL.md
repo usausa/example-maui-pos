@@ -29,7 +29,7 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 - 押す: `emu.py tap <x> <y>`。座標は撮った画像 (1080x2400) の画素で、縮小して表示された画像から読むときは倍率を戻す
 - F キー: `emu.py fkey <1-4>` (画面下端の 4 つ)
 - 電卓のシート: `emu.py keypad <数字>` (`A` = AC、`C` = 1 字消す)、`--ok` で確定
-- 文字: `emu.py text <ASCII>` (日本語は送れない)。キーは `emu.py key BACK` / `ENTER` / `DEL`
+- 文字: `emu.py text <ASCII>` (日本語は送れない)。キーは `emu.py key BACK` / `ENTER` / `DEL` (入力欄を消すときは `emu.py key DEL --repeat 30`)
 - オフライン: `emu.py airplane on` / `off`
 - 例外の確認: `emu.py logcat --grep "Exception|FATAL"`
 - カメラの許可のダイアログは、QR を読む確認でなければ「許可しない」を選ぶ

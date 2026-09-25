@@ -6,12 +6,13 @@ using Pos.Contract.InventoryTransfers;
 // 入荷・移動の応答 → 受領待ちの伝票、数えた数 → 受領の要求
 public static class ReceivingMapper
 {
+    // 番号は納品書番号 (発注から作った入荷予定で納品書番号がなければ発注番号)
     public static ReceivingDocument FromReceipt(InventoryReceiptResponseItem receipt) =>
         new(
             ReceivingKind.Receipt,
             receipt.Id,
             receipt.SupplierName,
-            receipt.SlipNo,
+            receipt.SlipNo ?? receipt.PurchaseOrderNo,
             receipt.ExpectedDate,
             null,
             receipt.Note,

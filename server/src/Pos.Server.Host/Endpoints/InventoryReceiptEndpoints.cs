@@ -46,6 +46,8 @@ public static partial class InventoryReceiptEndpoints
     {
         var response = ToResponseCore(detail.Receipt);
         response.SupplierName = detail.SupplierName;
+        response.PurchaseOrderId = detail.PurchaseOrder?.Id;
+        response.PurchaseOrderNo = detail.PurchaseOrder?.PurchaseOrderNo;
         response.Lines = detail.Lines.Select(ToResponse).ToList();
         return response;
     }

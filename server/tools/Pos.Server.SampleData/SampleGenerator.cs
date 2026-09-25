@@ -6,6 +6,7 @@ using Pos.Contract.Discounts;
 using Pos.Contract.InventoryReceipts;
 using Pos.Contract.PaymentMethods;
 using Pos.Contract.Products;
+using Pos.Contract.PurchaseOrders;
 using Pos.Contract.Shifts;
 using Pos.Contract.Staff;
 using Pos.Contract.Stores;
@@ -112,6 +113,8 @@ internal sealed class SampleGenerator
             {
                 await CloseDayAsync(store, today.AddDays(-offset)).ConfigureAwait(false);
             }
+
+            await OrderStockAsync(store, today.AddDays(3)).ConfigureAwait(false);
         }
 
         await output.WriteLineAsync($"完了: 取引 {created} 件").ConfigureAwait(false);
@@ -157,28 +160,52 @@ internal sealed class SampleGenerator
         await output.WriteLineAsync($"マスタ: 店舗 {masters.Stores.Count} / 端末 {masters.Terminals.Count} / 商品 {products.Count} / 会員 {customers.Count}").ConfigureAwait(false);
     }
 
-    // 初日の開店前に在庫を積む (販売で在庫がマイナスになりすぎないように、仕入先からの入荷を予定どおり受領する)
+    // 初日の開店前に在庫を積む (販売で在庫がマイナスになりすぎないように、仕入先へ発注し、発注で作った入荷予定を予定どおり受領する)
     private async Task ReceiveStockAsync(StoreResponseItem store, StaffResponseItem staff, DateOnly date)
     {
         var lines = products
             .Where(static x => x.TrackInventory && (x.Kind == ProductKind.Goods))
-            .Select(x => new InventoryReceiptCreateRequestLine { ProductId = x.Id, Quantity = 10 + random.Next(21), Cost = x.Cost })
+            .Select(x => new PurchaseOrderCreateRequestLine { ProductId = x.Id, Quantity = 10 + random.Next(21), Cost = x.Cost })
             .ToList();
         if (lines.Count == 0)
         {
             return;
         }
 
-        var receipt = await client.PostAsync<InventoryReceiptResponseItem>("inventory/receipts", new InventoryReceiptCreateRequest
+        var order = await PlaceOrderAsync(store, date, lines).ConfigureAwait(false);
+        await client.PostAsync<InventoryReceiptResponseItem>($"inventory/receipts/{order.ReceiptId}/receive", new InventoryReceiptReceiveRequest { StaffId = staff.Id, ReceivedAt = ToUtc(date, 8, 30) }).ConfigureAwait(false);
+        await output.WriteLineAsync($"[{store.Name}] 発注 {order.PurchaseOrderNo} を入荷 {lines.Count} 商品 ({supplier.Name})").ConfigureAwait(false);
+    }
+
+    // 入荷待ちの発注を 1 件残す (入荷予定は店舗の端末の検品か、管理画面の入荷で受領できる)
+    private async Task OrderStockAsync(StoreResponseItem store, DateOnly expectedDate)
+    {
+        var lines = products
+            .Where(static x => x.TrackInventory && (x.Kind == ProductKind.Goods))
+            .OrderBy(_ => random.Next(1000))
+            .Take(3)
+            .Select(x => new PurchaseOrderCreateRequestLine { ProductId = x.Id, Quantity = 5 + random.Next(6), Cost = x.Cost })
+            .ToList();
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        var order = await PlaceOrderAsync(store, expectedDate, lines).ConfigureAwait(false);
+        await output.WriteLineAsync($"[{store.Name}] 発注 {order.PurchaseOrderNo} (入荷待ち)").ConfigureAwait(false);
+    }
+
+    // 下書きを作って発注する (発注で入荷予定ができる)
+    private async Task<PurchaseOrderResponseItem> PlaceOrderAsync(StoreResponseItem store, DateOnly expectedDate, IReadOnlyList<PurchaseOrderCreateRequestLine> lines)
+    {
+        var draft = await client.PostAsync<PurchaseOrderResponseItem>("inventory/purchase-orders", new PurchaseOrderCreateRequest
         {
             StoreId = store.Id,
             SupplierId = supplier.Id,
-            SlipNo = $"SAMPLE-{store.Code}-{date:yyyyMMdd}",
-            ExpectedDate = date,
+            ExpectedDate = expectedDate,
             Lines = lines
         }).ConfigureAwait(false);
-        await client.PostAsync<InventoryReceiptResponseItem>($"inventory/receipts/{receipt.Id}/receive", new InventoryReceiptReceiveRequest { StaffId = staff.Id, ReceivedAt = ToUtc(date, 8, 30) }).ConfigureAwait(false);
-        await output.WriteLineAsync($"[{store.Name}] 入荷 {lines.Count} 商品 ({supplier.Name})").ConfigureAwait(false);
+        return await client.PostAsync<PurchaseOrderResponseItem>($"inventory/purchase-orders/{draft.Id}/order", new { }).ConfigureAwait(false);
     }
 
     // 1 日分: 開設 → 販売 (返品・取消を混ぜる) → 出金 → 精算

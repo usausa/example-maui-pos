@@ -1,0 +1,68 @@
+@page "/inventory/purchase-orders"
+@inherits PageComponentBase
+
+<PageTitle>POS 管理 - 発注</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudText Typo="Typo.h5">📝 発注</MudText>
+    <MudSpacer />
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">発注を作成</MudButton>
+</MudStack>
+
+<MudPaper Class="pa-2 mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <MudDateRangePicker Class="filter-range" @bind-DateRange="period" Label="希望納期" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true" />
+        <StoreSelect Value="storeId" ValueChanged="OnStoreChanged" />
+        <MudSelect Class="min-w-200" T="Guid?" @bind-Value="supplierId" Label="仕入先" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+            <MudSelectItem T="Guid?" Value="null">すべて</MudSelectItem>
+            @foreach (var supplier in suppliers)
+            {
+                <MudSelectItem T="Guid?" Value="supplier.Id">@supplier.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect Class="min-w-130" T="StatusFilter" @bind-Value="statusFilter" Label="状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Open">未完了</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Draft">@ViewHelper.PurchaseOrderStatusChip(PurchaseOrderStatus.Draft).Text</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Ordered">@ViewHelper.PurchaseOrderStatusChip(PurchaseOrderStatus.Ordered).Text</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Received">@ViewHelper.PurchaseOrderStatusChip(PurchaseOrderStatus.Received).Text</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.Cancelled">@ViewHelper.PurchaseOrderStatusChip(PurchaseOrderStatus.Cancelled).Text</MudSelectItem>
+            <MudSelectItem T="StatusFilter" Value="StatusFilter.All">すべて</MudSelectItem>
+        </MudSelect>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
+    </MudStack>
+</MudPaper>
+
+<ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
+
+<MudDataGrid @ref="Grid" T="PurchaseOrderDetailView" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
+    <Columns>
+        <PropertyColumn Property="x => x.PurchaseOrder.PurchaseOrderNo" Title="発注番号" />
+        <PropertyColumn Property="x => x.PurchaseOrder.CreatedAt" Title="登録日時" InitialDirection="SortDirection.Descending">
+            <CellTemplate>@context.Item.PurchaseOrder.CreatedAt.ToShortDateTimeText()</CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.PurchaseOrder.ExpectedDate" Title="希望納期">
+            <CellTemplate>@context.Item.PurchaseOrder.ExpectedDate.ToDateText()</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="店舗" Sortable="false">
+            <CellTemplate>@names.Store(context.Item.PurchaseOrder.StoreId)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="仕入先" Sortable="false" CellClass="cell-wrap min-w-200">
+            <CellTemplate>@context.Item.SupplierName</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="状態" Sortable="false">
+            <CellTemplate><StatusChip Value="@ViewHelper.PurchaseOrderStatusChip(context.Item.PurchaseOrder.Status)" /></CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="商品" Sortable="false" CellClass="cell-wrap min-w-200">
+            <CellTemplate>@context.Item.ToLineSummary()</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="金額" Sortable="false" HeaderClass="text-right" CellClass="text-right">
+            <CellTemplate>@context.Item.TotalCost.ToYen()</CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>発注がありません。</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="PurchaseOrderDetailView" RowsPerPageString="表示件数:" InfoFormat="{first_item}-{last_item} / {all_items} 件" />
+    </PagerContent>
+</MudDataGrid>

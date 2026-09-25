@@ -36,6 +36,7 @@ public sealed class ErrorCodeTests
     [InlineData(ErrorCode.PairingCodeInvalid, "PAIRING_CODE_INVALID")]
     [InlineData(ErrorCode.ApprovalRequired, "APPROVAL_REQUIRED")]
     [InlineData(ErrorCode.StaffInvalid, "STAFF_INVALID")]
+    [InlineData(ErrorCode.PurchaseOrderStatusInvalid, "PURCHASE_ORDER_STATUS_INVALID")]
     public void ErrorCodeToCode(ErrorCode code, string expected)
     {
         Assert.Equal(expected, code.ToCode());

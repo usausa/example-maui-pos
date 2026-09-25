@@ -10,4 +10,7 @@ public sealed class InventoryReceiptDetailView
     public required string SupplierName { get; init; }
 
     public required IReadOnlyList<InventoryReceiptLineEntity> Lines { get; init; }
+
+    // 発注から作った入荷予定はその発注
+    public PurchaseOrderEntity? PurchaseOrder { get; init; }
 }

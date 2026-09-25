@@ -24,6 +24,8 @@ public static class ExportUrls
 
     public static string ReceiptPdf(Guid transactionId) => $"{ApiRoutes.Transactions}/{transactionId}/receipt/pdf";
 
+    public static string PurchaseOrderPdf(Guid purchaseOrderId) => $"{ApiRoutes.PurchaseOrders}/{purchaseOrderId}/pdf";
+
     private static string Date(DateOnly value) => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private static string Value<TEnum>(TEnum value)

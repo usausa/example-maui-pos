@@ -9,7 +9,7 @@
 #   python emu.py fkey <1-4>                 画面下端の F キーを押す
 #   python emu.py keypad <digits> [--ok]     電卓のシートに数字を打つ (A = AC、C = 1 字消す)
 #   python emu.py text <ascii>               文字を入力する (英数字と記号だけ)
-#   python emu.py key <BACK|ENTER|DEL|...>   キーを送る
+#   python emu.py key <BACK|ENTER|DEL|...> [--repeat N]   キーを送る (入力欄を消すときは DEL を繰り返す)
 #   python emu.py swipe <x1> <y1> <x2> <y2> [ms]
 #   python emu.py airplane <on|off>          機内モード (オフラインの確認)
 #   python emu.py screen                     今の画面の遷移 (logcat の Navigated) を出す
@@ -216,6 +216,7 @@ def main():
     p.add_argument('value')
     p = sub.add_parser('key')
     p.add_argument('name')
+    p.add_argument('--repeat', type=int, default=1)
     p = sub.add_parser('swipe')
     p.add_argument('coords', type=int, nargs=4)
     p.add_argument('ms', type=int, nargs='?', default=300)
@@ -252,7 +253,8 @@ def main():
     elif args.command == 'text':
         text(args.value)
     elif args.command == 'key':
-        shell(f'input keyevent {args.name if args.name.isdigit() else "KEYCODE_" + args.name.upper()}', capture=False)
+        code = args.name if args.name.isdigit() else 'KEYCODE_' + args.name.upper()
+        shell('input keyevent ' + ' '.join([code] * max(1, args.repeat)), capture=False)
         pause(0.6)
     elif args.command == 'swipe':
         x1, y1, x2, y2 = args.coords

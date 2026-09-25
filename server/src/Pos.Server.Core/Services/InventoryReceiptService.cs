@@ -16,7 +16,8 @@ public enum InventoryReceiptResultStatus
 
 public sealed record InventoryReceiptResult(InventoryReceiptResultStatus Status, InventoryReceiptDetailView? Detail = null, RuleError? Violation = null);
 
-// 入荷: 入荷予定を登録し、受領で入荷先の店舗の在庫を増やす (変動は Receive)。受領とキャンセルは入荷予定のときだけ
+// 入荷: 入荷予定を登録し、受領で入荷先の店舗の在庫を増やす (変動は Receive)。受領とキャンセルは入荷予定のときだけ。
+// 発注から作った入荷予定は、受領とキャンセルで発注も入荷済み・キャンセルにする
 public sealed class InventoryReceiptService
 {
     private readonly TimeProvider timeProvider;
@@ -25,6 +26,7 @@ public sealed class InventoryReceiptService
     private readonly ProductAccessor productAccessor;
     private readonly InventoryAccessor inventoryAccessor;
     private readonly InventoryReceiptAccessor receiptAccessor;
+    private readonly PurchaseOrderAccessor purchaseOrderAccessor;
     private readonly ChangeNotificationService changeNotification;
 
     public InventoryReceiptService(
@@ -34,6 +36,7 @@ public sealed class InventoryReceiptService
         ProductAccessor productAccessor,
         InventoryAccessor inventoryAccessor,
         InventoryReceiptAccessor receiptAccessor,
+        PurchaseOrderAccessor purchaseOrderAccessor,
         ChangeNotificationService changeNotification)
     {
         this.timeProvider = timeProvider;
@@ -42,6 +45,7 @@ public sealed class InventoryReceiptService
         this.productAccessor = productAccessor;
         this.inventoryAccessor = inventoryAccessor;
         this.receiptAccessor = receiptAccessor;
+        this.purchaseOrderAccessor = purchaseOrderAccessor;
         this.changeNotification = changeNotification;
     }
 
@@ -172,6 +176,7 @@ public sealed class InventoryReceiptService
                 }, cancellationToken);
             }
 
+            await purchaseOrderAccessor.UpdateReceivedByReceiptIdAsync(tx, updated.Id, now, cancellationToken);
             await tx.CommitAsync(cancellationToken);
             return updated;
         }, cancellationToken);
@@ -181,13 +186,30 @@ public sealed class InventoryReceiptService
         }
 
         changeNotification.Notify(DataChangeKind.Inventory);
-        return new InventoryReceiptResult(InventoryReceiptResultStatus.Success, new InventoryReceiptDetailView { Receipt = received, SupplierName = await QuerySupplierNameAsync(received.SupplierId, cancellationToken), Lines = lines });
+        return new InventoryReceiptResult(InventoryReceiptResultStatus.Success, new InventoryReceiptDetailView
+        {
+            Receipt = received,
+            SupplierName = await QuerySupplierNameAsync(received.SupplierId, cancellationToken),
+            Lines = lines,
+            PurchaseOrder = await purchaseOrderAccessor.QueryByReceiptIdAsync(received.Id, cancellationToken)
+        });
     }
 
     public async ValueTask<InventoryReceiptResult> CancelAsync(Guid id, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var cancelled = await receiptAccessor.UpdateCancelledAsync(id, now, now, cancellationToken);
+        var cancelled = await provider.UsingTxAsync(async (_, tx) =>
+        {
+            var entity = await receiptAccessor.UpdateCancelledAsync(tx, id, now, now, cancellationToken);
+            if (entity is null)
+            {
+                return null;
+            }
+
+            await purchaseOrderAccessor.UpdateCancelledByReceiptIdAsync(tx, entity.Id, now, now, cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+            return entity;
+        }, cancellationToken);
         if (cancelled is null)
         {
             return await ResolveFailureAsync(id, static x => InventoryMovementLogic.ValidateReceiptCancel(x.Status), cancellationToken);
@@ -223,6 +245,7 @@ public sealed class InventoryReceiptService
         {
             Receipt = receipt,
             SupplierName = suppliers.GetValueOrDefault(receipt.SupplierId, String.Empty),
-            Lines = await receiptAccessor.QueryLineListAsync(receipt.Id, cancellationToken)
+            Lines = await receiptAccessor.QueryLineListAsync(receipt.Id, cancellationToken),
+            PurchaseOrder = await purchaseOrderAccessor.QueryByReceiptIdAsync(receipt.Id, cancellationToken)
         };
 }

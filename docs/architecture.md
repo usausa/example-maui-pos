@@ -90,7 +90,7 @@ Pos.Server.Host ───────┤                      ▲
 Accessors/
   MasterAccessor.cs                  マスタ (設定・店舗・端末・スタッフ・部門・税率・値引・支払方法・調整理由・仕入先) の一覧 / 取得 / 登録 / 更新 / 論理削除 / 件数
   ProductAccessor.cs, CustomerAccessor.cs, TransactionAccessor.cs, ShiftAccessor.cs, DailyClosingAccessor.cs, OrderAccessor.cs, InventoryAccessor.cs,
-  InventoryReceiptAccessor.cs, InventoryTransferAccessor.cs, ReportAccessor.cs
+  InventoryReceiptAccessor.cs, InventoryTransferAccessor.cs, PurchaseOrderAccessor.cs, ReportAccessor.cs
   AccountAccessor.cs                 管理画面のアカウント (一覧 / 取得 / ログイン ID で取得 / 登録 / 更新 / パスワード / 最終ログイン / 削除)
   TerminalTokenAccessor.cs           端末の登録 (ペアリングコードの登録と照合、トークンのハッシュの照合、失効、端末ごとの登録の状態)
   GenericAccessor.cs                 テーブルに紐付かない処理: PRAGMA、後から増えた列の初期値、SQL ファイルの実行 ([DirectSql]。初期データ)
@@ -101,11 +101,11 @@ Accessors/
 Models/Entity/                       {Table 単数}Entity (Smart.Data.Accessor の [Key]。テーブル名はクラスの [Name("Stores")])
 Models/Views/                        DB から読んだ結果 (XxxView: TransactionDetailView / ShiftDetailView / ShiftSummaryView / ShiftReportView / DailySalesReportView /
                                      DailyClosingDayView / DailyClosingSummaryView / OrderDetailView / OrderStatusCountView / ReceiptReportView / ShiftTotalsView / SalesSummaryView / ProductSalesView / ProductInventoryLevelView / InventoryLevelDetailView / ProductExportView /
-                                     InventoryReceiptDetailView / InventoryTransferDetailView / SyncMasterDataView など)
+                                     InventoryReceiptDetailView / InventoryTransferDetailView / PurchaseOrderDetailView / PurchaseOrderReportView / SyncMasterDataView など)
 Models/Parameters/                   Service に渡す条件と入力 (PagedParameter<TSort> を基底にした XxxQueryParameter、InventoryChangeParameter / ShiftCloseParameter / OrderUpdateParameter、
                                      ProductImportLine: CSV の 1 行を文字列のまま)
 Models/Enums/                        一覧の並び順 (StoreSort / TerminalSort / StaffSort / CategorySort / ProductSort / CustomerSort / InventoryLevelDetailSort /
-                                     ShiftSort / DailyClosingSort / OrderSort / TransactionSort / InventoryReceiptSort / InventoryTransferSort。列挙名 = 列名、先頭が既定)、SalesSummaryGroupBy / ProductSalesSort、
+                                     ShiftSort / DailyClosingSort / OrderSort / TransactionSort / InventoryReceiptSort / InventoryTransferSort / PurchaseOrderSort。列挙名 = 列名、先頭が既定)、SalesSummaryGroupBy / ProductSalesSort、
                                      ProductImportColumn / ProductImportProblem (CSV 取込の誤りの列と種類)、DataChangeKind (変更の通知の種類)、AccountRole (管理画面の役割)
 Models/PagedResult.cs                一覧の結果 (Total / Page / Size / Items)
 Models/InventoryReferenceType.cs     在庫変動の参照の種類 (Transaction / InventoryReceipt / InventoryTransfer)
@@ -113,7 +113,7 @@ Services/                            業務の手順 (サブジェクトごと):
                                      AdjustmentReason / Supplier / Settings)、ProductService (画像・CSV 取込を含む)、CustomerService、TransactionService (登録・取消・照会)、
                                      ShiftService (開設・精算・入出金・集計)、DailyClosingService (日次締め・解除・店舗 × 営業日の一覧)、
                                      OrderService (受注の登録・変更・入荷・キャンセル)、InventoryService、
-                                     InventoryReceiptService (入荷予定の登録・受領・キャンセル)、InventoryTransferService (店舗間移動の依頼・出荷・受領・キャンセル)、ReportService、
+                                     InventoryReceiptService (入荷予定の登録・受領・キャンセル)、PurchaseOrderService (発注の登録・変更・発注で入荷予定を作る・キャンセル)、InventoryTransferService (店舗間移動の依頼・出荷・受領・キャンセル)、ReportService、
                                      SyncService、DatabaseService (スキーマ作成・初期データ)、
                                      ChangeNotificationService (書き込みの後のプロセス内の通知。管理画面のダッシュボードが購読する)、
                                      AccountService (ログイン・セッションの版の確認・アカウントの管理)、TerminalTokenService (ペアリングコードの発行・ペアリング・登録の解除・トークンの照合)
@@ -148,7 +148,7 @@ Application/                         アプリ固有の部品
   Lookup/NameLookup.cs               ID → 名称 (店舗・端末・スタッフ・支払方法)
   State/StoreFilterState.cs          一覧ページ間で共有する店舗の絞り込み (scoped)
   Urls/ExportUrls.cs                 管理画面から開くダウンロード URL (CSV / PDF)
-Reports/                             OysterReport の帳票: ShiftReportBuilder (精算レポート)、DailySalesReportBuilder (売上日報)、ReceiptReportBuilder (レシートの控え)、ReportText (D-37)
+Reports/                             OysterReport の帳票: ShiftReportBuilder (精算レポート)、DailySalesReportBuilder (売上日報)、ReceiptReportBuilder (レシートの控え)、PurchaseOrderReportBuilder (発注書)、ReportText (D-37)
 Endpoints/                           静的クラス + MapApiGroup (計測フィルタ付きのグループ。ハンドラは private static)。Request → Entity / Parameter の変換 ([Mapper]) と Service の呼び出しだけを担う
   ApiRoutes.cs (/api/v1), ApiDefaults.cs (ページサイズ), ApiProblems.cs (errorCode / errors / expected 付き Problem Details と DataWriteStatus からの変換),
   ApiRuleText.cs (業務ルール違反と警告の文言)
@@ -268,6 +268,7 @@ Suppliers/     SupplierResponse / SupplierResponseItem / SupplierCreateRequest /
 InventoryReceipts/  InventoryReceiptCreateRequest (+ Line), InventoryReceiptReceiveRequest (+ Line), InventoryReceiptResponse / InventoryReceiptResponseItem (+ Line)
 InventoryTransfers/ InventoryTransferCreateRequest (+ Line), InventoryTransferShipRequest, InventoryTransferReceiveRequest (+ Line),
                InventoryTransferResponse / InventoryTransferResponseItem (+ Line)
+PurchaseOrders/ PurchaseOrderCreateRequest (+ Line), PurchaseOrderUpdateRequest (+ Line), PurchaseOrderResponse / PurchaseOrderResponseItem (+ Line)
 Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+ Row)
 ```
 
@@ -403,8 +404,9 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CA
 | `Pos.Server.SampleData` | 内容 |
 | --- | --- |
 | 対象 | 有効な店舗 × 端末ごとに、`--days` 日分 (既定 7)。開設中のシフトがある端末は省略 |
-| 1 日の流れ | 08:30 に入荷 (初日のみ、物品を 10〜30 個。入荷予定を登録して予定どおり受領する。仕入先がなければ作る) → 09:00 開設 (釣銭準備金 3 万円) → 販売 `--per-day` ± 2 件 (既定 6) → 返品 (販売の 25%) → 取消 (30% の日に 1 件) → 出金 (60% の日) → 20:00 精算 (ときどき過不足) |
+| 1 日の流れ | 08:30 に入荷 (初日のみ、物品を 10〜30 個。仕入先へ発注し、発注で作った入荷予定を予定どおり受領する。仕入先がなければ作る) → 09:00 開設 (釣銭準備金 3 万円) → 販売 `--per-day` ± 2 件 (既定 6) → 返品 (販売の 25%) → 取消 (30% の日に 1 件) → 出金 (60% の日) → 20:00 精算 (ときどき過不足) |
 | 日次締め | 店舗ごとに、前日までの各日を締める (今日は営業中として残す)。締め済みや未精算のシフトがある日は省略する |
+| 発注 | 店舗ごとに、入荷待ちの発注 (物品 3 つ、希望納期は 3 日後) を 1 件残す |
 | 認証 | `--user` / `--password` (既定 `admin` / `admin`) で管理画面のフォームからログインし、Cookie で API を呼ぶ (端末の一致は確かめられない) |
 | 販売の内容 | 端末と同じ手順 (`SalesLogic.Calculate` → `TransactionCreateRequest` → `POST /transactions`)。1〜3 明細、明細値引 (承認者付き) / 取引値引 15%、シリアル番号、会員 (ポイント利用は残高まで)、カード 35% (伝票番号付き) / 現金 (千円単位の預り)、サービス明細には配送先 |
 | レシート番号 | `terminals/{id}` の `lastReceiptSeq` から連番を続ける |
