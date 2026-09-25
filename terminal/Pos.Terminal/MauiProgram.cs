@@ -251,6 +251,9 @@ public static partial class MauiProgram
             config.UseMauiNavigationProvider();
             config.AddHierarchyEffectPlugin();
             config.AddPlugin<NavigationFeedbackPlugin>();
+#if DEBUG
+            config.AddPlugin<LeakDetectionPlugin>();
+#endif
             config.UseIdViewMapper(static m => m.AutoRegister(ViewSource()));
         });
 

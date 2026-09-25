@@ -81,13 +81,12 @@ public static partial class EntryOption
     private static void UpdateHandleEnterKey(EditText editText, BindableObject element)
     {
         var value = GetHandleEnterKey(element);
+
+        // Mapper が繰り返し呼ばれても購読が重ならないように、いったん外してから付ける
+        editText.EditorAction -= OnEditorAction;
         if (value)
         {
             editText.EditorAction += OnEditorAction;
-        }
-        else
-        {
-            editText.EditorAction -= OnEditorAction;
         }
     }
 

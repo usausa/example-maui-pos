@@ -7,6 +7,14 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Information, Message = "Application start. version=[{version}], runtime=[{runtime}]")]
     public static partial void InfoApplicationStart(this ILogger logger, Version? version, Version runtime);
 
+    [LoggerMessage(Level = LogLevel.Error, Message = "Database initialize failed.")]
+    public static partial void ErrorDatabaseInitializeFailed(this ILogger logger, Exception exception);
+
+    // Credential
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Secure storage reset.")]
+    public static partial void WarnSecureStorageReset(this ILogger logger, Exception exception);
+
     // State
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Screen state changed. state=[{on}]")]
@@ -17,6 +25,19 @@ internal static partial class Log
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Connectivity changed. profile=[{profile}], access=[{access}]")]
     public static partial void DebugConnectivityState(this ILogger logger, NetworkProfile profile, NetworkAccess access);
+
+    // Navigation
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Unhandled navigation error.")]
+    public static partial void WarnUnhandledNavigationError(this ILogger logger, Exception exception);
+
+#if DEBUG
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Leak suspected. target=[{target}]")]
+    public static partial void WarnLeakSuspected(this ILogger logger, string target);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Closed object collected. target=[{target}]")]
+    public static partial void DebugClosedObjectCollected(this ILogger logger, string target);
+#endif
 
     // Network
 

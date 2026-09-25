@@ -5,8 +5,12 @@ using Pos.Terminal.Shell;
 
 public sealed partial class MainPage
 {
-    public MainPage()
+    private readonly ILogger<MainPage> log;
+
+    public MainPage(ILogger<MainPage> log)
     {
+        this.log = log;
+
         InitializeComponent();
     }
 
@@ -23,7 +27,12 @@ public sealed partial class MainPage
             return false;
         }
 
-        context.Navigator.NotifyAsync(ShellEvent.Back);
+        // 待たずに進めるが、例外はログに残す (観測されないまま次の起動で異常終了として知らせないように)
+        context.Navigator.NotifyAsync(ShellEvent.Back).ContinueWith(
+            t => log.WarnUnhandledNavigationError(t.Exception!),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
         return true;
     }
 }

@@ -313,22 +313,24 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
 `net10.0-android`。
 
 ```
-MauiProgram.cs                       BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド (D-23)、NavigationFeedbackPlugin)、Dialog / Popup、フォントは MaterialIcons のみ
+MauiProgram.cs                       BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド (D-23)、NavigationFeedbackPlugin、Debug のときは LeakDetectionPlugin)、Dialog / Popup、フォントは MaterialIcons のみ
                                      + BarcodeScanning、HttpClient (IHttpClientFactory)、IDbProvider (SQLite)、DataAccessor、Service / Usecase、State
 MainPage.xaml / MainPageViewModel    シェル (タイトル + 店舗-端末 担当 + 未送信バッジ + F1〜F4)。起動時に Setup (未登録) または StaffSelect へ。要求が 401 になったら知らせて Setup へ。  
                                      根の画面 (AppViewModelBase.HandlesBack = false) の戻るはプラットフォームに任せる (MainActivity がタスクを背面へ回す)
-App.xaml.cs                          起動時に DatabaseService でローカル DB を作り、CredentialService でトークンを読み、SyncService でセッションを復元して同期を始める
+App.xaml.cs                          起動時に前回の異常終了を知らせ、DatabaseService でローカル DB を作り、CredentialService でトークンを読み、SyncService でセッションを復元して同期を始める。  
+                                     ローカル DB を開けないときは理由を出して終了する (未送信を含む DB を作り直さない)
 Extensions.cs                        拡張メソッド (リソース、IDialog の日本語ボタン、PostForwardAsync / PostActionAsync、TrimToNull、ObservableCollection.Replace)
 Shell/ ShellProperty (+ Active: 表示中の View だけがシェルを更新) / ShellEvent / ShellUpdateBehavior / IShellControl
 Behaviors/                           Entry / Label / Scroll などの動作、EntryBind (EntryController)、BarcodeBind (CameraView)
 Messaging/                           BarcodeController、EntryController
 Controls/                            SectionPanel (見出しと白い面の節)、StatusChip (状態を色と短い文言で示すチップ)
 Components/                          StorageManager (アプリのフォルダ。ローカル DB の置き場所)
-Extender/                            NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)
+Extender/                            NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)
 Log.cs                               [LoggerMessage] の集約
 Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、QrImageSourceConverter (QRCoder)、YenConverter、StockSendTextConverter、AvatarColorConverter / InitialConverter (会員のアバターの色と頭文字)。  
                                      色や選択マーク・画面固有の文言は Smart.Maui の BoolToColor / MapToColor / BoolToText を Styles.xaml で構成する
-Helpers/                             アプリに依存しない処理だけ: DateTimeHelper (日付書式の集約)、SettingParser (Key=Value)、CrashReport、ElementHelper、
+Markup/                              ViewIdExtension (XAML で画面 ID を `{markup:ViewId Xxx}` と書く)
+Helpers/                             アプリに依存しない処理だけ: DateTimeHelper (日付書式の集約)、SettingParser (Key=Value)、CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)、ElementHelper、
                                      Data/ (EnumTextConverter<T> / DateOnlyTextConverter / DateTimeTicksConverter / SchemaHelper / SqlHelper: LIKE のエスケープ)、Json/JsonDateTimeConverter
 Permissions.cs                       カメラ権限
 Modules/
@@ -359,7 +361,7 @@ Services/                            単機能の部品
   DatabaseService.cs                 ローカル DB の初期化 (PRAGMA、テーブル作成、後から増えた列の追加)
   HttpService.cs / ApiResult.cs / ApiContext.cs / ApiNames.cs / ProblemResponse.cs   HttpClient による API 呼び出し (Pos.Contract の Request / Response、失敗時は Problem Details、D-28)。  
                                      要求ごとに端末のトークンを Bearer で付け、401 は ApiContext が一度だけ知らせる
-  CredentialService.cs               端末のトークン (SecureStorage) と登録日時。登録済みか、保存、解除
+  CredentialService.cs               端末のトークン (SecureStorage) と登録日時。登録済みか、保存、解除。SecureStorage の鍵が壊れて読み書きできないときは、保存領域を消して未登録として扱う
   PinService.cs                      PIN の照合 (3 回まで、背景スレッドで PBKDF2) と承認者の選択 (自店か本部の店長以上で PIN があるスタッフ)
   NetworkService.cs                  オンライン限定操作の接続確認・インジケータ・エラー通知
   SyncService.cs                     マスタ差分同期と Outbox 送信のバックグラウンド実行 (未登録の間は止める)、heartbeat (1 分ごと)、レシート番号の採番
@@ -383,7 +385,8 @@ State/
 Resources/
   Fonts/      MaterialIcons のみ
   Styles/     Colors.xaml、Styles.xaml (Converter の構成、POS 節: Pos 接頭辞のスタイル、ヘッダの状態表示 / 一覧行 / チップ / テンキー / 入力欄)
-Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper。CAMERA 権限
+Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper (外部ストレージがなければアプリ内のフォルダ)。権限はネットワーク・カメラ・電池の状態。  
+                   バックアップと端末間の転送はしない (allowBackup = false、Resources/xml/data_extraction_rules.xml)
 ```
 
 - ViewModel は入力の検証と表示に徹し、通信 → DB → 完了までの一連の手順は `Usecases/` の `XxxUsecase`、単機能は `Services/` の `XxxService` に置く ([D-28](decisions.md#d-28-端末は-viewmodel-から-service-と-usecase-を呼ぶ))。  

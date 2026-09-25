@@ -9,6 +9,8 @@ paths:
 
 ## 画面と遷移
 
+- XAML で画面 ID を渡すときは `{markup:ViewId Xxx}` と書く (`x:Static` にしない)
+- 起動の途中 (`App.OnStart`) の知らせ (前回の異常終了、ローカル DB を開けない) は、シートの仕組みが揃う前なので OS のダイアログで出す
 - 画面は `ViewId` に足し、View に `[View(ViewId.Xxx)]` と `[Hierarchy(n)]`、XAML に `shell:ShellProperty` (使わないキーは `—` で無効、押せない条件は `CanXxx` に結ぶ) を書き、F1 と戻るを同じ遷移にする
 - 遷移は `ForwardAsync` で行い、戻り先は固定か `Parameters.WithReturnTo` で受ける。パラメータは `Parameters` に `WithXxx` / `GetXxx` の対で足す
 - ナビゲーションイベントの中の遷移と非同期処理は `PostForwardAsync` / `PostActionAsync` で後回しにする。根の画面の戻るは `HandlesBack = false` で宣言し、`MainActivity` がタスクを背面へ回す (ViewModel は遷移だけを行う)

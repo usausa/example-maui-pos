@@ -29,6 +29,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 - 取引・シフト・入出金・在庫の変動は、Usecase がローカル DB と Outbox (`SyncService.CreateEntry`) を 1 つのトランザクションで書き、`UpdateCountsAsync()` と `Trigger()` で送信を促す
 - Outbox の種類を足すときは `OutboxKind`、`SyncService.SendAsync`、`ViewHelper.Name(OutboxKind)` を揃える
 - 端末の設定は `State/Settings` (IPreferences、キーは `nameof`) に置き、トークンは `CredentialService` 経由で `ISecureStorage` に置いて `ApiContext` に写す。ViewModel はどちらも直接使わない
+- `ISecureStorage` は鍵が壊れると読み書きと削除が Java の例外になるので、`CredentialService` で捕まえて保存領域を消し、未登録として扱う
 
 ## 置き場所と名前
 
