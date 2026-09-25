@@ -17,7 +17,7 @@ public sealed partial class TerminalTokenAccessor
 
     // 有効なトークン (解除されておらず、端末が有効で削除されていない)
     [QueryFirst]
-    public partial ValueTask<TerminalTokenView?> QueryTokenAsync(byte[] tokenHash, CancellationToken cancellationToken);
+    public partial ValueTask<TerminalTokenView?> QueryByTokenHashAsync(byte[] tokenHash, CancellationToken cancellationToken);
 
     [Query]
     public partial ValueTask<List<TerminalRegistrationView>> QueryRegistrationListAsync(CancellationToken cancellationToken);

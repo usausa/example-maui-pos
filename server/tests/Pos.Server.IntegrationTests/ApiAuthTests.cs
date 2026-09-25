@@ -27,11 +27,6 @@ public sealed class ApiAuthTests : IClassFixture<TestApplicationFactory>
 
     private static readonly DateOnly BusinessDate = new(2026, 9, 25);
 
-    private static readonly Guid AccessoryCategoryId = new("00000000-0000-0000-0004-000000000017");
-
-    // 明細値引「展示品 5%」(承認が必要)
-    private static readonly Guid DisplayDiscountId = new("00000000-0000-0000-0007-000000000002");
-
     private readonly TestApplicationFactory factory;
 
     private readonly JsonSerializerOptions options;
@@ -270,10 +265,10 @@ public sealed class ApiAuthTests : IClassFixture<TestApplicationFactory>
             TransactedAt = Now.AddMinutes(10),
             Lines =
             [
-                new TransactionCreateRequestLine { Id = lineId, LineNo = 1, ProductId = TestData.SdCardProductId, ProductCode = "SD-64", ProductName = "SD カード 64GB", CategoryId = AccessoryCategoryId, Kind = ProductKind.Goods, ListPrice = 2000m, UnitPrice = 2000m, Quantity = 1m, TaxRateId = TestData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0m }
+                new TransactionCreateRequestLine { Id = lineId, LineNo = 1, ProductId = TestData.SdCardProductId, ProductCode = "SD-64", ProductName = "SD カード 64GB", CategoryId = TestData.AccessoryCategoryId, Kind = ProductKind.Goods, ListPrice = 2000m, UnitPrice = 2000m, Quantity = 1m, TaxRateId = TestData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0m }
             ],
             Discounts = withDiscount
-                ? [new TransactionCreateRequestDiscount { Id = Guid.NewGuid(), LineId = lineId, DiscountId = DisplayDiscountId, Name = "展示品 5%", Type = DiscountType.Percent, Value = 0.05m, ApprovedByStaffId = approvedBy }]
+                ? [new TransactionCreateRequestDiscount { Id = Guid.NewGuid(), LineId = lineId, DiscountId = TestData.DisplayDiscountId, Name = "展示品 5%", Type = DiscountType.Percent, Value = 0.05m, ApprovedByStaffId = approvedBy }]
                 : [],
             Payments =
             [

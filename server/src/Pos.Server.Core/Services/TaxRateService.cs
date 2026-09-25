@@ -6,18 +6,21 @@ using Pos.Server.Models.Entity;
 // 税率 (少数なのでページングなし)
 public sealed class TaxRateService
 {
+    private readonly TimeProvider timeProvider;
+    private readonly IDbProvider provider;
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
-    private readonly TimeProvider timeProvider;
 
     public TaxRateService(
+        TimeProvider timeProvider,
+        IDbProvider provider,
         IDialect dialect,
-        MasterAccessor masterAccessor,
-        TimeProvider timeProvider)
+        MasterAccessor masterAccessor)
     {
+        this.timeProvider = timeProvider;
+        this.provider = provider;
         this.dialect = dialect;
         this.masterAccessor = masterAccessor;
-        this.timeProvider = timeProvider;
     }
 
     public ValueTask<List<TaxRateEntity>> QueryListAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken) =>
@@ -26,36 +29,50 @@ public sealed class TaxRateService
     public ValueTask<TaxRateEntity?> QueryAsync(Guid id, CancellationToken cancellationToken) =>
         masterAccessor.QueryTaxRateAsync(id, cancellationToken);
 
-    // 既定は 1 件だけ (IsDefault なら他を落とす)
-    public async ValueTask<DataWriteStatus> InsertAsync(TaxRateEntity entity, CancellationToken cancellationToken)
+    // 既定は 1 件だけ (IsDefault なら同じトランザクションで他を落とす)
+    public ValueTask<DataWriteStatus> InsertAsync(TaxRateEntity entity, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
         entity.UpdatedAt = now;
         entity.Version = 1;
-        var status = await ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertTaxRateAsync(entity, cancellationToken));
-        if ((status == DataWriteStatus.Success) && entity.IsDefault)
+        return ServiceHelper.InsertAsync(dialect, () => provider.UsingTxAsync(async (_, tx) =>
         {
-            await masterAccessor.UpdateTaxRateDefaultClearedAsync(entity.Id, now, cancellationToken);
-        }
+            var count = await masterAccessor.InsertTaxRateAsync(tx, entity, cancellationToken);
+            if (entity.IsDefault)
+            {
+                await masterAccessor.UpdateTaxRateDefaultClearedAsync(tx, entity.Id, now, cancellationToken);
+            }
 
-        return status;
+            await tx.CommitAsync(cancellationToken);
+            return count;
+        }, cancellationToken));
     }
 
-    public async ValueTask<DataWriteResult<TaxRateEntity>> UpdateAsync(TaxRateEntity entity, CancellationToken cancellationToken)
+    // 版が合わないときは何も書かない。行があるかはトランザクションを閉じてから確かめる
+    public ValueTask<DataWriteResult<TaxRateEntity>> UpdateAsync(TaxRateEntity entity, CancellationToken cancellationToken)
     {
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
-        var result = await ServiceHelper.UpdateAsync(
+        return ServiceHelper.UpdateAsync(
             dialect,
-            () => masterAccessor.UpdateTaxRateAsync(entity.Id, entity.Code, entity.Name, entity.Rate, entity.Kind, entity.IsDefault, entity.SortOrder, entity.UpdatedAt, entity.Version, cancellationToken),
-            async () => await masterAccessor.QueryTaxRateAsync(entity.Id, cancellationToken) is { IsDeleted: false });
-        if ((result.Status == DataWriteStatus.Success) && entity.IsDefault)
-        {
-            await masterAccessor.UpdateTaxRateDefaultClearedAsync(entity.Id, entity.UpdatedAt, cancellationToken);
-        }
+            () => provider.UsingTxAsync(async (_, tx) =>
+            {
+                var updated = await masterAccessor.UpdateTaxRateAsync(tx, entity.Id, entity.Code, entity.Name, entity.Rate, entity.Kind, entity.IsDefault, entity.SortOrder, entity.UpdatedAt, entity.Version, cancellationToken);
+                if (updated is null)
+                {
+                    return null;
+                }
 
-        return result;
+                if (updated.IsDefault)
+                {
+                    await masterAccessor.UpdateTaxRateDefaultClearedAsync(tx, updated.Id, updated.UpdatedAt, cancellationToken);
+                }
+
+                await tx.CommitAsync(cancellationToken);
+                return updated;
+            }, cancellationToken),
+            async () => await masterAccessor.QueryTaxRateAsync(entity.Id, cancellationToken) is { IsDeleted: false });
     }
 
     // 使用中の商品がある税率は削除できない

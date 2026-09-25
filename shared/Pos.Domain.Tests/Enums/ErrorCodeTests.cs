@@ -32,6 +32,10 @@ public sealed class ErrorCodeTests
     [InlineData(ErrorCode.OrderStatusInvalid, "ORDER_STATUS_INVALID")]
     [InlineData(ErrorCode.InventoryReceiptStatusInvalid, "INVENTORY_RECEIPT_STATUS_INVALID")]
     [InlineData(ErrorCode.InventoryTransferStatusInvalid, "INVENTORY_TRANSFER_STATUS_INVALID")]
+    [InlineData(ErrorCode.TerminalMismatch, "TERMINAL_MISMATCH")]
+    [InlineData(ErrorCode.PairingCodeInvalid, "PAIRING_CODE_INVALID")]
+    [InlineData(ErrorCode.ApprovalRequired, "APPROVAL_REQUIRED")]
+    [InlineData(ErrorCode.StaffInvalid, "STAFF_INVALID")]
     public void ErrorCodeToCode(ErrorCode code, string expected)
     {
         Assert.Equal(expected, code.ToCode());

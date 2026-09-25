@@ -8,7 +8,7 @@ public static class Policies
     // API の既定: 管理画面のログイン (Cookie) か端末のトークン
     public const string Api = nameof(Api);
 
-    // 管理画面のログインだけ (api-design の用途が「管理」だけの API)
+    // 管理画面のログインだけ (管理画面だけが使う API)
     public const string Admin = nameof(Admin);
 
     // 管理画面の管理者 (マスタ・会社設定・ユーザー・端末登録の変更)

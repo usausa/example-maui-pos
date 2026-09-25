@@ -66,9 +66,8 @@ CREATE TABLE IF NOT EXISTS TerminalTokens (
     PRIMARY KEY (Id),
     FOREIGN KEY (TerminalId) REFERENCES Terminals (Id)
 );
-
 CREATE INDEX IF NOT EXISTS IX_TerminalTokens_TerminalId ON TerminalTokens (TerminalId);
-CREATE UNIQUE INDEX IF NOT EXISTS IX_TerminalTokens_TokenHash ON TerminalTokens (TokenHash) WHERE TokenHash IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS UX_TerminalTokens_TokenHash ON TerminalTokens (TokenHash) WHERE TokenHash IS NOT NULL;
 CREATE INDEX IF NOT EXISTS IX_TerminalTokens_PairingCode ON TerminalTokens (PairingCode) WHERE PairingCode IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS Staff (
@@ -492,7 +491,7 @@ CREATE TABLE IF NOT EXISTS DailyClosings (
     StoreId              TEXT     NOT NULL,
     BusinessDate         TEXT     NOT NULL,   -- yyyy-MM-dd
     ClosedAt             TEXT     NOT NULL,
-    ClosedBy             TEXT,                -- 管理画面のアカウント名 (認証の導入まで NULL)
+    ClosedBy             TEXT,                -- 管理画面のアカウント名 (認証を無効にしているときは NULL)
     ShiftCount           INTEGER  NOT NULL,
     SalesCount           INTEGER  NOT NULL,
     ReturnCount          INTEGER  NOT NULL,

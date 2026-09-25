@@ -16,12 +16,15 @@ internal static class TestData
     public static readonly Guid MainCashierStaffId = Id(3, 3);
     public static readonly Guid BranchCashierStaffId = Id(3, 4);
 
+    public static readonly Guid AccessoryCategoryId = Id(4, 23);
+
     public static readonly Guid StandardTaxRateId = Id(5, 1);
 
     public static readonly Guid CameraProductId = Id(6, 11);
     public static readonly Guid SdCardProductId = Id(6, 17);
     public static readonly Guid DeliveryProductId = Id(6, 31);
 
+    // 明細値引「展示品 5%」(承認が必要)
     public static readonly Guid DisplayDiscountId = Id(7, 2);
 
     public static readonly Guid CashPaymentMethodId = Id(8, 1);

@@ -28,9 +28,6 @@ public sealed class ApiResult<T>
 
     public bool IsNotFound => (Status == ApiStatus.HttpError) && (StatusCode == HttpStatusCode.NotFound);
 
-    // 端末の登録が無効 (トークンの解除など)。再登録すれば送れる
-    public bool IsUnauthorized => (Status == ApiStatus.HttpError) && (StatusCode == HttpStatusCode.Unauthorized);
-
     // 再送しても解決しない応答 (要確認)。登録が無効 (401) と試行回数の上限 (429) は再登録・時間をおけば送れる
     public bool IsRejected => (Status == ApiStatus.HttpError) && ((int)StatusCode is >= 400 and < 500) && (StatusCode is not (HttpStatusCode.Unauthorized or HttpStatusCode.TooManyRequests));
 

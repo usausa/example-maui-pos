@@ -32,8 +32,8 @@
         </MudTd>
         <MudTd><StatusChip Value="@ViewHelper.AccountRoleChip(context.Role)" /></MudTd>
         <MudTd><StatusChip Value="@ViewHelper.ActiveChip(context.IsActive)" /></MudTd>
-        <MudTd Class="no-wrap">@context.LastLoginAt.ToDateTimeText()</MudTd>
-        <MudTd Class="no-wrap">@context.UpdatedAt.ToDateTimeText()</MudTd>
+        <MudTd Class="no-wrap">@context.LastLoginAt.ToShortDateTimeText()</MudTd>
+        <MudTd Class="no-wrap">@context.UpdatedAt.ToShortDateTimeText()</MudTd>
         <MudTd Class="no-wrap">
             <MudTooltip Text="パスワード変更">
                 <MudIconButton Icon="@Icons.Material.Filled.Key" Size="Size.Small" Disabled="IsBusy" OnClick="() => ChangePasswordAsync(context)" />

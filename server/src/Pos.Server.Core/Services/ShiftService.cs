@@ -182,29 +182,44 @@ public sealed class ShiftService
 
         if (shift.Status == ShiftStatus.Closed)
         {
-            return shift.ActualCash == parameter.ActualCash
-                ? new ShiftResult(ShiftResultStatus.Existing, await LoadDetailAsync(shift, cancellationToken))
-                : new ShiftResult(ShiftResultStatus.Closed);
+            return await ClosedResultAsync(shift, parameter, cancellationToken);
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var totals = await shiftAccessor.QuerySummaryAsync(id, cancellationToken) ?? ShiftTotalsView.Empty;
         var expectedCash = ExpectedCash(shift.OpeningCash, totals);
-        await provider.UsingTxAsync(async (_, tx) =>
+        var updated = await provider.UsingTxAsync(async (_, tx) =>
         {
-            await shiftAccessor.UpdateClosedAsync(tx, id, parameter.ClosedAt, parameter.ClosedByStaffId, parameter.ActualCash, expectedCash, parameter.ActualCash - expectedCash, totals, parameter.Note, now, cancellationToken);
+            // 読んでから更新するまでに同じシフトの精算が先に通っていたら、金種を足さずに終える
+            if (await shiftAccessor.UpdateClosedAsync(tx, id, parameter.ClosedAt, parameter.ClosedByStaffId, parameter.ActualCash, expectedCash, parameter.ActualCash - expectedCash, totals, parameter.Note, now, cancellationToken) == 0)
+            {
+                return false;
+            }
+
             foreach (var denomination in parameter.Denominations)
             {
                 await shiftAccessor.InsertDenominationAsync(tx, new ShiftDenominationEntity { ShiftId = id, Denomination = denomination.Denomination, Count = denomination.Count }, cancellationToken);
             }
 
             await tx.CommitAsync(cancellationToken);
+            return true;
         }, cancellationToken);
 
         var closed = await shiftAccessor.QueryAsync(id, cancellationToken);
+        if (!updated)
+        {
+            return await ClosedResultAsync(closed!, parameter, cancellationToken);
+        }
+
         changeNotification.Notify(DataChangeKind.Shift);
         return new ShiftResult(ShiftResultStatus.Success, await LoadDetailAsync(closed!, cancellationToken));
     }
+
+    // 精算済み: 実査金額が同じなら再送とみなして Existing、違えば Closed
+    private async ValueTask<ShiftResult> ClosedResultAsync(ShiftEntity shift, ShiftCloseParameter parameter, CancellationToken cancellationToken) =>
+        shift.ActualCash == parameter.ActualCash
+            ? new ShiftResult(ShiftResultStatus.Existing, await LoadDetailAsync(shift, cancellationToken))
+            : new ShiftResult(ShiftResultStatus.Closed);
 
     //--------------------------------------------------------------------------------
     // CashEvent

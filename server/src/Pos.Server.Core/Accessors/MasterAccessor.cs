@@ -223,10 +223,11 @@ public sealed partial class MasterAccessor
 
     [Execute]
     [Insert(typeof(TaxRateEntity))]
-    public partial ValueTask<int> InsertTaxRateAsync(TaxRateEntity entity, CancellationToken cancellationToken);
+    public partial ValueTask<int> InsertTaxRateAsync(DbTransaction tx, TaxRateEntity entity, CancellationToken cancellationToken);
 
     [QueryFirst]
     public partial ValueTask<TaxRateEntity?> UpdateTaxRateAsync(
+        DbTransaction tx,
         Guid id,
         string code,
         string name,
@@ -243,7 +244,7 @@ public sealed partial class MasterAccessor
 
     // 既定は 1 件だけ: 指定 ID 以外の IsDefault を落とす
     [Execute]
-    public partial ValueTask<int> UpdateTaxRateDefaultClearedAsync(Guid exceptId, DateTime updatedAt, CancellationToken cancellationToken);
+    public partial ValueTask<int> UpdateTaxRateDefaultClearedAsync(DbTransaction tx, Guid exceptId, DateTime updatedAt, CancellationToken cancellationToken);
 
     // 削除可否 (使用中商品があれば IN_USE)
     [ExecuteScalar]

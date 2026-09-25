@@ -5,7 +5,7 @@ SELECT
     t.Name AS TerminalName
 FROM
     TerminalTokens tt
-    INNER JOIN Terminals t ON t.Id = tt.TerminalId
+    JOIN Terminals t ON t.Id = tt.TerminalId
 WHERE
     tt.TokenHash = /*@ tokenHash */NULL
     AND tt.RevokedAt IS NULL

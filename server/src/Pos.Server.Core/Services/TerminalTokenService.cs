@@ -125,7 +125,7 @@ public sealed class TerminalTokenService
 
     // 有効なトークンなら端末と店舗 (null = 不明・解除済み・端末が無効)
     public ValueTask<TerminalTokenView?> AuthenticateAsync(string token, CancellationToken cancellationToken) =>
-        tokenAccessor.QueryTokenAsync(HashToken(token), cancellationToken);
+        tokenAccessor.QueryByTokenHashAsync(HashToken(token), cancellationToken);
 
     public ValueTask<List<TerminalRegistrationView>> QueryRegistrationListAsync(CancellationToken cancellationToken) =>
         tokenAccessor.QueryRegistrationListAsync(cancellationToken);
