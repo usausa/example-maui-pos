@@ -2,7 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
-             xmlns:fonts="clr-namespace:Fonts"
+             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Shift"
              x:Class="Pos.Terminal.Modules.Shift.CashEventView"
@@ -18,40 +18,6 @@
              shell:ShellProperty.Function3Enabled="False"
              shell:ShellProperty.Function4Enabled="True">
 
-    <ContentView.Resources>
-        <!-- 種別の記号 (選択中は背景が濃くなるので白) -->
-        <FontImageSource x:Key="PaidInIcon"
-                         FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
-                         Glyph="{x:Static fonts:MaterialIcons.Arrow_downward}"
-                         Color="{StaticResource PrimaryTextColor}"
-                         Size="20" />
-        <FontImageSource x:Key="PaidInSelectedIcon"
-                         FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
-                         Glyph="{x:Static fonts:MaterialIcons.Arrow_downward}"
-                         Color="White"
-                         Size="20" />
-        <FontImageSource x:Key="PaidOutIcon"
-                         FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
-                         Glyph="{x:Static fonts:MaterialIcons.Arrow_upward}"
-                         Color="{StaticResource PrimaryTextColor}"
-                         Size="20" />
-        <FontImageSource x:Key="PaidOutSelectedIcon"
-                         FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
-                         Glyph="{x:Static fonts:MaterialIcons.Arrow_upward}"
-                         Color="White"
-                         Size="20" />
-        <FontImageSource x:Key="NoSaleIcon"
-                         FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
-                         Glyph="{x:Static fonts:MaterialIcons.Point_of_sale}"
-                         Color="{StaticResource PrimaryTextColor}"
-                         Size="20" />
-        <FontImageSource x:Key="NoSaleSelectedIcon"
-                         FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
-                         Glyph="{x:Static fonts:MaterialIcons.Point_of_sale}"
-                         Color="White"
-                         Size="20" />
-    </ContentView.Resources>
-
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,*">
         <VerticalStackLayout Grid.Row="0"
@@ -65,7 +31,7 @@
                         HeightRequest="56"
                         Command="{Binding SelectTypeCommand}"
                         CommandParameter="PaidIn"
-                        ImageSource="{StaticResource PaidInIcon}"
+                        ImageSource="{x:Static markup:AppIcons.PaidIn}"
                         Text="入金">
                     <Button.Triggers>
                         <DataTrigger TargetType="Button"
@@ -73,7 +39,7 @@
                                      Value="PaidIn">
                             <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
                             <Setter Property="TextColor" Value="White" />
-                            <Setter Property="ImageSource" Value="{StaticResource PaidInSelectedIcon}" />
+                            <Setter Property="ImageSource" Value="{x:Static markup:AppIcons.PaidInSelected}" />
                         </DataTrigger>
                     </Button.Triggers>
                 </Button>
@@ -82,7 +48,7 @@
                         HeightRequest="56"
                         Command="{Binding SelectTypeCommand}"
                         CommandParameter="PaidOut"
-                        ImageSource="{StaticResource PaidOutIcon}"
+                        ImageSource="{x:Static markup:AppIcons.PaidOut}"
                         Text="出金">
                     <Button.Triggers>
                         <DataTrigger TargetType="Button"
@@ -90,7 +56,7 @@
                                      Value="PaidOut">
                             <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
                             <Setter Property="TextColor" Value="White" />
-                            <Setter Property="ImageSource" Value="{StaticResource PaidOutSelectedIcon}" />
+                            <Setter Property="ImageSource" Value="{x:Static markup:AppIcons.PaidOutSelected}" />
                         </DataTrigger>
                     </Button.Triggers>
                 </Button>
@@ -99,7 +65,7 @@
                         HeightRequest="56"
                         Command="{Binding SelectTypeCommand}"
                         CommandParameter="NoSale"
-                        ImageSource="{StaticResource NoSaleIcon}"
+                        ImageSource="{x:Static markup:AppIcons.NoSale}"
                         Text="ドロワ開">
                     <Button.Triggers>
                         <DataTrigger TargetType="Button"
@@ -107,7 +73,7 @@
                                      Value="NoSale">
                             <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
                             <Setter Property="TextColor" Value="White" />
-                            <Setter Property="ImageSource" Value="{StaticResource NoSaleSelectedIcon}" />
+                            <Setter Property="ImageSource" Value="{x:Static markup:AppIcons.NoSaleSelected}" />
                         </DataTrigger>
                     </Button.Triggers>
                 </Button>

@@ -4,6 +4,7 @@
              xmlns:s="http://smart/maui"
              xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
              xmlns:fonts="clr-namespace:Fonts"
+             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
@@ -42,7 +43,7 @@
                     Style="{StaticResource PosMethodButton}"
                     Margin="0"
                     Command="{Binding SearchCommand}"
-                    ImageSource="{StaticResource PosSearchIcon}"
+                    ImageSource="{x:Static markup:AppIcons.PosSearch}"
                     Text="検索" />
         </Grid>
 

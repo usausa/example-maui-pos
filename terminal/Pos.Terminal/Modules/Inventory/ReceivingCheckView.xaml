@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
+             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Inventory"
@@ -55,7 +56,7 @@
                 Style="{StaticResource PosMethodButton}"
                 Margin="8"
                 Command="{Binding InputCodeCommand}"
-                ImageSource="{StaticResource PosDialpadIcon}"
+                ImageSource="{x:Static markup:AppIcons.PosDialpad}"
                 Text="JAN / 商品コードを入力" />
 
         <!-- 左端の帯と行の背景で届いた数の状態を示す。タップで届いた数を入れ直す -->

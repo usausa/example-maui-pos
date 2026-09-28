@@ -48,7 +48,8 @@ paths:
 - 画面は灰色の背景の見出しと幅いっぱいの白い面で組む (`SectionPanel` / `PosSectionTemplate`)。角丸のカードを並べる作りにせず、角丸はチップ・アバター・ボタン・シートだけに使う
 - 主な金額は白い帯 (`PosHeroBorder`)、件数や金額の集計は罫線の表 (`PosStatGrid`) にする
 - 状態のある一覧は左端の帯と行の背景で状態を示し、区切り線で並べる。状態の文言はチップ (`StatusChip`) で示す
-- 記号は、チップなら `StatusChip.Icon` (Material Icons のグリフ)、濃い背景のボタンなら白い `FontImageSource` (`PosSearchIcon` など) で付ける。選択で背景が濃くなるボタンは Trigger でアイコンも白にする
+- 記号は、チップなら `StatusChip.Icon` (Material Icons のグリフ)、濃い背景のボタンなら白い `FontImageSource` で付ける。選択で背景が濃くなるボタンは Trigger でアイコンも白 (`XxxSelected`) にする
+- ボタンの `FontImageSource` は `Markup/AppIcons` の静的フィールドに足し、XAML から `{x:Static markup:AppIcons.Xxx}` で使う (`Styles.xaml` や画面の `Resources` に置かない)
 - 一覧やスキャン待ちの空の状態は `PosEmptyStack` (絵文字 + 案内文) にし、案内文だけの `Label` にしない
 - 時間のかかる処理を待つ画面は `PosLoadingIndicator` を出す
 - オンラインで取る一覧・集計は `CurrentState` に `ViewHelper.LoadingState` / `OfflineState` を入れて `EqualsConverter` で結果の上に重ね、取得のたびに `LoadingState` から始めて `notify: false` で呼ぶ (CommunityToolkit の `StateContainer` は使わない)

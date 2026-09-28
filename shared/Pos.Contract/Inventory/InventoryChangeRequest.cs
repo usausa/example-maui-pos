@@ -39,26 +39,3 @@ public sealed class InventoryChangeRequestChange : IValidatableObject
         }
     }
 }
-
-// 要素ごとの結果
-public sealed class InventoryChangeResultResponse
-{
-    public IReadOnlyList<InventoryChangeResultResponseResult> Results { get; set; } = default!;
-}
-
-public sealed class InventoryChangeResultResponseResult
-{
-    public Guid Id { get; set; }
-
-    public InventoryChangeResultStatus Status { get; set; }
-
-    public decimal QuantityDelta { get; set; }
-
-    public decimal QuantityAfter { get; set; }
-}
-
-public enum InventoryChangeResultStatus
-{
-    Created,
-    Duplicate
-}

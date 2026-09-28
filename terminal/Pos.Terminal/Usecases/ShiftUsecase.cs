@@ -7,9 +7,10 @@ using Pos.Contract.Transactions;
 using Pos.Terminal.Models.Entity;
 
 using Smart.Data;
+using Smart.Mapper;
 
 // シフト: 開設 (サーバに残っていれば引き継ぎ)、精算、入出金、集計。書き込みは Outbox 経由でサーバへ送る
-public sealed class ShiftUsecase
+public sealed partial class ShiftUsecase
 {
     private readonly IDbProvider provider;
 
@@ -55,18 +56,7 @@ public sealed class ShiftUsecase
             return null;
         }
 
-        var entity = new LocalShiftEntity
-        {
-            Id = shift.Id,
-            StoreId = shift.StoreId,
-            TerminalId = shift.TerminalId,
-            Status = shift.Status,
-            BusinessDate = shift.BusinessDate,
-            OpenedAt = shift.OpenedAt,
-            OpenedByStaffId = shift.OpenedByStaffId,
-            OpeningCash = shift.OpeningCash,
-            Note = shift.Note
-        };
+        var entity = ToEntity(shift);
         await accessor.InsertServerShiftAsync(entity);
         session.CurrentShift = entity;
         return entity;
@@ -87,16 +77,7 @@ public sealed class ShiftUsecase
             OpenedByStaffId = session.Staff!.Id,
             OpeningCash = openingCash
         };
-        var request = new ShiftOpenRequest
-        {
-            Id = entity.Id,
-            StoreId = entity.StoreId,
-            TerminalId = entity.TerminalId,
-            BusinessDate = entity.BusinessDate,
-            OpenedAt = entity.OpenedAt,
-            OpenedByStaffId = entity.OpenedByStaffId,
-            OpeningCash = entity.OpeningCash
-        };
+        var request = ToRequest(entity);
         await provider.UsingTxAsync(async (_, tx) =>
         {
             await accessor.InsertShiftAsync(tx, entity);
@@ -151,15 +132,7 @@ public sealed class ShiftUsecase
             StaffId = session.Staff!.Id,
             OccurredAt = now
         };
-        var request = new ShiftCashEventRequest
-        {
-            Id = entity.Id,
-            Type = entity.Type,
-            Amount = entity.Amount,
-            Reason = entity.Reason,
-            StaffId = entity.StaffId,
-            OccurredAt = entity.OccurredAt
-        };
+        var request = ToRequest(entity);
         await provider.UsingTxAsync(async (_, tx) =>
         {
             await accessor.InsertCashEventAsync(tx, entity);
@@ -201,4 +174,19 @@ public sealed class ShiftUsecase
 
         return (await BuildSummaryAsync(shift), false);
     }
+
+    //--------------------------------------------------------------------------------
+    // Mapper
+    //--------------------------------------------------------------------------------
+
+    // 開設中の予想現金はサーバが応答の時点で集計した途中の値なので写さない (端末の集計は値がないときに自分で求める)
+    [Mapper]
+    [MapIgnore(nameof(LocalShiftEntity.ExpectedCash))]
+    private static partial LocalShiftEntity ToEntity(ShiftResponseItem shift);
+
+    [Mapper]
+    private static partial ShiftOpenRequest ToRequest(LocalShiftEntity entity);
+
+    [Mapper]
+    private static partial ShiftCashEventRequest ToRequest(LocalCashEventEntity entity);
 }

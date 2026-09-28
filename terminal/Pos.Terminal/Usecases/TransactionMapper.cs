@@ -4,6 +4,8 @@ using Pos.Contract.Transactions;
 using Pos.Domain.Logic;
 using Pos.Terminal.Models.Cart;
 
+using Smart.Mapper;
+
 // 取引の文脈 (店舗・端末・担当・シフト・レシート番号)
 public sealed record TransactionContext(
     Guid StoreId,
@@ -15,7 +17,7 @@ public sealed record TransactionContext(
     DateTime TransactedAt);
 
 // Cart → Pos.Domain の計算入力 → TransactionCreateRequest (端末が計算した項目を含む)。サーバは同じ計算で検証する
-public static class TransactionMapper
+public static partial class TransactionMapper
 {
     // 店舗・端末・担当・シフトが揃っているとき (Session.CanTransact) だけ呼ぶ
     public static TransactionContext CreateContext(Session session, string receiptNo, DateTime transactedAt)
@@ -130,19 +132,13 @@ public static class TransactionMapper
             PointsEarned = result.PointsEarned,
             PointsRedeemed = result.PointsRedeemed,
             OrderId = cart.OrderId,
-            Delivery = cart.Delivery is null ? null : new TransactionCreateRequestDelivery
-            {
-                RecipientName = cart.Delivery.RecipientName,
-                Phone = cart.Delivery.Phone,
-                PostalCode = cart.Delivery.PostalCode,
-                Address = cart.Delivery.Address,
-                RequestedDate = cart.Delivery.RequestedDate,
-                TimeSlot = cart.Delivery.TimeSlot,
-                Note = cart.Delivery.Note
-            },
+            Delivery = cart.Delivery is null ? null : ToRequestDelivery(cart.Delivery),
             Note = cart.Note
         };
     }
+
+    [Mapper]
+    private static partial TransactionCreateRequestDelivery ToRequestDelivery(CartDelivery delivery);
 
     private static TransactionCreateRequestDiscount ToRequestDiscount(CartDiscount discount, Guid? lineId, SalesResult result) => new()
     {
@@ -166,24 +162,14 @@ public static class TransactionMapper
         return new ReturnInput
         {
             TaxRounding = taxRounding,
-            OriginalLines = original.Lines.Select(static x => new ReturnOriginalLine
-            {
-                Id = x.Id,
-                UnitPrice = x.UnitPrice,
-                Quantity = x.Quantity,
-                ReturnedQuantity = x.ReturnedQuantity,
-                DiscountAmount = x.DiscountAmount,
-                AllocatedDiscountAmount = x.AllocatedDiscountAmount,
-                PointsEarned = x.PointsEarned,
-                PointsRedeemed = x.PointsRedeemed,
-                TaxRateId = x.TaxRateId,
-                TaxRate = x.TaxRate,
-                TaxIncluded = x.TaxIncluded
-            }).ToList(),
+            OriginalLines = original.Lines.Select(ToOriginalLine).ToList(),
             Lines = returns.Select((x, i) => new ReturnInputLine { Id = Guid.CreateVersion7(), LineNo = i + 1, OriginalLineId = x.Line.Id, Quantity = x.Quantity }).ToList(),
             Payments = payments.Select(static x => new SalesInputPayment { Id = x.Id, Kind = x.Method.Kind, Amount = x.Amount, TenderedAmount = x.TenderedAmount, AllowsChange = x.Method.AllowsChange }).ToList()
         };
     }
+
+    [Mapper]
+    private static partial ReturnOriginalLine ToOriginalLine(TransactionResponseLine line);
 
     public static TransactionCreateRequest ToReturnRequest(TransactionResponseItem original, IReadOnlyList<(TransactionResponseLine Line, decimal Quantity)> returns, IEnumerable<CartPayment> payments, SalesResult result, TransactionContext context, string? note)
     {
@@ -254,79 +240,38 @@ public static class TransactionMapper
     //--------------------------------------------------------------------------------
 
     private static List<TransactionCreateRequestTaxSummary> ToTaxSummaries(SalesResult result) =>
-        result.TaxSummaries.Select(static x => new TransactionCreateRequestTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList();
+        result.TaxSummaries.Select(ToRequestTaxSummary).ToList();
+
+    [Mapper]
+    private static partial TransactionCreateRequestTaxSummary ToRequestTaxSummary(SalesResultTaxSummary summary);
 
     private static List<TransactionCreateRequestPayment> ToRequestPayments(IEnumerable<CartPayment> payments) =>
         payments.Select(static (x, i) => new TransactionCreateRequestPayment { Id = x.Id, SeqNo = i + 1, PaymentMethodId = x.Method.Id, Kind = x.Method.Kind, Amount = x.Amount, TenderedAmount = x.TenderedAmount, Reference = x.Reference }).ToList();
 
-    // 端末側の履歴用にサーバ応答と同じ形へ (送信後はサーバの応答で置き換える)
-    public static TransactionResponseItem ToResponse(TransactionCreateRequest request)
-    {
-        return new TransactionResponseItem
-        {
-            Id = request.Id,
-            Type = request.Type,
-            Status = request.Status,
-            StoreId = request.StoreId,
-            TerminalId = request.TerminalId,
-            StaffId = request.StaffId,
-            ShiftId = request.ShiftId,
-            CustomerId = request.CustomerId,
-            ReceiptNo = request.ReceiptNo,
-            BusinessDate = request.BusinessDate,
-            TransactedAt = request.TransactedAt,
-            OriginalTransactionId = request.OriginalTransactionId,
-            Lines = request.Lines.Select(static x => new TransactionResponseLine
-            {
-                Id = x.Id,
-                LineNo = x.LineNo,
-                ProductId = x.ProductId,
-                ProductCode = x.ProductCode,
-                ProductName = x.ProductName,
-                CategoryId = x.CategoryId,
-                Kind = x.Kind,
-                ListPrice = x.ListPrice,
-                UnitPrice = x.UnitPrice,
-                Quantity = x.Quantity,
-                TaxRateId = x.TaxRateId,
-                TaxRate = x.TaxRate,
-                TaxIncluded = x.TaxIncluded,
-                PointRate = x.PointRate,
-                Amount = x.Amount,
-                DiscountAmount = x.DiscountAmount,
-                AllocatedDiscountAmount = x.AllocatedDiscountAmount,
-                NetAmount = x.NetAmount,
-                PointsRedeemed = x.PointsRedeemed,
-                PointsEarned = x.PointsEarned,
-                SerialNumbers = x.SerialNumbers,
-                OriginalLineId = x.OriginalLineId,
-                Note = x.Note
-            }).ToList(),
-            Discounts = request.Discounts.Select(static x => new TransactionResponseDiscount { Id = x.Id, LineId = x.LineId, DiscountId = x.DiscountId, Name = x.Name, Type = x.Type, Value = x.Value, Amount = x.Amount, Reason = x.Reason, ApprovedByStaffId = x.ApprovedByStaffId }).ToList(),
-            TaxSummaries = request.TaxSummaries.Select(static x => new TransactionResponseTaxSummary { TaxRateId = x.TaxRateId, Rate = x.Rate, TaxIncluded = x.TaxIncluded, TaxableAmount = x.TaxableAmount, TaxAmount = x.TaxAmount }).ToList(),
-            Subtotal = request.Subtotal,
-            DiscountTotal = request.DiscountTotal,
-            NetSubtotal = request.NetSubtotal,
-            TaxTotal = request.TaxTotal,
-            Total = request.Total,
-            Payments = request.Payments.Select(static x => new TransactionResponsePayment { Id = x.Id, SeqNo = x.SeqNo, PaymentMethodId = x.PaymentMethodId, Kind = x.Kind, Amount = x.Amount, TenderedAmount = x.TenderedAmount, Reference = x.Reference, Note = x.Note }).ToList(),
-            TenderedTotal = request.TenderedTotal,
-            ChangeAmount = request.ChangeAmount,
-            PointsEarned = request.PointsEarned,
-            PointsRedeemed = request.PointsRedeemed,
-            Delivery = request.Delivery is null ? null : new TransactionResponseDelivery
-            {
-                RecipientName = request.Delivery.RecipientName,
-                Phone = request.Delivery.Phone,
-                PostalCode = request.Delivery.PostalCode,
-                Address = request.Delivery.Address,
-                RequestedDate = request.Delivery.RequestedDate,
-                TimeSlot = request.Delivery.TimeSlot,
-                Note = request.Delivery.Note
-            },
-            Note = request.Note,
-            CreatedAt = request.TransactedAt,
-            UpdatedAt = request.TransactedAt
-        };
-    }
+    // 端末側の履歴用にサーバ応答と同じ形へ (送信後はサーバの応答で置き換える)。端末が作る要求は取消を持たない
+    [Mapper]
+    [MapCollection(nameof(TransactionResponseItem.Lines), Mapper = nameof(ToResponse))]
+    [MapCollection(nameof(TransactionResponseItem.Discounts), Mapper = nameof(ToResponse))]
+    [MapCollection(nameof(TransactionResponseItem.TaxSummaries), Mapper = nameof(ToResponse))]
+    [MapCollection(nameof(TransactionResponseItem.Payments), Mapper = nameof(ToResponse))]
+    [MapNested(nameof(TransactionResponseItem.Delivery), Mapper = nameof(ToResponse))]
+    [MapIgnore(nameof(TransactionResponseItem.Void))]
+    [MapProperty(nameof(TransactionResponseItem.CreatedAt), nameof(TransactionCreateRequest.TransactedAt))]
+    [MapProperty(nameof(TransactionResponseItem.UpdatedAt), nameof(TransactionCreateRequest.TransactedAt))]
+    public static partial TransactionResponseItem ToResponse(TransactionCreateRequest request);
+
+    [Mapper]
+    private static partial TransactionResponseLine ToResponse(TransactionCreateRequestLine line);
+
+    [Mapper]
+    private static partial TransactionResponseDiscount ToResponse(TransactionCreateRequestDiscount discount);
+
+    [Mapper]
+    private static partial TransactionResponseTaxSummary ToResponse(TransactionCreateRequestTaxSummary summary);
+
+    [Mapper]
+    private static partial TransactionResponsePayment ToResponse(TransactionCreateRequestPayment payment);
+
+    [Mapper]
+    private static partial TransactionResponseDelivery ToResponse(TransactionCreateRequestDelivery delivery);
 }

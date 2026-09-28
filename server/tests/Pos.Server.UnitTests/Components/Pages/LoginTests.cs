@@ -6,13 +6,17 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
 
+using NSubstitute;
+
 using Pos.Server.Host.Components.Pages;
 
 public sealed class LoginTests : MudBlazorTestBase
 {
     public LoginTests()
     {
-        Services.AddSingleton<AntiforgeryStateProvider>(new FakeAntiforgeryStateProvider());
+        var antiforgery = Substitute.For<AntiforgeryStateProvider>();
+        antiforgery.GetAntiforgeryToken().Returns(new AntiforgeryRequestToken("token", "__RequestVerificationToken"));
+        Services.AddSingleton(antiforgery);
     }
 
     // 初めて開いたときはエラーを出さない
@@ -55,10 +59,5 @@ public sealed class LoginTests : MudBlazorTestBase
 
         // Assert
         Assert.Contains("試行が多すぎます", cut.Find(".mud-alert").TextContent, StringComparison.Ordinal);
-    }
-
-    private sealed class FakeAntiforgeryStateProvider : AntiforgeryStateProvider
-    {
-        public override AntiforgeryRequestToken GetAntiforgeryToken() => new("token", "__RequestVerificationToken");
     }
 }

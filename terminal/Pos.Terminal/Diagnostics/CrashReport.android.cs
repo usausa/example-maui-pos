@@ -1,4 +1,4 @@
-namespace Pos.Terminal.Helpers;
+namespace Pos.Terminal.Diagnostics;
 
 using Android.Runtime;
 

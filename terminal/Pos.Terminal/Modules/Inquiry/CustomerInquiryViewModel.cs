@@ -63,26 +63,10 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
             return;
         }
 
-        var id = context.Parameter.GetCustomerId();
-        if (id is not null)
-        {
-            await Navigator.PostActionAsync(() => LoadAsync(id.Value));
-            return;
-        }
-
         var scanned = context.Parameter.GetScanResult();
         if (scanned is not null)
         {
             await Navigator.PostActionAsync(() => LookupAsync(scanned));
-        }
-    }
-
-    private async Task LoadAsync(Guid id)
-    {
-        var result = await network.ExecuteAsync(h => h.GetCustomerAsync(id), notifyNotFound: true);
-        if (result is { IsSuccess: true, Content: not null })
-        {
-            await UpdateCustomerAsync(result.Content);
         }
     }
 

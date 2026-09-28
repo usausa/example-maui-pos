@@ -374,6 +374,8 @@ POS サンプル (サーバ API・DB・管理画面・端末) の機能とアー
 - Android のバックアップと端末間の転送はしない (端末の識別と、未送信を含むローカル DB を別の端末に移さない)
 - 起動時にローカル DB を開けないときは理由を出して終了し、DB を作り直さない (未送信を失わない)。  
   未処理の例外は記録して、次の起動で知らせる
+- 電池と回線の状態は、MAUI の Essentials (`IBattery` / `IConnectivity`) を使わずに Android の通知から受け取る (Essentials は通知のたびに UI スレッドで状態を問い合わせ直す)
+- ボタンのアイコン (Material Icons のグリフ) は、MAUI の画像の読み込み (Glide) を通さずにその場で描く (Glide を通すと最初の画像化に待ちが出る)
 - 表示の色と文言の切り替えは、ViewModel ではなく Converter と Trigger で行う
 
 ### D-29. データは SQLite に置き、SQL ファイルで読み書きする

@@ -44,7 +44,6 @@ public sealed class SalesUsecase
         var context = TransactionMapper.CreateContext(session, receiptNo, DateTime.UtcNow);
         var request = TransactionMapper.ToRequest(cart, payments, result, context);
         var response = TransactionMapper.ToResponse(request);
-        response.OrderId = cart.OrderId;
         response.OrderNo = cart.OrderNo;
         if (cart.Customer is not null)
         {

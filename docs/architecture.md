@@ -90,8 +90,8 @@ Pos.Server.Host ───────┤                      ▲
 | `Pos.Server.Core` | Usa.Smart.Data.Accessor (+ Extensions.DependencyInjection)、BunnyTail.ServiceRegistration |
 | `Pos.Server.Host` | MudBlazor、FluentValidation、Usa.Smart.Mapper、Microsoft.Data.Sqlite、MiniDataProfiler.*、OysterReport、CsvHelper、QRCoder、Microsoft.AspNetCore.OpenApi + NSwag.AspNetCore、Serilog.*、OpenTelemetry.* (計装と OTLP / Prometheus のエクスポータ)、Microsoft.Extensions.Hosting.WindowsServices / Systemd |
 | `Pos.Server.AppHost` | Aspire.AppHost.Sdk (SDK) |
-| `Pos.Terminal` | Usa.Smart.Navigation.*、Usa.Smart.Mvvm、Usa.Smart.Maui (+ Extensions)、BunnyTail.DependencyInjection、Components.Maui、CommunityToolkit.Maui、Syncfusion.Maui.Toolkit (SfEffectsView)、BarcodeScanning.Native.Maui、SkiaSharp (+ Views.Maui.Controls)、QRCoder、Microsoft.Data.Sqlite + Usa.Smart.Data.Accessor、Microsoft.Extensions.Http、System.Reactive |
-| テスト | xunit.v3、Microsoft.Testing.Extensions.CodeCoverage、bunit (`Pos.Server.UnitTests`)、Microsoft.AspNetCore.Mvc.Testing (`Pos.Server.IntegrationTests`) |
+| `Pos.Terminal` | Usa.Smart.Navigation.*、Usa.Smart.Mvvm、Usa.Smart.Maui (+ Extensions)、BunnyTail.DependencyInjection、Components.Maui、CommunityToolkit.Maui、Syncfusion.Maui.Toolkit (SfEffectsView)、BarcodeScanning.Native.Maui、SkiaSharp (+ Views.Maui.Controls)、QRCoder、Microsoft.Data.Sqlite + Usa.Smart.Data.Accessor、Usa.Smart.Mapper、Microsoft.Extensions.Http、System.Reactive |
+| テスト | xunit.v3、Microsoft.Testing.Extensions.CodeCoverage、bunit + NSubstitute (`Pos.Server.UnitTests`)、Microsoft.AspNetCore.Mvc.Testing (`Pos.Server.IntegrationTests`) |
 
 - 脆弱性の警告が出る推移的な依存は直接ピンし、GHSA 番号を csproj のコメントに書く (`Microsoft.OpenApi`、`SQLitePCLRaw.bundle_e_sqlite3`)
 
@@ -234,7 +234,7 @@ wwwroot/                             css/app.css, js/reconnect.js
 ```
 Length.cs             文字列の長さと入力の桁数 (DB の列長・Request の検証・管理画面のフォーム・端末の電卓で共用)
 Enums/                列挙型を 1 型 1 ファイルで: TransactionType, TransactionStatus, ProductKind, PaymentKind, DiscountType, DiscountScope,
-                      TaxKind, StaffRole, ShiftStatus, DailyClosingStatus, OrderType, OrderStatus, OrderDepositType, CashEventType, InventoryChangeType, InventoryReceiptStatus,
+                      TaxKind, StaffRole, ShiftStatus, DailyClosingStatus, OrderType, OrderStatus, OrderDepositType, CashEventType, InventoryChangeType, InventoryChangeResultStatus, InventoryReceiptStatus,
                       InventoryTransferStatus, PurchaseOrderStatus, PointHistoryType, ImportAction (取込の行の結果),
                       TaxRounding, PointBasis、
                       ErrorCode / WarningCode (+ ErrorCodeExtensions.ToCode: UPPER_SNAKE_CASE)、RuleReason (違反の理由)
@@ -283,7 +283,7 @@ Shifts/        ShiftOpenRequest, ShiftResponse / ShiftResponseItem (+ Denominati
                ShiftCashEventRequest / ShiftCashEventResponse / ShiftCashEventResponseItem, ShiftSummaryResponse (+ PaymentMethod / TaxRate / Category / Points / Cash)
 DailyClosings/ DailyClosingCreateRequest, DailyClosingResponse / DailyClosingResponseItem, DailyClosingSummaryResponse (+ PaymentMethod / TaxRate / Shift)
 Inventory/     InventoryLevelResponse / InventoryLevelResponseItem, InventoryProductResponse (+ Level),
-               InventoryChangeRequest (+ Change) / InventoryChangeResultResponse (+ Result、InventoryChangeResultStatus),
+               InventoryChangeRequest (+ Change) / InventoryChangeResultResponse (+ Result),
                InventoryChangeResponse / InventoryChangeResponseItem
 AdjustmentReasons/ AdjustmentReasonResponse / AdjustmentReasonResponseItem / AdjustmentReasonCreateRequest / AdjustmentReasonUpdateRequest
 Suppliers/     SupplierResponse / SupplierResponseItem / SupplierCreateRequest / SupplierUpdateRequest
@@ -324,13 +324,16 @@ Shell/ ShellProperty (+ Active: 表示中の View だけがシェルを更新) /
 Behaviors/                           Entry / Label / Scroll などの動作、EntryBind (EntryController)、BarcodeBind (CameraView)
 Messaging/                           BarcodeController、EntryController
 Controls/                            SectionPanel (見出しと白い面の節)、StatusChip (状態を色と短い文言で示すチップ)
-Components/                          StorageManager (アプリのフォルダ。ローカル DB の置き場所)
+Components/                          StorageManager (アプリのフォルダ。ローカル DB の置き場所)、
+                                     DeviceInformation (電池・回線・無線 LAN の状態を Android の通知から受けて持ち、変化をイベントで知らせる。起動時に開始)
 Extender/                            NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)
 Log.cs                               [LoggerMessage] の集約
+Diagnostics/                         CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)
 Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、QrImageSourceConverter (QRCoder)、YenConverter、StockSendTextConverter、AvatarColorConverter / InitialConverter (会員のアバターの色と頭文字)。  
                                      色や選択マーク・画面固有の文言は Smart.Maui の BoolToColor / MapToColor / BoolToText を Styles.xaml で構成する
-Markup/                              ViewIdExtension (XAML で画面 ID を `{markup:ViewId Xxx}` と書く)
-Helpers/                             アプリに依存しない処理だけ: DateTimeHelper (日付書式の集約)、SettingParser (Key=Value)、CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)、ElementHelper、
+Markup/                              ViewIdExtension (XAML で画面 ID を `{markup:ViewId Xxx}` と書く)、
+                                     AppIcons (ボタンに付ける Material Icons のアイコン。XAML から `{x:Static markup:AppIcons.Xxx}` で使う)
+Helpers/                             アプリに依存しない処理だけ: DateTimeHelper (日付書式の集約)、SettingParser (Key=Value)、ElementHelper、
                                      Data/ (EnumTextConverter<T> / DateOnlyTextConverter / DateTimeTicksConverter / SchemaHelper / SqlHelper: LIKE のエスケープ)、Json/JsonDateTimeConverter
 Permissions.cs                       カメラ権限
 Modules/
@@ -376,16 +379,18 @@ Usecases/                            通信 → DB → 完了までの一連の�
   StockUsecase.cs / SetupUsecase.cs  棚卸・在庫調整の送信、初期設定 (ペアリング・トークンと設定の保存・初回同期)
   ReceivingUsecase.cs                受領待ちの入荷・移動の取得と受領 (オンライン。受領したら在庫の差分同期を促す)
   ReceivingMapper.cs                 入荷・移動の応答 → 受領待ちの伝票、数えた数 → 受領の要求
-  TransactionMapper.cs               Cart → Pos.Domain の計算入力 → TransactionCreateRequest の変換
+  TransactionMapper.cs               Cart → Pos.Domain の計算入力 → TransactionCreateRequest の変換、送る前の取引を履歴に出すための要求 → 応答の変換
   ShiftSummaryCalculator.cs          ローカルの取引・入出金・前受金からのシフト集計
 State/
-  DeviceState.cs / StartupState.cs
+  DeviceState.cs                     電池と回線の状態 (DeviceInformation の通知を UI スレッドに移して持つ。オンラインかどうかの判定に使う)
+  StartupState.cs                    起動処理の完了 (シェルは完了を待ってから最初の画面へ進む)
   Settings.cs                        ApiEndPoint / StoreId / TerminalId / PairedAt / OpenSalesAfterLogin (IPreferences。トークンは CredentialService の SecureStorage)
   Session.cs                         使用者に紐付く状態: 会社設定、店舗、端末、選択中スタッフ、開設中シフト、未送信 / 要確認件数、営業日、CanTransact
 Resources/
   Fonts/      MaterialIcons のみ
   Styles/     Colors.xaml、Styles.xaml (Converter の構成、POS 節: Pos 接頭辞のスタイル、ヘッダの状態表示 / 一覧行 / チップ / テンキー / 入力欄)
-Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper (外部ストレージがなければアプリ内のフォルダ)。権限はネットワーク・カメラ・電池の状態。  
+Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper (外部ストレージがなければアプリ内のフォルダ)、
+                   DirectFontImageSourceService (FontImageSource の画像を MAUI の画像の読み込み (Glide) を通さずにその場で描く)。権限はネットワーク・カメラ・電池の状態。  
                    バックアップと端末間の転送はしない (allowBackup = false、Resources/xml/data_extraction_rules.xml)
 ```
 
@@ -395,6 +400,8 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper (外
   同じ名前のプロパティを持つ画面の間で同じインスタンスが共有され、どの画面からも参照されなくなると破棄される (会計完了やメニューへ戻ると新しいカートになる)。  
   スキャンなど途中の画面は、呼び出し元の機能の状態を保持するために各コンテキストのプロパティを持つ
 - 使用者に常に紐付く情報 (店舗・端末・担当・シフト) は `Session` に集約する
+- ローカルのエンティティと要求・応答の間で同じ名前のプロパティを写す変換は、Smart.Mapper の `[Mapper]` を使う側の静的部分メソッドで持つ。  
+  カートや計算結果を組み合わせる変換は手で書き、複数の Usecase が使う取引の変換は `TransactionMapper` にまとめる
 - 通信は HttpClient + `System.Text.Json` (`HttpService.JsonOptions`: camelCase / null 省略 / 列挙型は文字列 / `JsonDateTimeConverter`) ([D-28](decisions.md#d-28-端末は-viewmodel-から-service-と-usecase-を呼ぶ))
 - 画面遷移は `Navigator.ForwardAsync` のみ (スタックは使わない)。  
   複数の画面から使う画面 (スキャン、会員選択、レシートなど) は `Parameters.WithReturnTo` で戻り先を受け取る

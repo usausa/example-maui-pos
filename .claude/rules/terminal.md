@@ -17,6 +17,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 - スキャンのような途中の画面は、呼び出し元の機能の状態を保持するために各コンテキストのプロパティを持つ。使用者に常に紐付く情報 (店舗、端末、担当、シフト) は `Session` に集約する
 - 背景のループから `Session` を変えるときは `MainThread.InvokeOnMainThreadAsync` を使う
 - UI スレッドを塞ぐ処理 (SkiaSharp の描画、PIN のハッシュの照合) は Service の中で `Task.Run` に回す
+- 電池と回線の状態は `DeviceState` から読み、Essentials の `IBattery` / `IConnectivity` は使わない (`DeviceInformation` が Android の通知から受け取る)
 - 承認が要る操作は `StaffLogic` で要否を判定し、`PinService.ChooseApproverAsync` で選んだ承認者を `ApprovedByStaffId` に入れる (画面で PIN を照合しない)
 - Service が `IDialog` / `IPopupNavigator` を使うのは、`PinService`、`NetworkService` のような画面をまたぐ対話だけにする
 - 日時は、保存と送信は `DateTime.UtcNow`、営業日は `Session.BusinessDate`、表示は `ViewHelper` で扱う
@@ -38,4 +39,8 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 - `Helpers/` にはアプリに依存しない処理だけを置く。日付の書式は `Helpers/DateTimeHelper`、LIKE のパターンの組み立ては `Helpers/Data/SqlHelper` (サーバの `SqlHelper` とは別物)
 - Converter は `Converters/` にまとめ、画面固有の Converter でも Modules の下には置かない
 - 共通のダイアログは `Modules/Dialogs/`、画面をまたぐモデルは `Models/{機能}/` (カートは `Models/Cart/`) に置く
-- Usecase だけが使う変換 (`XxxMapper`) と計算 (`XxxCalculator`) は `Usecases/`、`XxxBuilder` は `Services/`、見た目の部品は `Controls/`、プラットフォームのサービスは `Components/` に置く
+- Usecase だけが使う変換 (`XxxMapper`) と計算 (`XxxCalculator`) は `Usecases/`、`XxxBuilder` は `Services/`、見た目の部品は `Controls/`、プラットフォームのサービスは `Components/`、未処理の例外の記録 (`CrashReport`) は `Diagnostics/` に置く
+- 同じ名前のプロパティを写すだけの変換は代入を並べず、Smart.Mapper の `[Mapper] private static partial` で使うクラスに書く (複数の Usecase が使う変換は `XxxMapper`)
+- 一覧のプロパティは要素の `[Mapper]` を `[MapCollection]` に渡して写し、入れ子の 1 件は `[MapNested]` で写す。一覧そのものを返す変換は `[Mapper]` にできない (SMP0007) ので、別の元から一覧を作るときは `[MapUsing]` に渡す `Select(ToXxx).ToList()` で写す
+- 同じ名前でも写してはいけない列 (開設中の途中の集計など) は `[MapIgnore]` にし、理由をコメントに書く
+- 複数の入力 (カート、計算結果、文脈) を組み合わせる変換と、行番号や条件で値が変わる変換は手で書く

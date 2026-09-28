@@ -1900,26 +1900,6 @@
         <Setter Property="FontSize" Value="22" />
     </Style>
 
-    <!-- 濃い背景のボタンの記号は白い単色のアイコンにする (色付きの絵文字は背景に溶ける) -->
-
-    <FontImageSource x:Key="PosSearchIcon"
-                     FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
-                     Glyph="{x:Static fonts:MaterialIcons.Search}"
-                     Color="White"
-                     Size="18" />
-
-    <FontImageSource x:Key="PosDialpadIcon"
-                     FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
-                     Glyph="{x:Static fonts:MaterialIcons.Dialpad}"
-                     Color="White"
-                     Size="18" />
-
-    <FontImageSource x:Key="PosCartIcon"
-                     FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
-                     Glyph="{x:Static fonts:MaterialIcons.Shopping_cart}"
-                     Color="White"
-                     Size="30" />
-
     <!-- Field (フォーム入力) -->
 
     <Style x:Key="PosFieldLabel"

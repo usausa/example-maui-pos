@@ -3,6 +3,8 @@ namespace Pos.Terminal;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
+using Pos.Terminal.Diagnostics;
+
 #pragma warning disable CA1724
 public sealed partial class App
 {

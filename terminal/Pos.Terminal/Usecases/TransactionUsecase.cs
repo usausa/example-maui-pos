@@ -6,11 +6,12 @@ using Pos.Contract.Transactions;
 using Pos.Terminal.Models.Entity;
 
 using Smart.Data;
+using Smart.Mapper;
 
 public sealed record TransactionSummary(TransactionResponseItem Detail, OutboxStatus SyncStatus);
 
 // 取引の保存 (ローカル取引 + Outbox + 自店在庫キャッシュを 1 トランザクションで書く)、取消、履歴
-public sealed class TransactionUsecase
+public sealed partial class TransactionUsecase
 {
     private readonly IDbProvider provider;
 
@@ -157,22 +158,9 @@ public sealed class TransactionUsecase
     private static TransactionResponseItem? Deserialize(string payload) =>
         JsonSerializer.Deserialize<TransactionResponseItem>(payload, HttpService.JsonOptions);
 
-    private static LocalTransactionEntity ToEntity(TransactionResponseItem response) => new()
-    {
-        Id = response.Id,
-        Type = response.Type,
-        Status = response.Status,
-        ShiftId = response.ShiftId,
-        ReceiptNo = response.ReceiptNo,
-        BusinessDate = response.BusinessDate,
-        TransactedAt = response.TransactedAt,
-        CustomerId = response.CustomerId,
-        Total = response.Total,
-        PointsEarned = response.PointsEarned,
-        PointsRedeemed = response.PointsRedeemed,
-        OriginalTransactionId = response.OriginalTransactionId,
-        Payload = Serialize(response)
-    };
+    [Mapper]
+    [MapUsing(nameof(LocalTransactionEntity.Payload), nameof(Serialize))]
+    private static partial LocalTransactionEntity ToEntity(TransactionResponseItem response);
 
     // 在庫管理対象の商品だけ増減する
     private async ValueTask<List<(Guid ProductId, decimal Delta)>> ResolveInventoryDeltasAsync(IEnumerable<(Guid ProductId, decimal Delta)> lines)

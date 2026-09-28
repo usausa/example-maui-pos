@@ -19,8 +19,8 @@ using Plugin.Maui.DebugRainbows;
 
 using Pos.Terminal.Behaviors;
 using Pos.Terminal.Components;
+using Pos.Terminal.Diagnostics;
 using Pos.Terminal.Extender;
-using Pos.Terminal.Helpers;
 using Pos.Terminal.Modules;
 using Pos.Terminal.Modules.Dialogs;
 using Pos.Terminal.Modules.Inquiry;
@@ -168,6 +168,10 @@ public static partial class MauiProgram
             options.DisableShowSoftInputOnFocus = true;
         });
 
+#if ANDROID
+        builder.ConfigureImageSources(static services => services.AddService<FontImageSource>(static provider => new DirectFontImageSourceService(provider.GetRequiredService<IFontManager>())));
+#endif
+
         return builder;
     }
 
@@ -258,6 +262,7 @@ public static partial class MauiProgram
         });
 
         // Components
+        services.AddSingleton<DeviceInformation>();
         services.AddSingleton<IStorageManager, StorageManager>();
 
         // Resource
@@ -351,6 +356,9 @@ public static partial class MauiProgram
 
         // Setup provider
         ResolveProvider.Default.Provider = services;
+
+        // Start device information
+        services.GetRequiredService<DeviceInformation>().Start();
 
 #if DEBUG
         // Diagnostics for GeneratedServiceProvider

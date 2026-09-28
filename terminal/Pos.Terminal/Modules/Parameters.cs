@@ -23,7 +23,6 @@ public static class Parameters
     private const string TransactionIdKey = nameof(TransactionIdKey);
     private const string ShiftIdKey = nameof(ShiftIdKey);
     private const string CustomerKey = nameof(CustomerKey);
-    private const string CustomerIdKey = nameof(CustomerIdKey);
     private const string CallerReturnToKey = nameof(CallerReturnToKey);
     private const string ProductIdKey = nameof(ProductIdKey);
     private const string OrderIdKey = nameof(OrderIdKey);
@@ -69,12 +68,6 @@ public static class Parameters
 
     public static CustomerResponseItem? GetCustomer(this INavigationParameter parameter) =>
         parameter.TryGetValue<CustomerResponseItem>(CustomerKey, out var value) ? value : null;
-
-    public static NavigationParameter WithCustomerId(this NavigationParameter parameter, Guid id) =>
-        parameter.SetValue(CustomerIdKey, id);
-
-    public static Guid? GetCustomerId(this INavigationParameter parameter) =>
-        parameter.TryGetValue<Guid>(CustomerIdKey, out var value) ? value : null;
 
     // 戻り先 (会員選択などを複数の画面から使う)
 
