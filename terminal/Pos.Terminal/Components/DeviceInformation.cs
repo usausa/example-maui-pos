@@ -2,18 +2,9 @@ namespace Pos.Terminal.Components;
 
 using System.Diagnostics;
 
-public sealed record BatteryStatus(
-    double Level,
-    BatteryState State,
-    BatteryPowerSource PowerSource);
-
 public sealed record NetworkStatus(
     NetworkAccess Access,
     IReadOnlyList<ConnectionProfile> Profiles);
-
-public sealed record WiFiStatus(
-    int SignalStrength,
-    int LinkSpeed);
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global", Justification = "Process statistics are provided for diagnostic consumers.")]
 public readonly record struct ProcessStatistics(
@@ -38,7 +29,6 @@ public sealed partial class DeviceInformation : IDisposable
         }
 
         started = true;
-        StartBattery();
         StartNetwork();
     }
 
@@ -51,45 +41,20 @@ public sealed partial class DeviceInformation : IDisposable
 
         started = false;
         StopNetwork();
-        StopBattery();
     }
 
     public string DeviceId { get; } = ResolveDeviceId();
 
     private static partial string ResolveDeviceId();
 
-    public event EventHandler? BatteryChanged;
-
-    public BatteryStatus? Battery { get; private set; }
-
-    private void UpdateBattery(BatteryStatus status)
-    {
-        Battery = status;
-        BatteryChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private partial void StartBattery();
-
-    private partial void StopBattery();
-
     public event EventHandler? NetworkChanged;
 
-    public event EventHandler? WiFiChanged;
-
     public NetworkStatus? Network { get; private set; }
-
-    public WiFiStatus? WiFi { get; private set; }
 
     private void UpdateNetwork(NetworkStatus status)
     {
         Network = status;
         NetworkChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void UpdateWiFi(WiFiStatus? status)
-    {
-        WiFi = status;
-        WiFiChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private partial void StartNetwork();

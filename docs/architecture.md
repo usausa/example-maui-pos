@@ -325,7 +325,7 @@ Behaviors/                           Entry / Label / Scroll などの動作、En
 Messaging/                           BarcodeController、EntryController
 Controls/                            SectionPanel (見出しと白い面の節)、StatusChip (状態を色と短い文言で示すチップ)
 Components/                          StorageManager (アプリのフォルダ。ローカル DB の置き場所)、
-                                     DeviceInformation (電池・回線・無線 LAN の状態を Android の通知から受けて持ち、変化をイベントで知らせる。起動時に開始)
+                                     DeviceInformation (回線の状態を Android の通知から受けて持ち、変化をイベントで知らせる。起動時に開始)
 Extender/                            NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)
 Log.cs                               [LoggerMessage] の集約
 Diagnostics/                         CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)
@@ -382,7 +382,7 @@ Usecases/                            通信 → DB → 完了までの一連の�
   TransactionMapper.cs               Cart → Pos.Domain の計算入力 → TransactionCreateRequest の変換、送る前の取引を履歴に出すための要求 → 応答の変換
   ShiftSummaryCalculator.cs          ローカルの取引・入出金・前受金からのシフト集計
 State/
-  DeviceState.cs                     電池と回線の状態 (DeviceInformation の通知を UI スレッドに移して持つ。オンラインかどうかの判定に使う)
+  DeviceState.cs                     回線の状態 (DeviceInformation の通知を UI スレッドに移して持つ。オンラインかどうかの判定に使う)
   StartupState.cs                    起動処理の完了 (シェルは完了を待ってから最初の画面へ進む)
   Settings.cs                        ApiEndPoint / StoreId / TerminalId / PairedAt / OpenSalesAfterLogin (IPreferences。トークンは CredentialService の SecureStorage)
   Session.cs                         使用者に紐付く状態: 会社設定、店舗、端末、選択中スタッフ、開設中シフト、未送信 / 要確認件数、営業日、CanTransact
@@ -390,7 +390,7 @@ Resources/
   Fonts/      MaterialIcons のみ
   Styles/     Colors.xaml、Styles.xaml (Converter の構成、POS 節: Pos 接頭辞のスタイル、ヘッダの状態表示 / 一覧行 / チップ / テンキー / 入力欄)
 Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper (外部ストレージがなければアプリ内のフォルダ)、
-                   DirectFontImageSourceService (FontImageSource の画像を MAUI の画像の読み込み (Glide) を通さずにその場で描く)。権限はネットワーク・カメラ・電池の状態。  
+                   DirectFontImageSourceService (FontImageSource の画像を MAUI の画像の読み込み (Glide) を通さずにその場で描く)。権限はネットワークとカメラ。  
                    バックアップと端末間の転送はしない (allowBackup = false、Resources/xml/data_extraction_rules.xml)
 ```
 

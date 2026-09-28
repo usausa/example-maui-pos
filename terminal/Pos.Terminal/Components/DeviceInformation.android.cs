@@ -5,15 +5,9 @@ using System.Buffers.Text;
 using Android.App;
 using Android.Content;
 using Android.Net;
-using Android.Net.Wifi;
-
-using AndroidX.Core.Content;
 
 using Microsoft.Win32.SafeHandles;
 
-using AndroidBatteryManager = Android.OS.BatteryManager;
-using AndroidBatteryPlugged = Android.OS.BatteryPlugged;
-using AndroidBatteryStatus = Android.OS.BatteryStatus;
 using AndroidNetwork = Android.Net.Network;
 
 public sealed partial class DeviceInformation
@@ -24,8 +18,6 @@ public sealed partial class DeviceInformation
     private const int ResidentPagesField = 24;
 
     private static readonly long PageSize = Environment.SystemPageSize;
-
-    private readonly BatteryReceiver batteryReceiver;
 
     private readonly NetworkCallback networkCallback;
 
@@ -41,7 +33,6 @@ public sealed partial class DeviceInformation
 
     public DeviceInformation()
     {
-        batteryReceiver = new BatteryReceiver(this);
         networkCallback = new NetworkCallback(this);
     }
 
@@ -50,68 +41,11 @@ public sealed partial class DeviceInformation
         Stop();
 
         networkCallback.Dispose();
-        batteryReceiver.Dispose();
         statHandle.Dispose();
     }
 
     private static partial string ResolveDeviceId() =>
         Android.Provider.Settings.Secure.GetString(Application.Context.ContentResolver, Android.Provider.Settings.Secure.AndroidId) ?? string.Empty;
-
-    private partial void StartBattery()
-    {
-        using var filter = new IntentFilter(Intent.ActionBatteryChanged);
-        using var intent = ContextCompat.RegisterReceiver(Application.Context, batteryReceiver, filter, ContextCompat.ReceiverNotExported);
-        if (intent is not null)
-        {
-            OnBatteryChanged(intent);
-        }
-    }
-
-    private partial void StopBattery() => Application.Context.UnregisterReceiver(batteryReceiver);
-
-    private void OnBatteryChanged(Intent intent)
-    {
-        var level = intent.GetIntExtra(AndroidBatteryManager.ExtraLevel, -1);
-        var scale = intent.GetIntExtra(AndroidBatteryManager.ExtraScale, -1);
-        var status = (AndroidBatteryStatus)intent.GetIntExtra(AndroidBatteryManager.ExtraStatus, (int)AndroidBatteryStatus.Unknown);
-        var plugged = (AndroidBatteryPlugged)intent.GetIntExtra(AndroidBatteryManager.ExtraPlugged, 0);
-
-        var state = status switch
-        {
-            AndroidBatteryStatus.Charging => BatteryState.Charging,
-            AndroidBatteryStatus.Discharging => BatteryState.Discharging,
-            AndroidBatteryStatus.Full => BatteryState.Full,
-            AndroidBatteryStatus.NotCharging => BatteryState.NotCharging,
-            _ => BatteryState.Unknown
-        };
-        var powerSource = plugged switch
-        {
-            AndroidBatteryPlugged.Ac => BatteryPowerSource.AC,
-            AndroidBatteryPlugged.Usb => BatteryPowerSource.Usb,
-            AndroidBatteryPlugged.Wireless => BatteryPowerSource.Wireless,
-            _ => BatteryPowerSource.Battery
-        };
-
-        UpdateBattery(new BatteryStatus((level >= 0) && (scale > 0) ? (double)level / scale : -1, state, powerSource));
-    }
-
-    private sealed class BatteryReceiver : BroadcastReceiver
-    {
-        private readonly DeviceInformation owner;
-
-        public BatteryReceiver(DeviceInformation owner)
-        {
-            this.owner = owner;
-        }
-
-        public override void OnReceive(Context? context, Intent? intent)
-        {
-            if (intent is not null)
-            {
-                owner.OnBatteryChanged(intent);
-            }
-        }
-    }
 
     [Flags]
     private enum Transport
@@ -123,7 +57,7 @@ public sealed partial class DeviceInformation
         WiFi = 0x08
     }
 
-    private readonly record struct NetworkEntry(Transport Transport, bool Validated, WiFiStatus? WiFi);
+    private readonly record struct NetworkEntry(Transport Transport, bool Validated);
 
     private partial void StartNetwork()
     {
@@ -170,11 +104,7 @@ public sealed partial class DeviceInformation
             transport |= Transport.WiFi;
         }
 
-        var wifi = OperatingSystem.IsAndroidVersionAtLeast(29) && (capabilities.TransportInfo is WifiInfo info)
-            ? new WiFiStatus(info.Rssi, info.LinkSpeed)
-            : null;
-
-        networks[network.NetworkHandle] = new NetworkEntry(transport, capabilities.HasCapability(NetCapability.Validated), wifi);
+        networks[network.NetworkHandle] = new NetworkEntry(transport, capabilities.HasCapability(NetCapability.Validated));
         Refresh();
     }
 
@@ -188,7 +118,6 @@ public sealed partial class DeviceInformation
     {
         var access = NetworkAccess.None;
         var transports = Transport.None;
-        WiFiStatus? wifi = null;
         foreach (var entry in networks.Values)
         {
             if (entry.Validated)
@@ -201,18 +130,12 @@ public sealed partial class DeviceInformation
             }
 
             transports |= entry.Transport;
-            wifi ??= entry.WiFi;
         }
 
         if ((Network is null) || (access != Network.Access) || (transports != currentTransports))
         {
             currentTransports = transports;
             UpdateNetwork(new NetworkStatus(access, ToProfiles(transports)));
-        }
-
-        if (wifi != WiFi)
-        {
-            UpdateWiFi(wifi);
         }
     }
 
