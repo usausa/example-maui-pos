@@ -101,7 +101,7 @@ public sealed partial class ScanViewModel : AppViewModelBase
         }
         else
         {
-            Message = "カメラの権限がありません。";
+            Message = "カメラの権限がありません";
         }
     }
 
@@ -169,7 +169,7 @@ public sealed partial class ScanViewModel : AppViewModelBase
 
         if (!taxRates.TryGetValue(product.TaxRateId, out var taxRate))
         {
-            Message = "❌ 税率マスタがありません。同期してください。";
+            Message = "❌ マスタを同期してください";
             return;
         }
 

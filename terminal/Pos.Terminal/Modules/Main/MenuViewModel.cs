@@ -58,7 +58,7 @@ public sealed partial class MenuViewModel : AppViewModelBase
             case ViewId.CashEvent:
                 if (!session.IsShiftOpen)
                 {
-                    if (await dialog.AskAsync("レジが開設されていません。開設しますか？", null, "開設"))
+                    if (await dialog.AskAsync("レジを開設しますか？", null, "開設"))
                     {
                         await Navigator.ForwardAsync(ViewId.ShiftOpen, Parameters.Make().WithReturnTo(id));
                     }

@@ -97,7 +97,7 @@ public sealed partial class StockCountViewModel : AppViewModelBase
 
         if (!product.TrackInventory)
         {
-            await dialog.InformationAsync($"{product.Name} は在庫管理対象外です。");
+            await dialog.InformationAsync($"{product.Name} は在庫管理対象外です");
             return;
         }
 
@@ -160,7 +160,7 @@ public sealed partial class StockCountViewModel : AppViewModelBase
 
     protected override async Task OnNotifyBackAsync()
     {
-        if ((StockContext.Changes.Count > 0) && !await dialog.AskAsync("未送信の入力があります。破棄して戻りますか？", null, "破棄"))
+        if ((StockContext.Changes.Count > 0) && !await dialog.AskAsync("入力を破棄して戻りますか？", null, "破棄"))
         {
             return;
         }
@@ -195,7 +195,7 @@ public sealed partial class StockCountViewModel : AppViewModelBase
 
         await stock.SendAsync(StockContext.Changes.ToList());
         StockContext.Changes.Clear();
-        await dialog.Toast("送信キューに入れました。");
+        await dialog.Toast("送信キューに入れました");
         Refresh();
     }
 }

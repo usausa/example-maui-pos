@@ -32,7 +32,7 @@ public sealed class NetworkService
         {
             if (notify)
             {
-                await dialog.InformationAsync("ネットワークに接続されていません。");
+                await dialog.InformationAsync("ネットワークに接続されていません");
             }
 
             return new ApiResult<T>(ApiStatus.Unavailable, 0, default, null, null);

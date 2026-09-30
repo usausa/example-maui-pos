@@ -4,8 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 
 using BarcodeScanning;
 
-// 初期設定: 上のカメラで管理画面の設定 QR (サーバ URL + ペアリングコード) を読むと、SetupUsecase で登録・初回同期する。
-// QR がなければ URL を入れてコードを電卓で入力する。登録済みの端末 (設定・同期からの登録し直し) は、確かめてから登録し、登録せずに設定・同期へ戻れる
+// 初期設定: 上のカメラで印刷した設定 QR (サーバ URL) を読み、管理画面で発行したペアリングコードを電卓で入れると、SetupUsecase で登録・初回同期する。
+// QR がなければ URL を入れる。登録済みの端末 (設定・同期からの登録し直し) は、確かめてから登録し、登録せずに設定・同期へ戻れる
 public sealed partial class SetupViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
@@ -23,7 +23,7 @@ public sealed partial class SetupViewModel : AppViewModelBase
     // 設定・同期の戻り先 (登録し直しから戻るときに引き継ぐ)
     private ViewId? settingReturnTo;
 
-    // 同じ QR は読み直さない (失敗した QR を送り直して、ペアリングの試行回数の上限に掛からないように)
+    // 同じ QR は読み直さない (枠に残った QR で電卓を開き直さないように)
     private string lastScanned = string.Empty;
 
     private bool registering;
@@ -92,7 +92,7 @@ public sealed partial class SetupViewModel : AppViewModelBase
         }
         else
         {
-            Message = "カメラの権限がありません。";
+            Message = "カメラの権限がありません";
         }
     }
 
@@ -107,33 +107,50 @@ public sealed partial class SetupViewModel : AppViewModelBase
     // Scan
     //--------------------------------------------------------------------------------
 
-    private Task DetectAsync(IReadOnlySet<BarcodeResult> results)
+    private async Task DetectAsync(IReadOnlySet<BarcodeResult> results)
     {
         if ((results.Count == 0) || registering)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         var value = results.First().DisplayValue;
         if (String.IsNullOrEmpty(value) || (value == lastScanned))
         {
-            return Task.CompletedTask;
+            return;
         }
 
         lastScanned = value;
 
         // 設定 QR でなければ、入力中の欄は変えずに知らせるだけにする
-        var parser = new SettingParser(value);
-        var code = parser.GetString(nameof(PairingCode));
-        if (!TryGetEndPoint(parser.GetString(nameof(Settings.ApiEndPoint)), out var endPoint) || !IsPairingCode(code))
+        if (!TryGetEndPoint(new SettingParser(value).GetString(nameof(Settings.ApiEndPoint)), out var endPoint))
         {
-            Message = "設定 QR ではありません。";
-            return Task.CompletedTask;
+            Message = "設定 QR ではありません";
+            return;
         }
 
         ApiEndPoint.Text = endPoint.ToString();
-        PairingCode = code;
-        return RegisterAsync(endPoint, code);
+        Message = string.Empty;
+
+        // 続けてコードを入れて登録する
+        registering = true;
+        Controller.PauseScanning = true;
+        string? code;
+        try
+        {
+            code = await popupNavigator.InputPairingCodeAsync(PairingCode);
+        }
+        finally
+        {
+            registering = false;
+            Controller.PauseScanning = false;
+        }
+
+        if (code is not null)
+        {
+            PairingCode = code;
+            await RegisterInputAsync();
+        }
     }
 
     //--------------------------------------------------------------------------------
@@ -145,7 +162,27 @@ public sealed partial class SetupViewModel : AppViewModelBase
         PairingCode = await popupNavigator.InputPairingCodeAsync(PairingCode) ?? PairingCode;
     }
 
-    // 読み取りと F4 の登録。コードは一度だけ使え、登録し直すと今の登録は使えなくなるので、登録済みなら確かめる
+    // 入力した URL とコードで登録する (F4 と、設定 QR を読んでコードを入れたとき)
+    private async Task RegisterInputAsync()
+    {
+        if (!TryGetEndPoint(ApiEndPoint.Text, out var endPoint))
+        {
+            await dialog.InformationAsync("サーバ URL を入力してください");
+            ApiEndPoint.Focus();
+            return;
+        }
+
+        var code = PairingCode;
+        if (!IsPairingCode(code))
+        {
+            await dialog.InformationAsync($"ペアリングコード ({Length.PairingCodeDigits} 桁) を入力してください");
+            return;
+        }
+
+        await RegisterAsync(endPoint, code);
+    }
+
+    // コードは一度だけ使え、登録し直すと今の登録は使えなくなるので、登録済みなら確かめる
     private async Task RegisterAsync(Uri endPoint, string code)
     {
         registering = true;
@@ -161,7 +198,7 @@ public sealed partial class SetupViewModel : AppViewModelBase
             var paired = await setup.PairAsync(endPoint, code);
             if (paired is null)
             {
-                Message = "登録できませんでした。";
+                Message = "登録できませんでした";
                 return;
             }
 
@@ -176,11 +213,11 @@ public sealed partial class SetupViewModel : AppViewModelBase
 
             if (result.IsSuccess)
             {
-                await dialog.Toast($"{paired.Store.Name} {paired.Terminal.Name} として登録しました。");
+                await dialog.Toast($"{paired.Store.Name} {paired.Terminal.Name} として登録しました");
             }
             else
             {
-                await dialog.InformationAsync("登録しましたが、同期に失敗しました。\n設定・同期から同期してください。\n" + result.Message);
+                await dialog.InformationAsync("同期できませんでした\n" + result.Message);
             }
 
             await Navigator.ForwardAsync(ViewId.StaffSelect);
@@ -192,11 +229,11 @@ public sealed partial class SetupViewModel : AppViewModelBase
         }
     }
 
-    // 未送信は同じ端末として登録し直したときだけ送れる
+    // 未送信は登録し直した先へ送る (別の端末として登録したら、その店舗・端末のものにする)
     private string ReRegisterMessage() =>
         session.UnsentCount > 0
-            ? $"この端末を登録し直しますか？\n今の登録は使えなくなります。\n未送信が {session.UnsentCount} 件あります。別の端末やサーバとして登録すると送信できません。"
-            : "この端末を登録し直しますか？\n今の登録は使えなくなります。";
+            ? $"登録し直しますか？\n未送信 {session.UnsentCount} 件は新しい登録で送信"
+            : "登録し直しますか？\n今の登録は使えなくなります";
 
     // http / https の絶対 URL。末尾は / にそろえる (API の相対パスをつなぐため)
     private static bool TryGetEndPoint(string? text, [NotNullWhen(true)] out Uri? endPoint)
@@ -231,22 +268,5 @@ public sealed partial class SetupViewModel : AppViewModelBase
 
     protected override Task OnNotifyFunction3() => InputPairingCodeAsync();
 
-    protected override async Task OnNotifyFunction4()
-    {
-        if (!TryGetEndPoint(ApiEndPoint.Text, out var endPoint))
-        {
-            await dialog.InformationAsync("サーバ URL を入力してください。");
-            ApiEndPoint.Focus();
-            return;
-        }
-
-        var code = PairingCode;
-        if (!IsPairingCode(code))
-        {
-            await dialog.InformationAsync($"管理画面で発行したペアリングコード ({Length.PairingCodeDigits} 桁) を入力してください。");
-            return;
-        }
-
-        await RegisterAsync(endPoint, code);
-    }
+    protected override Task OnNotifyFunction4() => RegisterInputAsync();
 }

@@ -10,7 +10,7 @@ using Pos.Server.Models.Entity;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
-// レジ端末。端末の登録 (ペアリングコードの発行・登録の解除) とマスタの変更は管理者だけ
+// レジ端末。端末の登録 (設定 QR・ペアリングコードの発行・登録の解除) とマスタの変更は管理者だけ
 public sealed partial class TerminalsPage
 {
     private List<TerminalEntity> items = [];
@@ -49,7 +49,7 @@ public sealed partial class TerminalsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await TerminalService.InsertAsync(TerminalForm.ToEntity(form), CancellationToken), "追加しました。", duplicate: "端末番号が重複しています。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await TerminalService.InsertAsync(TerminalForm.ToEntity(form), CancellationToken), "追加しました", duplicate: "端末番号が重複しています"), LoadAsync);
     }
 
     private async Task EditAsync(TerminalEntity entity)
@@ -60,7 +60,7 @@ public sealed partial class TerminalsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await TerminalService.UpdateAsync(TerminalForm.ToEntity(form), CancellationToken), "更新しました。", duplicate: "端末番号が重複しています。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await TerminalService.UpdateAsync(TerminalForm.ToEntity(form), CancellationToken), "更新しました", duplicate: "端末番号が重複しています"), LoadAsync);
     }
 
     private async Task DeleteAsync(TerminalEntity entity)
@@ -70,7 +70,7 @@ public sealed partial class TerminalsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await TerminalService.DeleteAsync(entity.Id, CancellationToken), "削除しました。", inUse: "開設中のシフトがある端末は削除できません。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await TerminalService.DeleteAsync(entity.Id, CancellationToken), "削除しました", inUse: "開設中のシフトがある端末は削除できません"), LoadAsync);
     }
 
     // 発行したコードは 10 分間、一度だけ使える。前の登録はペアリングが済むまで有効
@@ -97,7 +97,7 @@ public sealed partial class TerminalsPage
     // 解除した端末は次の通信で初期設定に戻る (端末の未送信のデータは再登録後に送る)
     private async Task RevokeAsync(TerminalEntity entity)
     {
-        if (!await DialogService.ShowConfirm("登録の解除", $"「{entity.Name}」の登録を解除しますか？ 端末は次の通信で初期設定に戻ります。"))
+        if (!await DialogService.ShowConfirm("登録の解除", $"「{entity.Name}」の登録を解除しますか？ 端末は次の通信で初期設定に戻ります"))
         {
             return;
         }
@@ -105,7 +105,7 @@ public sealed partial class TerminalsPage
         await RunAsync(async () =>
         {
             await TerminalTokenService.RevokeAsync(entity.Id, CancellationToken);
-            Snackbar.AddSuccess("登録を解除しました。");
+            Snackbar.AddSuccess("登録を解除しました");
         }, LoadAsync);
     }
 }

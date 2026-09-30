@@ -63,7 +63,7 @@ public sealed partial class CustomerDetailPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await CustomerService.UpdateAsync(CustomerForm.ToEntity(form), CancellationToken), "更新しました。", duplicate: "会員番号が重複しています。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await CustomerService.UpdateAsync(CustomerForm.ToEntity(form), CancellationToken), "更新しました", duplicate: "会員番号が重複しています"), LoadAsync);
     }
 
     private async Task DeleteAsync()
@@ -76,7 +76,7 @@ public sealed partial class CustomerDetailPage
         await RunAsync(async () =>
         {
             var status = await CustomerService.DeleteAsync(Id, CancellationToken);
-            NotifyResult(status, "削除しました。");
+            NotifyResult(status, "削除しました");
             if (status == DataWriteStatus.Success)
             {
                 Navigation.NavigateTo("customers");
@@ -96,7 +96,7 @@ public sealed partial class CustomerDetailPage
         await RunAsync(async () =>
         {
             var history = await CustomerService.AdjustPointsAsync(Id, form.Points, form.Reason, form.StaffId, CancellationToken);
-            NotifyResult(history is null ? DataWriteStatus.NotFound : DataWriteStatus.Success, "ポイントを調整しました。");
+            NotifyResult(history is null ? DataWriteStatus.NotFound : DataWriteStatus.Success, "ポイントを調整しました");
         }, LoadAsync);
     }
 }

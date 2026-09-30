@@ -75,7 +75,7 @@
                     <MudTd Class="text-right">¥@context.ReturnsTotal.ToYen()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText Class="pa-4 mud-text-secondary">本日の売上はまだありません。</MudText>
+                    <MudText Class="pa-4 mud-text-secondary">本日の売上はまだありません</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudPaper>
@@ -102,7 +102,7 @@
                     <MudTd>@context.Order.RequestedDate.ToDateText()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText Class="pa-4 mud-text-secondary">引き渡し待ちの受注はありません。</MudText>
+                    <MudText Class="pa-4 mud-text-secondary">引き渡し待ちの受注はありません</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudPaper>
@@ -128,7 +128,7 @@
                     <MudTd>@context.OpenedAt.ToDateTimeText()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText Class="pa-4 mud-text-secondary">開設中のシフトはありません。</MudText>
+                    <MudText Class="pa-4 mud-text-secondary">開設中のシフトはありません</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudPaper>
@@ -162,7 +162,7 @@
                     <MudTd Class="text-right">¥@context.NetSales.ToYen()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText Class="pa-4 mud-text-secondary">✅ 前日までの営業日はすべて締め済みです。</MudText>
+                    <MudText Class="pa-4 mud-text-secondary">✅ 前日までの営業日はすべて締め済みです</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudPaper>
@@ -208,7 +208,7 @@
                     <MudTd Class="no-wrap">@context.Transfer.CreatedAt.ToShortDateTimeText()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText Class="pa-4 mud-text-secondary">未受領の移動はありません。</MudText>
+                    <MudText Class="pa-4 mud-text-secondary">未受領の移動はありません</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudPaper>
@@ -234,7 +234,7 @@
                     <MudTd Class="text-right"><StatusChip Value="@ViewHelper.NegativeQuantityChip(context.Quantity)" /></MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText Class="pa-4 mud-text-secondary">✅ 在庫がマイナスの商品はありません。</MudText>
+                    <MudText Class="pa-4 mud-text-secondary">✅ 在庫がマイナスの商品はありません</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudPaper>
@@ -254,7 +254,7 @@
                     <MudTd Class="text-right"><StatusChip Value="@ViewHelper.PointBalanceChip(context.PointBalance)" /></MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText Class="pa-4 mud-text-secondary">✅ 残高がマイナスの会員はいません。</MudText>
+                    <MudText Class="pa-4 mud-text-secondary">✅ 残高がマイナスの会員はいません</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudPaper>

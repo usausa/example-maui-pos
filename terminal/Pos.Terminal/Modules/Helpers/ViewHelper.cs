@@ -215,7 +215,7 @@ public static class ViewHelper
         RuleReason.PurchaseOrderNotOpen => "入荷済み・キャンセルした発注です",
         RuleReason.DepositExists => "前受金を受け取り済みです",
         RuleReason.DepositAmountInvalid => "前受金は 1 円以上、受注の金額までにしてください",
-        RuleReason.DepositMethodInvalid => "前受金は現金・カード・QR・電子マネーで受け取ってください",
+        RuleReason.DepositMethodInvalid => "前受金に使えない支払方法です",
         RuleReason.DepositNotFound => "前受金がありません",
         RuleReason.DepositHeld => "前受金を返してからキャンセルしてください",
         RuleReason.DepositMismatch => "前受金の全額を会計で充ててください",

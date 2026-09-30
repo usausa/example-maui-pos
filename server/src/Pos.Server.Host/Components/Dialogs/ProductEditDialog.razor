@@ -29,7 +29,7 @@
                                 </MudFileUpload>
                                 <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" Disabled="imagePreview is null" OnClick="OnImageRemoveClick">画像を削除</MudButton>
                             </MudStack>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">JPEG / PNG、2 MB まで。[保存] で反映します</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">JPEG / PNG、2 MB まで</MudText>
                             @if (imageError is not null)
                             {
                                 <MudText Typo="Typo.caption" Color="Color.Error">@imageError</MudText>

@@ -85,7 +85,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
     public partial int UnsentCount { get; set; }
 
     [ObservableProperty]
-    public partial string Message { get; set; } = "取引がありません。";
+    public partial string Message { get; set; } = "取引がありません";
 
     public ObservableCollection<TransactionItem> Items { get; } = [];
 
@@ -179,7 +179,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         var list = await transactions.QueryListAsync(shiftId, businessDate, transactionType, type == 3, 200);
         var (staff, methods) = await QueryNamesAsync(list.Select(static x => x.Detail));
         Items.Replace(list.Select(x => ToItem(x.Detail, x.SyncStatus, staff, methods)));
-        Message = "取引がありません。";
+        Message = "取引がありません";
         UpdateCounts($"{Items.Count} 件");
     }
 
@@ -202,7 +202,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         var list = result.Content!.Items;
         var (staff, methods) = await QueryNamesAsync(list);
         Items.Replace(list.Select(x => ToItem(x, OutboxStatus.Sent, staff, methods)));
-        Message = $"シリアル番号 {serial} の取引はありません。";
+        Message = $"シリアル番号 {serial} の取引はありません";
         UpdateCounts($"シリアル {Items.Count} 件");
     }
 
@@ -259,6 +259,6 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
     protected override async Task OnNotifyFunction4()
     {
         sync.Trigger();
-        await dialog.Toast("未送信の取引を再送します。");
+        await dialog.Toast("未送信の取引を再送します");
     }
 }

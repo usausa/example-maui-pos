@@ -24,6 +24,7 @@ paths:
 
 - スタイルは `wwwroot/css/app.css` のクラスに集約する。`.razor.css` を作らず、要素に `Style=` / `style=` を書かない (テーブルの列幅も `w-120` のような幅クラスを app.css に定義して使う)。MudBlazor のユーティリティクラス (`pa-3`、`mud-width-full`、`font-weight-bold`) と併記する
 - 状態のチップは `ViewHelper` で (文言, 色, アイコン) の組にし、`StatusChip` (`MudChip` の `Icon`) で出す
+- 画面の作りでわかる自明な案内 (「[保存] で反映します」「URL を確認してください」、操作の手順の説明) を出さない。説明の文言は、画面からわからない業務の規則 (役割でできること、登録できる件数、入力の決まり) と操作の結果 (ログアウトする、取消できなくなる) を伝えるために使う
 - 横スクロールする `MudDataGrid` (`grid-nowrap`) では操作列を `StickyRight="true"` にし、名称のように折り返してよい列は `CellClass="cell-wrap"` にする (`grid-nowrap` が表の `width: max-content` を `100%` に戻すので、幅が足りないときだけ折り返す)
 - 絞り込みの入力欄は行の残りいっぱいに伸びるので、期間 (`MudDateRangePicker`) は `filter-range`、文字の検索欄は `search-field` で上限を付け、他は `min-w-*` にする
 - `MudTable` の `FooterContent` は `<tr>` の中に描画されるので `MudTFootRow` を書かず `MudTd` を直接置く (太字は `FooterClass`)

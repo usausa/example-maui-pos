@@ -14,7 +14,7 @@ public sealed partial class Login
     private string? ErrorText => Error switch
     {
         null or "" => null,
-        "limit" => "ログインの試行が多すぎます。しばらく待ってからやり直してください。",
-        _ => "ID またはパスワードが違います。"
+        "limit" => "ログインの試行が多すぎます",
+        _ => "ID またはパスワードが違います"
     };
 }

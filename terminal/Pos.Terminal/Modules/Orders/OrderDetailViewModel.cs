@@ -186,7 +186,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     // 入荷 (取り寄せの商品が届いた)
     protected override async Task OnNotifyFunction2()
     {
-        if ((order is null) || !CanArrive || !await dialog.AskAsync($"{order.OrderNo} を入荷にしますか？\nお客様への連絡が必要になります。", "入荷", "入荷"))
+        if ((order is null) || !CanArrive || !await dialog.AskAsync($"{order.OrderNo} を入荷にしますか？\nお客様への連絡が要ります", "入荷", "入荷"))
         {
             return;
         }
@@ -195,7 +195,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
         if (result is { IsSuccess: true, Content: not null })
         {
             Update(result.Content);
-            await dialog.Toast("引き渡し待ちにしました。");
+            await dialog.Toast("引き渡し待ちにしました");
         }
     }
 
@@ -227,7 +227,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
             case OrderAction.RefundDeposit:
                 if (await RefundDepositAsync(order, false))
                 {
-                    await dialog.Toast("前受金を返しました。");
+                    await dialog.Toast("前受金を返しました");
                 }
 
                 break;
@@ -243,7 +243,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     {
         if (!session.CanTransact)
         {
-            await dialog.InformationAsync("レジを開設してから前受金を受け取ってください。");
+            await dialog.InformationAsync("レジを開設してください");
             return;
         }
 
@@ -253,7 +253,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
             .ToList();
         if (methods.Count == 0)
         {
-            await dialog.InformationAsync("前受金を受け取れる支払方法がありません。\n設定・同期でマスタを同期してください。");
+            await dialog.InformationAsync("前受金の支払方法がありません");
             return;
         }
 
@@ -294,7 +294,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
         if (result is { IsSuccess: true, Content: not null })
         {
             Update(result.Content);
-            await dialog.Toast("前受金を受け取りました。");
+            await dialog.Toast("前受金を受け取りました");
         }
     }
 
@@ -303,7 +303,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     {
         if (!session.CanTransact)
         {
-            await dialog.InformationAsync("レジを開設してから前受金を返してください。");
+            await dialog.InformationAsync("レジを開設してください");
             return false;
         }
 
@@ -351,7 +351,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
         if (result is { IsSuccess: true, Content: not null })
         {
             Update(result.Content);
-            await dialog.Toast("キャンセルしました。");
+            await dialog.Toast("キャンセルしました");
         }
     }
 
@@ -369,7 +369,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
 
         if (!session.CanTransact)
         {
-            await dialog.InformationAsync("レジを開設してから会計してください。");
+            await dialog.InformationAsync("レジを開設してください");
             return;
         }
 
@@ -381,7 +381,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
         var (cart, missing) = await orders.ToCartAsync(order);
         if (cart is null)
         {
-            await dialog.InformationAsync($"{missing} が端末の商品にありません。\n設定・同期でマスタを同期してください。");
+            await dialog.InformationAsync($"{missing} が端末にありません");
             return;
         }
 

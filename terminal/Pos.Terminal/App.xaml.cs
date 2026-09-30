@@ -44,7 +44,7 @@ public sealed partial class App
             var page = Current?.Windows[0].Page;
             if (page is not null)
             {
-                await page.DisplayAlertAsync("起動できません", $"データベースを開けませんでした。\n{error.Message}", "終了");
+                await page.DisplayAlertAsync("起動できません", $"データベースを開けません\n{error.Message}", "終了");
             }
 
             Current?.Quit();

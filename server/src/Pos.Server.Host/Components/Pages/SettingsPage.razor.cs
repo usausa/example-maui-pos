@@ -41,7 +41,7 @@ public sealed partial class SettingsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await SettingsService.UpdateAsync(ToEntity(settings), CancellationToken), "保存しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await SettingsService.UpdateAsync(ToEntity(settings), CancellationToken), "保存しました"), LoadAsync);
     }
 
     // Entity ↔ フォーム (サーバ付与項目はサービスが設定する)
@@ -76,11 +76,11 @@ public sealed partial class SettingsPage
     {
         public SettingsFormValidator()
         {
-            RuleFor(static x => x.CompanyName).NotEmpty().WithMessage("会社名を入力してください。").MaximumLength(Length.CompanyName);
-            RuleFor(static x => x.Currency).NotEmpty().WithMessage("通貨を入力してください。").Length(Length.Currency).WithMessage($"通貨は {Length.Currency} 文字 (JPY など) で入力してください。");
+            RuleFor(static x => x.CompanyName).NotEmpty().WithMessage("会社名を入力してください").MaximumLength(Length.CompanyName);
+            RuleFor(static x => x.Currency).NotEmpty().WithMessage("通貨を入力してください").Length(Length.Currency).WithMessage($"通貨は {Length.Currency} 文字 (JPY など) で入力してください");
             RuleFor(static x => x.BusinessDayStartTime)
-                .NotEmpty().WithMessage("営業日切替時刻を入力してください。")
-                .Must(static x => TimeOnly.TryParseExact(x, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _)).WithMessage("HH:mm の形式で入力してください。");
+                .NotEmpty().WithMessage("営業日切替時刻を入力してください")
+                .Must(static x => TimeOnly.TryParseExact(x, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _)).WithMessage("HH:mm の形式で入力してください");
         }
     }
 }

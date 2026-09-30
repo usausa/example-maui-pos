@@ -100,14 +100,14 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         var result = await network.ExecuteAsync(h => h.SearchCustomersAsync(keyword));
         if (!result.IsSuccess)
         {
-            Message = "取得できませんでした。";
+            Message = "取得できません";
             CurrentState = ViewHelper.OfflineState;
             return;
         }
 
         Items.Replace(result.Content!.Items
             .Select(static x => new CustomerItem(x, x.Name, x.Code, x.Phone ?? string.Empty, ViewHelper.Points(x.PointBalance))));
-        Message = "該当する会員がいません。";
+        Message = "該当する会員がいません";
         CurrentState = string.Empty;
     }
 

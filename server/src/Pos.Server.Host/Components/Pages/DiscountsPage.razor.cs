@@ -32,7 +32,7 @@ public sealed partial class DiscountsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await DiscountService.InsertAsync(DiscountForm.ToEntity(form), CancellationToken), "追加しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await DiscountService.InsertAsync(DiscountForm.ToEntity(form), CancellationToken), "追加しました"), LoadAsync);
     }
 
     private async Task EditAsync(DiscountEntity entity)
@@ -43,7 +43,7 @@ public sealed partial class DiscountsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await DiscountService.UpdateAsync(DiscountForm.ToEntity(form), CancellationToken), "更新しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await DiscountService.UpdateAsync(DiscountForm.ToEntity(form), CancellationToken), "更新しました"), LoadAsync);
     }
 
     private async Task DeleteAsync(DiscountEntity entity)
@@ -53,6 +53,6 @@ public sealed partial class DiscountsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await DiscountService.DeleteAsync(entity.Id, CancellationToken), "削除しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await DiscountService.DeleteAsync(entity.Id, CancellationToken), "削除しました"), LoadAsync);
     }
 }

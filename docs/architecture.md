@@ -190,7 +190,7 @@ Components/
   Pages/  Home (S-01), SalesSummaryPage (S-10), ProductSalesPage (S-11), TransactionsPage (S-20), OrdersPage (S-91), ShiftsPage (S-30), DailyClosingsPage (S-90), InventoryPage (S-40),
           InventoryChangesPage (S-42), PurchaseOrdersPage (S-48), AdjustmentReasonsPage (S-44), InventoryReceiptsPage (S-45), InventoryTransfersPage (S-46), SuppliersPage (S-47),
           ProductsPage (S-50), CategoriesPage (S-53), TaxRatesPage (S-54), DiscountsPage (S-55),
-          PaymentMethodsPage (S-56), CustomersPage (S-60), CustomerDetailPage (S-61), StoresPage (S-70), TerminalsPage (S-71), StaffPage (S-72), SettingsPage (S-80),
+          PaymentMethodsPage (S-56), CustomersPage (S-60), CustomerDetailPage (S-61), StoresPage (S-70), TerminalsPage (S-71), TerminalSetupQrPage (S-73), StaffPage (S-72), SettingsPage (S-80),
           AccountsPage (S-92), Login (S-02), AccessDenied, Error, NotFound。ページは .razor + .razor.cs。_Imports.razor で全ページに [Authorize] (ログイン・エラー・404 は AllowAnonymous)
   Controls/ (ErrorBanner, ProgressOverlay, StoreSelect (店舗セレクタ), StatusChip (ViewHelper の文言 + 色))
   Dialogs/ (EditDialogBase<TForm>, DialogServiceExtensions (情報・確認), AppMessageBox, XxxEditDialog (マスタ 10 種 + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31), DailyClosingDialog (S-90),

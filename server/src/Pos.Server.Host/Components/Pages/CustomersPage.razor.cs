@@ -58,6 +58,6 @@ public sealed partial class CustomersPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await CustomerService.InsertAsync(CustomerForm.ToEntity(form), CancellationToken), "追加しました。", duplicate: "会員番号が重複しています。"), SearchAsync);
+        await RunAsync(async () => NotifyResult(await CustomerService.InsertAsync(CustomerForm.ToEntity(form), CancellationToken), "追加しました", duplicate: "会員番号が重複しています"), SearchAsync);
     }
 }

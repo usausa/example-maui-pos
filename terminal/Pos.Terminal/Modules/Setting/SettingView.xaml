@@ -75,7 +75,7 @@
                                      BindableLayout.ItemsSource="{Binding Outbox}">
                     <BindableLayout.EmptyView>
                         <Label Style="{StaticResource PosMessageLabel}"
-                               Text="未送信はありません。" />
+                               Text="未送信はありません" />
                     </BindableLayout.EmptyView>
                     <BindableLayout.ItemTemplate>
                         <!-- 左端の帯と行の背景で状態 (未送信 / 要確認) を示す。タップで再送・破棄、右端でエラーの全文を展開 -->

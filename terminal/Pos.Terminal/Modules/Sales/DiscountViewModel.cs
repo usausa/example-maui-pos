@@ -114,19 +114,19 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
     {
         if (!Decimal.TryParse(ValueText, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) || (value <= 0))
         {
-            await dialog.InformationAsync("値を入力してください。");
+            await dialog.InformationAsync("値を入力してください");
             return;
         }
 
         if (IsAmount ? value > baseAmount : value > 100)
         {
-            await dialog.InformationAsync(IsAmount ? "値引額が金額を超えています。" : "値引率は 100% 以下にしてください。");
+            await dialog.InformationAsync(IsAmount ? "値引額が金額を超えています" : "値引率は 100% 以下にしてください");
             return;
         }
 
         if (String.IsNullOrWhiteSpace(ReasonText))
         {
-            await dialog.InformationAsync("任意の値引には理由が必要です。");
+            await dialog.InformationAsync("任意の値引には理由が必要です");
             return;
         }
 

@@ -184,13 +184,13 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
     {
         if (ReturnContext.Lines.Count == 0)
         {
-            await dialog.InformationAsync("返品する明細を選んでください。");
+            await dialog.InformationAsync("返品する明細を選んでください");
             return;
         }
 
         if (ReturnContext.Reason is null)
         {
-            await dialog.InformationAsync("返品理由を選んでください。");
+            await dialog.InformationAsync("返品理由を選んでください");
             return;
         }
 

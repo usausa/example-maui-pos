@@ -166,7 +166,7 @@ public sealed partial class PurchaseOrdersPage
             return;
         }
 
-        await RunAsync(async () => Notify(await PurchaseOrderService.CreateAsync(PurchaseOrderForm.ToEntity(form), PurchaseOrderForm.ToLines(form), CancellationToken), "下書きを作成しました。"), SearchAsync);
+        await RunAsync(async () => Notify(await PurchaseOrderService.CreateAsync(PurchaseOrderForm.ToEntity(form), PurchaseOrderForm.ToLines(form), CancellationToken), "下書きを作成しました"), SearchAsync);
     }
 
     private async Task EditAsync(PurchaseOrderDetailView detail)
@@ -177,32 +177,32 @@ public sealed partial class PurchaseOrdersPage
             return;
         }
 
-        await RunAsync(async () => Notify(await PurchaseOrderService.UpdateAsync(detail.PurchaseOrder.Id, PurchaseOrderForm.ToParameter(form), CancellationToken), "変更しました。"), SearchAsync);
+        await RunAsync(async () => Notify(await PurchaseOrderService.UpdateAsync(detail.PurchaseOrder.Id, PurchaseOrderForm.ToParameter(form), CancellationToken), "変更しました"), SearchAsync);
     }
 
     // 発注すると明細を写した入荷予定ができる (発注書は PDF で仕入先に送る)
     private async Task OrderAsync(PurchaseOrderDetailView detail)
     {
-        if (!await DialogService.ShowConfirm("発注", $"{detail.PurchaseOrder.PurchaseOrderNo} ({detail.SupplierName}) を発注しますか？発注すると入荷予定ができ、内容は変えられなくなります。"))
+        if (!await DialogService.ShowConfirm("発注", $"{detail.PurchaseOrder.PurchaseOrderNo} ({detail.SupplierName}) を発注しますか？ 発注後は変更できません"))
         {
             return;
         }
 
         var account = AuthClaims.AccountOf((await AuthenticationState).User);
-        await RunAsync(async () => Notify(await PurchaseOrderService.OrderAsync(detail.PurchaseOrder.Id, account?.Name, CancellationToken), "発注しました。入荷予定を作りました。"), SearchAsync);
+        await RunAsync(async () => Notify(await PurchaseOrderService.OrderAsync(detail.PurchaseOrder.Id, account?.Name, CancellationToken), "発注しました"), SearchAsync);
     }
 
     private async Task CancelAsync(PurchaseOrderDetailView detail)
     {
         var message = detail.PurchaseOrder.Status == PurchaseOrderStatus.Ordered
-            ? $"{detail.PurchaseOrder.PurchaseOrderNo} をキャンセルしますか？入荷予定もキャンセルします。"
+            ? $"{detail.PurchaseOrder.PurchaseOrderNo} をキャンセルしますか？ 入荷予定もキャンセルします"
             : $"{detail.PurchaseOrder.PurchaseOrderNo} をキャンセルしますか？";
         if (!await DialogService.ShowConfirm("発注のキャンセル", message))
         {
             return;
         }
 
-        await RunAsync(async () => Notify(await PurchaseOrderService.CancelAsync(detail.PurchaseOrder.Id, CancellationToken), "キャンセルしました。"), SearchAsync);
+        await RunAsync(async () => Notify(await PurchaseOrderService.CancelAsync(detail.PurchaseOrder.Id, CancellationToken), "キャンセルしました"), SearchAsync);
     }
 
     // 書き込みの結果 (業務ルール違反は API と同じ文言)
@@ -214,13 +214,13 @@ public sealed partial class PurchaseOrdersPage
                 Snackbar.AddSuccess(success);
                 break;
             case PurchaseOrderResultStatus.NotFound:
-                Snackbar.AddError("対象が存在しません。");
+                Snackbar.AddError("対象が存在しません");
                 break;
             case PurchaseOrderResultStatus.VersionMismatch:
-                Snackbar.AddError("他で更新されています。再読み込みしてください。");
+                Snackbar.AddError("他で更新されています");
                 break;
             default:
-                Snackbar.AddWarning($"{ApiRuleText.Of(result.Violation!.Reason)}。");
+                Snackbar.AddWarning(ApiRuleText.Of(result.Violation!.Reason));
                 break;
         }
     }

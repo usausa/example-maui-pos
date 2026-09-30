@@ -41,7 +41,7 @@ public sealed partial class AccountsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await AccountService.InsertAsync(form.Name.Trim(), form.Password, form.Role, CancellationToken), "追加しました。", duplicate: "ID が重複しています。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await AccountService.InsertAsync(form.Name.Trim(), form.Password, form.Role, CancellationToken), "追加しました", duplicate: "ID が重複しています"), LoadAsync);
     }
 
     private async Task EditAsync(AccountEntity entity)
@@ -52,7 +52,7 @@ public sealed partial class AccountsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await AccountService.UpdateAsync(form.Id, form.Role, form.IsActive, form.Version, currentId ?? Guid.Empty, CancellationToken), "更新しました。", invalid: "自分自身は変更できません。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await AccountService.UpdateAsync(form.Id, form.Role, form.IsActive, form.Version, currentId ?? Guid.Empty, CancellationToken), "更新しました", invalid: "自分自身は変更できません"), LoadAsync);
     }
 
     private async Task ChangePasswordAsync(AccountEntity entity)
@@ -63,7 +63,7 @@ public sealed partial class AccountsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await AccountService.UpdatePasswordAsync(form.Id, form.Password, form.Version, CancellationToken), "パスワードを変更しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await AccountService.UpdatePasswordAsync(form.Id, form.Password, form.Version, CancellationToken), "パスワードを変更しました"), LoadAsync);
     }
 
     private async Task DeleteAsync(AccountEntity entity)
@@ -73,6 +73,6 @@ public sealed partial class AccountsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await AccountService.DeleteAsync(entity.Id, currentId ?? Guid.Empty, CancellationToken), "削除しました。", invalid: "自分自身は削除できません。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await AccountService.DeleteAsync(entity.Id, currentId ?? Guid.Empty, CancellationToken), "削除しました", invalid: "自分自身は削除できません"), LoadAsync);
     }
 }

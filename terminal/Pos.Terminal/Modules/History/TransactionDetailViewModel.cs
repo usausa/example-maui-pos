@@ -92,7 +92,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
         transaction = await transactions.FindAsync(transactionId);
         if (transaction is null)
         {
-            await dialog.InformationAsync("取引が見つかりません。");
+            await dialog.InformationAsync("取引が見つかりません");
             await Navigator.ForwardAsync(ViewId.TransactionList);
             return;
         }
@@ -192,7 +192,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             return;
         }
 
-        if (!await dialog.AskAsync($"{transaction.ReceiptNo} を取り消しますか？\n在庫とポイントが戻ります。", "取消", "取消"))
+        if (!await dialog.AskAsync($"{transaction.ReceiptNo} を取り消しますか？\n在庫とポイントを戻します", "取消", "取消"))
         {
             return;
         }
@@ -209,7 +209,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
         }
 
         await transactions.VoidAsync(transaction, session.Staff.Id, approver?.Id, reason.Text);
-        await dialog.Toast("取り消しました。");
+        await dialog.Toast("取り消しました");
         await LoadAsync();
     }
 

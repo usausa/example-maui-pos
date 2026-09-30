@@ -42,7 +42,7 @@ public static class ApiProblems
         Problem(StatusCodes.Status409Conflict, ErrorCode.DuplicateIdMismatch, "同じ ID で内容の異なるデータが登録済みです");
 
     public static IResult VersionMismatch() =>
-        Problem(StatusCodes.Status409Conflict, ErrorCode.VersionMismatch, "他で更新されています。再読み込みしてください");
+        Problem(StatusCodes.Status409Conflict, ErrorCode.VersionMismatch, "他で更新されています");
 
     public static IResult InUse(string title) =>
         Problem(StatusCodes.Status422UnprocessableEntity, ErrorCode.InUse, title);

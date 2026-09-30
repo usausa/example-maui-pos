@@ -140,14 +140,7 @@
             </CollectionView>
 
             <Grid Style="{StaticResource PosPageGrid}"
-                  IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.LoadingState}}">
-                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
-                    <Label Style="{StaticResource PosEmptyIconLabel}"
-                           Text="🔍" />
-                    <Label Style="{StaticResource PosMessageLabel}"
-                           Text="読み込んでいます。" />
-                </VerticalStackLayout>
-            </Grid>
+                  IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.LoadingState}}" />
             <Grid Style="{StaticResource PosPageGrid}"
                   IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.OfflineState}}">
                 <VerticalStackLayout Style="{StaticResource PosEmptyStack}">

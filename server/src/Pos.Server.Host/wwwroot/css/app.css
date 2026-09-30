@@ -96,9 +96,16 @@ body {
 
 .qr-text {
     margin: 0;
+    font-family: monospace;
     font-size: 12px;
-    white-space: pre-wrap;
     word-break: break-all;
+}
+
+/* 設定 QR の印刷: 操作のボタンと注意は刷らない */
+@media print {
+    .no-print {
+        display: none;
+    }
 }
 
 /* 絞り込みの入力欄の最小幅 */

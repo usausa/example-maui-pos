@@ -153,10 +153,10 @@ public sealed partial class SettingViewModel : AppViewModelBase
         {
             case 0:
                 await sync.RetryAsync(entity.Id);
-                await dialog.Toast("再送します。");
+                await dialog.Toast("再送します");
                 break;
             case 1:
-                if (await dialog.AskAsync("この送信を破棄しますか？\nサーバには反映されません。", "破棄", "破棄"))
+                if (await dialog.AskAsync("この送信を破棄しますか？\nサーバには反映されません", "破棄", "破棄"))
                 {
                     await sync.DiscardAsync(entity.Id);
                 }
@@ -173,7 +173,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
     // 端末のトークンを捨てて初期設定へ。ローカル DB と未送信は残し、登録し直すと続きを送る
     private async Task UnregisterAsync()
     {
-        if (!await dialog.AskAsync("この端末の登録を解除しますか？\n未送信の取引は残り、登録し直すと送信します。", "登録の解除", "解除"))
+        if (!await dialog.AskAsync("登録を解除しますか？\n未送信は登録し直すと送信します", "登録の解除", "解除"))
         {
             return;
         }
@@ -207,11 +207,11 @@ public sealed partial class SettingViewModel : AppViewModelBase
 
         if (result.Result.IsSuccess)
         {
-            await dialog.Toast(result.Sent > 0 ? $"同期しました。未送信 {result.Sent} 件を送信しました。" : "同期しました。");
+            await dialog.Toast(result.Sent > 0 ? $"同期しました (送信 {result.Sent} 件)" : "同期しました");
         }
         else
         {
-            await dialog.InformationAsync("同期に失敗しました。\n" + result.Result.Message);
+            await dialog.InformationAsync("同期できませんでした\n" + result.Result.Message);
         }
 
         await LoadOutboxAsync();

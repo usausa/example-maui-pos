@@ -40,7 +40,7 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | ![店舗間移動](docs/images/server-inventory-transfers.png) |
 | 店舗間移動: 依頼・出荷・受領 |
 | ![レジ端末](docs/images/server-terminals.png) |
-| レジ端末: ペアリングコード (6 桁、10 分) と設定 QR の発行、登録の状態と解除、最終通信 |
+| レジ端末: 設定 QR の印刷、ペアリングコード (6 桁、10 分) の発行、登録の状態と解除、最終通信 |
 | ![ユーザー](docs/images/server-accounts.png) |
 | ユーザー: 管理者 / オペレーターの追加・パスワード変更・無効化 (オペレーターはマスタ・設定・端末の登録を変更できない) |
 

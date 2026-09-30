@@ -60,7 +60,7 @@ public sealed partial class StaffSelectViewModel : AppViewModelBase
     {
         if (!item.HasPin)
         {
-            await dialog.InformationAsync($"{item.Name} は PIN が設定されていません。\n管理画面のスタッフで PIN を設定してください。");
+            await dialog.InformationAsync("PIN が設定されていません");
             return;
         }
 

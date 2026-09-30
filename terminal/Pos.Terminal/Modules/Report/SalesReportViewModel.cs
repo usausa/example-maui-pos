@@ -212,7 +212,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
 
     private void ShowOffline()
     {
-        Message = "取得できませんでした。";
+        Message = "取得できません";
         CurrentState = ViewHelper.OfflineState;
     }
 

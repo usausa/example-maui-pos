@@ -97,7 +97,7 @@ public sealed partial class CashEventViewModel : AppViewModelBase
 
         if ((Type != CashEventType.NoSale) && (amount <= 0))
         {
-            await dialog.InformationAsync("金額を入力してください。");
+            await dialog.InformationAsync("金額を入力してください");
             return;
         }
 
@@ -107,7 +107,7 @@ public sealed partial class CashEventViewModel : AppViewModelBase
         }
 
         await shifts.AddCashEventAsync(Type, amount, ReasonText);
-        await dialog.Toast($"{ViewHelper.Name(Type)}を登録しました。");
+        await dialog.Toast($"{ViewHelper.Name(Type)}を登録しました");
         await Navigator.ForwardAsync(ViewId.Menu);
     }
 }

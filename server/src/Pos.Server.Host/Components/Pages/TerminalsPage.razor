@@ -8,6 +8,7 @@
     <MudSpacer />
     <MudSwitch T="bool" @bind-Value="includeDeleted" @bind-Value:after="LoadAsync" Label="削除済みを表示" Color="Color.Primary" />
     <AuthorizeView Policy="@Policies.Administrator">
+        <MudButton StartIcon="@Icons.Material.Filled.QrCode" Variant="Variant.Outlined" Size="Size.Small" Href="terminals/setup-qr" Target="_blank">設定 QR</MudButton>
         <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="IsBusy" OnClick="AddAsync">追加</MudButton>
     </AuthorizeView>
     <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
@@ -54,7 +55,7 @@
             {
                 <AuthorizeView Policy="@Policies.Administrator" Context="auth">
                     <MudTooltip Text="ペアリングコードを発行">
-                        <MudIconButton Icon="@Icons.Material.Filled.QrCode" Size="Size.Small" Disabled="@(IsBusy || !context.IsActive)" OnClick="() => IssuePairingCodeAsync(context)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Pin" Size="Size.Small" Disabled="@(IsBusy || !context.IsActive)" OnClick="() => IssuePairingCodeAsync(context)" />
                     </MudTooltip>
                     @if (Registration(context.Id) is { RevokedAt: null })
                     {
@@ -69,6 +70,6 @@
         </MudTd>
     </RowTemplate>
     <NoRecordsContent>
-        <MudText>端末がありません。</MudText>
+        <MudText>端末がありません</MudText>
     </NoRecordsContent>
 </MudTable>

@@ -11,7 +11,7 @@ public sealed class TerminalSetting : IValidatableObject
         if ((ApiEndPoint.Length > 0) &&
             (!Uri.TryCreate(ApiEndPoint, UriKind.Absolute, out var uri) || ((uri.Scheme != Uri.UriSchemeHttp) && (uri.Scheme != Uri.UriSchemeHttps))))
         {
-            yield return new ValidationResult("ApiEndPoint は http か https の絶対 URL にしてください。", [nameof(ApiEndPoint)]);
+            yield return new ValidationResult("ApiEndPoint は http か https の絶対 URL にしてください", [nameof(ApiEndPoint)]);
         }
     }
 }

@@ -204,7 +204,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 `TerminalCreateRequest` / `TerminalUpdateRequest` は `storeId` / `terminalNo` / `name` / `isActive` (+ `version`)。  
 `lastReceiptSeq` は取引登録で、`lastSeenAt` はペアリング・heartbeat・取引登録で、`appVersion` はペアリングと heartbeat でサーバが更新する。
 
-端末の登録は、管理画面で端末ごとにペアリングコード (6 桁、10 分、一度だけ) を発行し、端末で **設定 QR** (`ApiEndPoint` / `PairingCode`) を読み取るか、URL とコードを入力して `POST /terminals/pair` を呼ぶ ([D-35](decisions.md#d-35-認証は管理画面のログイン端末のトークンスタッフの-pin-にする))。  
+端末の登録は、管理画面で端末ごとにペアリングコード (6 桁、10 分、一度だけ) を発行し、端末で印刷した **設定 QR** (`ApiEndPoint`) を読み取るか URL を入力し、コードを入れて `POST /terminals/pair` を呼ぶ ([D-35](decisions.md#d-35-認証は管理画面のログイン端末のトークンスタッフの-pin-にする))。  
 設定 QR の `ApiEndPoint` は、設定 `Terminal:ApiEndPoint` (端末から届く URL) があればそれ、なければ管理画面を開いた URL にする。  
 トークンは応答でだけ返し、サーバは SHA-256 だけを持つ。  
 同じ端末を登録し直すと古いトークンは失効する。  
@@ -1208,7 +1208,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 API 設計が前提にしている MAUI 側の動き。  
 通信は `HttpService` (HttpClient + System.Text.Json。失敗時は Problem Details を `ApiResult<T>` で返す) + `NetworkService` (接続確認・インジケータ・エラー通知) を使う ([D-28](decisions.md#d-28-端末は-viewmodel-から-service-と-usecase-を呼ぶ))。
 
-1. **初回**: 設定 QR (`ApiEndPoint` / `PairingCode`) を読み取るか入力して `POST /terminals/pair` でトークン・端末・店舗を受け取り、`GET /sync/masters` (全件) と `GET /inventory?storeId=` (自店) をローカル DB (SQLite) に保存する。  
+1. **初回**: 設定 QR (`ApiEndPoint`) を読み取るか URL を入力し、ペアリングコードを入れて `POST /terminals/pair` でトークン・端末・店舗を受け取り、`GET /sync/masters` (全件) と `GET /inventory?storeId=` (自店) をローカル DB (SQLite) に保存する。  
    会員はローカルに持たず、都度オンラインで照会する
 2. **定期**: 5 分ごとに `GET /sync/masters?since={前回の serverTime}` と `GET /inventory?storeId=&updatedSince=` で差分を取り込み、1 分ごとに `POST /terminals/me/heartbeat` を送る
 3. **書き込みは Outbox**: 端末で発生した書き込み (`XxxRequest`) を発生順にローカル DB の `Outbox` テーブルへ JSON で保存し、バックグラウンドで順に送信する

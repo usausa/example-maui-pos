@@ -37,7 +37,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
 
     public ObservableCollection<SummarySection> Sections { get; } = [];
 
-    // 他店在庫 (F4 で取得したときだけ見出しと面を出す。取得中・取得できない・在庫なしは案内文で示す)
+    // 他店在庫 (F4 で取得した後に見出しと面を出す。取得できない・在庫なしは案内文で示す)
     [ObservableProperty]
     public partial bool HasOtherStores { get; set; }
 
@@ -138,18 +138,18 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
             return;
         }
 
-        HasOtherStores = true;
+        HasOtherStores = false;
         OtherStores.Clear();
-        OtherStoresMessage = "取得しています。";
         var result = await network.ExecuteAsync(h => h.GetProductInventoryAsync(product.Id), notifyNotFound: true);
+        HasOtherStores = true;
         if (!result.IsSuccess)
         {
-            OtherStoresMessage = "📡 取得できませんでした。";
+            OtherStoresMessage = "📡 取得できません";
             return;
         }
 
         OtherStores.Replace(result.Content!.Levels
             .Select(x => new SummaryRow((x.StoreId == session.StoreId ? "🏪 " : string.Empty) + x.StoreName, ViewHelper.Quantity(x.Quantity))));
-        OtherStoresMessage = OtherStores.Count == 0 ? "在庫のある店舗はありません。" : string.Empty;
+        OtherStoresMessage = OtherStores.Count == 0 ? "在庫のある店舗はありません" : string.Empty;
     }
 }

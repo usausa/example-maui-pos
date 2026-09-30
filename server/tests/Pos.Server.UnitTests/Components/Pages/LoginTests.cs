@@ -43,7 +43,7 @@ public sealed class LoginTests : MudBlazorTestBase
         var cut = Render<Login>();
 
         // Assert
-        Assert.Contains("ID またはパスワードが違います。", cut.Find(".mud-alert").TextContent, StringComparison.Ordinal);
+        Assert.Contains("ID またはパスワードが違います", cut.Find(".mud-alert").TextContent, StringComparison.Ordinal);
         Assert.Equal("products", cut.Find("input[name=returnUrl]").GetAttribute("value"));
     }
 

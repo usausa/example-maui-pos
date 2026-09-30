@@ -44,7 +44,7 @@ public sealed partial class OrderListViewModel : AppViewModelBase
     public partial string CountText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string Message { get; set; } = "受注がありません。";
+    public partial string Message { get; set; } = "受注がありません";
 
     // 取得中 / 取得できない / 結果 (空文字) を切り替える。表示した直後に読むので取得中から始める
     [ObservableProperty]
@@ -89,7 +89,7 @@ public sealed partial class OrderListViewModel : AppViewModelBase
         var result = await network.ExecuteAsync(h => h.GetOrdersAsync(storeId, filter.Status, filter.Open, Keyword.Text?.Trim()), notify: false);
         if (!result.IsSuccess)
         {
-            Message = "取得できませんでした。";
+            Message = "取得できません";
             CurrentState = ViewHelper.OfflineState;
             return;
         }
@@ -106,7 +106,7 @@ public sealed partial class OrderListViewModel : AppViewModelBase
             x.RequestedDate is null ? string.Empty : $"希望 {ViewHelper.Date(x.RequestedDate.Value)}",
             x.RequestedDate is not null)));
         CountText = $"{page.Total} 件";
-        Message = "受注がありません。";
+        Message = "受注がありません";
         CurrentState = string.Empty;
     }
 

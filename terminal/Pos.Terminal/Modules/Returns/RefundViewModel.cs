@@ -130,7 +130,7 @@ public sealed partial class RefundViewModel : AppViewModelBase
 
         if ((pointsRefund > 0) && (pointsMethod is null))
         {
-            await dialog.InformationAsync("ポイント支払方法が登録されていないため、ポイントを返還できません。");
+            await dialog.InformationAsync("ポイントの支払方法がありません");
             CanConfirm = false;
         }
     }
@@ -157,7 +157,7 @@ public sealed partial class RefundViewModel : AppViewModelBase
         {
             if (selected is null)
             {
-                await dialog.InformationAsync("返金方法を選んでください。");
+                await dialog.InformationAsync("返金方法を選んでください");
                 return;
             }
 

@@ -120,7 +120,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
     {
         credential.Clear();
         session.Staff = null;
-        await dialog.InformationAsync("この端末の登録が解除されました。\n管理画面でペアリングコードを発行し、登録し直してください。\n未送信の取引は再登録後に送信します。", "端末の登録");
+        await dialog.InformationAsync("登録が解除されました", "端末の登録");
         await Navigator.ForwardAsync(ViewId.Setup);
     }
 

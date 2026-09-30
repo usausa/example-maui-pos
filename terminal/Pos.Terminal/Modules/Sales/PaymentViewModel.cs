@@ -186,14 +186,14 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
         if (depositMethod is null)
         {
-            await dialog.InformationAsync("前受金の支払方法がありません。\n設定・同期でマスタを同期するか、管理画面の支払方法を確かめてください。");
+            await dialog.InformationAsync("前受金の支払方法がありません");
             return false;
         }
 
         var total = sales.Calculate(SalesContext.Cart, []).Total;
         if (deposit > total)
         {
-            await dialog.InformationAsync($"前受金 {ViewHelper.Yen(deposit)} が合計 {ViewHelper.Yen(total)} を超えています。\n受注の詳細で前受金を返してから会計してください。");
+            await dialog.InformationAsync($"前受金 {ViewHelper.Yen(deposit)} が合計 {ViewHelper.Yen(total)} を超えています");
             return false;
         }
 
@@ -236,7 +236,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     {
         if (remaining <= 0)
         {
-            await dialog.InformationAsync("支払は完了しています。");
+            await dialog.InformationAsync("支払は完了しています");
             return;
         }
 
@@ -246,7 +246,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         {
             if (method.Kind == PaymentKind.Cash)
             {
-                await dialog.InformationAsync("預り金を入力してください。");
+                await dialog.InformationAsync("預り金を入力してください");
                 return;
             }
 
@@ -303,7 +303,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         var max = Math.Min(customer.PointBalance, remaining + (existing?.Amount ?? 0m));
         if (max <= 0)
         {
-            await dialog.InformationAsync("利用できるポイントがありません。");
+            await dialog.InformationAsync("利用できるポイントがありません");
             return;
         }
 
@@ -315,7 +315,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
         if (points > max)
         {
-            await dialog.InformationAsync($"ポイントは {max:#,##0} まで利用できます。");
+            await dialog.InformationAsync($"ポイントは {max:#,##0} まで利用できます");
             return;
         }
 
@@ -339,7 +339,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     {
         if (!session.CanTransact)
         {
-            await dialog.InformationAsync("レジが開設されていません。");
+            await dialog.InformationAsync("レジが開設されていません");
             return;
         }
 

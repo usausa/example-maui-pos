@@ -28,7 +28,7 @@
                         ItemsSource="{Binding Items}">
             <CollectionView.EmptyView>
                 <Label Style="{StaticResource PosMessageLabel}"
-                       Text="スタッフが登録されていません。設定・同期から同期してください。" />
+                       Text="スタッフを同期してください" />
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="{x:Type module:StaffItem}">

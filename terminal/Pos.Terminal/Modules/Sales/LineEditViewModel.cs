@@ -169,7 +169,7 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
         var serials = (Serial.Text ?? string.Empty).Split([',', '、', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (line.Product.RequiresSerial && (serials.Length == 0))
         {
-            await dialog.InformationAsync("シリアル番号を入力してください。");
+            await dialog.InformationAsync("シリアル番号を入力してください");
             Serial.Focus();
             return;
         }

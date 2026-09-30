@@ -1444,16 +1444,6 @@
         <Setter Property="FontSize" Value="56" />
     </Style>
 
-    <!-- 描画待ち -->
-    <Style x:Key="PosLoadingIndicator"
-           TargetType="ActivityIndicator">
-        <Setter Property="WidthRequest" Value="48" />
-        <Setter Property="HeightRequest" Value="48" />
-        <Setter Property="HorizontalOptions" Value="Center" />
-        <Setter Property="VerticalOptions" Value="Center" />
-        <Setter Property="Color" Value="{StaticResource BlueDarken4}" />
-    </Style>
-
     <!-- List row (CollectionView item) -->
 
     <Style x:Key="PosListCollectionView"

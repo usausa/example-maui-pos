@@ -143,16 +143,16 @@ public sealed partial class DailyClosingsPage
             switch (result.Status)
             {
                 case DailyClosingResultStatus.Success:
-                    Snackbar.AddSuccess($"{names.Store(day.StoreId)} {day.BusinessDate.ToDateText()} を締めました。");
+                    Snackbar.AddSuccess($"{names.Store(day.StoreId)} {day.BusinessDate.ToDateText()} を締めました");
                     break;
                 case DailyClosingResultStatus.NoShift:
-                    Snackbar.AddWarning("この営業日のシフトがありません。");
+                    Snackbar.AddWarning("この営業日のシフトがありません");
                     break;
                 case DailyClosingResultStatus.ShiftStillOpen:
-                    Snackbar.AddWarning("未精算のシフトがあります。精算してから締めてください。");
+                    Snackbar.AddWarning("未精算のシフトがあります");
                     break;
                 default:
-                    Snackbar.AddWarning("既に締め済みです。");
+                    Snackbar.AddWarning("既に締め済みです");
                     break;
             }
         }, SearchAsync);
@@ -160,7 +160,7 @@ public sealed partial class DailyClosingsPage
     // 締めの解除は管理者だけ (ダイアログのボタンを管理者だけに出す)
     private async Task ReopenAsync(DailyClosingDayView day)
     {
-        if (!await DialogService.ShowConfirm("締め解除", $"{names.Store(day.StoreId)} {day.BusinessDate.ToDateText()} の締めを解除しますか？ 解除すると、この営業日の取引を取消できるようになります。"))
+        if (!await DialogService.ShowConfirm("締め解除", $"{names.Store(day.StoreId)} {day.BusinessDate.ToDateText()} の締めを解除しますか？ 取引を取消できるようになります"))
         {
             return;
         }
@@ -169,11 +169,11 @@ public sealed partial class DailyClosingsPage
         {
             if (await DailyClosingService.ReopenAsync(day.Id!.Value, CancellationToken))
             {
-                Snackbar.AddSuccess("締めを解除しました。");
+                Snackbar.AddSuccess("締めを解除しました");
             }
             else
             {
-                Snackbar.AddError("対象が存在しません。");
+                Snackbar.AddError("対象が存在しません");
             }
         }, SearchAsync);
     }

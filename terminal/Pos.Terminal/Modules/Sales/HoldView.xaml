@@ -29,7 +29,7 @@
                     <Label Style="{StaticResource PosEmptyIconLabel}"
                            Text="⏸️" />
                     <Label Style="{StaticResource PosMessageLabel}"
-                           Text="保留中の会計はありません。" />
+                           Text="保留中の会計はありません" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>

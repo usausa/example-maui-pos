@@ -5,13 +5,13 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
-    private ViewId returnTo = ViewId.Complete;
-
-    private Guid transactionId;
-
     private readonly TransactionUsecase transactions;
 
     private readonly ReceiptService receipt;
+
+    private ViewId returnTo = ViewId.Complete;
+
+    private Guid transactionId;
 
     private byte[] png = [];
 
@@ -20,9 +20,6 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
     [ObservableProperty]
     public partial bool QrVisible { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsRendering { get; set; }
 
     [ObservableProperty]
     public partial ImageSource? ReceiptImage { get; set; }
@@ -62,14 +59,9 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
         ReceiptNo = transaction.ReceiptNo;
 
-        IsRendering = true;
-        try
+        using (dialog.Indicator())
         {
             png = await receipt.BuildAsync(transaction);
-        }
-        finally
-        {
-            IsRendering = false;
         }
 
         ReceiptImage = ImageSource.FromStream(() => new MemoryStream(png));
@@ -93,7 +85,7 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
     }
 
     // 印刷は Bluetooth ラインプリンタを前提にしていて、まだ作っていない
-    protected override async Task OnNotifyFunction3() => await dialog.InformationAsync("印刷は未実装です。");
+    protected override async Task OnNotifyFunction3() => await dialog.InformationAsync("印刷は未実装です");
 
     protected override async Task OnNotifyFunction4()
     {

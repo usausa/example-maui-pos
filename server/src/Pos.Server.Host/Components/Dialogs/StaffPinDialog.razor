@@ -17,7 +17,7 @@
                     <MudTextField @bind-Value="Form.PinConfirm" For="@(() => Form.PinConfirm)" Validation="@Validator.ValidateValue" Label="PIN (確認)" InputType="InputType.Password" MaxLength="@Length.PinDigits" Immediate="true" />
                 </MudItem>
             </MudGrid>
-            <MudText Typo="Typo.caption" Class="mt-2 d-block">端末のログインと承認に使います。端末には次の同期で届きます。</MudText>
+            <MudText Typo="Typo.caption" Class="mt-2 d-block">端末には次の同期で届きます</MudText>
         </MudForm>
     </DialogContent>
     <DialogActions>

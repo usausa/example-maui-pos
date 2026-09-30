@@ -101,7 +101,7 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
         var cart = SalesContext.Cart;
         if ((cart.Customer is null) && String.IsNullOrWhiteSpace(CustomerName.Text))
         {
-            await dialog.InformationAsync("宛名を入力してください。");
+            await dialog.InformationAsync("宛名を入力してください");
             CustomerName.Focus();
             return;
         }
@@ -120,7 +120,7 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
         }
 
         SalesContext.Reset();
-        await dialog.InformationAsync($"受注 {result.Content.OrderNo} を登録しました ({ViewHelper.Name(result.Content.Status)})。");
+        await dialog.InformationAsync($"受注 {result.Content.OrderNo} を登録しました ({ViewHelper.Name(result.Content.Status)})");
         await ReturnAsync();
     }
 }

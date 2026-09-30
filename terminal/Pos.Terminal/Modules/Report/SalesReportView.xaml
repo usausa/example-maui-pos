@@ -124,7 +124,7 @@
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding GroupRows}">
                             <BindableLayout.EmptyView>
                                 <Label Style="{StaticResource PosMessageLabel}"
-                                       Text="データがありません。" />
+                                       Text="データがありません" />
                             </BindableLayout.EmptyView>
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="{x:Type module:ReportGroupRow}">
@@ -153,14 +153,7 @@
             </ScrollView>
 
             <Grid Style="{StaticResource PosPageGrid}"
-                  IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.LoadingState}}">
-                <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
-                    <Label Style="{StaticResource PosEmptyIconLabel}"
-                           Text="📊" />
-                    <Label Style="{StaticResource PosMessageLabel}"
-                           Text="集計しています。" />
-                </VerticalStackLayout>
-            </Grid>
+                  IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.LoadingState}}" />
             <Grid Style="{StaticResource PosPageGrid}"
                   IsVisible="{Binding CurrentState, Converter={StaticResource EqualsConverter}, ConverterParameter={x:Static helpers:ViewHelper.OfflineState}}">
                 <VerticalStackLayout Style="{StaticResource PosEmptyStack}">

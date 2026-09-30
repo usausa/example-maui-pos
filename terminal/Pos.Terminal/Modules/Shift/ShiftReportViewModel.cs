@@ -107,7 +107,7 @@ public sealed partial class ShiftReportViewModel : AppViewModelBase
             : Task.CompletedTask;
 
     // 印刷は Bluetooth ラインプリンタを前提にしていて、まだ作っていない
-    protected override async Task OnNotifyFunction3() => await dialog.InformationAsync("印刷は未実装です。");
+    protected override async Task OnNotifyFunction3() => await dialog.InformationAsync("印刷は未実装です");
 
     protected override Task OnNotifyFunction4() => Navigator.ForwardAsync(ViewId.Menu);
 }

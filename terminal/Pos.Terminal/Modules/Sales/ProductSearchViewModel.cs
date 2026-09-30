@@ -181,7 +181,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
         var list = await accessor.QueryProductListAsync(categoryIds, pattern, 200);
         var items = list.Select(static x => new ProductItem(x, $"{x.ModelNo}  {x.Brand}".Trim(), ViewHelper.Yen(x.Price))).ToList();
         Items.Replace(items);
-        Message = "該当する商品がありません。";
+        Message = "該当する商品がありません";
 
         // 画像は結果を出した後に上から順に入れる (取得を待たずに操作できる)
         foreach (var item in items.Where(static x => x.Product.ImageUrl is not null))
@@ -235,7 +235,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
         if (!taxRates.TryGetValue(item.Product.TaxRateId, out var taxRate))
         {
-            await dialog.InformationAsync("税率マスタがありません。同期してください。");
+            await dialog.InformationAsync("マスタを同期してください");
             return;
         }
 

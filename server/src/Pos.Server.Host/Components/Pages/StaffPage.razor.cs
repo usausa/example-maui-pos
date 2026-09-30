@@ -40,7 +40,7 @@ public sealed partial class StaffPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await StaffService.InsertAsync(StaffForm.ToEntity(form), CancellationToken), "追加しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await StaffService.InsertAsync(StaffForm.ToEntity(form), CancellationToken), "追加しました"), LoadAsync);
     }
 
     private async Task EditAsync(StaffEntity entity)
@@ -51,7 +51,7 @@ public sealed partial class StaffPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await StaffService.UpdateAsync(StaffForm.ToEntity(form), CancellationToken), "更新しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await StaffService.UpdateAsync(StaffForm.ToEntity(form), CancellationToken), "更新しました"), LoadAsync);
     }
 
     // PIN がないスタッフは端末で担当に選べない
@@ -63,7 +63,7 @@ public sealed partial class StaffPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await StaffService.UpdatePinAsync(form.Id, form.Pin, form.Version, CancellationToken), "PIN を設定しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await StaffService.UpdatePinAsync(form.Id, form.Pin, form.Version, CancellationToken), "PIN を設定しました"), LoadAsync);
     }
 
     private async Task DeleteAsync(StaffEntity entity)
@@ -73,6 +73,6 @@ public sealed partial class StaffPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await StaffService.DeleteAsync(entity.Id, CancellationToken), "削除しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await StaffService.DeleteAsync(entity.Id, CancellationToken), "削除しました"), LoadAsync);
     }
 }

@@ -7,6 +7,6 @@ public sealed class InventoryMovementFormValidator : FormValidator<InventoryMove
 {
     public InventoryMovementFormValidator()
     {
-        RuleFor(static x => x.StaffId).NotNull().WithMessage("担当を選択してください。");
+        RuleFor(static x => x.StaffId).NotNull().WithMessage("担当を選択してください");
     }
 }

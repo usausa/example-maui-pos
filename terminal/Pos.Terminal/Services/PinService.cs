@@ -45,7 +45,7 @@ public sealed class PinService
                 return true;
             }
 
-            await dialog.InformationAsync(attempt < MaxAttempts ? "PIN が違います。" : $"PIN を {MaxAttempts} 回間違えました。");
+            await dialog.InformationAsync(attempt < MaxAttempts ? "PIN が違います" : $"PIN を {MaxAttempts} 回間違えました");
         }
 
         return false;
@@ -59,7 +59,7 @@ public sealed class PinService
             : (await accessor.QueryStaffListAsync(session.StoreId.Value)).Where(static x => StaffLogic.CanApprove(x.Role) && (x.PinHash is not null)).ToList();
         if (staff.Count == 0)
         {
-            await dialog.InformationAsync("承認できるスタッフ (店長・管理者) がいません。\n管理画面で PIN を設定してください。");
+            await dialog.InformationAsync("承認できるスタッフがいません");
             return null;
         }
 

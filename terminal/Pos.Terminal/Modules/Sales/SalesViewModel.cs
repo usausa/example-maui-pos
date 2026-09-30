@@ -202,14 +202,14 @@ public sealed partial class SalesViewModel : AppViewModelBase
             case MoreAction.Hold:
                 if (cart.IsEmpty)
                 {
-                    await dialog.InformationAsync("明細がありません。");
+                    await dialog.InformationAsync("明細がありません");
                     return;
                 }
 
                 await sales.HoldAsync(cart);
                 SalesContext.Reset();
                 Refresh();
-                await dialog.Toast("保留しました。");
+                await dialog.Toast("保留しました");
                 break;
 
             case MoreAction.Recall:
@@ -219,7 +219,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
             case MoreAction.Order:
                 if (cart.IsEmpty)
                 {
-                    await dialog.InformationAsync("明細がありません。");
+                    await dialog.InformationAsync("明細がありません");
                     return;
                 }
 
@@ -251,7 +251,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
     {
         if (SalesContext.Cart.IsEmpty)
         {
-            await dialog.InformationAsync("明細がありません。");
+            await dialog.InformationAsync("明細がありません");
             return;
         }
 
@@ -259,7 +259,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
         var missing = SalesContext.Cart.Lines.FirstOrDefault(static x => x.Product.RequiresSerial && (x.SerialNumbers.Count == 0));
         if (missing is not null)
         {
-            await dialog.InformationAsync($"{missing.Product.Name} のシリアル番号を入力してください。");
+            await dialog.InformationAsync($"{missing.Product.Name} のシリアル番号を入力してください");
 
             // 案内した明細をそのまま開く
             var item = Lines.FirstOrDefault(x => x.Line == missing);

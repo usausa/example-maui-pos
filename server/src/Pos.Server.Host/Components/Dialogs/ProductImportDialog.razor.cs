@@ -45,7 +45,7 @@ public sealed partial class ProductImportDialog
         fileName = file.Name;
         if (file.Size > CsvImport.MaxBytes)
         {
-            message = "CSV は 5 MB までにしてください。";
+            message = "CSV は 5 MB までにしてください";
             return;
         }
 
@@ -67,7 +67,7 @@ public sealed partial class ProductImportDialog
 
             if (csv.Rows.Count == 0)
             {
-                message = "取り込む行がありません。";
+                message = "取り込む行がありません";
                 return;
             }
 
@@ -94,8 +94,8 @@ public sealed partial class ProductImportDialog
             }
 
             message = result.Status == DataWriteStatus.VersionMismatch
-                ? "取り込んでいる間に他で商品が更新されました。結果を確かめてから、もう一度取り込んでください。"
-                : "取り込めない行があります。";
+                ? "取込中に他で商品が更新されました"
+                : "取り込めない行があります";
             preview = await ProductService.ImportAsync(lines, true, CancellationToken.None);
         }
         finally

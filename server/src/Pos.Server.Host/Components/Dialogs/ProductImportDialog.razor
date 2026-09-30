@@ -8,9 +8,9 @@
     <DialogContent>
         <MudStack Spacing="2">
             <MudText Typo="Typo.body2">
-                「CSV 出力」と同じ列の CSV を選ぶと、取り込む前に行ごとの結果を確かめられます。
-                コードが一致する商品は更新し、ない商品は登録します (CSV にない商品は削除しません)。
-                誤りのある行があると何も取り込みません。
+                列は「CSV 出力」と同じ<br />
+                コードが同じ商品は更新、ない商品は登録 (削除はしない)<br />
+                誤りのある行があれば何も取り込まない
             </MudText>
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <MudFileUpload T="IBrowserFile" Accept=".csv,text/csv" FilesChanged="OnFileSelectedAsync">
@@ -60,7 +60,7 @@
                         </MudTd>
                     </RowTemplate>
                     <NoRecordsContent>
-                        <MudText>変更のある行はありません。</MudText>
+                        <MudText>変更のある行はありません</MudText>
                     </NoRecordsContent>
                 </MudTable>
             }

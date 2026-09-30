@@ -32,7 +32,7 @@ public sealed partial class StoresPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await StoreService.InsertAsync(StoreForm.ToEntity(form), CancellationToken), "追加しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await StoreService.InsertAsync(StoreForm.ToEntity(form), CancellationToken), "追加しました"), LoadAsync);
     }
 
     private async Task EditAsync(StoreEntity entity)
@@ -43,7 +43,7 @@ public sealed partial class StoresPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await StoreService.UpdateAsync(StoreForm.ToEntity(form), CancellationToken), "更新しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await StoreService.UpdateAsync(StoreForm.ToEntity(form), CancellationToken), "更新しました"), LoadAsync);
     }
 
     private async Task DeleteAsync(StoreEntity entity)
@@ -53,6 +53,6 @@ public sealed partial class StoresPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await StoreService.DeleteAsync(entity.Id, CancellationToken), "削除しました。", inUse: "端末または在庫がある店舗は削除できません。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await StoreService.DeleteAsync(entity.Id, CancellationToken), "削除しました", inUse: "端末または在庫がある店舗は削除できません"), LoadAsync);
     }
 }

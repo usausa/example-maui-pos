@@ -112,7 +112,7 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
         Items.Replace(result.Content!.Items
             .Where(static x => !x.IsDeleted)
             .Select(static x => new CustomerItem(x, x.Name, x.Code, x.Phone ?? string.Empty, ViewHelper.Points(x.PointBalance))));
-        Message = "該当する会員がいません。";
+        Message = "該当する会員がいません";
     }
 
     private async Task ApplyAsync(CustomerResponseItem customer)

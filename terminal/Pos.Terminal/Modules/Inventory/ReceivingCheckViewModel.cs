@@ -130,7 +130,7 @@ public sealed partial class ReceivingCheckViewModel : AppViewModelBase
             line = document.Lines.FirstOrDefault(x => x.ProductId == product.Id);
             if (line is null)
             {
-                await dialog.InformationAsync($"この伝票にない商品です。\n{product.Name}");
+                await dialog.InformationAsync($"伝票にない商品です\n{product.Name}");
                 return;
             }
         }
@@ -176,8 +176,8 @@ public sealed partial class ReceivingCheckViewModel : AppViewModelBase
 
         var uncounted = document.Lines.Count(x => !ReceivingContext.Counts.ContainsKey(x.Id));
         var message = uncounted > 0
-            ? $"未確認の {uncounted} 点は予定の数で受け取ります。\n受領しますか？"
-            : "受領しますか？\n届いた数が在庫に入ります。";
+            ? $"受領しますか？\n未確認の {uncounted} 点は予定の数で受け取ります"
+            : "受領しますか？\n届いた数を在庫に入れます";
         if (!await dialog.AskAsync(message, "受領", "受領"))
         {
             return;
@@ -185,7 +185,7 @@ public sealed partial class ReceivingCheckViewModel : AppViewModelBase
 
         if (await receiving.ReceiveAsync(document, ReceivingContext.Counts))
         {
-            await dialog.Toast("受領しました。");
+            await dialog.Toast("受領しました");
             await Navigator.ForwardAsync(ViewId.ReceivingList);
         }
     }

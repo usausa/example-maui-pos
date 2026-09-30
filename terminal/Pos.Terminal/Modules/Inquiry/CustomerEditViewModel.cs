@@ -222,14 +222,14 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         var name = Name.Text?.Trim();
         if (String.IsNullOrEmpty(code))
         {
-            await dialog.InformationAsync("会員番号を入力してください。");
+            await dialog.InformationAsync("会員番号を入力してください");
             Code.Focus();
             return;
         }
 
         if (String.IsNullOrEmpty(name))
         {
-            await dialog.InformationAsync("氏名を入力してください。");
+            await dialog.InformationAsync("氏名を入力してください");
             Name.Focus();
             return;
         }
@@ -239,7 +239,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         {
             if (!DateTimeHelper.TryParseDate(BirthDateText.Trim(), out var date))
             {
-                await dialog.InformationAsync("生年月日は yyyy/MM/dd で入力してください。");
+                await dialog.InformationAsync("生年月日は yyyy/MM/dd で入力してください");
                 return;
             }
 
@@ -290,7 +290,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
             SalesContext.Cart.Customer = saved;
         }
 
-        await dialog.Toast(original is null ? "会員を登録しました。" : "会員を更新しました。");
+        await dialog.Toast(original is null ? "会員を登録しました" : "会員を更新しました");
         await ReturnAsync(saved);
     }
 }

@@ -107,7 +107,7 @@ public sealed partial class HoldViewModel : AppViewModelBase
         var cart = await sales.RecallAsync(selected.Entity);
         if (cart is null)
         {
-            await dialog.InformationAsync("保留データを読めませんでした。");
+            await dialog.InformationAsync("保留データを読めませんでした");
             return;
         }
 

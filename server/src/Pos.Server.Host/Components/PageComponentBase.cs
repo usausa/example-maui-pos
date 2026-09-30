@@ -96,19 +96,19 @@ public abstract class PageComponentBase : AppComponentBase
                 Snackbar.AddSuccess(success);
                 break;
             case DataWriteStatus.NotFound:
-                Snackbar.AddError("対象が存在しません。");
+                Snackbar.AddError("対象が存在しません");
                 break;
             case DataWriteStatus.Duplicate:
-                Snackbar.AddError(duplicate ?? "コードが重複しています。");
+                Snackbar.AddError(duplicate ?? "コードが重複しています");
                 break;
             case DataWriteStatus.VersionMismatch:
-                Snackbar.AddError("他で更新されています。再読み込みしてください。");
+                Snackbar.AddError("他で更新されています");
                 break;
             case DataWriteStatus.InUse:
-                Snackbar.AddWarning(inUse ?? "使用中のため削除できません。");
+                Snackbar.AddWarning(inUse ?? "使用中のため削除できません");
                 break;
             default:
-                Snackbar.AddWarning(invalid ?? "指定が不正です。");
+                Snackbar.AddWarning(invalid ?? "指定が不正です");
                 break;
         }
     }

@@ -32,7 +32,7 @@ public sealed partial class AdjustmentReasonsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await AdjustmentReasonService.InsertAsync(AdjustmentReasonForm.ToEntity(form), CancellationToken), "追加しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await AdjustmentReasonService.InsertAsync(AdjustmentReasonForm.ToEntity(form), CancellationToken), "追加しました"), LoadAsync);
     }
 
     private async Task EditAsync(AdjustmentReasonEntity entity)
@@ -43,7 +43,7 @@ public sealed partial class AdjustmentReasonsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await AdjustmentReasonService.UpdateAsync(AdjustmentReasonForm.ToEntity(form), CancellationToken), "更新しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await AdjustmentReasonService.UpdateAsync(AdjustmentReasonForm.ToEntity(form), CancellationToken), "更新しました"), LoadAsync);
     }
 
     private async Task DeleteAsync(AdjustmentReasonEntity entity)
@@ -53,6 +53,6 @@ public sealed partial class AdjustmentReasonsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await AdjustmentReasonService.DeleteAsync(entity.Id, CancellationToken), "削除しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await AdjustmentReasonService.DeleteAsync(entity.Id, CancellationToken), "削除しました"), LoadAsync);
     }
 }

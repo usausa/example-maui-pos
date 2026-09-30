@@ -153,7 +153,7 @@ public sealed partial class OrdersPage
                 await EditAsync(selected.Order);
                 break;
             case OrderDialogAction.Arrive:
-                await RunAsync(async () => Notify(await OrderService.ArriveAsync(order.Id, CancellationToken), $"{order.OrderNo} を引き渡し待ちにしました。"), SearchAsync);
+                await RunAsync(async () => Notify(await OrderService.ArriveAsync(order.Id, CancellationToken), $"{order.OrderNo} を引き渡し待ちにしました"), SearchAsync);
                 break;
             case OrderDialogAction.Cancel:
                 await CancelAsync(selected.Order);
@@ -172,7 +172,7 @@ public sealed partial class OrdersPage
             return;
         }
 
-        await RunAsync(async () => Notify(await OrderService.CreateAsync(OrderForm.ToDetail(form, Guid.CreateVersion7()), CancellationToken), "登録しました。"), SearchAsync);
+        await RunAsync(async () => Notify(await OrderService.CreateAsync(OrderForm.ToDetail(form, Guid.CreateVersion7()), CancellationToken), "登録しました"), SearchAsync);
     }
 
     private async Task EditAsync(OrderDetailView detail)
@@ -184,7 +184,7 @@ public sealed partial class OrdersPage
             return;
         }
 
-        await RunAsync(async () => Notify(await OrderService.UpdateAsync(detail.Order.Id, OrderForm.ToParameter(form), CancellationToken), "変更しました。"), SearchAsync);
+        await RunAsync(async () => Notify(await OrderService.UpdateAsync(detail.Order.Id, OrderForm.ToParameter(form), CancellationToken), "変更しました"), SearchAsync);
     }
 
     private async Task CancelAsync(OrderDetailView detail)
@@ -194,7 +194,7 @@ public sealed partial class OrdersPage
             return;
         }
 
-        await RunAsync(async () => Notify(await OrderService.CancelAsync(detail.Order.Id, null, CancellationToken), "キャンセルしました。"), SearchAsync);
+        await RunAsync(async () => Notify(await OrderService.CancelAsync(detail.Order.Id, null, CancellationToken), "キャンセルしました"), SearchAsync);
     }
 
     private async Task ShowTransactionAsync(Guid transactionId)
@@ -219,16 +219,16 @@ public sealed partial class OrdersPage
                 Snackbar.AddSuccess(success);
                 break;
             case OrderResultStatus.NotFound:
-                Snackbar.AddError("対象が存在しません。");
+                Snackbar.AddError("対象が存在しません");
                 break;
             case OrderResultStatus.VersionMismatch:
-                Snackbar.AddError("他で更新されています。再読み込みしてください。");
+                Snackbar.AddError("他で更新されています");
                 break;
             case OrderResultStatus.Violation:
-                Snackbar.AddWarning($"{ApiRuleText.Of(result.Violation!.Reason)}。");
+                Snackbar.AddWarning(ApiRuleText.Of(result.Violation!.Reason));
                 break;
             default:
-                Snackbar.AddError("同じ受注が登録済みです。");
+                Snackbar.AddError("同じ受注が登録済みです");
                 break;
         }
     }

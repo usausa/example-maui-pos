@@ -53,7 +53,7 @@ public sealed partial class ShiftOpenViewModel : AppViewModelBase
     {
         if (await shifts.AdoptServerShiftAsync() is not null)
         {
-            await dialog.InformationAsync("サーバに開設中のシフトがあるため引き継ぎました。");
+            await dialog.InformationAsync("開設中のシフトを引き継ぎました");
             await Navigator.ForwardAsync(returnTo);
         }
     }

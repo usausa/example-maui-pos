@@ -75,7 +75,7 @@
                                        IsVisible="{Binding HasOtherStores}"
                                        behaviors:AnimationOption.EnterAnimation="FadeUp">
                     <VerticalStackLayout>
-                        <!-- 取得中・取得できない・在庫なし -->
+                        <!-- 取得できない・在庫なし -->
                         <Label Style="{StaticResource PosMessageLabel}"
                                IsVisible="{Binding OtherStoresMessage, Converter={StaticResource NotEmptyConverter}}"
                                Text="{Binding OtherStoresMessage}" />

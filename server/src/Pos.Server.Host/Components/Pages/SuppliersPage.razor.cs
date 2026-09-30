@@ -32,7 +32,7 @@ public sealed partial class SuppliersPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await SupplierService.InsertAsync(SupplierForm.ToEntity(form), CancellationToken), "追加しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await SupplierService.InsertAsync(SupplierForm.ToEntity(form), CancellationToken), "追加しました"), LoadAsync);
     }
 
     private async Task EditAsync(SupplierEntity entity)
@@ -43,7 +43,7 @@ public sealed partial class SuppliersPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await SupplierService.UpdateAsync(SupplierForm.ToEntity(form), CancellationToken), "更新しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await SupplierService.UpdateAsync(SupplierForm.ToEntity(form), CancellationToken), "更新しました"), LoadAsync);
     }
 
     private async Task DeleteAsync(SupplierEntity entity)
@@ -53,6 +53,6 @@ public sealed partial class SuppliersPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await SupplierService.DeleteAsync(entity.Id, CancellationToken), "削除しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await SupplierService.DeleteAsync(entity.Id, CancellationToken), "削除しました"), LoadAsync);
     }
 }

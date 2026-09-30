@@ -21,7 +21,7 @@
 {
     @if (!IsLoading)
     {
-        <MudAlert Severity="Severity.Warning">顧客が見つかりません。</MudAlert>
+        <MudAlert Severity="Severity.Warning">顧客が見つかりません</MudAlert>
     }
 }
 else
@@ -88,7 +88,7 @@ else
                     <MudTd>@StaffName(context.StaffId)</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText>履歴がありません。</MudText>
+                    <MudText>履歴がありません</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudTabPanel>
@@ -113,7 +113,7 @@ else
                     <MudTd Class="text-right">@context.PointsRedeemed.ToPointText()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText>購入履歴がありません。</MudText>
+                    <MudText>購入履歴がありません</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudTabPanel>
@@ -138,7 +138,7 @@ else
                     <MudTd>@context.Order.RequestedDate.ToDateText()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText>受注がありません。</MudText>
+                    <MudText>受注がありません</MudText>
                 </NoRecordsContent>
             </MudTable>
         </MudTabPanel>

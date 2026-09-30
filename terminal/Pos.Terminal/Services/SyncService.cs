@@ -474,6 +474,73 @@ public sealed class SyncService : IDisposable
         await UpdateCountsAsync();
     }
 
+    // 別の端末として登録し直したとき: 未送信 (要確認を含む) を今の店舗・端末のものにして送り直す。
+    // 開設を送っていないシフトは端末の行も移す (開設を送ったシフトに続くものは、サーバでシフトの端末が合わず要確認になる)
+    public async ValueTask ReassignOutboxAsync(Guid storeId, Guid terminalId)
+    {
+        await gate.WaitAsync();
+        try
+        {
+            var items = await accessor.QueryOutboxListAsync(null, Int32.MaxValue);
+            await provider.UsingTxAsync(async (_, tx) =>
+            {
+                foreach (var item in items)
+                {
+                    await accessor.UpdateOutboxPayloadAsync(tx, item.Id, Reassign(item, storeId, terminalId));
+                    if (item.Kind == OutboxKind.ShiftOpen)
+                    {
+                        await accessor.UpdateShiftTerminalAsync(tx, item.TargetId, storeId, terminalId);
+                    }
+                }
+
+                await tx.CommitAsync();
+            });
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        await UpdateCountsAsync();
+    }
+
+    private static string Reassign(OutboxEntity item, Guid storeId, Guid terminalId)
+    {
+        switch (item.Kind)
+        {
+            case OutboxKind.ShiftOpen:
+            {
+                var request = Deserialize<ShiftOpenRequest>(item.Payload);
+                request.StoreId = storeId;
+                request.TerminalId = terminalId;
+                return JsonSerializer.Serialize(request, HttpService.JsonOptions);
+            }
+
+            case OutboxKind.Transaction:
+            {
+                var request = Deserialize<TransactionCreateRequest>(item.Payload);
+                request.StoreId = storeId;
+                request.TerminalId = terminalId;
+                return JsonSerializer.Serialize(request, HttpService.JsonOptions);
+            }
+
+            case OutboxKind.InventoryChanges:
+            {
+                var request = Deserialize<InventoryChangeRequest>(item.Payload);
+                foreach (var change in request.Changes)
+                {
+                    change.StoreId = storeId;
+                }
+
+                return JsonSerializer.Serialize(request, HttpService.JsonOptions);
+            }
+
+            // 取消・入出金・精算は対象 (取引・シフト) の端末で照合する
+            default:
+                return item.Payload;
+        }
+    }
+
     private async ValueTask<ApiResult<object>> SendAsync(OutboxEntity item, CancellationToken cancellationToken)
     {
         switch (item.Kind)

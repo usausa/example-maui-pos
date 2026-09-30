@@ -16,7 +16,7 @@ using Pos.Server.Services;
 // 商品一覧 / 商品編集 / CSV の取込
 public sealed partial class ProductsPage
 {
-    private const string DuplicateMessage = "商品コードまたはバーコードが重複しています。";
+    private const string DuplicateMessage = "商品コードまたはバーコードが重複しています";
 
     private MudDataGrid<ProductEntity> Grid { get; set; } = default!;
 
@@ -94,7 +94,7 @@ public sealed partial class ProductsPage
             {
                 var entity = ProductForm.ToEntity(form);
                 var status = await ProductService.InsertAsync(entity, CancellationToken);
-                NotifyResult(status, "追加しました。", duplicate: DuplicateMessage);
+                NotifyResult(status, "追加しました", duplicate: DuplicateMessage);
                 if (status == DataWriteStatus.Success)
                 {
                     await SaveImageAsync(entity.Id, form);
@@ -115,7 +115,7 @@ public sealed partial class ProductsPage
             async () =>
             {
                 var result = await ProductService.UpdateAsync(ProductForm.ToEntity(form), CancellationToken);
-                NotifyResult(result, "更新しました。", duplicate: DuplicateMessage);
+                NotifyResult(result, "更新しました", duplicate: DuplicateMessage);
                 if (result.Status == DataWriteStatus.Success)
                 {
                     await SaveImageAsync(entity.Id, form);
@@ -132,7 +132,7 @@ public sealed partial class ProductsPage
             : form.RemoveImage ? await ProductService.DeleteImageAsync(id, CancellationToken) : null;
         if ((result is not null) && (result.Status != DataWriteStatus.Success))
         {
-            Snackbar.AddError("画像を保存できませんでした。");
+            Snackbar.AddError("画像を保存できませんでした");
         }
     }
 
@@ -142,7 +142,7 @@ public sealed partial class ProductsPage
         var reference = await DialogService.ShowAsync<ProductImportDialog>(string.Empty, Styles.LargeDialog);
         if (await reference.Result is { Canceled: false, Data: ProductImportResult result })
         {
-            Snackbar.AddSuccess($"取り込みました (新規 {result.InsertCount} 件 / 更新 {result.UpdateCount} 件)。");
+            Snackbar.AddSuccess($"取り込みました (新規 {result.InsertCount} 件 / 更新 {result.UpdateCount} 件)");
             await SearchAsync();
         }
     }
@@ -154,6 +154,6 @@ public sealed partial class ProductsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await ProductService.DeleteAsync(entity.Id, CancellationToken), "削除しました。"), SearchAsync);
+        await RunAsync(async () => NotifyResult(await ProductService.DeleteAsync(entity.Id, CancellationToken), "削除しました"), SearchAsync);
     }
 }

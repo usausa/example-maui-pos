@@ -32,7 +32,7 @@ public sealed partial class TaxRatesPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await TaxRateService.InsertAsync(TaxRateForm.ToEntity(form), CancellationToken), "追加しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await TaxRateService.InsertAsync(TaxRateForm.ToEntity(form), CancellationToken), "追加しました"), LoadAsync);
     }
 
     private async Task EditAsync(TaxRateEntity entity)
@@ -43,7 +43,7 @@ public sealed partial class TaxRatesPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await TaxRateService.UpdateAsync(TaxRateForm.ToEntity(form), CancellationToken), "更新しました。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await TaxRateService.UpdateAsync(TaxRateForm.ToEntity(form), CancellationToken), "更新しました"), LoadAsync);
     }
 
     private async Task DeleteAsync(TaxRateEntity entity)
@@ -53,6 +53,6 @@ public sealed partial class TaxRatesPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await TaxRateService.DeleteAsync(entity.Id, CancellationToken), "削除しました。", inUse: "使用中の商品がある税率は削除できません。"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await TaxRateService.DeleteAsync(entity.Id, CancellationToken), "削除しました", inUse: "使用中の商品がある税率は削除できません"), LoadAsync);
     }
 }

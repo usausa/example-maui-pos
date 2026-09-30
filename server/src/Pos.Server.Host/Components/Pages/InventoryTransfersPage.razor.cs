@@ -149,7 +149,7 @@ public sealed partial class InventoryTransfersPage
             return;
         }
 
-        await RunAsync(async () => Notify(await InventoryTransferService.CreateAsync(form.FromStoreId!.Value, form.ToStoreId!.Value, form.Note, InventoryTransferForm.ToLines(form), CancellationToken), "依頼しました。"), SearchAsync);
+        await RunAsync(async () => Notify(await InventoryTransferService.CreateAsync(form.FromStoreId!.Value, form.ToStoreId!.Value, form.Note, InventoryTransferForm.ToLines(form), CancellationToken), "依頼しました"), SearchAsync);
     }
 
     // 依頼の数で出荷する (出荷店の在庫が減る)
@@ -161,7 +161,7 @@ public sealed partial class InventoryTransfersPage
             Styles.MediumDialog,
             x =>
             {
-                x.Add(nameof(InventoryMovementDialog.Message), $"依頼の数で出荷します。{names.Store(detail.Transfer.FromStoreId)} の在庫が減ります。");
+                x.Add(nameof(InventoryMovementDialog.Message), $"出荷すると {names.Store(detail.Transfer.FromStoreId)} の在庫が減ります");
                 x.Add(nameof(InventoryMovementDialog.QuantityLabel), "数量");
                 x.Add(nameof(InventoryMovementDialog.SubmitText), "出荷");
             });
@@ -170,7 +170,7 @@ public sealed partial class InventoryTransfersPage
             return;
         }
 
-        await RunAsync(async () => Notify(await InventoryTransferService.ShipAsync(detail.Transfer.Id, form.StaffId, null, CancellationToken), "出荷しました。"), SearchAsync);
+        await RunAsync(async () => Notify(await InventoryTransferService.ShipAsync(detail.Transfer.Id, form.StaffId, null, CancellationToken), "出荷しました"), SearchAsync);
     }
 
     // 届いた数を確かめて受領する (出荷と違う数は差として残る)
@@ -182,7 +182,7 @@ public sealed partial class InventoryTransfersPage
             Styles.MediumDialog,
             x =>
             {
-                x.Add(nameof(InventoryMovementDialog.Message), $"届いた数を確かめてください。受領すると届いた数が {names.Store(detail.Transfer.ToStoreId)} の在庫に入ります。");
+                x.Add(nameof(InventoryMovementDialog.Message), $"受領すると届いた数を {names.Store(detail.Transfer.ToStoreId)} の在庫に入れます");
                 x.Add(nameof(InventoryMovementDialog.QuantityLabel), "出荷");
                 x.Add(nameof(InventoryMovementDialog.SubmitText), "受領");
             });
@@ -191,7 +191,7 @@ public sealed partial class InventoryTransfersPage
             return;
         }
 
-        await RunAsync(async () => Notify(await InventoryTransferService.ReceiveAsync(detail.Transfer.Id, form.StaffId, null, InventoryMovementForm.ToQuantities(form), CancellationToken), "受領しました。"), SearchAsync);
+        await RunAsync(async () => Notify(await InventoryTransferService.ReceiveAsync(detail.Transfer.Id, form.StaffId, null, InventoryMovementForm.ToQuantities(form), CancellationToken), "受領しました"), SearchAsync);
     }
 
     private async Task CancelAsync(InventoryTransferDetailView detail)
@@ -201,7 +201,7 @@ public sealed partial class InventoryTransfersPage
             return;
         }
 
-        await RunAsync(async () => Notify(await InventoryTransferService.CancelAsync(detail.Transfer.Id, CancellationToken), "キャンセルしました。"), SearchAsync);
+        await RunAsync(async () => Notify(await InventoryTransferService.CancelAsync(detail.Transfer.Id, CancellationToken), "キャンセルしました"), SearchAsync);
     }
 
     // 書き込みの結果 (業務ルール違反は API と同じ文言)
@@ -213,10 +213,10 @@ public sealed partial class InventoryTransfersPage
                 Snackbar.AddSuccess(success);
                 break;
             case InventoryTransferResultStatus.NotFound:
-                Snackbar.AddError("対象が存在しません。");
+                Snackbar.AddError("対象が存在しません");
                 break;
             default:
-                Snackbar.AddWarning($"{ApiRuleText.Of(result.Violation!.Reason)}。");
+                Snackbar.AddWarning(ApiRuleText.Of(result.Violation!.Reason));
                 break;
         }
     }

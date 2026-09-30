@@ -6,18 +6,8 @@
         <MudStack AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h3" Class="pairing-code">@Code.Code</MudText>
             <MudText Typo="Typo.caption">有効期限 @Code.ExpiresAt.ToShortDateTimeText() (一度だけ使えます)</MudText>
-            <MudPaper Outlined="true" Class="pa-4 d-inline-block">
-                <img src="@qrImage" alt="設定 QR コード" width="240" height="240" />
-            </MudPaper>
-            <MudPaper Outlined="true" Class="pa-2 mud-width-full">
-                <pre class="qr-text">@qrText</pre>
-            </MudPaper>
-            @if (unreachable)
-            {
-                <MudAlert Severity="Severity.Warning" Dense="true" Class="mud-width-full">localhost は端末から届きません。端末から届くアドレスで管理画面を開き直すか、設定の Terminal:ApiEndPoint に端末から届く URL を入れてください。</MudAlert>
-            }
         </MudStack>
-        <MudText Typo="Typo.caption" Class="mt-2 d-block">登録すると、この端末の前の登録は使えなくなります。</MudText>
+        <MudText Typo="Typo.caption" Class="mt-2 d-block">登録すると前の登録は使えなくなります</MudText>
     </DialogContent>
     <DialogActions>
         <MudButton Color="Color.Primary" OnClick="() => MudDialog.Close()">閉じる</MudButton>

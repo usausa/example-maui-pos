@@ -1,0 +1,19 @@
+@page "/terminals/setup-qr"
+@attribute [Authorize(Policy = Policies.Administrator)]
+@inherits PageComponentBase
+@layout EmptyLayout
+
+<PageTitle>POS 管理 - 設定 QR</PageTitle>
+
+<MudPaper Class="page-card pa-8 mx-auto mt-8">
+    <MudStack AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h5">📱 POS 端末の設定 QR</MudText>
+        <img src="@qrImage" alt="設定 QR コード" width="280" height="280" />
+        <MudText Typo="Typo.body2" Class="qr-text">@endPoint</MudText>
+        @if (unreachable)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mud-width-full no-print">localhost は端末から届きません (Terminal:ApiEndPoint で変更)</MudAlert>
+        }
+        <MudButton StartIcon="@Icons.Material.Filled.Print" Variant="Variant.Filled" Color="Color.Primary" Class="no-print" OnClick="PrintAsync">印刷</MudButton>
+    </MudStack>
+</MudPaper>

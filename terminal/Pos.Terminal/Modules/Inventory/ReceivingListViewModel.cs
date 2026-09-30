@@ -12,7 +12,7 @@ public sealed record ReceivingItem(
 // 入荷・移動の受領 (自店、オンライン限定): 入荷予定と自店宛に出荷済みの移動を並べる。タップで検品
 public sealed partial class ReceivingListViewModel : AppViewModelBase
 {
-    private const string EmptyMessage = "受領待ちの入荷・移動はありません。";
+    private const string EmptyMessage = "受領待ちの入荷・移動はありません";
 
     private readonly ReceivingUsecase receiving;
 
@@ -54,7 +54,7 @@ public sealed partial class ReceivingListViewModel : AppViewModelBase
         var documents = await receiving.QueryPendingAsync();
         if (documents is null)
         {
-            Message = "取得できませんでした。";
+            Message = "取得できません";
             CurrentState = ViewHelper.OfflineState;
             return;
         }

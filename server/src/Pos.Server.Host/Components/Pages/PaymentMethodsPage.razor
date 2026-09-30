@@ -13,7 +13,7 @@
     <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Size="Size.Small" Disabled="IsBusy" OnClick="LoadAsync">更新</MudButton>
 </MudStack>
 
-<MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">💡 種別「ポイント」「前受金」の支払方法は、それぞれ有効なものを 1 件だけ登録できます。</MudAlert>
+<MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">💡 ポイント・前受金の支払方法は 1 件だけ有効にできます</MudAlert>
 
 <ErrorBanner Message="@ErrorMessage" OnClear="() => ErrorMessage = null" />
 
@@ -49,6 +49,6 @@
         </MudTd>
     </RowTemplate>
     <NoRecordsContent>
-        <MudText>支払方法がありません。</MudText>
+        <MudText>支払方法がありません</MudText>
     </NoRecordsContent>
 </MudTable>

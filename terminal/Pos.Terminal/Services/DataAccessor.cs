@@ -212,6 +212,10 @@ public sealed partial class DataAccessor
     [Insert(typeof(LocalShiftEntity))]
     public partial ValueTask<int> InsertServerShiftAsync(LocalShiftEntity entity);
 
+    // 別の端末として登録し直したとき、開設を送っていないシフトを今の店舗・端末に移す
+    [Execute]
+    public partial ValueTask<int> UpdateShiftTerminalAsync(DbTransaction tx, Guid id, Guid storeId, Guid terminalId);
+
     // 精算の内容を書いて Closed にする
     [Execute]
     public partial ValueTask<int> UpdateShiftClosedAsync(DbTransaction tx, Guid id, DateTime closedAt, Guid closedByStaffId, decimal actualCash, decimal expectedCash, decimal difference, string? note);
@@ -265,6 +269,10 @@ public sealed partial class DataAccessor
 
     [Execute]
     public partial ValueTask<int> UpdateOutboxAsync(Guid id, OutboxStatus status, int attempts, string? lastError, DateTime? sentAt);
+
+    // 内容を書き換えて送り直す (Pending に戻す)
+    [Execute]
+    public partial ValueTask<int> UpdateOutboxPayloadAsync(DbTransaction tx, Guid id, string payload);
 
     [Execute]
     [Delete(typeof(OutboxEntity))]

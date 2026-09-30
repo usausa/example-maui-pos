@@ -21,20 +21,20 @@
             {
                 if (day.HasLateTransactions)
                 {
-                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">締めた後に、この営業日の取引が届いています。締めを解除して締め直すと日計に含まれます。</MudAlert>
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">締めた後に届いた取引があります (締め直すと日計に入ります)</MudAlert>
                 }
             }
             else if (day.ShiftCount == 0)
             {
-                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">この営業日のシフトはありません。</MudAlert>
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">この営業日のシフトはありません</MudAlert>
             }
             else if (day.OpenShiftCount > 0)
             {
-                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">未精算のシフトが @day.OpenShiftCount 件あります。すべて精算してから締めてください。</MudAlert>
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">未精算のシフトが @day.OpenShiftCount 件あります</MudAlert>
             }
             else
             {
-                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">締めると日計を確定し、この営業日の取引は取消できなくなります (返品で対応します)。</MudAlert>
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">締めると取消できません</MudAlert>
             }
             <MudGrid Spacing="2">
                 <MudItem xs="12" md="6">

@@ -107,7 +107,7 @@ public sealed partial class ReturnViewModel : AppViewModelBase
         CanProceed = returnable;
         Warning = returnable
             ? string.Empty
-            : transaction.Type == TransactionType.Return ? "❌ 返品取引は返品できません。" : transaction.Status == TransactionStatus.Voided ? "❌ 取消済みの取引です。" : "❌ すべて返品済みです。";
+            : transaction.Type == TransactionType.Return ? "❌ 返品取引は返品できません" : transaction.Status == TransactionStatus.Voided ? "❌ 取消済みの取引です" : "❌ すべて返品済みです";
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(ViewId.Menu);
@@ -128,7 +128,7 @@ public sealed partial class ReturnViewModel : AppViewModelBase
 
         if (text.Length != Length.ReceiptNoDigits)
         {
-            await dialog.InformationAsync("端末番号 2 桁と連番 6 桁を続けて入力してください。");
+            await dialog.InformationAsync("端末番号 2 桁と連番 6 桁を入力してください");
             return;
         }
 

@@ -126,14 +126,14 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
     {
         if (String.IsNullOrWhiteSpace(RecipientName.Text))
         {
-            await dialog.InformationAsync("宛名を入力してください。");
+            await dialog.InformationAsync("宛名を入力してください");
             RecipientName.Focus();
             return;
         }
 
         if (String.IsNullOrWhiteSpace(Address.Text))
         {
-            await dialog.InformationAsync("住所を入力してください。");
+            await dialog.InformationAsync("住所を入力してください");
             Address.Focus();
             return;
         }
