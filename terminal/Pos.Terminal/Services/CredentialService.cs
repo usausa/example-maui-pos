@@ -49,6 +49,20 @@ public sealed partial class CredentialService
         settings.PairedAt = null;
     }
 
+    // 登録し直す間は今のトークンで通信しない (ペアリングで失効したトークンの 401 を、登録の解除と取り違えないように)。
+    // 保存したトークンは消さず、ペアリングに失敗したら返したトークンを Resume で戻す
+    public string? Suspend()
+    {
+        var token = apiContext.Token;
+        apiContext.Token = null;
+        return token;
+    }
+
+    public void Resume(string? token)
+    {
+        apiContext.Token = token;
+    }
+
     //--------------------------------------------------------------------------------
     // SecureStorage
     //--------------------------------------------------------------------------------

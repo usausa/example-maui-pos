@@ -37,24 +37,27 @@ public sealed class SetupUsecase
         this.sync = sync;
     }
 
-    // 接続先を切り替えてペアリングする。コードの不一致・期限切れ・通信の失敗は NetworkService が通知する (null)。
-    // 同じ端末の登録し直しならローカル DB と未送信はそのまま使い、再登録後に送る
+    // 新しい接続先へペアリングし、成功してから接続先とトークンを切り替える。コードの不一致・期限切れ・通信の失敗は NetworkService が通知する (null)。
+    // 登録し直すときは、失敗したら今の登録に戻す。同じ端末の登録し直しならローカル DB と未送信はそのまま使い、再登録後に送る
     public async ValueTask<TerminalPairResponse?> PairAsync(Uri endPoint, string pairingCode)
     {
-        apiContext.BaseAddress = endPoint;
         var request = new TerminalPairRequest
         {
             PairingCode = pairingCode,
             DeviceName = $"{deviceInfo.Manufacturer} {deviceInfo.Model}".Trim(),
             AppVersion = appInfo.VersionString
         };
-        var result = await network.ExecuteAsync(h => h.PairAsync(request));
+        var suspended = credential.Suspend();
+        var result = await network.ExecuteAsync(h => h.PairAsync(endPoint, request));
         if (!result.IsSuccess)
         {
+            credential.Resume(suspended);
             return null;
         }
 
+        // トークンを外している間に接続先を切り替える (古いトークンを新しい接続先へ送らないように)
         var paired = result.Content!;
+        apiContext.BaseAddress = endPoint;
         settings.ApiEndPoint = endPoint.ToString();
         settings.StoreId = paired.Store.Id;
         settings.TerminalId = paired.Terminal.Id;

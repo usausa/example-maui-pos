@@ -44,6 +44,8 @@ public sealed partial class StaffSelectViewModel : AppViewModelBase
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
     {
+        // 担当を選ぶ間は誰も担当しない (スタッフ切替や登録し直しの後に、前の担当をヘッダーや設定・同期に残さない)
+        session.Staff = null;
         StoreText = session.Store is null ? string.Empty : $"🏪 {session.Store.Name} / {session.Terminal?.Name}";
         await Navigator.PostActionAsync(LoadAsync);
     }

@@ -9,11 +9,11 @@
              x:DataType="{x:Type module:SetupViewModel}"
              s:BindingContextResolver.Type="{x:Type module:SetupViewModel}"
              shell:ShellProperty.Title="初期設定"
-             shell:ShellProperty.Function1Text="—"
+             shell:ShellProperty.Function1Text="{Binding CanBack, Converter={StaticResource SetupBackTextConverter}}"
              shell:ShellProperty.Function2Text="QR 読取"
              shell:ShellProperty.Function3Text="コード"
              shell:ShellProperty.Function4Text="登録"
-             shell:ShellProperty.Function1Enabled="False"
+             shell:ShellProperty.Function1Enabled="{Binding CanBack}"
              shell:ShellProperty.Function2Enabled="True"
              shell:ShellProperty.Function3Enabled="True"
              shell:ShellProperty.Function4Enabled="True">

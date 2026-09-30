@@ -363,8 +363,8 @@ Services/                            単機能の部品
   DataAccessor.cs + Sql/            ローカル SQLite (Smart.Data.Accessor、2-way SQL。DDL は Resources/Raw/Schema.sql。ローカルのエンティティのキーによる取得・削除は [SelectSingle] / [Delete])、DataProfile (型変換)
   DatabaseService.cs                 ローカル DB の初期化 (PRAGMA、テーブル作成、後から増えた列の追加)
   HttpService.cs / ApiResult.cs / ApiContext.cs / ApiNames.cs / ProblemResponse.cs   HttpClient による API 呼び出し (Pos.Contract の Request / Response、失敗時は Problem Details、D-28)。  
-                                     要求ごとに端末のトークンを Bearer で付け、401 は ApiContext が一度だけ知らせる
-  CredentialService.cs               端末のトークン (SecureStorage) と登録日時。登録済みか、保存、解除。SecureStorage の鍵が壊れて読み書きできないときは、保存領域を消して未登録として扱う
+                                     要求ごとに端末のトークンを Bearer で付け (ペアリングは付けない)、401 は ApiContext が一度だけ知らせる
+  CredentialService.cs               端末のトークン (SecureStorage) と登録日時。登録済みか、保存、解除、登録し直す間の停止と再開。SecureStorage の鍵が壊れて読み書きできないときは、保存領域を消して未登録として扱う
   PinService.cs                      PIN の照合 (3 回まで、背景スレッドで PBKDF2) と承認者の選択 (自店か本部の店長以上で PIN があるスタッフ)
   NetworkService.cs                  オンライン限定操作の接続確認・インジケータ・エラー通知
   SyncService.cs                     マスタ差分同期と Outbox 送信のバックグラウンド実行 (未登録の間は止める)、heartbeat (1 分ごと)、レシート番号の採番

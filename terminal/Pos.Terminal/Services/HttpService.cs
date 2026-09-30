@@ -54,9 +54,9 @@ public sealed class HttpService
     // Terminal
     //--------------------------------------------------------------------------------
 
-    // ペアリング (トークンはまだないので付けない)
-    public ValueTask<ApiResult<TerminalPairResponse>> PairAsync(TerminalPairRequest request, CancellationToken cancellationToken = default) =>
-        PostAsync<TerminalPairResponse>("terminals/pair", request, cancellationToken);
+    // ペアリング。登録し直すときも今のトークンは付けず (別のサーバへ送らないように)、今の接続先を変えずに新しい接続先へ送る
+    public ValueTask<ApiResult<TerminalPairResponse>> PairAsync(Uri endPoint, TerminalPairRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<TerminalPairResponse>(HttpMethod.Post, new Uri(endPoint, Prefix + "terminals/pair"), request, false, cancellationToken);
 
     public ValueTask<ApiResult<object>> HeartbeatAsync(TerminalHeartbeatRequest request, CancellationToken cancellationToken = default) =>
         PostAsync<object>("terminals/me/heartbeat", request, cancellationToken);
@@ -267,14 +267,18 @@ public sealed class HttpService
     private ValueTask<ApiResult<T>> PostAsync<T>(string path, object request, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Post, path, request, cancellationToken);
 
+    // 接続先の API (トークンを付ける)
+    private ValueTask<ApiResult<T>> SendAsync<T>(HttpMethod method, string path, object? request, CancellationToken cancellationToken) =>
+        SendAsync<T>(method, new Uri(Prefix + path, UriKind.Relative), request, true, cancellationToken);
+
 #pragma warning disable CA1031
-    private async ValueTask<ApiResult<T>> SendAsync<T>(HttpMethod method, string path, object? request, CancellationToken cancellationToken)
+    private async ValueTask<ApiResult<T>> SendAsync<T>(HttpMethod method, Uri requestUri, object? request, bool authorize, CancellationToken cancellationToken)
     {
         try
         {
             var client = httpClientFactory.CreateClient(ApiNames.Default);
-            using var message = new HttpRequestMessage(method, Prefix + path);
-            var token = Authorize(message);
+            using var message = new HttpRequestMessage(method, requestUri);
+            var token = authorize ? Authorize(message) : null;
             if (request is not null)
             {
                 message.Content = JsonContent.Create(request, request.GetType(), options: JsonOptions);
@@ -284,7 +288,8 @@ public sealed class HttpService
             NotifyIfUnauthorized(response, token);
             if (response.IsSuccessStatusCode)
             {
-                var content = response.Content.Headers.ContentLength == 0
+                // 204 (ハートビートなど) は長さのヘッダーもないので、状態で見分ける (JSON の応答も長さのないことがある)
+                var content = (response.StatusCode == HttpStatusCode.NoContent) || (response.Content.Headers.ContentLength == 0)
                     ? default
                     : await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken).ConfigureAwait(false);
                 return new ApiResult<T>(ApiStatus.Success, response.StatusCode, content, null, null);

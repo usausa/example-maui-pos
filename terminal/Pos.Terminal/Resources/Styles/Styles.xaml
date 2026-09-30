@@ -194,6 +194,12 @@
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
+    <!-- 画面固有 (初期設定。登録し直しのときだけ戻れる) -->
+
+    <s:BoolToTextConverter x:Key="SetupBackTextConverter"
+                           TrueValue="戻る"
+                           FalseValue="—" />
+
     <!-- 画面固有 (ホーム) -->
 
     <s:BoolToTextConverter x:Key="ShiftStateTextConverter"

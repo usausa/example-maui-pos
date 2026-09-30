@@ -1,6 +1,7 @@
 namespace Pos.Terminal.Modules.Setup;
 
-// 初期設定: 設定 QR (サーバ URL + ペアリングコード) を読むか、URL を入れてコードを電卓で入力し、SetupUsecase で登録・初回同期する
+// 初期設定: 設定 QR (サーバ URL + ペアリングコード) を読むか、URL を入れてコードを電卓で入力し、SetupUsecase で登録・初回同期する。
+// 登録済みの端末 (設定・同期からの登録し直し) は、登録せずに設定・同期へ戻れる
 public sealed partial class SetupViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
@@ -9,7 +10,12 @@ public sealed partial class SetupViewModel : AppViewModelBase
 
     private readonly Settings settings;
 
+    private readonly CredentialService credential;
+
     private readonly SetupUsecase setup;
+
+    // 設定・同期の戻り先 (スキャンとの往復でも引き継ぐ)
+    private ViewId? settingReturnTo;
 
     public EntryController ApiEndPoint { get; } = new();
 
@@ -19,20 +25,25 @@ public sealed partial class SetupViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string Message { get; set; } = string.Empty;
 
+    [ObservableProperty]
+    public partial bool CanBack { get; set; }
+
     public IObserveCommand InputPairingCodeCommand { get; }
 
-    // 根の画面: 戻るはプラットフォームに任せる (タスクを背面へ)
-    public override bool HandlesBack => false;
+    // 初回と登録の解除の後は根の画面: 戻るはプラットフォームに任せる (タスクを背面へ)
+    public override bool HandlesBack => CanBack;
 
     public SetupViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
         Settings settings,
+        CredentialService credential,
         SetupUsecase setup)
     {
         this.dialog = dialog;
         this.popupNavigator = popupNavigator;
         this.settings = settings;
+        this.credential = credential;
         this.setup = setup;
 
         InputPairingCodeCommand = MakeAsyncCommand(InputPairingCodeAsync);
@@ -40,6 +51,9 @@ public sealed partial class SetupViewModel : AppViewModelBase
 
     public override Task OnNavigatedToAsync(INavigationContext context)
     {
+        CanBack = credential.IsRegistered;
+        settingReturnTo = context.Parameter.GetCallerReturnTo();
+
         var scanned = context.Parameter.GetScanResult();
         if (scanned is not null)
         {
@@ -65,8 +79,13 @@ public sealed partial class SetupViewModel : AppViewModelBase
         PairingCode = await popupNavigator.InputPairingCodeAsync(PairingCode) ?? PairingCode;
     }
 
+    protected override Task OnNotifyBackAsync() =>
+        Navigator.ForwardAsync(ViewId.Setting, Parameters.Make().WithReturnTo(settingReturnTo ?? ViewId.Menu));
+
+    protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
+
     protected override Task OnNotifyFunction2() =>
-        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Setup, ViewId.Setup));
+        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Setup, ViewId.Setup, settingReturnTo));
 
     protected override Task OnNotifyFunction3() => InputPairingCodeAsync();
 
