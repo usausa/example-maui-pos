@@ -20,7 +20,7 @@
              shell:ShellProperty.Function4Enabled="{Binding Items.Count, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}">
 
     <Grid Style="{StaticResource PosPageGrid}"
-          RowDefinitions="Auto,Auto,*">
+          RowDefinitions="Auto,*">
         <Button Grid.Row="0"
                 Style="{StaticResource PosMethodButton}"
                 Margin="8"
@@ -28,21 +28,13 @@
                 ImageSource="{x:Static markup:AppIcons.PosDialpad}"
                 Text="JAN / 商品コードを入力" />
 
-        <Label Grid.Row="1"
-               Style="{StaticResource PosMessageLabel}"
-               Padding="16,0,16,8"
-               FontSize="14"
-               Text="{Binding IsAdjustment, Converter={StaticResource StockModeTextConverter}}" />
-
-        <CollectionView Grid.Row="2"
+        <CollectionView Grid.Row="1"
                         Style="{StaticResource PosListCollectionView}"
                         ItemsSource="{Binding Items}">
             <CollectionView.EmptyView>
                 <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
                     <Label Style="{StaticResource PosEmptyIconLabel}"
                            Text="📦" />
-                    <Label Style="{StaticResource PosMessageLabel}"
-                           Text="商品をスキャンして数量を入力してください。" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>

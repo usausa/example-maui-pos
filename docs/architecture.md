@@ -200,7 +200,7 @@ Components/
   RedirectToLogin.razor              ログインしていないときにログイン画面へ (戻り先を付ける)
 Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート)、Data/Schema.sql (DDL) と Data/InitialData.sql (初期データ。起動時に読んで実行する)。どれも出力ディレクトリへコピーする
 Settings/                            LogSetting (HTTP ログ・本文ダンプ・W3C アクセスログ) / ProfilerSetting (SQL のログとトレース) / TelemetrySetting (長時間実行のしきい値) /
-                                     AuthSetting (認証の有効、Cookie の期限、試行回数、初期の管理者)
+                                     AuthSetting (認証の有効、Cookie の期限、試行回数、初期の管理者) / TerminalSetting (設定 QR の接続先)
 wwwroot/                             css/app.css, js/reconnect.js
 ```
 

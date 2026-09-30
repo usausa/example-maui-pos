@@ -17,7 +17,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
     public ObservableCollection<CustomerItem> Items { get; } = [];
 
     [ObservableProperty]
-    public partial string Message { get; set; } = "会員番号・電話番号・名前で検索するか、会員証をスキャンしてください。";
+    public partial string Message { get; set; } = string.Empty;
 
     // 検索中 / 取得できない / 結果 (空文字) を切り替える
     [ObservableProperty]
@@ -100,7 +100,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         var result = await network.ExecuteAsync(h => h.SearchCustomersAsync(keyword));
         if (!result.IsSuccess)
         {
-            Message = "取得できませんでした。\nオンラインで検索してください。";
+            Message = "取得できませんでした。";
             CurrentState = ViewHelper.OfflineState;
             return;
         }

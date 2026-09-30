@@ -14,7 +14,7 @@ paths:
 - 画面は `ViewId` に足し、View に `[View(ViewId.Xxx)]` と `[Hierarchy(n)]`、XAML に `shell:ShellProperty` (使わないキーは `—` で無効、押せない条件は `CanXxx` に結ぶ) を書き、F1 と戻るを同じ遷移にする
 - 遷移は `ForwardAsync` で行い、戻り先は固定か `Parameters.WithReturnTo` で受ける。パラメータは `Parameters` に `WithXxx` / `GetXxx` の対で足す
 - ナビゲーションイベントの中の遷移と非同期処理は `PostForwardAsync` / `PostActionAsync` で後回しにする。根の画面の戻るは `HandlesBack = false` で宣言し、`MainActivity` がタスクを背面へ回す (ViewModel は遷移だけを行う)
-- F1 は戻る (戻れない画面は `—` で無効、根の画面は設定など)、スキャンできる画面の F2 はスキャン、F4 は画面の主操作 (確定、登録、会計。なければ更新や次の画面) にする
+- F1 は戻る (戻れない画面は `—` で無効、根の画面は設定など)、スキャンできる画面の F2 はスキャン (カメラを出す画面 (スキャン、初期設定) はライト)、F4 は画面の主操作 (確定、登録、会計。なければ更新や次の画面) にする
 - ViewModel のプロパティは `[ObservableProperty] public partial`、コマンドは `MakeAsyncCommand` / `MakeDelegateCommand` で作る
 
 ## ViewModel と表示
@@ -22,7 +22,8 @@ paths:
 - 状態 (bool、列挙型) で切り替わる色・文言・記号は ViewModel で組まず、Smart.Maui の `BoolToXxxConverter` / `MapToXxxConverter` を `Styles.xaml` にキー付きで構成するか、Trigger で切り替える
 - 列挙型の文言は `ViewHelper.Name` と `DisplayNameConverter` の両方に足す (漏れると列挙名が出る)。`XxxUsecase.Validate` の `RuleError` は `ViewHelper.Reason` で出す
 - 一覧は `ObservableCollection<T>` にする。行は ViewModel のファイルの先頭に `XxxItem` (表示用の文字列を持つ record、変わる状態があれば `NotificationObject`) を置き、`ObservableCollection.Replace` で入れ替える
-- 一覧の空・取得できないときの案内文は `Message` プロパティに入れる
+- 画面の作りと F キーの文言でわかる自明な案内 (「QR を枠に合わせてください」「読み取ると登録します」のような「〜してください」、F キーやタップの説明、既定の検索の案内、ヒントの帯) を出さない。文言は、異常や注意が要る状態 (読めない、見つからない、取得できない、権限がない、要確認) と、操作の結果や事実 (追加した商品、「〜がありません」) を伝えるために使う
+- 一覧が取得できない・該当がないときの文言は `Message` プロパティ (既定は空) に入れる
 - `ShowXxx` はダイアログを出すメソッドだけに使う
 - 削除しながら回すときは `Where(...).ToList()` で複製せず、後ろから `RemoveAt` する
 
@@ -50,7 +51,7 @@ paths:
 - 状態のある一覧は左端の帯と行の背景で状態を示し、区切り線で並べる。状態の文言はチップ (`StatusChip`) で示す
 - 記号は、チップなら `StatusChip.Icon` (Material Icons のグリフ)、濃い背景のボタンなら白い `FontImageSource` で付ける。選択で背景が濃くなるボタンは Trigger でアイコンも白 (`XxxSelected`) にする
 - ボタンの `FontImageSource` は `Markup/AppIcons` の静的フィールドに足し、XAML から `{x:Static markup:AppIcons.Xxx}` で使う (`Styles.xaml` や画面の `Resources` に置かない)
-- 一覧やスキャン待ちの空の状態は `PosEmptyStack` (絵文字 + 案内文) にし、案内文だけの `Label` にしない
+- 一覧やスキャン待ちの空の状態は `PosEmptyStack` の絵文字にし、文言は該当がない・取得できないときだけ添える
 - 時間のかかる処理を待つ画面は `PosLoadingIndicator` を出す
 - オンラインで取る一覧・集計は `CurrentState` に `ViewHelper.LoadingState` / `OfflineState` を入れて `EqualsConverter` で結果の上に重ね、取得のたびに `LoadingState` から始めて `notify: false` で呼ぶ (CommunityToolkit の `StateContainer` は使わない)
 - 表示時の浮き上がり (`AnimationOption.EnterAnimation`) は、続けて更新する一覧 (販売の明細、棚卸) には付けない

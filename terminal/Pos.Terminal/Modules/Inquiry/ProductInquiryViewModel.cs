@@ -14,7 +14,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
     private ProductResponseItem? product;
 
     [ObservableProperty]
-    public partial string Message { get; set; } = "商品をスキャンするか、検索してください。";
+    public partial string Message { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial bool HasProduct { get; set; }
@@ -144,7 +144,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
         var result = await network.ExecuteAsync(h => h.GetProductInventoryAsync(product.Id), notifyNotFound: true);
         if (!result.IsSuccess)
         {
-            OtherStoresMessage = "📡 取得できませんでした。オンラインで「他店在庫」を押してください。";
+            OtherStoresMessage = "📡 取得できませんでした。";
             return;
         }
 

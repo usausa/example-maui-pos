@@ -23,7 +23,7 @@ description: README の画面と帳票の画像 (docs/images/ の server-*.png�
 3. 撮った画像を見て、中身 (件数、ダイアログ、エラーの有無) を確かめる
 4. そろえる: `python .claude/skills/readme-images/scripts/shrink.py server <一時フォルダ>/server-*.png`
 
-- レジ端末 (`server-terminals`) は、未登録の「本店 レジ 2」にペアリングコードを発行してダイアログを出した状態で撮る (コードは 10 分で切れる)
+- レジ端末 (`server-terminals`) は、未登録の「本店 レジ 2」にペアリングコードを発行してダイアログを出した状態で撮る (コードは 10 分で切れる)。設定 QR の接続先を例の LAN の URL にするため、サーバは `-- --Terminal:ApiEndPoint=http://192.168.0.10:8080/` を付けて起動する (localhost のままだとダイアログに注意が出る)
 - 新しい画面を README に足すときは、`server_steps.py` の `PAGES` と README の表の両方に足す
 
 ## 端末
@@ -39,7 +39,7 @@ description: README の画面と帳票の画像 (docs/images/ の server-*.png�
 | `terminal-sales` | 販売 (明細が数行ある状態) |
 | `terminal-payment` | 会計 (預かりを入れた状態) |
 | `terminal-receipt` | レシート |
-| `terminal-setup` | 初期設定 (サーバ URL を入れた状態) |
+| `terminal-setup` | 初期設定 (カメラを許可し、サーバ URL とペアリングコードを入れた状態。登録は押さない) |
 | `terminal-product-search` | 商品検索 (検索結果がある状態) |
 | `terminal-shift-close` | 精算 |
 | `terminal-sales-report` | 売上照会 |

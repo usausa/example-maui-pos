@@ -216,10 +216,6 @@
                            TrueValue="在庫調整"
                            FalseValue="棚卸" />
 
-    <s:BoolToTextConverter x:Key="StockModeTextConverter"
-                           TrueValue="🔧 調整モード: 増減数と理由を入力します。F3 で棚卸に切替"
-                           FalseValue="📋 棚卸モード: 実際の在庫数を入力します。F3 で調整に切替" />
-
     <converters:StockSendTextConverter x:Key="StockSendTextConverter" />
 
     <!-- ================================================================================ -->

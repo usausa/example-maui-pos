@@ -23,14 +23,11 @@
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,*">
-        <!-- 案内と件数 -->
+        <!-- 件数 -->
         <Grid Grid.Row="0"
               Padding="16,8"
               ColumnDefinitions="*,Auto"
               ColumnSpacing="8">
-            <Label Grid.Column="0"
-                   Style="{StaticResource PosCaptionLabel}"
-                   Text="届いた伝票を選んで検品します" />
             <Label Grid.Column="1"
                    Style="{StaticResource PosCaptionLabel}"
                    Text="{Binding CountText}" />

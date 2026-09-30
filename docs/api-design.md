@@ -205,6 +205,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 `lastReceiptSeq` は取引登録で、`lastSeenAt` はペアリング・heartbeat・取引登録で、`appVersion` はペアリングと heartbeat でサーバが更新する。
 
 端末の登録は、管理画面で端末ごとにペアリングコード (6 桁、10 分、一度だけ) を発行し、端末で **設定 QR** (`ApiEndPoint` / `PairingCode`) を読み取るか、URL とコードを入力して `POST /terminals/pair` を呼ぶ ([D-35](decisions.md#d-35-認証は管理画面のログイン端末のトークンスタッフの-pin-にする))。  
+設定 QR の `ApiEndPoint` は、設定 `Terminal:ApiEndPoint` (端末から届く URL) があればそれ、なければ管理画面を開いた URL にする。  
 トークンは応答でだけ返し、サーバは SHA-256 だけを持つ。  
 同じ端末を登録し直すと古いトークンは失効する。  
 端末は登録し直すとき、ペアリングの要求に今のトークンを付けず、その間は今のトークンで通信しない (失効した古いトークンの `401` を登録の解除と取り違えないように)。  

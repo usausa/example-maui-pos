@@ -54,7 +54,7 @@ public sealed partial class ReceivingListViewModel : AppViewModelBase
         var documents = await receiving.QueryPendingAsync();
         if (documents is null)
         {
-            Message = "取得できませんでした。\nオンラインで確認してください。";
+            Message = "取得できませんでした。";
             CurrentState = ViewHelper.OfflineState;
             return;
         }

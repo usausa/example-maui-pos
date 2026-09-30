@@ -16,6 +16,9 @@ public sealed partial class TerminalPairingDialog
 
     private string qrImage = string.Empty;
 
+    // 接続先が localhost で、端末から届かない
+    private bool unreachable;
+
     [Parameter]
     public required TerminalEntity Terminal { get; set; }
 
@@ -31,10 +34,15 @@ public sealed partial class TerminalPairingDialog
     [Inject]
     public required NavigationManager Navigation { get; set; }
 
+    [Inject]
+    public required TerminalSetting Setting { get; set; }
+
     protected override void OnInitialized()
     {
-        // 接続先はサーバ自身の URL
-        qrText = $"ApiEndPoint={Navigation.BaseUri}\nPairingCode={Code.Code}\n";
+        // 接続先は端末から届くこのサーバの URL (設定がなければ管理画面を開いた URL)
+        var endPoint = String.IsNullOrEmpty(Setting.ApiEndPoint) ? Navigation.BaseUri : Setting.ApiEndPoint;
+        unreachable = new Uri(endPoint).IsLoopback;
+        qrText = $"ApiEndPoint={endPoint}\nPairingCode={Code.Code}\n";
 
         using var generator = new QRCodeGenerator();
         using var data = generator.CreateQrCode(qrText, QRCodeGenerator.ECCLevel.M);

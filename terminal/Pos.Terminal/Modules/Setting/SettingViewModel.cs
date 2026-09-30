@@ -187,9 +187,9 @@ public sealed partial class SettingViewModel : AppViewModelBase
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 
-    // 読んだ設定 QR は初期設定へ渡す (登録し直し)。初期設定から戻ったときのために、この画面の戻り先を引き継ぐ
+    // 登録し直しは初期設定のカメラで設定 QR を読む。初期設定から戻ったときのために、この画面の戻り先を引き継ぐ
     protected override Task OnNotifyFunction2() =>
-        Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.Setup, ViewId.Setup, returnTo));
+        Navigator.ForwardAsync(ViewId.Setup, Parameters.Make().WithCallerReturnTo(returnTo));
 
     protected override Task OnNotifyFunction3()
     {

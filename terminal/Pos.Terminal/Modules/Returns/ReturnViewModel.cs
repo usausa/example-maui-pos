@@ -18,7 +18,11 @@ public sealed partial class ReturnViewModel : AppViewModelBase
     public ReturnContext ReturnContext { get; set; } = default!;
 
     [ObservableProperty]
-    public partial string Message { get; set; } = "レシートの QR をスキャンするか、レシート番号を入力してください。";
+    public partial string Message { get; set; } = string.Empty;
+
+    // 呼び出した元取引を返品できない理由 (返品できるときは空)
+    [ObservableProperty]
+    public partial string Warning { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial bool HasOriginal { get; set; }
@@ -79,6 +83,7 @@ public sealed partial class ReturnViewModel : AppViewModelBase
             ReturnContext.Reset();
             HasOriginal = false;
             CanProceed = false;
+            Warning = string.Empty;
             Message = $"❌ 取引が見つかりません: {key}";
             return;
         }
@@ -100,8 +105,8 @@ public sealed partial class ReturnViewModel : AppViewModelBase
 
         var returnable = transaction.IsReturnable();
         CanProceed = returnable;
-        Message = returnable
-            ? "元取引を確認して、返品する明細を選んでください。"
+        Warning = returnable
+            ? string.Empty
             : transaction.Type == TransactionType.Return ? "❌ 返品取引は返品できません。" : transaction.Status == TransactionStatus.Voided ? "❌ 取消済みの取引です。" : "❌ すべて返品済みです。";
     }
 

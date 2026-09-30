@@ -59,8 +59,6 @@
                 <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
                     <Label Style="{StaticResource PosEmptyIconLabel}"
                            Text="🛒" />
-                    <Label Style="{StaticResource PosMessageLabel}"
-                           Text="スキャンまたは検索で商品を追加してください。" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>

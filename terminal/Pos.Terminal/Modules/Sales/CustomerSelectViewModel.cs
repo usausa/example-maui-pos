@@ -31,7 +31,7 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
     public ObservableCollection<CustomerItem> Items { get; } = [];
 
     [ObservableProperty]
-    public partial string Message { get; set; } = "会員番号・電話番号・名前で検索するか、会員証をスキャンしてください。";
+    public partial string Message { get; set; } = string.Empty;
 
     public IObserveCommand SearchCommand { get; }
 

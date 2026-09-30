@@ -57,8 +57,6 @@
                         Text="{Binding OpeningCashText}" />
             </Grid>
             <BoxView Style="{StaticResource PosSeparatorBoxView}" />
-            <Label Style="{StaticResource PosMessageLabel}"
-                   Text="釣銭準備金を確認して「開設」を押してください。" />
         </VerticalStackLayout>
     </Grid>
 

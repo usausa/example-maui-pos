@@ -20,11 +20,11 @@
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,*,Auto">
-        <!-- 元取引を呼び出す前は案内を中央に、呼び出した後は返品可否を上に -->
+        <!-- 呼び出せなかったときは中央に、返品できない元取引は理由を上に出す -->
         <Label Grid.Row="0"
                Style="{StaticResource PosMessageLabel}"
-               IsVisible="{Binding HasOriginal}"
-               Text="{Binding Message}" />
+               IsVisible="{Binding Warning, Converter={StaticResource NotEmptyConverter}}"
+               Text="{Binding Warning}" />
 
         <VerticalStackLayout Grid.Row="1"
                              Style="{StaticResource PosEmptyStack}"

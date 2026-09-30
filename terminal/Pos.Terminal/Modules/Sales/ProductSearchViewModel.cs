@@ -98,7 +98,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
     public ObservableCollection<ProductItem> Items { get; } = [];
 
     [ObservableProperty]
-    public partial string Message { get; set; } = "キーワードか部門で検索してください。";
+    public partial string Message { get; set; } = string.Empty;
 
     public IObserveCommand SearchCommand { get; }
 
@@ -174,7 +174,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
         if ((pattern is null) && (categoryIds is null))
         {
             Items.Clear();
-            Message = "キーワードか部門で検索してください。";
+            Message = string.Empty;
             return;
         }
 

@@ -20,7 +20,7 @@
              shell:ShellProperty.Function4Enabled="True">
 
     <Grid Style="{StaticResource FillGrid}"
-          RowDefinitions="*,Auto,Auto"
+          RowDefinitions="*,Auto"
           BackgroundColor="Black">
         <scanner:CameraView Grid.Row="0"
                             behaviors:BarcodeBind.Controller="{Binding Controller}"
@@ -37,20 +37,13 @@
                 StrokeShape="RoundRectangle 8"
                 InputTransparent="True" />
 
-        <!-- 読み取り結果 -->
+        <!-- 読み取り結果 (読めない・見つからないときと、追加した商品) -->
         <Label Grid.Row="1"
                Style="{StaticResource PosMessageLabel}"
+               IsVisible="{Binding Message, Converter={StaticResource NotEmptyConverter}}"
+               Text="{Binding Message}"
                BackgroundColor="{StaticResource BlueDarken4}"
-               TextColor="White"
-               Text="{Binding Message}" />
-
-        <Label Grid.Row="2"
-               Style="{StaticResource PosCaptionLabel}"
-               Padding="16,4"
-               BackgroundColor="{StaticResource BlueDarken4}"
-               TextColor="{StaticResource BlueLighten4}"
-               HorizontalTextAlignment="Center"
-               Text="{Binding Hint}" />
+               TextColor="White" />
     </Grid>
 
 </ContentView>

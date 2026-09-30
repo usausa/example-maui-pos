@@ -613,6 +613,8 @@ public static class ApplicationExtensions
         builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<TelemetrySetting>>().Value);
         builder.Services.AddOptions<AuthSetting>().BindConfiguration("Auth").ValidateDataAnnotations().ValidateOnStart();
         builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<AuthSetting>>().Value);
+        builder.Services.AddOptions<TerminalSetting>().BindConfiguration("Terminal").ValidateDataAnnotations().ValidateOnStart();
+        builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<TerminalSetting>>().Value);
 
         return builder;
     }

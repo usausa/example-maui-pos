@@ -67,7 +67,7 @@
                         Style="{StaticResource PosSelectButton}"
                         IsVisible="{Binding HasRequestedDate, Converter={StaticResource ReverseConverter}}"
                         Command="{Binding SetDateCommand}"
-                        Text="指定なし (タップで指定)" />
+                        Text="指定なし" />
                 <Button Grid.Column="1"
                         Style="{StaticResource PosSelectButton}"
                         IsVisible="{Binding HasRequestedDate}"

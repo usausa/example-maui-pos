@@ -22,7 +22,7 @@
         <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
                              BackgroundColor="{StaticResource GrayLighten3}">
             <Label Style="{StaticResource PosFieldLabel}"
-                   Text="会員番号 (必須・スキャン可)" />
+                   Text="会員番号 (必須)" />
             <Entry Style="{StaticResource PosFieldEntry}"
                    behaviors:EntryBind.Controller="{Binding Code}" />
 

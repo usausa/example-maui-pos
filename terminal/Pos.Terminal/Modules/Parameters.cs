@@ -10,8 +10,7 @@ public enum ScanMode
     // 1 件読んだら戻る
     ProductOnce,
     Customer,
-    Receipt,
-    Setup
+    Receipt
 }
 
 #pragma warning disable CA1724

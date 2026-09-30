@@ -19,7 +19,7 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 ## 登録とログイン
 
 1. 管理画面の「レジ端末」で対象の端末にペアリングコードを発行する (6 桁、10 分)
-2. 端末の初期設定でサーバ URL の欄をタップし、`emu.py text http://10.0.2.2:<ポート>/` で入れる
+2. 端末の初期設定 (開くとカメラの許可を求める) でサーバ URL の欄をタップし、`emu.py text http://10.0.2.2:<ポート>/` で入れて `emu.py key ENTER` でキーボードを閉じる (未登録の初期設定で戻るキーを押すと、アプリが背面へ回る)
 3. `emu.py fkey 3` (コード) → `emu.py keypad <6 桁> --ok` → `emu.py fkey 4` (登録)。全件の同期が終わると担当の選択に進む
 4. 担当を選び、PIN を `emu.py keypad <PIN> --ok` で入れる (初期データは A001 = 0000、M001 = 1111、C001 = 2222、C002 = 3333)
 
@@ -32,7 +32,8 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 - 文字: `emu.py text <ASCII>` (日本語は送れない)。キーは `emu.py key BACK` / `ENTER` / `DEL` (入力欄を消すときは `emu.py key DEL --repeat 30`)
 - オフライン: `emu.py airplane on` / `off`
 - 例外の確認: `emu.py logcat --grep "Exception|FATAL"`
-- カメラの許可のダイアログは、QR を読む確認でなければ「許可しない」を選ぶ
+- カメラの許可のダイアログは、QR を読む確認でなければ戻るキー (`emu.py key BACK`) で断る (座標で押すと許可に当たることがある)。読み取りの確認で許可するときは `adb -s emulator-xxxx shell pm grant pos.terminal android.permission.CAMERA` を使う
+- エミュレータの仮想のカメラの初期の視野には画像を映せない (`virtualscene-image` の壁と台は視野の外) ので、設定 QR を読み取るところは実機で確かめる
 - 座標は Pixel 6a 相当 (1080x2400) の配置。画面の作りが変わったら撮った画像で確かめる
 
 ## 後片付け
@@ -41,3 +42,4 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 - 変えた設定を控えた値に戻す (`emu.py pref set ApiEndPoint <元の値>`。アプリを止めてから書き換わる)
 - 確かめるために登録した端末は、元が未登録なら設定画面の [登録の解除] で戻す
 - 機内モードにしたときは `emu.py airplane off` で戻す
+- カメラを許可したときは `adb -s emulator-xxxx shell pm revoke pos.terminal android.permission.CAMERA` と `pm clear-permission-flags pos.terminal android.permission.CAMERA user-set user-fixed` で、次にまた尋ねる状態に戻す

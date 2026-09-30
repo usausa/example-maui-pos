@@ -89,7 +89,7 @@ public sealed partial class OrderListViewModel : AppViewModelBase
         var result = await network.ExecuteAsync(h => h.GetOrdersAsync(storeId, filter.Status, filter.Open, Keyword.Text?.Trim()), notify: false);
         if (!result.IsSuccess)
         {
-            Message = "取得できませんでした。\nオンラインで確認してください。";
+            Message = "取得できませんでした。";
             CurrentState = ViewHelper.OfflineState;
             return;
         }

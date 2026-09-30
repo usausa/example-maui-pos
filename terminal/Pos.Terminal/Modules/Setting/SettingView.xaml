@@ -12,7 +12,7 @@
              s:BindingContextResolver.Type="{x:Type module:SettingViewModel}"
              shell:ShellProperty.Title="設定・同期"
              shell:ShellProperty.Function1Text="戻る"
-             shell:ShellProperty.Function2Text="QR 読取"
+             shell:ShellProperty.Function2Text="再登録"
              shell:ShellProperty.Function3Text="未送信"
              shell:ShellProperty.Function4Text="同期"
              shell:ShellProperty.Function1Enabled="True"
@@ -52,30 +52,24 @@
             <Label Style="{StaticResource PosSectionLabel}"
                    Text="🔄 同期" />
             <Grid Style="{StaticResource PosListRowGrid}"
-                  RowDefinitions="Auto,Auto"
                   ColumnDefinitions="*,Auto">
-                <Label Grid.Row="0" Grid.Column="0"
+                <Label Grid.Column="0"
                        Style="{StaticResource PosCaptionLabel}"
                        FontSize="15"
                        Text="{Binding LastSyncText}" />
-                <Border Grid.Row="0" Grid.Column="1"
+                <Border Grid.Column="1"
                         Style="{StaticResource PosChipBorder}"
                         BackgroundColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}">
                     <Label Style="{StaticResource PosChipLabel}"
                            Text="{Binding UnsentText}" />
                 </Border>
-                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                       Style="{StaticResource PosCaptionLabel}"
-                       FontSize="13"
-                       LineBreakMode="WordWrap"
-                       Text="F4 同期でマスタと在庫を取り込みます。F3 で未送信の一覧を表示します。" />
             </Grid>
 
             <!-- 未送信一覧 -->
             <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
                                  IsVisible="{Binding OutboxVisible}">
                 <Label Style="{StaticResource PosSectionLabel}"
-                       Text="📤 未送信 (タップで再送・破棄)" />
+                       Text="📤 未送信" />
                 <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
                                      BackgroundColor="White"
                                      BindableLayout.ItemsSource="{Binding Outbox}">

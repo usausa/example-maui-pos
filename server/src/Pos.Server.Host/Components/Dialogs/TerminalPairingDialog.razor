@@ -3,7 +3,6 @@
         <MudText Typo="Typo.h6">📱 端末の登録: @StoreName @Terminal.Name</MudText>
     </TitleContent>
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-2">端末の初期設定で QR を読み取るか、サーバの URL とペアリングコードを入力してください。</MudText>
         <MudStack AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h3" Class="pairing-code">@Code.Code</MudText>
             <MudText Typo="Typo.caption">有効期限 @Code.ExpiresAt.ToShortDateTimeText() (一度だけ使えます)</MudText>
@@ -13,6 +12,10 @@
             <MudPaper Outlined="true" Class="pa-2 mud-width-full">
                 <pre class="qr-text">@qrText</pre>
             </MudPaper>
+            @if (unreachable)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mud-width-full">localhost は端末から届きません。端末から届くアドレスで管理画面を開き直すか、設定の Terminal:ApiEndPoint に端末から届く URL を入れてください。</MudAlert>
+            }
         </MudStack>
         <MudText Typo="Typo.caption" Class="mt-2 d-block">登録すると、この端末の前の登録は使えなくなります。</MudText>
     </DialogContent>

@@ -48,7 +48,7 @@
 
         <Label Grid.Row="1"
                Style="{StaticResource PosSectionLabel}"
-               Text="返金方法 (元の支払方法に合わせてください)" />
+               Text="返金方法" />
 
         <VerticalStackLayout Grid.Row="2"
                              Style="{StaticResource FillVerticalStack}"

@@ -11,19 +11,17 @@ public sealed partial class ScanViewModel : AppViewModelBase
 {
     private static readonly TimeSpan SameCodeInterval = TimeSpan.FromSeconds(2);
 
-    private readonly IDialog dialog;
-
     private readonly IPopupNavigator popupNavigator;
+
+    private readonly DataAccessor accessor;
+
+    private readonly SalesUsecase salesUsecase;
 
     private ScanMode mode;
 
     private ViewId returnTo;
 
     private ViewId? callerReturnTo;
-
-    private readonly DataAccessor accessor;
-
-    private readonly SalesUsecase salesUsecase;
 
     private Dictionary<Guid, TaxRateResponseItem> taxRates = [];
 
@@ -55,20 +53,15 @@ public sealed partial class ScanViewModel : AppViewModelBase
     public partial string Title { get; set; } = "スキャン";
 
     [ObservableProperty]
-    public partial string Message { get; set; } = "コードを枠に合わせてください";
-
-    [ObservableProperty]
-    public partial string Hint { get; set; } = string.Empty;
+    public partial string Message { get; set; } = string.Empty;
 
     public IObserveCommand DetectCommand { get; }
 
     public ScanViewModel(
-        IDialog dialog,
         IPopupNavigator popupNavigator,
         DataAccessor accessor,
         SalesUsecase salesUsecase)
     {
-        this.dialog = dialog;
         this.popupNavigator = popupNavigator;
         this.accessor = accessor;
         this.salesUsecase = salesUsecase;
@@ -89,10 +82,8 @@ public sealed partial class ScanViewModel : AppViewModelBase
             ScanMode.Product or ScanMode.ProductOnce => "スキャン (商品)",
             ScanMode.Customer => "スキャン (会員)",
             ScanMode.Receipt => "スキャン (レシート)",
-            ScanMode.Setup => "スキャン (設定 QR)",
             _ => "スキャン"
         };
-        Hint = mode == ScanMode.Product ? "読み取るたびに明細へ追加します。同じ商品は数量 +1" : "1 件読み取ると戻ります";
 
         await Navigator.PostActionAsync(PrepareAsync);
     }
@@ -110,7 +101,7 @@ public sealed partial class ScanViewModel : AppViewModelBase
         }
         else
         {
-            Message = "カメラの権限がありません。手入力を使ってください。";
+            Message = "カメラの権限がありません。";
         }
     }
 
@@ -199,17 +190,6 @@ public sealed partial class ScanViewModel : AppViewModelBase
 
     protected override async Task OnNotifyFunction3()
     {
-        if (mode == ScanMode.Setup)
-        {
-            var result = await dialog.InputAsync("設定 (Key=Value)");
-            if (result.Accepted && !String.IsNullOrWhiteSpace(result.Text))
-            {
-                await HandleAsync(result.Text.Trim());
-            }
-
-            return;
-        }
-
         // 数字のコードは電卓で入力する (キーボードに依存しない)
         var text = await popupNavigator.InputProductCodeAsync();
         if (!String.IsNullOrWhiteSpace(text))
