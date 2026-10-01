@@ -81,9 +81,9 @@ public sealed class SetupUsecase
     }
 
     // 初回同期 (全件)。終われば未送信の送信も再開する
-    public async ValueTask<ApiResult<SyncMastersResponse>> ApplyAsync(IProgress<string>? progress)
+    public async ValueTask<ApiResult<SyncMastersResponse>> ApplyAsync()
     {
-        var result = await sync.SyncMastersAsync(true, progress, CancellationToken.None);
+        var result = await sync.SyncMastersAsync(true, CancellationToken.None);
         sync.Trigger();
         return result;
     }

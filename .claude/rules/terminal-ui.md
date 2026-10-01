@@ -52,6 +52,7 @@ paths:
 - 記号は、チップなら `StatusChip.Icon` (Material Icons のグリフ)、濃い背景のボタンなら白い `FontImageSource` で付ける。選択で背景が濃くなるボタンは Trigger でアイコンも白 (`XxxSelected`) にする
 - ボタンの `FontImageSource` は `Markup/AppIcons` の静的フィールドに足し、XAML から `{x:Static markup:AppIcons.Xxx}` で使う (`Styles.xaml` や画面の `Resources` に置かない)
 - 一覧やスキャン待ちの空の状態は `PosEmptyStack` の絵文字にし、文言は該当がない・取得できないときだけ添える
-- 処理中の表示は IDialog のインジケータだけにする (通信は `NetworkService` が出し、通信以外の時間のかかる処理は `IDialog.Indicator()`、段階を知らせる同期は `IDialog.Loading`)。画面に「読み込んでいます」のような文言や `ActivityIndicator` を置かない
+- 処理中の表示は IDialog のインジケータだけにする (通信は `NetworkService` が出し、通信以外の時間のかかる処理と同期は `IDialog.Indicator()`)。画面に「読み込んでいます」のような文言や `ActivityIndicator` を置かない
+- 段階の文言を出す `IDialog.Loading` は使わない (MAUI のウインドウの重ね描きなので、カメラのある画面ではカメラの中に描かれて読み取り枠の下になる)
 - オンラインで取る一覧・集計は `CurrentState` に `ViewHelper.LoadingState` / `OfflineState` を入れ、取得中は結果を空の面で隠し、取得できないときは理由を結果の上に重ねる (`EqualsConverter`)。取得のたびに `LoadingState` から始めて `notify: false` で呼ぶ (CommunityToolkit の `StateContainer` は使わない)
 - 表示時の浮き上がり (`AnimationOption.EnterAnimation`) は、続けて更新する一覧 (販売の明細、棚卸) には付けない

@@ -200,9 +200,9 @@ public sealed partial class SettingViewModel : AppViewModelBase
     protected override async Task OnNotifyFunction4()
     {
         (ApiResult<Pos.Contract.Sync.SyncMastersResponse> Result, int Sent) result;
-        using (var loading = dialog.Loading("同期しています..."))
+        using (dialog.Indicator())
         {
-            result = await sync.SyncAllAsync(new Progress<string>(loading.Update), CancellationToken.None);
+            result = await sync.SyncAllAsync(CancellationToken.None);
         }
 
         if (result.Result.IsSuccess)

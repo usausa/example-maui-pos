@@ -140,7 +140,7 @@ public sealed class SyncService : IDisposable
 
                 if (DateTime.UtcNow - lastMasterSync > MasterSyncInterval)
                 {
-                    await SyncMastersAsync(false, null, token);
+                    await SyncMastersAsync(false, token);
                 }
             }
             catch (OperationCanceledException)
@@ -170,7 +170,7 @@ public sealed class SyncService : IDisposable
     //--------------------------------------------------------------------------------
 
     // 差分同期 (full = true で全件)。マスタは削除 → 挿入で置き換え、自店在庫は updatedSince で取り込む
-    public async ValueTask<ApiResult<SyncMastersResponse>> SyncMastersAsync(bool full, IProgress<string>? progress, CancellationToken cancellationToken)
+    public async ValueTask<ApiResult<SyncMastersResponse>> SyncMastersAsync(bool full, CancellationToken cancellationToken)
     {
         var storeId = settings.StoreId;
         if (storeId is null)
@@ -181,7 +181,6 @@ public sealed class SyncService : IDisposable
         await gate.WaitAsync(cancellationToken);
         try
         {
-            progress?.Report("マスタを取得しています...");
             var since = full ? null : await QueryDateAsync(ServerTimeKey);
             var result = await httpService.GetSyncMastersAsync(since, cancellationToken);
             if (!result.IsSuccess)
@@ -190,7 +189,6 @@ public sealed class SyncService : IDisposable
             }
 
             var response = result.Content!;
-            progress?.Report("マスタを保存しています...");
             await provider.UsingTxAsync(async (_, tx) =>
             {
                 if (response.Settings is not null)
@@ -259,7 +257,6 @@ public sealed class SyncService : IDisposable
             // 商品が多くて省かれたときはページで取り込む
             if (response.ProductsTruncated)
             {
-                progress?.Report("商品を取得しています...");
                 for (var page = 0; ; page++)
                 {
                     var products = await httpService.GetProductsAsync(since, page, PageSize, cancellationToken);
@@ -288,7 +285,6 @@ public sealed class SyncService : IDisposable
             }
 
             // 自店在庫
-            progress?.Report("在庫を取得しています...");
             var inventorySince = full ? null : await QueryDateAsync(InventorySyncKey);
             for (var page = 0; ; page++)
             {
@@ -331,9 +327,9 @@ public sealed class SyncService : IDisposable
     }
 
     // 手動同期: マスタを取り込み、成功したら未送信も送る (sent は送信件数)
-    public async ValueTask<(ApiResult<SyncMastersResponse> Result, int Sent)> SyncAllAsync(IProgress<string>? progress, CancellationToken cancellationToken)
+    public async ValueTask<(ApiResult<SyncMastersResponse> Result, int Sent)> SyncAllAsync(CancellationToken cancellationToken)
     {
-        var result = await SyncMastersAsync(false, progress, cancellationToken);
+        var result = await SyncMastersAsync(false, cancellationToken);
         var sent = result.IsSuccess ? await SendOutboxAsync(cancellationToken) : 0;
         return (result, sent);
     }

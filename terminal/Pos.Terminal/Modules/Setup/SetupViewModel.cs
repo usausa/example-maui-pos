@@ -206,9 +206,9 @@ public sealed partial class SetupViewModel : AppViewModelBase
 
             // 初回同期 (全件)
             ApiResult<Pos.Contract.Sync.SyncMastersResponse> result;
-            using (var loading = dialog.Loading("同期しています..."))
+            using (dialog.Indicator())
             {
-                result = await setup.ApplyAsync(new Progress<string>(loading.Update));
+                result = await setup.ApplyAsync();
             }
 
             if (result.IsSuccess)

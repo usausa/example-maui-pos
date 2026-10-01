@@ -188,13 +188,11 @@ public static partial class MauiProgram
     {
         var resources = Application.Current!.Resources;
         config.IndicatorColor = resources.FindResource<Color>("BlueAccent2");
-        config.LoadingMessageFontSize = 28;
         config.ProgressCircleColor1 = resources.FindResource<Color>("BlueAccent2");
         config.ProgressCircleColor2 = resources.FindResource<Color>("GrayLighten2");
 
         // Avoiding conflicts with progress
         config.LockBackgroundColor = Colors.Transparent;
-        config.LoadingBackgroundColor = Colors.Transparent;
         config.ProgressBackgroundColor = Colors.Transparent;
     }
 
