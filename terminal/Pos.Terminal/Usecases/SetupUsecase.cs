@@ -11,6 +11,8 @@ public sealed class SetupUsecase
 
     private readonly Settings settings;
 
+    private readonly Session session;
+
     private readonly ApiContext apiContext;
 
     private readonly CredentialService credential;
@@ -23,6 +25,7 @@ public sealed class SetupUsecase
         IAppInfo appInfo,
         IDeviceInfo deviceInfo,
         Settings settings,
+        Session session,
         ApiContext apiContext,
         CredentialService credential,
         NetworkService network,
@@ -31,6 +34,7 @@ public sealed class SetupUsecase
         this.appInfo = appInfo;
         this.deviceInfo = deviceInfo;
         this.settings = settings;
+        this.session = session;
         this.apiContext = apiContext;
         this.credential = credential;
         this.network = network;
@@ -38,7 +42,7 @@ public sealed class SetupUsecase
     }
 
     // 新しい接続先へペアリングし、成功してから接続先とトークンを切り替える。コードの不一致・期限切れ・通信の失敗は NetworkService が通知する (null)。
-    // 登録し直すときは、失敗したら今の登録に戻す。ローカル DB と未送信はそのまま使い、再登録後に送る
+    // 登録し直すときは、失敗したら今の登録に戻す。ローカル DB と未送信はそのまま使い、同じ店舗・端末番号の端末なら再登録後に送る
     public async ValueTask<TerminalPairResponse?> PairAsync(Uri endPoint, string pairingCode)
     {
         var request = new TerminalPairRequest
@@ -57,16 +61,19 @@ public sealed class SetupUsecase
 
         // トークンを外している間に接続先を切り替える (古いトークンを新しい接続先へ送らないように)
         var paired = result.Content!;
+        var previousStoreId = settings.StoreId;
         var previousTerminalId = settings.TerminalId;
+        var sameRegister = IsSameRegister(paired);
         apiContext.BaseAddress = endPoint;
         settings.ApiEndPoint = endPoint.ToString();
         settings.StoreId = paired.Store.Id;
         settings.TerminalId = paired.Terminal.Id;
 
-        // 別の端末として登録したら、未送信を今の店舗・端末のものにしてから送信を再開する
-        if ((previousTerminalId is not null) && (previousTerminalId != paired.Terminal.Id))
+        // 店舗コード・端末番号が同じ端末 (新しいサーバの同じレジ) なら、前の登録の未送信をその端末のものにしてから送信を再開する。
+        // 番号の違う端末には付け替えない (取引と在庫を別の端末・店舗のものにしない)
+        if ((previousStoreId is { } fromStoreId) && (previousTerminalId is { } fromTerminalId) && (fromTerminalId != paired.Terminal.Id) && sameRegister)
         {
-            await sync.ReassignOutboxAsync(paired.Store.Id, paired.Terminal.Id);
+            await sync.ReassignOutboxAsync(fromStoreId, fromTerminalId, paired.Store.Id, paired.Terminal.Id);
         }
 
         await credential.SaveAsync(paired.Token, DateTime.UtcNow);
@@ -80,4 +87,8 @@ public sealed class SetupUsecase
         sync.Trigger();
         return result;
     }
+
+    // 今の登録 (Session) とレシート番号の店舗コード・端末番号が同じか
+    private bool IsSameRegister(TerminalPairResponse paired) =>
+        (session.Store?.Code == paired.Store.Code) && (session.Terminal?.TerminalNo == paired.Terminal.TerminalNo);
 }

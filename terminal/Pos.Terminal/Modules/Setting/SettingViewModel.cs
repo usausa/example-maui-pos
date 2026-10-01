@@ -170,10 +170,10 @@ public sealed partial class SettingViewModel : AppViewModelBase
         await LoadOutboxAsync();
     }
 
-    // 端末のトークンを捨てて初期設定へ。ローカル DB と未送信は残し、登録し直すと続きを送る
+    // 端末のトークンを捨てて初期設定へ。ローカル DB と未送信は残し、店舗コード・端末番号が同じ端末に登録し直すと続きを送る
     private async Task UnregisterAsync()
     {
-        if (!await dialog.AskAsync("登録を解除しますか？\n未送信は登録し直すと送信します", "登録の解除", "解除"))
+        if (!await dialog.AskAsync("登録を解除しますか？\n未送信は同じ店舗・番号で登録し直すと送信", "登録の解除", "解除"))
         {
             return;
         }

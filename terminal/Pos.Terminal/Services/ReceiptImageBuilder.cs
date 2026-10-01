@@ -13,7 +13,7 @@ public static class ReceiptImageBuilder
 
     private const float Padding = 24f;
 
-    public static byte[] Build(string text)
+    public static SKImage Build(string text)
     {
         var lines = text.Replace("\r", string.Empty, StringComparison.Ordinal).Split('\n');
         var width = (int)((Columns * ColumnWidth) + (Padding * 2));
@@ -47,9 +47,7 @@ public static class ReceiptImageBuilder
             baseline += LineHeight;
         }
 
-        using var image = SKImage.FromBitmap(bitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        return data.ToArray();
+        return SKImage.FromBitmap(bitmap);
     }
 
     // 日本語を描ける書体 (端末の既定 CJK フォント)

@@ -16,7 +16,8 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 - 特定の機能の画面間だけで持ち回る状態 (`XxxContext`、`CustomerDraft`) は Smart.Navigation の Scope プラグインで注入する。各 ViewModel に同じ名前の `[Scope]` プロパティを宣言し、遷移パラメータで渡さない
 - スキャンのような途中の画面は、呼び出し元の機能の状態を保持するために各コンテキストのプロパティを持つ。使用者に常に紐付く情報 (店舗、端末、担当、シフト) は `Session` に集約する
 - 背景のループから `Session` を変えるときは `MainThread.InvokeOnMainThreadAsync` を使う
-- UI スレッドを塞ぐ処理 (SkiaSharp の描画、PIN のハッシュの照合) は Service の中で `Task.Run` に回す
+- UI スレッドを塞ぐ処理 (SkiaSharp の描画、QR の生成、PIN のハッシュの照合) は Service の中で `Task.Run` に回す
+- アプリで作る画像 (レシート、QR) は SkiaSharp の `SKImageImageSource` で出し、`ImageSource.FromStream` を使わない (MAUI の画像の読み込み (Glide) は初回の初期化で UI スレッドを止める)
 - 回線の状態は `DeviceState` から読み、Essentials の `IConnectivity` は使わない (`DeviceInformation` が Android の通知から受け取る)。電池の残量と無線 LAN の信号強度は取らない
 - 承認が要る操作は `StaffLogic` で要否を判定し、`PinService.ChooseApproverAsync` で選んだ承認者を `ApprovedByStaffId` に入れる (画面で PIN を照合しない)
 - Service が `IDialog` / `IPopupNavigator` を使うのは、`PinService`、`NetworkService` のような画面をまたぐ対話だけにする

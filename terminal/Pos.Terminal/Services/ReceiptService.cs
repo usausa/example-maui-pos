@@ -2,7 +2,7 @@ namespace Pos.Terminal.Services;
 
 using Pos.Contract.Transactions;
 
-// 取引からレシート画像 (PNG) を組み立てる
+// 取引からレシートと電子レシート QR の画像を組み立てる。共有するときだけ PNG にする
 public sealed class ReceiptService
 {
     private readonly DataAccessor accessor;
@@ -17,7 +17,7 @@ public sealed class ReceiptService
         this.session = session;
     }
 
-    public async ValueTask<byte[]> BuildAsync(TransactionResponseItem transaction)
+    public async ValueTask<SKImage> BuildAsync(TransactionResponseItem transaction)
     {
         // シリアル番号で探した他の店舗・端末の取引は、その店舗と端末で組み立てる
         var store = transaction.StoreId == session.StoreId ? session.Store : await accessor.QueryStoreAsync(transaction.StoreId);
@@ -28,4 +28,15 @@ public sealed class ReceiptService
         // SkiaSharp の描画は UI スレッドを塞ぐので背景で行う
         return await Task.Run(() => ReceiptImageBuilder.Build(text));
     }
+
+    // QR の生成も初回は UI スレッドを塞ぐので背景で行う
+    public static Task<SKImage> BuildQrAsync(string receiptNo) =>
+        Task.Run(() => QrImageBuilder.Build(receiptNo));
+
+    public static Task<byte[]> EncodePngAsync(SKImage image) =>
+        Task.Run(() =>
+        {
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            return data.ToArray();
+        });
 }

@@ -229,10 +229,10 @@ public sealed partial class SetupViewModel : AppViewModelBase
         }
     }
 
-    // 未送信は登録し直した先へ送る (別の端末として登録したら、その店舗・端末のものにする)
+    // 未送信は、店舗コード・端末番号が同じ端末に登録し直したときだけ送る (新しいサーバの同じレジなど)
     private string ReRegisterMessage() =>
         session.UnsentCount > 0
-            ? $"登録し直しますか？\n未送信 {session.UnsentCount} 件は新しい登録で送信"
+            ? $"登録し直しますか？\n未送信 {session.UnsentCount} 件は同じ店舗・番号なら送信"
             : "登録し直しますか？\n今の登録は使えなくなります";
 
     // http / https の絶対 URL。末尾は / にそろえる (API の相対パスをつなぐため)

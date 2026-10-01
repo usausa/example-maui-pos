@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
-             xmlns:converters="clr-namespace:Pos.Terminal.Converters"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
              x:Class="Pos.Terminal.Modules.Sales.ReceiptView"
              x:DataType="{x:Type module:ReceiptViewModel}"
@@ -18,14 +17,6 @@
              shell:ShellProperty.Function3Enabled="True"
              shell:ShellProperty.Function4Enabled="True">
 
-    <!-- ReSharper disable Xaml.RedundantResource -->
-    <ContentView.Resources>
-        <ResourceDictionary>
-            <converters:QrImageSourceConverter x:Key="QrImageSourceConverter" />
-        </ResourceDictionary>
-    </ContentView.Resources>
-    <!-- ReSharper restore Xaml.RedundantResource -->
-
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,*">
         <!-- 電子レシート QR (レシート番号) -->
@@ -37,7 +28,7 @@
                    WidthRequest="200"
                    HeightRequest="200"
                    Margin="8"
-                   Source="{Binding ReceiptNo, Converter={StaticResource QrImageSourceConverter}}" />
+                   Source="{Binding QrImage}" />
             <Label Style="{StaticResource PosCaptionLabel}"
                    HorizontalTextAlignment="Center"
                    Padding="0,0,0,8"

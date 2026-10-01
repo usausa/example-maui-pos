@@ -474,9 +474,9 @@ public sealed class SyncService : IDisposable
         await UpdateCountsAsync();
     }
 
-    // 別の端末として登録し直したとき: 未送信 (要確認を含む) を今の店舗・端末のものにして送り直す。
+    // 店舗コード・端末番号が同じ端末として登録し直したとき (新しいサーバなど): 前の登録の未送信を今の店舗・端末のものにし、要確認も含めて送り直す。
     // 開設を送っていないシフトは端末の行も移す (開設を送ったシフトに続くものは、サーバでシフトの端末が合わず要確認になる)
-    public async ValueTask ReassignOutboxAsync(Guid storeId, Guid terminalId)
+    public async ValueTask ReassignOutboxAsync(Guid fromStoreId, Guid fromTerminalId, Guid storeId, Guid terminalId)
     {
         await gate.WaitAsync();
         try
@@ -486,8 +486,9 @@ public sealed class SyncService : IDisposable
             {
                 foreach (var item in items)
                 {
-                    await accessor.UpdateOutboxPayloadAsync(tx, item.Id, Reassign(item, storeId, terminalId));
-                    if (item.Kind == OutboxKind.ShiftOpen)
+                    var payload = Reassign(item, fromStoreId, fromTerminalId, storeId, terminalId);
+                    await accessor.UpdateOutboxPayloadAsync(tx, item.Id, payload ?? item.Payload);
+                    if ((item.Kind == OutboxKind.ShiftOpen) && (payload is not null))
                     {
                         await accessor.UpdateShiftTerminalAsync(tx, item.TargetId, storeId, terminalId);
                     }
@@ -504,13 +505,19 @@ public sealed class SyncService : IDisposable
         await UpdateCountsAsync();
     }
 
-    private static string Reassign(OutboxEntity item, Guid storeId, Guid terminalId)
+    // 書き換えるのは前の登録のものだけ (それより前の別の端末の未送信は、その端末のまま)。書き換えないときは null
+    private static string? Reassign(OutboxEntity item, Guid fromStoreId, Guid fromTerminalId, Guid storeId, Guid terminalId)
     {
         switch (item.Kind)
         {
             case OutboxKind.ShiftOpen:
             {
                 var request = Deserialize<ShiftOpenRequest>(item.Payload);
+                if (request.TerminalId != fromTerminalId)
+                {
+                    return null;
+                }
+
                 request.StoreId = storeId;
                 request.TerminalId = terminalId;
                 return JsonSerializer.Serialize(request, HttpService.JsonOptions);
@@ -519,6 +526,11 @@ public sealed class SyncService : IDisposable
             case OutboxKind.Transaction:
             {
                 var request = Deserialize<TransactionCreateRequest>(item.Payload);
+                if (request.TerminalId != fromTerminalId)
+                {
+                    return null;
+                }
+
                 request.StoreId = storeId;
                 request.TerminalId = terminalId;
                 return JsonSerializer.Serialize(request, HttpService.JsonOptions);
@@ -527,17 +539,19 @@ public sealed class SyncService : IDisposable
             case OutboxKind.InventoryChanges:
             {
                 var request = Deserialize<InventoryChangeRequest>(item.Payload);
-                foreach (var change in request.Changes)
+                var moved = false;
+                foreach (var change in request.Changes.Where(x => x.StoreId == fromStoreId))
                 {
                     change.StoreId = storeId;
+                    moved = true;
                 }
 
-                return JsonSerializer.Serialize(request, HttpService.JsonOptions);
+                return moved ? JsonSerializer.Serialize(request, HttpService.JsonOptions) : null;
             }
 
             // 取消・入出金・精算は対象 (取引・シフト) の端末で照合する
             default:
-                return item.Payload;
+                return null;
         }
     }
 

@@ -1,5 +1,7 @@
 namespace Pos.Terminal.Modules.Sales;
 
+using SkiaSharp.Views.Maui.Controls;
+
 // レシート: 32 桁のレシートを画像で表示し、電子レシート QR (レシート番号) と共有 (画像) を提供する
 public sealed partial class ReceiptViewModel : AppViewModelBase
 {
@@ -13,13 +15,16 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
     private Guid transactionId;
 
-    private byte[] png = [];
+    private SKImage? image;
 
     [ObservableProperty]
     public partial string ReceiptNo { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial bool QrVisible { get; set; }
+
+    [ObservableProperty]
+    public partial ImageSource? QrImage { get; set; }
 
     [ObservableProperty]
     public partial ImageSource? ReceiptImage { get; set; }
@@ -61,10 +66,14 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
         using (dialog.Indicator())
         {
-            png = await receipt.BuildAsync(transaction);
+            image = await receipt.BuildAsync(transaction);
+            Disposables.Add(image);
+            var qr = await ReceiptService.BuildQrAsync(transaction.ReceiptNo);
+            Disposables.Add(qr);
+            // Glide を通さずに出す (Glide は初回の初期化で UI スレッドを止める)
+            ReceiptImage = new SKImageImageSource { Image = image };
+            QrImage = new SKImageImageSource { Image = qr };
         }
-
-        ReceiptImage = ImageSource.FromStream(() => new MemoryStream(png));
     }
 
     protected override Task OnNotifyBackAsync() =>
@@ -74,13 +83,13 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
     protected override async Task OnNotifyFunction2()
     {
-        if (png.Length == 0)
+        if (image is null)
         {
             return;
         }
 
         var path = Path.Combine(FileSystem.CacheDirectory, $"receipt-{ReceiptNo}.png");
-        await File.WriteAllBytesAsync(path, png);
+        await File.WriteAllBytesAsync(path, await ReceiptService.EncodePngAsync(image));
         await Share.Default.RequestAsync(new ShareFileRequest { Title = $"レシート {ReceiptNo}", File = new ShareFile(path) });
     }
 

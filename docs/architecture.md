@@ -329,7 +329,7 @@ Components/                          StorageManager (アプリのフォルダ。
 Extender/                            NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)
 Log.cs                               [LoggerMessage] の集約
 Diagnostics/                         CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)
-Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、QrImageSourceConverter (QRCoder)、YenConverter、StockSendTextConverter、AvatarColorConverter / InitialConverter (会員のアバターの色と頭文字)。  
+Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、YenConverter、StockSendTextConverter、AvatarColorConverter / InitialConverter (会員のアバターの色と頭文字)。  
                                      色や選択マーク・画面固有の文言は Smart.Maui の BoolToColor / MapToColor / BoolToText を Styles.xaml で構成する
 Markup/                              ViewIdExtension (XAML で画面 ID を `{markup:ViewId Xxx}` と書く)、
                                      AppIcons (ボタンに付ける Material Icons のアイコン。XAML から `{x:Static markup:AppIcons.Xxx}` で使う)
@@ -368,7 +368,7 @@ Services/                            単機能の部品
   PinService.cs                      PIN の照合 (3 回まで、背景スレッドで PBKDF2) と承認者の選択 (自店か本部の店長以上で PIN があるスタッフ)
   NetworkService.cs                  オンライン限定操作の接続確認・インジケータ・エラー通知
   SyncService.cs                     マスタ差分同期と Outbox 送信のバックグラウンド実行 (未登録の間は止める)、heartbeat (1 分ごと)、レシート番号の採番
-  ReceiptService.cs                  レシート画像の組み立て (ReceiptTextBuilder: 等幅 32 桁、ReceiptImageBuilder: SkiaSharp で桁位置に描画)
+  ReceiptService.cs                  レシートと電子レシート QR の画像の組み立て (ReceiptTextBuilder: 等幅 32 桁、ReceiptImageBuilder: SkiaSharp で桁位置に描画、QrImageBuilder: QRCoder)
   ProductImageService.cs             商品画像の取得と CacheDirectory へのキャッシュ (URL の v ごと。オフラインはキャッシュだけ)
   ShiftReportTextBuilder.cs          精算レポートの共有テキストの組み立て
 Usecases/                            通信 → DB → 完了までの一連の手順
