@@ -376,6 +376,8 @@ POS サンプル (サーバ API・DB・管理画面・端末) の機能とアー
 - 1 つの業務の画面の間で共有する状態 (カート、返品、棚卸、検品など) は、ナビゲーションの Scope で持ち、参照する画面がなくなると破棄する。  
   店舗・端末・担当・シフトは Session に置く
 - 画面の遷移は Smart.Navigation で `ContentView` を差し替え、ポップアップは `IPopupNavigator` (CommunityToolkit の Popup) で開く
+- 操作 (ボタン、F キー、戻る) は表示中の画面だけが受け付け、遷移の間は受け付けない。  
+  離れていく画面の処理が遷移の途中で動いたり、遷移が重なったりしないようにする
 - 通信は `HttpClient` と System.Text.Json (サーバと同じ JSON の設定) で行い、失敗の Problem Details (`errorCode`) を読んで画面に理由を出す
 - ローカル DB は SQLite (Smart.Data.Accessor)、端末のトークンは SecureStorage、端末の設定は Preferences に置く
 - SecureStorage の鍵が壊れてトークンを読めないときは、保存領域を消して未登録として扱う (同じ店舗・番号の端末に登録し直せば未送信の続きを送る)

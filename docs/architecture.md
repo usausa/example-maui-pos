@@ -316,7 +316,8 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
 MauiProgram.cs                       BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド (D-23)、NavigationFeedbackPlugin、Debug のときは LeakDetectionPlugin)、Dialog / Popup、フォントは MaterialIcons のみ
                                      + BarcodeScanning、HttpClient (IHttpClientFactory)、IDbProvider (SQLite)、DataAccessor、Service / Usecase、State
 MainPage.xaml / MainPageViewModel    シェル (タイトル + 店舗-端末 担当 + 未送信バッジ + F1〜F4)。起動時に Setup (未登録) または StaffSelect へ。要求が 401 になったら知らせて Setup へ。  
-                                     根の画面 (AppViewModelBase.HandlesBack = false) の戻るはプラットフォームに任せる (MainActivity がタスクを背面へ回す)
+                                     根の画面 (AppViewModelBase.HandlesBack = false) の戻るはプラットフォームに任せる (MainActivity がタスクを背面へ回す)。  
+                                     遷移の間は Busy にして、ボタン・F キー・戻るを受け付けない
 App.xaml.cs                          起動時に前回の異常終了を知らせ、DatabaseService でローカル DB を作り、CredentialService でトークンを読み、SyncService でセッションを復元して同期を始める。  
                                      ローカル DB を開けないときは理由を出して終了する (未送信を含む DB を作り直さない)
 Extensions.cs                        拡張メソッド (リソース、IDialog の日本語ボタン、PostForwardAsync / PostActionAsync、TrimToNull、ObservableCollection.Replace)
@@ -337,7 +338,7 @@ Helpers/                             アプリに依存しない処理だけ: Da
                                      Data/ (EnumTextConverter<T> / DateOnlyTextConverter / DateTimeTicksConverter / SchemaHelper / SqlHelper: LIKE のエスケープ)、Json/JsonDateTimeConverter
 Permissions.cs                       カメラ権限
 Modules/
-  ViewId.cs, DialogId.cs, Parameters.cs (遷移パラメータ: スキャンのモードと結果 / 戻り先 / 取引・シフト・商品・受注の ID / 会員), AppViewModelBase.cs, AppDialogViewModelBase.cs
+  ViewId.cs, DialogId.cs, Parameters.cs (遷移パラメータ: スキャンのモードと結果 / 戻り先 / 取引・シフト・商品・受注の ID / 会員), AppViewModelBase.cs (コマンドと F キーは表示中の画面だけが受け付ける), AppDialogViewModelBase.cs
   PopupNavigatorExtensions.cs        入力の種類ごとの電卓 (電話番号 / 郵便番号 / 生年月日 / 会員番号 / 商品コード / レシート番号 / 伝票番号 / ペアリングコード / PIN (伏せ字) / 数量 / 金額 / 実査金額 / ポイント / 枚数 / 在庫 / 値引。桁数は Pos.Domain.Length) と一覧からの選択 (ChooseAsync)
   Helpers/ViewHelper.cs              金額・数量・日時・列挙型・業務ルールの文言 (XAML からは DisplayNameConverter で使う)
   Setup/      SetupView (T-00), StaffSelectView (T-01)

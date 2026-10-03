@@ -20,6 +20,8 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
 
     private bool destroying;
 
+    private IDisposable? navigatingBusy;
+
     public INavigator Navigator { get; }
 
     [ObservableProperty]
@@ -95,6 +97,10 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
         Function2Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function2), () => Function2Enabled);
         Function3Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function3), () => Function3Enabled);
         Function4Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function4), () => Function4Enabled);
+
+        // 遷移の間は Busy にして、ボタン・F キー・戻るを受け付けない
+        Disposables.Add(Observable.FromEventPattern<EventArgs>(h => Navigator.ExecutingChanged += h, h => Navigator.ExecutingChanged -= h)
+            .Subscribe(_ => UpdateNavigatingBusy()));
 
         Disposables.Add(session.PropertyChangedAsObservable().ObserveOnCurrentContext().Subscribe(_ => UpdateHeader()));
         UpdateHeader();
@@ -173,5 +179,22 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
     public void OnDestroying()
     {
         destroying = true;
+    }
+
+    //--------------------------------------------------------------------------------
+    // Navigation
+    //--------------------------------------------------------------------------------
+
+    private void UpdateNavigatingBusy()
+    {
+        if (Navigator.Executing)
+        {
+            navigatingBusy ??= BusyState.Begin();
+        }
+        else
+        {
+            navigatingBusy?.Dispose();
+            navigatingBusy = null;
+        }
     }
 }
