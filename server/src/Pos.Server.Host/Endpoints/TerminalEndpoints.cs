@@ -16,15 +16,54 @@ public static partial class TerminalEndpoints
     public static void MapTerminalEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Terminals);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleListAsync)
+            .WithName("TerminalList")
+            .Produces<TerminalListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("TerminalGet")
+            .Produces<TerminalListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("TerminalCreate")
+            .Produces<TerminalListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("TerminalUpdate")
+            .Produces<TerminalListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("TerminalDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         // 端末の登録 (管理画面で発行したペアリングコードでトークンを受け取る) と、登録済みの端末からの通信
-        group.MapPost("/pair", HandlePairAsync).AllowAnonymous().RequireRateLimiting(RateLimits.Auth);
-        group.MapPost("/me/heartbeat", HandleHeartbeatAsync).RequireAuthorization(Policies.Terminal);
+        group.MapPost("/pair", HandlePairAsync)
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimits.Auth)
+            .WithName("TerminalPair")
+            .Produces<TerminalPairResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .Produces(StatusCodes.Status429TooManyRequests);
+        group.MapPost("/me/heartbeat", HandleHeartbeatAsync)
+            .RequireAuthorization(Policies.Terminal)
+            .WithName("TerminalHeartbeat")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden);
     }
 
     //--------------------------------------------------------------------------------
@@ -32,7 +71,7 @@ public static partial class TerminalEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial TerminalResponseItem ToResponse(TerminalEntity entity);
+    internal static partial TerminalListResponseItem ToResponse(TerminalEntity entity);
 
     [Mapper]
     private static partial TerminalEntity ToEntity(TerminalCreateRequest request);
@@ -56,7 +95,7 @@ public static partial class TerminalEndpoints
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
         var result = await service.QueryPageAsync(storeId, updatedSince, includeDeleted, EnumHelper.Parse(sort, TerminalSort.TerminalNo), desc, page, size, cancellationToken);
-        return TypedResults.Ok(new TerminalResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new TerminalListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

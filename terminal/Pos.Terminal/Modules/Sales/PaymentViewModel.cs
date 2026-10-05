@@ -3,7 +3,7 @@ namespace Pos.Terminal.Modules.Sales;
 using Pos.Domain.Logic;
 using Pos.Terminal.Models.Cart;
 
-public sealed record MethodItem(PaymentMethodResponseItem Method, string Name);
+public sealed record MethodItem(PaymentMethodListResponseItem Method, string Name);
 
 // Removable = false は受注の前受金 (全額を充てるので外せない)
 public sealed record PaymentItem(CartPayment Payment, string Text, string AmountText, bool Removable);
@@ -24,9 +24,9 @@ public sealed partial class PaymentViewModel : AppViewModelBase
 
     private readonly OrderUsecase orders;
 
-    private PaymentMethodResponseItem? pointsMethod;
+    private PaymentMethodListResponseItem? pointsMethod;
 
-    private PaymentMethodResponseItem? depositMethod;
+    private PaymentMethodListResponseItem? depositMethod;
 
     private SalesResult result = default!;
 

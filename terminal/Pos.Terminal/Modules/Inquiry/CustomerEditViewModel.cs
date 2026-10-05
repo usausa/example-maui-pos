@@ -8,7 +8,7 @@ public sealed class CustomerDraft
 {
     public bool HasDraft { get; set; }
 
-    public CustomerResponseItem? Original { get; set; }
+    public CustomerListResponseItem? Original { get; set; }
 
     public ViewId ReturnTo { get; set; }
 
@@ -53,7 +53,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
 
     private readonly IPopupNavigator popupNavigator;
 
-    private CustomerResponseItem? original;
+    private CustomerListResponseItem? original;
 
     private ViewId returnTo = ViewId.CustomerInquiry;
 
@@ -189,7 +189,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
         CustomerDraft.Note = Note.Text;
     }
 
-    private Task<bool> ReturnAsync(CustomerResponseItem? customer) =>
+    private Task<bool> ReturnAsync(CustomerListResponseItem? customer) =>
         Navigator.ForwardAsync(returnTo, Parameters.Make().WithCustomer(customer));
 
     protected override Task OnNotifyBackAsync() => ReturnAsync(original);
@@ -246,7 +246,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
             birthDate = date;
         }
 
-        ApiResult<CustomerResponseItem> result;
+        ApiResult<CustomerListResponseItem> result;
         if (original is null)
         {
             result = await network.ExecuteAsync(h => h.PostCustomerAsync(new CustomerCreateRequest

@@ -12,8 +12,8 @@ public static class ShiftSummaryCalculator
         IEnumerable<TransactionResponseItem> transactions,
         IEnumerable<LocalCashEventEntity> cashEvents,
         IEnumerable<LocalOrderDepositEntity> deposits,
-        IEnumerable<PaymentMethodResponseItem> paymentMethods,
-        IEnumerable<CategoryResponseItem> categories)
+        IEnumerable<PaymentMethodListResponseItem> paymentMethods,
+        IEnumerable<CategoryListResponseItem> categories)
     {
         var methodNames = paymentMethods.ToDictionary(static x => x.Id, static x => x);
         var categoryNames = categories.ToDictionary(static x => x.Id, static x => x.Name);
@@ -21,7 +21,7 @@ public static class ShiftSummaryCalculator
         var byMethod = new Dictionary<Guid, ShiftSummaryResponsePaymentMethod>();
         var byTax = new Dictionary<Guid, ShiftSummaryResponseTaxRate>();
         var byCategory = new Dictionary<Guid, ShiftSummaryResponseCategory>();
-        var totals = new ShiftResponseTotals();
+        var totals = new ShiftListResponseTotals();
         var pointsEarned = 0;
         var pointsRedeemed = 0;
 
@@ -137,7 +137,7 @@ public static class ShiftSummaryCalculator
 
         return new ShiftSummaryResponse
         {
-            Shift = new ShiftResponseItem
+            Shift = new ShiftListResponseItem
             {
                 Id = shift.Id,
                 StoreId = shift.StoreId,

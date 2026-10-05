@@ -10,13 +10,13 @@ public sealed partial class Session : ObservableObject
     public partial SettingsResponse? CompanySettings { get; set; }
 
     [ObservableProperty(NotifyAlso = [nameof(HeaderText), nameof(StoreId)])]
-    public partial StoreResponseItem? Store { get; set; }
+    public partial StoreListResponseItem? Store { get; set; }
 
     [ObservableProperty(NotifyAlso = [nameof(HeaderText), nameof(TerminalId)])]
-    public partial TerminalResponseItem? Terminal { get; set; }
+    public partial TerminalListResponseItem? Terminal { get; set; }
 
     [ObservableProperty(NotifyAlso = [nameof(HeaderText)])]
-    public partial StaffResponseItem? Staff { get; set; }
+    public partial StaffListResponseItem? Staff { get; set; }
 
     [ObservableProperty(NotifyAlso = [nameof(IsShiftOpen)])]
     public partial LocalShiftEntity? CurrentShift { get; set; }

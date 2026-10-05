@@ -19,12 +19,45 @@ public static partial class InventoryTransferEndpoints
     public static void MapInventoryTransferEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.InventoryTransfers);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Admin);
-        group.MapPost("/{id:guid}/ship", HandleShipAsync).RequireAuthorization(Policies.Admin);
-        group.MapPost("/{id:guid}/cancel", HandleCancelAsync).RequireAuthorization(Policies.Admin);
-        group.MapPost("/{id:guid}/receive", HandleReceiveAsync);
+        group.MapGet("/", HandleListAsync)
+            .WithName("InventoryTransferList")
+            .Produces<InventoryTransferListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("InventoryTransferGet")
+            .Produces<InventoryTransferListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("InventoryTransferCreate")
+            .Produces<InventoryTransferListResponseItem>()
+            .Produces<InventoryTransferListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/ship", HandleShipAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("InventoryTransferShip")
+            .Produces<InventoryTransferListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/cancel", HandleCancelAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("InventoryTransferCancel")
+            .Produces<InventoryTransferListResponseItem>()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/receive", HandleReceiveAsync)
+            .WithName("InventoryTransferReceive")
+            .Produces<InventoryTransferListResponseItem>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -35,12 +68,12 @@ public static partial class InventoryTransferEndpoints
     private static partial InventoryTransferLineEntity ToEntity(InventoryTransferCreateRequestLine request);
 
     [Mapper]
-    private static partial InventoryTransferResponseItem ToResponseCore(InventoryTransferEntity entity);
+    private static partial InventoryTransferListResponseItem ToResponseCore(InventoryTransferEntity entity);
 
     [Mapper]
-    private static partial InventoryTransferResponseLine ToResponse(InventoryTransferLineEntity entity);
+    private static partial InventoryTransferListResponseLine ToResponse(InventoryTransferLineEntity entity);
 
-    private static InventoryTransferResponseItem ToResponse(InventoryTransferDetailView detail)
+    private static InventoryTransferListResponseItem ToResponse(InventoryTransferDetailView detail)
     {
         var response = ToResponseCore(detail.Transfer);
         response.FromStoreName = detail.FromStoreName;
@@ -88,7 +121,7 @@ public static partial class InventoryTransferEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new InventoryTransferResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new InventoryTransferListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

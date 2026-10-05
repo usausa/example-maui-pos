@@ -419,11 +419,12 @@ POS サンプル (サーバ API・DB・管理画面・端末) の機能とアー
 - API は `/api/v1` の下に置き、JSON はプロパティとクエリを camelCase にする。  
   日時は UTC の `yyyy-MM-ddTHH:mm:ss.fffZ`、日付は `yyyy-MM-dd`、列挙型は文字列にし、`null` は省略する
 - 通信データは `XxxRequest` と `XxxResponse` と呼ぶ (「DTO」とは呼ばない)。  
-  一覧は `ListResponse<T>` を継承した `XxxResponse` で要素は `XxxResponseItem`、入れ子の要素は親の名前 + 要素名 (`TransactionResponseLine`) にする
+  名前は機能名 + 操作名 (`ShiftOpenRequest`、`InventoryChangesResponse`) にし、複数の操作で使う型は共有する。  
+  一覧は `ListResponse<T>` を継承した `XxxListResponse` で要素は `XxxListResponseItem`、入れ子の要素は親の名前 + 要素名 (`OrderListResponseLine`) にする
 - 一覧は `page` (0 始まり) と `size` で取り、総件数 (`total`) を返す (管理画面の表のページングに総件数が要る)。  
   並び替えは `sort` と `desc`、差分同期は `updatedSince` で絞って更新日時と ID の順に返す
 - 失敗は Problem Details (`errorCode`、`traceId`) で返す。  
-  入力の誤りは 400 (`VALIDATION_ERROR`。本文の JSON や引数の型が読めない要求も同じ)、業務ルールの違反は 422、重複と版の不一致は 409 にする
+  入力の誤りは 400 (`VALIDATION_ERROR`。本文の JSON や引数の型が読めない要求、知らない項目・文字列の数値・重複したキーも同じ)、業務ルールの違反は 422、重複と版の不一致は 409 にする
 - 受理したうえで知らせることは `warnings[]` で返す
 - JSON の変換器と Problem Details の型は、サーバ・端末・ツールがそれぞれ持つ (`Pos.Contract` には通信データだけを置く)
 - 細部は [api-design.md §2](api-design.md#-2-共通仕様)

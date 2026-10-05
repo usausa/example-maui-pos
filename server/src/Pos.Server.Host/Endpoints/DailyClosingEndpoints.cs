@@ -20,11 +20,29 @@ public static partial class DailyClosingEndpoints
     {
         // 日次締めは管理画面だけで行い、締めの解除は管理者に限る
         var group = app.MapApiGroup(ApiRoutes.DailyClosings).RequireAuthorization(Policies.Admin);
-        group.MapPost("/", HandleCloseAsync);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/preview", HandlePreviewAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapDelete("/{id:guid}", HandleReopenAsync).RequireAuthorization(Policies.Administrator);
+        group.MapPost("/", HandleCloseAsync)
+            .WithName("DailyClosingClose")
+            .Produces<DailyClosingSummaryResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapGet("/", HandleListAsync)
+            .WithName("DailyClosingList")
+            .Produces<DailyClosingListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/preview", HandlePreviewAsync)
+            .WithName("DailyClosingPreview")
+            .Produces<DailyClosingSummaryResponse>();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("DailyClosingGet")
+            .Produces<DailyClosingSummaryResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapDelete("/{id:guid}", HandleReopenAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("DailyClosingReopen")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     //--------------------------------------------------------------------------------
@@ -32,7 +50,7 @@ public static partial class DailyClosingEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    private static partial DailyClosingResponseItem ToResponse(DailyClosingDayView day);
+    private static partial DailyClosingListResponseItem ToResponse(DailyClosingDayView day);
 
     [Mapper]
     private static partial DailyClosingSummaryResponsePaymentMethod ToResponse(PaymentMethodTotalView total);
@@ -60,7 +78,7 @@ public static partial class DailyClosingEndpoints
     private static async ValueTask<IResult> HandleCloseAsync(
         DailyClosingService service,
         ClaimsPrincipal user,
-        DailyClosingCreateRequest request,
+        DailyClosingCloseRequest request,
         CancellationToken cancellationToken)
     {
         // 締めた人はログイン中のアカウント (認証を無効にしてログインしていなければ記録しない)
@@ -89,7 +107,7 @@ public static partial class DailyClosingEndpoints
     {
         var parameter = new DailyClosingQueryParameter { StoreId = storeId, Status = status, From = from, To = to, Sort = EnumHelper.Parse(sort, DailyClosingSort.BusinessDate), Desc = desc, Page = page, Size = size };
         var result = await service.QueryDayPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new DailyClosingResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new DailyClosingListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     // 店舗 × 営業日の内容。未締めは取引からの集計 (締める前の確認)、締め済みは締めた内容

@@ -266,31 +266,31 @@ Logic/
 ### 4.2 `Pos.Contract`
 
 ```
-ListResponse.cs  一覧の共通形 (Total / Page / Size / Items)。一覧は XxxResponse、その要素は XxxResponseItem ([D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする))
+ListResponse.cs  一覧の共通形 (Total / Page / Size / Items)。一覧は XxxListResponse、その要素は XxxListResponseItem ([D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする))
 Settings/      SettingsResponse / SettingsUpdateRequest
 Stores/ Terminals/ Staff/ Categories/ TaxRates/ Products/ Discounts/ PaymentMethods/
-               XxxResponse (一覧) / XxxResponseItem / XxxCreateRequest / XxxUpdateRequest
+               XxxListResponse (一覧) / XxxListResponseItem / XxxCreateRequest / XxxUpdateRequest
                Terminals は TerminalPairRequest / TerminalPairResponse / TerminalHeartbeatRequest も、Products は ProductImportResponse (+ Item) も持つ
 Sync/          SyncMastersResponse
-Customers/     CustomerResponse / CustomerResponseItem / CustomerCreateRequest / CustomerUpdateRequest,
+Customers/     CustomerListResponse / CustomerListResponseItem / CustomerCreateRequest / CustomerUpdateRequest,
                CustomerPointHistoryResponse / CustomerPointHistoryResponseItem, CustomerPointAdjustRequest
 Orders/        OrderCreateRequest (+ Line), OrderUpdateRequest (+ Line), OrderCancelRequest, OrderDepositRequest, OrderDepositRefundRequest,
-               OrderResponse / OrderResponseItem (+ Line / Deposit)
+               OrderListResponse / OrderListResponseItem (+ Line / Deposit)
 Transactions/  TransactionCreateRequest (+ TransactionCreateRequestLine / Discount / TaxSummary / Payment / Delivery / Void),
                TransactionResponse / TransactionResponseItem (+ TransactionResponseLine / ... / Warning),
                TransactionVoidRequest, TransactionCalculateRequest, TransactionCalculateResponse (計算項目のみ。calculate の応答と expected)
-Shifts/        ShiftOpenRequest, ShiftResponse / ShiftResponseItem (+ Denomination / Totals), ShiftCloseRequest (+ Denomination),
-               ShiftCashEventRequest / ShiftCashEventResponse / ShiftCashEventResponseItem, ShiftSummaryResponse (+ PaymentMethod / TaxRate / Category / Points / Cash)
-DailyClosings/ DailyClosingCreateRequest, DailyClosingResponse / DailyClosingResponseItem, DailyClosingSummaryResponse (+ PaymentMethod / TaxRate / Shift)
-Inventory/     InventoryLevelResponse / InventoryLevelResponseItem, InventoryProductResponse (+ Level),
-               InventoryChangeRequest (+ Change) / InventoryChangeResultResponse (+ Result),
-               InventoryChangeResponse / InventoryChangeResponseItem
-AdjustmentReasons/ AdjustmentReasonResponse / AdjustmentReasonResponseItem / AdjustmentReasonCreateRequest / AdjustmentReasonUpdateRequest
-Suppliers/     SupplierResponse / SupplierResponseItem / SupplierCreateRequest / SupplierUpdateRequest
-InventoryReceipts/  InventoryReceiptCreateRequest (+ Line), InventoryReceiptReceiveRequest (+ Line), InventoryReceiptResponse / InventoryReceiptResponseItem (+ Line)
+Shifts/        ShiftOpenRequest, ShiftListResponse / ShiftListResponseItem (+ Denomination / Totals), ShiftCloseRequest (+ Denomination),
+               ShiftCashEventRequest / ShiftCashEventListResponse / ShiftCashEventListResponseItem, ShiftSummaryResponse (+ PaymentMethod / TaxRate / Category / Points / Cash)
+DailyClosings/ DailyClosingCloseRequest, DailyClosingListResponse / DailyClosingListResponseItem, DailyClosingSummaryResponse (+ PaymentMethod / TaxRate / Shift)
+Inventory/     InventoryLevelListResponse / InventoryLevelListResponseItem, InventoryProductLevelsResponse (+ Level),
+               InventoryChangesRequest (+ Change) / InventoryChangesResponse (+ Result),
+               InventoryChangeListResponse / InventoryChangeListResponseItem
+AdjustmentReasons/ AdjustmentReasonListResponse / AdjustmentReasonListResponseItem / AdjustmentReasonCreateRequest / AdjustmentReasonUpdateRequest
+Suppliers/     SupplierListResponse / SupplierListResponseItem / SupplierCreateRequest / SupplierUpdateRequest
+InventoryReceipts/  InventoryReceiptCreateRequest (+ Line), InventoryReceiptReceiveRequest (+ Line), InventoryReceiptListResponse / InventoryReceiptListResponseItem (+ Line)
 InventoryTransfers/ InventoryTransferCreateRequest (+ Line), InventoryTransferShipRequest, InventoryTransferReceiveRequest (+ Line),
-               InventoryTransferResponse / InventoryTransferResponseItem (+ Line)
-PurchaseOrders/ PurchaseOrderCreateRequest (+ Line), PurchaseOrderUpdateRequest (+ Line), PurchaseOrderResponse / PurchaseOrderResponseItem (+ Line)
+               InventoryTransferListResponse / InventoryTransferListResponseItem (+ Line)
+PurchaseOrders/ PurchaseOrderCreateRequest (+ Line), PurchaseOrderUpdateRequest (+ Line), PurchaseOrderListResponse / PurchaseOrderListResponseItem (+ Line)
 Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+ Row)
 ```
 

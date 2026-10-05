@@ -3,7 +3,7 @@ namespace Pos.Contract.Orders;
 using Pos.Contract;
 
 // 受注 (取り寄せ・取り置き)。受注番号はサーバが {店舗コード}-O-{連番} で採番する
-public sealed class OrderResponseItem
+public sealed class OrderListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -48,10 +48,10 @@ public sealed class OrderResponseItem
     // 会計で充てる前受金 (受け取った額 − 返した額。完了した受注は 0)
     public decimal DepositAmount { get; set; }
 
-    public IReadOnlyList<OrderResponseLine> Lines { get; set; } = default!;
+    public IReadOnlyList<OrderListResponseLine> Lines { get; set; } = default!;
 
     // 前受金の受取と返金の記録
-    public IReadOnlyList<OrderResponseDeposit> Deposits { get; set; } = default!;
+    public IReadOnlyList<OrderListResponseDeposit> Deposits { get; set; } = default!;
 
     public DateTime CreatedAt { get; set; }
 
@@ -60,7 +60,7 @@ public sealed class OrderResponseItem
     public int Version { get; set; }
 }
 
-public sealed class OrderResponseLine
+public sealed class OrderListResponseLine
 {
     public Guid Id { get; set; }
 
@@ -82,7 +82,7 @@ public sealed class OrderResponseLine
     public string? Note { get; set; }
 }
 
-public sealed class OrderResponseDeposit
+public sealed class OrderListResponseDeposit
 {
     public Guid Id { get; set; }
 
@@ -106,4 +106,4 @@ public sealed class OrderResponseDeposit
     public DateTime OccurredAt { get; set; }
 }
 
-public sealed class OrderResponse : ListResponse<OrderResponseItem>;
+public sealed class OrderListResponse : ListResponse<OrderListResponseItem>;

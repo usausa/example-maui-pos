@@ -23,7 +23,7 @@ public sealed partial class ScanViewModel : AppViewModelBase
 
     private ViewId? callerReturnTo;
 
-    private Dictionary<Guid, TaxRateResponseItem> taxRates = [];
+    private Dictionary<Guid, TaxRateListResponseItem> taxRates = [];
 
     private string lastValue = string.Empty;
 

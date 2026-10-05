@@ -20,15 +20,56 @@ public static partial class CustomerEndpoints
     public static void MapCustomerEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Customers);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/lookup", HandleLookupAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPut("/{id:guid}", HandleUpdateAsync);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Admin);
-        group.MapGet("/{id:guid}/points/history", HandlePointHistoryAsync);
-        group.MapPost("/{id:guid}/points/adjust", HandlePointAdjustAsync).RequireAuthorization(Policies.Admin);
-        group.MapGet("/{id:guid}/transactions", HandleTransactionsAsync);
+        group.MapGet("/", HandleListAsync)
+            .WithName("CustomerList")
+            .Produces<CustomerListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/lookup", HandleLookupAsync)
+            .WithName("CustomerLookup")
+            .Produces<CustomerListResponseItem>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("CustomerGet")
+            .Produces<CustomerListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .WithName("CustomerCreate")
+            .Produces<CustomerListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .WithName("CustomerUpdate")
+            .Produces<CustomerListResponseItem>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("CustomerDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapGet("/{id:guid}/points/history", HandlePointHistoryAsync)
+            .WithName("CustomerPointHistory")
+            .Produces<CustomerPointHistoryResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/{id:guid}/points/adjust", HandlePointAdjustAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("CustomerPointAdjust")
+            .Produces<CustomerPointHistoryResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapGet("/{id:guid}/transactions", HandleTransactionsAsync)
+            .WithName("CustomerTransactions")
+            .Produces<TransactionResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     //--------------------------------------------------------------------------------
@@ -36,7 +77,7 @@ public static partial class CustomerEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial CustomerResponseItem ToResponse(CustomerEntity entity);
+    internal static partial CustomerListResponseItem ToResponse(CustomerEntity entity);
 
     [Mapper]
     private static partial CustomerEntity ToEntity(CustomerCreateRequest request);
@@ -78,7 +119,7 @@ public static partial class CustomerEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new CustomerResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new CustomerListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     // 会員証スキャン用 1 件取得

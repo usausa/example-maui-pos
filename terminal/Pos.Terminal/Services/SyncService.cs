@@ -534,7 +534,7 @@ public sealed class SyncService : IDisposable
 
             case OutboxKind.InventoryChanges:
             {
-                var request = Deserialize<InventoryChangeRequest>(item.Payload);
+                var request = Deserialize<InventoryChangesRequest>(item.Payload);
                 var moved = false;
                 foreach (var change in request.Changes.Where(x => x.StoreId == fromStoreId))
                 {
@@ -590,7 +590,7 @@ public sealed class SyncService : IDisposable
                 return ToPlain(await httpService.PostShiftCloseAsync(item.TargetId, Deserialize<ShiftCloseRequest>(item.Payload), cancellationToken));
 
             case OutboxKind.InventoryChanges:
-                return ToPlain(await httpService.PostInventoryChangesAsync(Deserialize<InventoryChangeRequest>(item.Payload), cancellationToken));
+                return ToPlain(await httpService.PostInventoryChangesAsync(Deserialize<InventoryChangesRequest>(item.Payload), cancellationToken));
 
             default:
                 throw new InvalidOperationException($"Unsupported outbox kind. kind=[{item.Kind}]");

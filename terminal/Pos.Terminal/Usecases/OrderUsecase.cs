@@ -25,7 +25,7 @@ public sealed class OrderUsecase
     }
 
     // 受注を読む。今のシフトで受け取った・返した前受金は、通信が途中で切れて写せなかった分もここで写す
-    public async ValueTask<ApiResult<OrderResponseItem>> LoadAsync(Guid id)
+    public async ValueTask<ApiResult<OrderListResponseItem>> LoadAsync(Guid id)
     {
         var result = await network.ExecuteAsync(h => h.GetOrderAsync(id), notifyNotFound: true);
         await SaveShiftDepositsAsync(result);
@@ -58,7 +58,7 @@ public sealed class OrderUsecase
     }
 
     // 受注にする (カートの明細・単価・会員を送る)。店舗・端末・担当が決まっているときだけ呼ぶ
-    public ValueTask<ApiResult<OrderResponseItem>> CreateAsync(SalesCart cart, OrderType type, string? customerName, string? phone, DateOnly? requestedDate, string? note)
+    public ValueTask<ApiResult<OrderListResponseItem>> CreateAsync(SalesCart cart, OrderType type, string? customerName, string? phone, DateOnly? requestedDate, string? note)
     {
         var request = new OrderCreateRequest
         {
@@ -90,7 +90,7 @@ public sealed class OrderUsecase
 
     // 受注から会計のカートを作る。単価は売価を変更できる商品だけ受注の単価にする (それ以外はサーバが売価との一致を求める)。
     // 端末のマスタにない商品があれば、カートを作らずその商品名を返す
-    public async ValueTask<(SalesCart? Cart, string? MissingProduct)> ToCartAsync(OrderResponseItem order)
+    public async ValueTask<(SalesCart? Cart, string? MissingProduct)> ToCartAsync(OrderListResponseItem order)
     {
         var taxRates = (await accessor.QueryTaxRateListAsync()).ToDictionary(static x => x.Id);
         var cart = new SalesCart { OrderId = order.Id, OrderNo = order.OrderNo, DepositAmount = order.DepositAmount };
@@ -123,11 +123,11 @@ public sealed class OrderUsecase
     //--------------------------------------------------------------------------------
 
     // 支払方法の名前を引くための一覧 (無効・削除済みも含む)
-    public async ValueTask<Dictionary<Guid, PaymentMethodResponseItem>> QueryPaymentMethodsAsync() =>
+    public async ValueTask<Dictionary<Guid, PaymentMethodListResponseItem>> QueryPaymentMethodsAsync() =>
         (await accessor.QueryPaymentMethodListAsync()).ToDictionary(static x => x.Id);
 
     // 前受金の受取。シフトが開設中のときだけ呼ぶ
-    public async ValueTask<ApiResult<OrderResponseItem>> DepositAsync(OrderResponseItem order, PaymentMethodResponseItem method, decimal amount, string? reference)
+    public async ValueTask<ApiResult<OrderListResponseItem>> DepositAsync(OrderListResponseItem order, PaymentMethodListResponseItem method, decimal amount, string? reference)
     {
         var request = new OrderDepositRequest
         {
@@ -146,7 +146,7 @@ public sealed class OrderUsecase
     }
 
     // 前受金の返金 (全額を受け取った方法で)。シフトが開設中のときだけ呼ぶ
-    public async ValueTask<ApiResult<OrderResponseItem>> RefundDepositAsync(OrderResponseItem order)
+    public async ValueTask<ApiResult<OrderListResponseItem>> RefundDepositAsync(OrderListResponseItem order)
     {
         var request = new OrderDepositRefundRequest
         {
@@ -162,7 +162,7 @@ public sealed class OrderUsecase
     }
 
     // 応答の受注の前受金のうち、今のシフトの分を写す (写し済みの分は変わらない)
-    private async ValueTask SaveShiftDepositsAsync(ApiResult<OrderResponseItem> result)
+    private async ValueTask SaveShiftDepositsAsync(ApiResult<OrderListResponseItem> result)
     {
         if ((result is not { IsSuccess: true, Content: { } order }) || (session.CurrentShift is not { } shift))
         {

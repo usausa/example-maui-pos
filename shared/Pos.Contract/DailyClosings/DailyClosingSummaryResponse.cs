@@ -4,7 +4,7 @@ namespace Pos.Contract.DailyClosings;
 // 締め済みは締めた時点の日計と内訳、未締めは取引からの集計。シフトは現在の状態
 public sealed class DailyClosingSummaryResponse
 {
-    public DailyClosingResponseItem DailyClosing { get; set; } = default!;
+    public DailyClosingListResponseItem DailyClosing { get; set; } = default!;
 
     public IReadOnlyList<DailyClosingSummaryResponsePaymentMethod> ByPaymentMethod { get; set; } = default!;
 

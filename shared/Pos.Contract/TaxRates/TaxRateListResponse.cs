@@ -2,7 +2,7 @@ namespace Pos.Contract.TaxRates;
 
 using Pos.Contract;
 
-public sealed class TaxRateResponseItem
+public sealed class TaxRateListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -29,4 +29,4 @@ public sealed class TaxRateResponseItem
     public int Version { get; set; }
 }
 
-public sealed class TaxRateResponse : ListResponse<TaxRateResponseItem>;
+public sealed class TaxRateListResponse : ListResponse<TaxRateListResponseItem>;

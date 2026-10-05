@@ -1,9 +1,9 @@
-namespace Pos.Contract.Suppliers;
+namespace Pos.Contract.AdjustmentReasons;
 
 using Pos.Contract;
 
-// 仕入先 (入荷の相手)
-public sealed class SupplierResponseItem
+// 在庫調整理由 (破損 / 廃棄 / 万引き / 自家消費 / 棚卸差異 ...)
+public sealed class AdjustmentReasonListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -11,11 +11,7 @@ public sealed class SupplierResponseItem
 
     public string Name { get; set; } = default!;
 
-    public string? Phone { get; set; }
-
-    public string? Email { get; set; }
-
-    public string? Note { get; set; }
+    public int SortOrder { get; set; }
 
     public bool IsActive { get; set; }
 
@@ -28,4 +24,4 @@ public sealed class SupplierResponseItem
     public int Version { get; set; }
 }
 
-public sealed class SupplierResponse : ListResponse<SupplierResponseItem>;
+public sealed class AdjustmentReasonListResponse : ListResponse<AdjustmentReasonListResponseItem>;

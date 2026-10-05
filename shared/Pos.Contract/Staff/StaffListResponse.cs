@@ -2,7 +2,7 @@ namespace Pos.Contract.Staff;
 
 using Pos.Contract;
 
-public sealed class StaffResponseItem
+public sealed class StaffListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -31,4 +31,4 @@ public sealed class StaffResponseItem
     public int Version { get; set; }
 }
 
-public sealed class StaffResponse : ListResponse<StaffResponseItem>;
+public sealed class StaffListResponse : ListResponse<StaffListResponseItem>;

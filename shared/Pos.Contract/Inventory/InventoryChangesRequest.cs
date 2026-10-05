@@ -1,13 +1,13 @@
 namespace Pos.Contract.Inventory;
 
 // 棚卸・調整の一括登録 (POST /inventory/changes)
-public sealed class InventoryChangeRequest
+public sealed class InventoryChangesRequest
 {
     [Required]
-    public IReadOnlyList<InventoryChangeRequestChange> Changes { get; set; } = default!;
+    public IReadOnlyList<InventoryChangesRequestChange> Changes { get; set; } = default!;
 }
 
-public sealed class InventoryChangeRequestChange : IValidatableObject
+public sealed class InventoryChangesRequestChange : IValidatableObject
 {
     // 端末採番
     public Guid Id { get; set; }

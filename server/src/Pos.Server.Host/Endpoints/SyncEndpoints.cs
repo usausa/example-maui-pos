@@ -13,7 +13,9 @@ public static class SyncEndpoints
     public static void MapSyncEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Sync);
-        group.MapGet("/masters", HandleMastersAsync);
+        group.MapGet("/masters", HandleMastersAsync)
+            .WithName("SyncMasters")
+            .Produces<SyncMastersResponse>();
     }
 
     //--------------------------------------------------------------------------------

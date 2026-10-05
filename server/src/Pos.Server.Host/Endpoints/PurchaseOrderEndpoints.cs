@@ -21,13 +21,45 @@ public static partial class PurchaseOrderEndpoints
     {
         // 発注は管理画面だけで使う (端末は発注で作った入荷予定を検品する)
         var group = app.MapApiGroup(ApiRoutes.PurchaseOrders).RequireAuthorization(Policies.Admin);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapGet("/{id:guid}/pdf", HandlePdfAsync);
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPut("/{id:guid}", HandleUpdateAsync);
-        group.MapPost("/{id:guid}/order", HandleOrderAsync);
-        group.MapPost("/{id:guid}/cancel", HandleCancelAsync);
+        group.MapGet("/", HandleListAsync)
+            .WithName("PurchaseOrderList")
+            .Produces<PurchaseOrderListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("PurchaseOrderGet")
+            .Produces<PurchaseOrderListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapGet("/{id:guid}/pdf", HandlePdfAsync)
+            .WithName("PurchaseOrderPdf")
+            .Produces<Stream>(StatusCodes.Status200OK, "application/pdf")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .WithName("PurchaseOrderCreate")
+            .Produces<PurchaseOrderListResponseItem>()
+            .Produces<PurchaseOrderListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .WithName("PurchaseOrderUpdate")
+            .Produces<PurchaseOrderListResponseItem>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/order", HandleOrderAsync)
+            .WithName("PurchaseOrderOrder")
+            .Produces<PurchaseOrderListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/cancel", HandleCancelAsync)
+            .WithName("PurchaseOrderCancel")
+            .Produces<PurchaseOrderListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -44,10 +76,10 @@ public static partial class PurchaseOrderEndpoints
     private static partial PurchaseOrderLineEntity ToEntity(PurchaseOrderUpdateRequestLine request);
 
     [Mapper]
-    private static partial PurchaseOrderResponseItem ToResponseCore(PurchaseOrderEntity entity);
+    private static partial PurchaseOrderListResponseItem ToResponseCore(PurchaseOrderEntity entity);
 
     [Mapper]
-    private static partial PurchaseOrderResponseLine ToResponseCore(PurchaseOrderLineEntity entity);
+    private static partial PurchaseOrderListResponseLine ToResponseCore(PurchaseOrderLineEntity entity);
 
     private static PurchaseOrderUpdateParameter ToParameter(PurchaseOrderUpdateRequest request) =>
         new()
@@ -59,7 +91,7 @@ public static partial class PurchaseOrderEndpoints
             Version = request.Version
         };
 
-    private static PurchaseOrderResponseItem ToResponse(PurchaseOrderDetailView detail)
+    private static PurchaseOrderListResponseItem ToResponse(PurchaseOrderDetailView detail)
     {
         var response = ToResponseCore(detail.PurchaseOrder);
         response.SupplierName = detail.SupplierName;
@@ -115,7 +147,7 @@ public static partial class PurchaseOrderEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new PurchaseOrderResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new PurchaseOrderListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

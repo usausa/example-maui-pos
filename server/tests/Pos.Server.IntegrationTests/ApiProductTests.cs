@@ -38,12 +38,12 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
         // Arrange
         var client = await factory.CreateAdminClientAsync();
         var imageUrl = ApiRoutes.ProductImage(TestData.CameraProductId);
-        var original = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/{TestData.CameraProductId}", options);
+        var original = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/{TestData.CameraProductId}", options);
         var sync = await client.GetJsonAsync<SyncMastersResponse>($"{ApiRoutes.Sync}/masters", options);
 
         // Act / Assert: 登録すると ImageUrl に v が付き、版が進む
         using var putResponse = await PutImageAsync(client, imageUrl, Png, "image/png");
-        var product = await putResponse.ReadAsAsync<ProductResponseItem>(HttpStatusCode.OK, options);
+        var product = await putResponse.ReadAsAsync<ProductListResponseItem>(HttpStatusCode.OK, options);
         Assert.StartsWith($"{imageUrl}?v=", product.ImageUrl, StringComparison.Ordinal);
         Assert.Equal(original.Version + 1, product.Version);
 
@@ -61,14 +61,14 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
 
         // Act / Assert: 同じ画像の再登録は同じ URL (端末に取り直させない)。差分同期で URL が届く
         using var samePutResponse = await PutImageAsync(client, imageUrl, Png, "image/png");
-        Assert.Equal(product.ImageUrl, (await samePutResponse.ReadAsAsync<ProductResponseItem>(HttpStatusCode.OK, options)).ImageUrl);
+        Assert.Equal(product.ImageUrl, (await samePutResponse.ReadAsAsync<ProductListResponseItem>(HttpStatusCode.OK, options)).ImageUrl);
         var delta = await client.GetJsonAsync<SyncMastersResponse>($"{ApiRoutes.Sync}/masters?since={sync.ServerTime:yyyy-MM-ddTHH:mm:ss.fffZ}", options);
         Assert.Equal(product.ImageUrl, delta.Products.Single(static x => x.Id == TestData.CameraProductId).ImageUrl);
 
         // Act / Assert: 商品の更新は画像に触れない
-        var current = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/{TestData.CameraProductId}", options);
+        var current = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/{TestData.CameraProductId}", options);
         using var updateResponse = await client.PutJsonAsync($"{ApiRoutes.Products}/{TestData.CameraProductId}", ToUpdateRequest(current), options);
-        Assert.Equal(product.ImageUrl, (await updateResponse.ReadAsAsync<ProductResponseItem>(HttpStatusCode.OK, options)).ImageUrl);
+        Assert.Equal(product.ImageUrl, (await updateResponse.ReadAsAsync<ProductListResponseItem>(HttpStatusCode.OK, options)).ImageUrl);
 
         // Act / Assert: 画像でない本文は 422、JPEG / PNG 以外の Content-Type は 415、2 MB を超えると 413、商品がなければ 404
         using var invalidResponse = await PutImageAsync(client, imageUrl, "GIF89a"u8.ToArray(), "image/png");
@@ -85,7 +85,7 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
         // Act / Assert: 削除すると ImageUrl が消えて版が進み、画像は 404
         using var deleteResponse = await client.DeleteUrlAsync(imageUrl);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
-        var deleted = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/{TestData.CameraProductId}", options);
+        var deleted = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/{TestData.CameraProductId}", options);
         Assert.Null(deleted.ImageUrl);
         Assert.True(deleted.Version > current.Version);
         using var goneResponse = await client.GetAsync(new Uri(imageUrl, UriKind.Relative), Token);
@@ -100,7 +100,7 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
         var client = await factory.CreateAdminClientAsync();
         using var exportResponse = await client.GetAsync(new Uri($"{ApiRoutes.Products}/csv", UriKind.Relative), Token);
         var rows = FromCsv(await exportResponse.Content.ReadAsStringAsync(Token));
-        var sdCard = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options);
+        var sdCard = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options);
         var sdCardRow = rows.Single(x => x.Code == sdCard.Code);
         sdCardRow.Price += 100m;
         var code = NewCode();
@@ -128,15 +128,15 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(ImportAction.Update, preview.Items.Single(x => x.Code == sdCard.Code).Action);
         var inserted = preview.Items.Single(x => x.Code == code);
         Assert.Equal((ImportAction.Insert, rows.Count + 1), (inserted.Action, inserted.LineNo));
-        Assert.Equal(sdCard.Price, (await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options)).Price);
+        Assert.Equal(sdCard.Price, (await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options)).Price);
 
         // Act / Assert: 反映すると登録と更新が入る。同じ CSV をもう一度送るとすべて変更なし
         using var importResponse = await PostCsvAsync(client, Encoding.UTF8.GetBytes(body), false);
         var imported = await importResponse.ReadAsAsync<ProductImportResponse>(HttpStatusCode.OK, options);
         Assert.Equal((false, 1, 1), (imported.DryRun, imported.InsertCount, imported.UpdateCount));
-        var updated = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options);
+        var updated = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options);
         Assert.Equal((sdCard.Price + 100m, sdCard.Version + 1), (updated.Price, updated.Version));
-        var created = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/lookup?code={code}", options);
+        var created = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/lookup?code={code}", options);
         Assert.Equal((sdCard.CategoryId, 1500m), (created.CategoryId, created.Price));
         using var againResponse = await PostCsvAsync(client, Encoding.UTF8.GetBytes(body), false);
         Assert.Equal(rows.Count, (await againResponse.ReadAsAsync<ProductImportResponse>(HttpStatusCode.OK, options)).UnchangedCount);
@@ -162,7 +162,7 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
         Assert.Equal("「部門コード」に該当する部門がありません", problem.Errors["3"].Single());
         Assert.Equal("「価格」は 0 以上の数値にしてください", problem.Errors["4"].Single());
         Assert.Equal("「コード」がファイルの中で重複しています", problem.Errors["6"].Single());
-        Assert.Equal(updated.Price, (await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options)).Price);
+        Assert.Equal(updated.Price, (await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options)).Price);
         using var invalidPreviewResponse = await PostCsvAsync(client, Encoding.UTF8.GetBytes(invalid), true);
         Assert.Equal(3, (await invalidPreviewResponse.ReadAsAsync<ProductImportResponse>(HttpStatusCode.OK, options)).ErrorCount);
 
@@ -213,7 +213,7 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
         return writer.ToString();
     }
 
-    private static ProductUpdateRequest ToUpdateRequest(ProductResponseItem product) =>
+    private static ProductUpdateRequest ToUpdateRequest(ProductListResponseItem product) =>
         new()
         {
             Code = product.Code,

@@ -3,7 +3,7 @@ namespace Pos.Contract.Inventory;
 using Pos.Contract;
 
 // 在庫変動履歴
-public sealed class InventoryChangeResponseItem
+public sealed class InventoryChangeListResponseItem
 {
     // 端末採番 (棚卸・調整) / サーバ採番 (取引由来)
     public Guid Id { get; set; }
@@ -36,4 +36,4 @@ public sealed class InventoryChangeResponseItem
     public DateTime CreatedAt { get; set; }
 }
 
-public sealed class InventoryChangeResponse : ListResponse<InventoryChangeResponseItem>;
+public sealed class InventoryChangeListResponse : ListResponse<InventoryChangeListResponseItem>;

@@ -3,7 +3,7 @@ namespace Pos.Contract.PurchaseOrders;
 using Pos.Contract;
 
 // 発注 (仕入先への注文と、発注で作った入荷予定)
-public sealed class PurchaseOrderResponseItem
+public sealed class PurchaseOrderListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -40,10 +40,10 @@ public sealed class PurchaseOrderResponseItem
 
     public int Version { get; set; }
 
-    public IReadOnlyList<PurchaseOrderResponseLine> Lines { get; set; } = default!;
+    public IReadOnlyList<PurchaseOrderListResponseLine> Lines { get; set; } = default!;
 }
 
-public sealed class PurchaseOrderResponseLine
+public sealed class PurchaseOrderListResponseLine
 {
     public Guid Id { get; set; }
 
@@ -63,4 +63,4 @@ public sealed class PurchaseOrderResponseLine
     public decimal? ReceivedQuantity { get; set; }
 }
 
-public sealed class PurchaseOrderResponse : ListResponse<PurchaseOrderResponseItem>;
+public sealed class PurchaseOrderListResponse : ListResponse<PurchaseOrderListResponseItem>;

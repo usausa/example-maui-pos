@@ -13,7 +13,7 @@ public sealed class SalesCart
     // 取引値引
     public Collection<CartDiscount> Discounts { get; } = [];
 
-    public CustomerResponseItem? Customer { get; set; }
+    public CustomerListResponseItem? Customer { get; set; }
 
     public CartDelivery? Delivery { get; set; }
 
@@ -42,7 +42,7 @@ public sealed class SalesCart
     }
 
     // 同じ商品 (単価変更なし) は数量を足す
-    public CartLine Add(ProductResponseItem product, TaxRateResponseItem taxRate, decimal quantity = 1m)
+    public CartLine Add(ProductListResponseItem product, TaxRateListResponseItem taxRate, decimal quantity = 1m)
     {
         var existing = Lines.FirstOrDefault(x => (x.Product.Id == product.Id) && (x.UnitPrice == product.Price) && (x.Discounts.Count == 0));
         if (existing is not null)

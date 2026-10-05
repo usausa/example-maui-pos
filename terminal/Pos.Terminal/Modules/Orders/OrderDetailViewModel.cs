@@ -35,9 +35,9 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
 
     private Guid orderId;
 
-    private OrderResponseItem? order;
+    private OrderListResponseItem? order;
 
-    private Dictionary<Guid, PaymentMethodResponseItem> paymentMethods = [];
+    private Dictionary<Guid, PaymentMethodListResponseItem> paymentMethods = [];
 
     // 会計へ進むときにカートを渡す (Scope プラグインが販売の画面と同じインスタンスを注入する)
     [Scope]
@@ -113,7 +113,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
         }
     }
 
-    private void Update(OrderResponseItem value)
+    private void Update(OrderListResponseItem value)
     {
         order = value;
         Status = value.Status;
@@ -239,7 +239,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     }
 
     // 前受金の受取: 支払方法と金額 (受注の金額まで) を選んで登録する。現金はシフトの予想現金に入る
-    private async Task DepositAsync(OrderResponseItem target)
+    private async Task DepositAsync(OrderListResponseItem target)
     {
         if (!session.CanTransact)
         {
@@ -299,7 +299,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     }
 
     // 前受金の返金 (全額を受け取った方法で)。キャンセルの前に返すときは、キャンセルまでを確かめる。返したら true
-    private async Task<bool> RefundDepositAsync(OrderResponseItem target, bool beforeCancel)
+    private async Task<bool> RefundDepositAsync(OrderListResponseItem target, bool beforeCancel)
     {
         if (!session.CanTransact)
         {
@@ -327,7 +327,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     }
 
     // キャンセル: 前受金があれば返してからキャンセルする
-    private async Task CancelAsync(OrderResponseItem target)
+    private async Task CancelAsync(OrderListResponseItem target)
     {
         var reason = await popupNavigator.PopupAsync<ReasonSelectParameter, ReasonSelectResult?>(DialogId.ReasonSelect, new ReasonSelectParameter("キャンセルの理由", CancelReasons, true));
         if (reason is null)
@@ -356,7 +356,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     }
 
     // 前受金を返す方法 (有効な前受金は 1 つなので最後の受取)
-    private string DepositMethodName(OrderResponseItem target) =>
+    private string DepositMethodName(OrderListResponseItem target) =>
         target.Deposits.LastOrDefault(static x => x.Type == OrderDepositType.Receive) is { } received ? MethodName(received.PaymentMethodId, received.Kind) : "-";
 
     // 会計へ: 受注の明細・会員・前受金をカートに入れて販売へ (会計で受注が完了になる)

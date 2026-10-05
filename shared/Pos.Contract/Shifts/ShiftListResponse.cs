@@ -3,7 +3,7 @@ namespace Pos.Contract.Shifts;
 using Pos.Contract;
 
 // シフト
-public sealed class ShiftResponseItem
+public sealed class ShiftListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -29,7 +29,7 @@ public sealed class ShiftResponseItem
     // 実査金額
     public decimal? ActualCash { get; set; }
 
-    public IReadOnlyList<ShiftResponseDenomination> Denominations { get; set; } = [];
+    public IReadOnlyList<ShiftListResponseDenomination> Denominations { get; set; } = [];
 
     // openingCash + cashSales − cashReturns + paidIn − paidOut + depositCashIn − depositCashOut
     public decimal? ExpectedCash { get; set; }
@@ -37,7 +37,7 @@ public sealed class ShiftResponseItem
     // actualCash − expectedCash
     public decimal? Difference { get; set; }
 
-    public ShiftResponseTotals Totals { get; set; } = default!;
+    public ShiftListResponseTotals Totals { get; set; } = default!;
 
     public string? Note { get; set; }
 
@@ -46,7 +46,7 @@ public sealed class ShiftResponseItem
     public DateTime UpdatedAt { get; set; }
 }
 
-public sealed class ShiftResponseDenomination
+public sealed class ShiftListResponseDenomination
 {
     public int Denomination { get; set; }
 
@@ -54,7 +54,7 @@ public sealed class ShiftResponseDenomination
 }
 
 // 取消済みを除く集計
-public sealed class ShiftResponseTotals
+public sealed class ShiftListResponseTotals
 {
     public decimal CashSales { get; set; }
 
@@ -80,4 +80,4 @@ public sealed class ShiftResponseTotals
     public decimal ReturnsTotal { get; set; }
 }
 
-public sealed class ShiftResponse : ListResponse<ShiftResponseItem>;
+public sealed class ShiftListResponse : ListResponse<ShiftListResponseItem>;

@@ -3,7 +3,7 @@ namespace Pos.Contract.Shifts;
 // 精算レポート (GET /shifts/{id}/summary)
 public sealed class ShiftSummaryResponse
 {
-    public ShiftResponseItem Shift { get; set; } = default!;
+    public ShiftListResponseItem Shift { get; set; } = default!;
 
     public IReadOnlyList<ShiftSummaryResponsePaymentMethod> ByPaymentMethod { get; set; } = default!;
 

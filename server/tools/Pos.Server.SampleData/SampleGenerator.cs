@@ -34,25 +34,25 @@ internal sealed class SampleGenerator
 
     private SyncMastersResponse masters = default!;
 
-    private Dictionary<Guid, TaxRateResponseItem> taxRates = [];
+    private Dictionary<Guid, TaxRateListResponseItem> taxRates = [];
 
-    private List<ProductResponseItem> products = [];
+    private List<ProductListResponseItem> products = [];
 
-    private List<CustomerResponseItem> customers = [];
+    private List<CustomerListResponseItem> customers = [];
 
     private Dictionary<Guid, int> pointBalances = [];
 
-    private List<DiscountResponseItem> lineDiscounts = [];
+    private List<DiscountListResponseItem> lineDiscounts = [];
 
-    private List<DiscountResponseItem> transactionDiscounts = [];
+    private List<DiscountListResponseItem> transactionDiscounts = [];
 
-    private PaymentMethodResponseItem cash = default!;
+    private PaymentMethodListResponseItem cash = default!;
 
-    private PaymentMethodResponseItem? card;
+    private PaymentMethodListResponseItem? card;
 
-    private PaymentMethodResponseItem? points;
+    private PaymentMethodListResponseItem? points;
 
-    private SupplierResponseItem supplier = default!;
+    private SupplierListResponseItem supplier = default!;
 
     private TaxRounding taxRounding;
 
@@ -90,14 +90,14 @@ internal sealed class SampleGenerator
 
             foreach (var terminal in terminals)
             {
-                var current = await client.GetOrDefaultAsync<ShiftResponseItem>($"shifts/current?terminalId={terminal.Id}").ConfigureAwait(false);
+                var current = await client.GetOrDefaultAsync<ShiftListResponseItem>($"shifts/current?terminalId={terminal.Id}").ConfigureAwait(false);
                 if (current is { Status: ShiftStatus.Open })
                 {
                     await output.WriteLineAsync($"[{store.Name} {terminal.Name}] 開設中のシフトがあるため省略").ConfigureAwait(false);
                     continue;
                 }
 
-                var latest = await client.GetAsync<TerminalResponseItem>($"terminals/{terminal.Id}").ConfigureAwait(false);
+                var latest = await client.GetAsync<TerminalListResponseItem>($"terminals/{terminal.Id}").ConfigureAwait(false);
                 var receiptSeq = latest.LastReceiptSeq;
                 for (var offset = options.Days - 1; offset >= 0; offset--)
                 {
@@ -127,7 +127,7 @@ internal sealed class SampleGenerator
         products = masters.Products.Where(x => x.IsActive && !x.IsDeleted && taxRates.ContainsKey(x.TaxRateId)).ToList();
         if (masters.ProductsTruncated)
         {
-            var page = await client.GetAsync<ProductResponse>("products?size=1000").ConfigureAwait(false);
+            var page = await client.GetAsync<ProductListResponse>("products?size=1000").ConfigureAwait(false);
             products = page.Items.Where(x => x.IsActive && !x.IsDeleted && taxRates.ContainsKey(x.TaxRateId)).ToList();
         }
 
@@ -144,11 +144,11 @@ internal sealed class SampleGenerator
         pointBasis = masters.Settings?.PointBasis ?? PointBasis.TaxIncluded;
 
         // 入荷の仕入先 (なければサンプル用に登録する)
-        var suppliers = await client.GetAsync<SupplierResponse>("inventory/suppliers").ConfigureAwait(false);
+        var suppliers = await client.GetAsync<SupplierListResponse>("inventory/suppliers").ConfigureAwait(false);
         supplier = suppliers.Items.FirstOrDefault(static x => x.IsActive)
-            ?? await client.PostAsync<SupplierResponseItem>("inventory/suppliers", new SupplierCreateRequest { Code = "SAMPLE", Name = "サンプル仕入先" }).ConfigureAwait(false);
+            ?? await client.PostAsync<SupplierListResponseItem>("inventory/suppliers", new SupplierCreateRequest { Code = "SAMPLE", Name = "サンプル仕入先" }).ConfigureAwait(false);
 
-        var customerList = await client.GetAsync<CustomerResponse>("customers?size=100").ConfigureAwait(false);
+        var customerList = await client.GetAsync<CustomerListResponse>("customers?size=100").ConfigureAwait(false);
         customers = customerList.Items.Where(static x => !x.IsDeleted).ToList();
         pointBalances = customers.ToDictionary(static x => x.Id, static x => x.PointBalance);
 
@@ -161,7 +161,7 @@ internal sealed class SampleGenerator
     }
 
     // 初日の開店前に在庫を積む (販売で在庫がマイナスになりすぎないように、仕入先へ発注し、発注で作った入荷予定を予定どおり受領する)
-    private async Task ReceiveStockAsync(StoreResponseItem store, StaffResponseItem staff, DateOnly date)
+    private async Task ReceiveStockAsync(StoreListResponseItem store, StaffListResponseItem staff, DateOnly date)
     {
         var lines = products
             .Where(static x => x.TrackInventory && (x.Kind == ProductKind.Goods))
@@ -173,12 +173,12 @@ internal sealed class SampleGenerator
         }
 
         var order = await PlaceOrderAsync(store, date, lines).ConfigureAwait(false);
-        await client.PostAsync<InventoryReceiptResponseItem>($"inventory/receipts/{order.ReceiptId}/receive", new InventoryReceiptReceiveRequest { StaffId = staff.Id, ReceivedAt = ToUtc(date, 8, 30) }).ConfigureAwait(false);
+        await client.PostAsync<InventoryReceiptListResponseItem>($"inventory/receipts/{order.ReceiptId}/receive", new InventoryReceiptReceiveRequest { StaffId = staff.Id, ReceivedAt = ToUtc(date, 8, 30) }).ConfigureAwait(false);
         await output.WriteLineAsync($"[{store.Name}] 発注 {order.PurchaseOrderNo} を入荷 {lines.Count} 商品 ({supplier.Name})").ConfigureAwait(false);
     }
 
     // 入荷待ちの発注を 1 件残す (入荷予定は店舗の端末の検品か、管理画面の入荷で受領できる)
-    private async Task OrderStockAsync(StoreResponseItem store, DateOnly expectedDate)
+    private async Task OrderStockAsync(StoreListResponseItem store, DateOnly expectedDate)
     {
         var lines = products
             .Where(static x => x.TrackInventory && (x.Kind == ProductKind.Goods))
@@ -196,20 +196,20 @@ internal sealed class SampleGenerator
     }
 
     // 下書きを作って発注する (発注で入荷予定ができる)
-    private async Task<PurchaseOrderResponseItem> PlaceOrderAsync(StoreResponseItem store, DateOnly expectedDate, IReadOnlyList<PurchaseOrderCreateRequestLine> lines)
+    private async Task<PurchaseOrderListResponseItem> PlaceOrderAsync(StoreListResponseItem store, DateOnly expectedDate, IReadOnlyList<PurchaseOrderCreateRequestLine> lines)
     {
-        var draft = await client.PostAsync<PurchaseOrderResponseItem>("inventory/purchase-orders", new PurchaseOrderCreateRequest
+        var draft = await client.PostAsync<PurchaseOrderListResponseItem>("inventory/purchase-orders", new PurchaseOrderCreateRequest
         {
             StoreId = store.Id,
             SupplierId = supplier.Id,
             ExpectedDate = expectedDate,
             Lines = lines
         }).ConfigureAwait(false);
-        return await client.PostAsync<PurchaseOrderResponseItem>($"inventory/purchase-orders/{draft.Id}/order", new { }).ConfigureAwait(false);
+        return await client.PostAsync<PurchaseOrderListResponseItem>($"inventory/purchase-orders/{draft.Id}/order", new { }).ConfigureAwait(false);
     }
 
     // 1 日分: 開設 → 販売 (返品・取消を混ぜる) → 出金 → 精算
-    private async Task GenerateDayAsync(StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, StaffResponseItem manager, DateOnly date, Func<string> nextReceiptNo)
+    private async Task GenerateDayAsync(StoreListResponseItem store, TerminalListResponseItem terminal, StaffListResponseItem cashier, StaffListResponseItem manager, DateOnly date, Func<string> nextReceiptNo)
     {
         var openedAt = ToUtc(date, 9, 0);
         var shift = new ShiftOpenRequest
@@ -222,7 +222,7 @@ internal sealed class SampleGenerator
             OpenedByStaffId = cashier.Id,
             OpeningCash = 30000m
         };
-        await client.PostAsync<ShiftResponseItem>("shifts", shift).ConfigureAwait(false);
+        await client.PostAsync<ShiftListResponseItem>("shifts", shift).ConfigureAwait(false);
 
         var count = Math.Max(1, options.PerDay + random.Next(-2, 3));
         var sales = new List<TransactionResponseItem>();
@@ -276,7 +276,7 @@ internal sealed class SampleGenerator
         if (random.Next(100) < 60)
         {
             paidOut = random.Next(1, 4) * 5000m;
-            await client.PostAsync<ShiftCashEventResponseItem>($"shifts/{shift.Id}/cash-events", new ShiftCashEventRequest
+            await client.PostAsync<ShiftCashEventListResponseItem>($"shifts/{shift.Id}/cash-events", new ShiftCashEventRequest
             {
                 Id = Guid.CreateVersion7(),
                 Type = CashEventType.PaidOut,
@@ -290,7 +290,7 @@ internal sealed class SampleGenerator
         // 精算 (過不足はときどき)
         var expected = shift.OpeningCash + cashTotal - paidOut;
         var difference = random.Next(100) < 20 ? random.Next(-3, 3) * 50m : 0m;
-        await client.PostAsync<ShiftResponseItem>($"shifts/{shift.Id}/close", new ShiftCloseRequest
+        await client.PostAsync<ShiftListResponseItem>($"shifts/{shift.Id}/close", new ShiftCloseRequest
         {
             ClosedAt = ToUtc(date, 20, 0),
             ClosedByStaffId = cashier.Id,
@@ -304,12 +304,12 @@ internal sealed class SampleGenerator
     // Sale
     //--------------------------------------------------------------------------------
 
-    private (TransactionCreateRequest Request, decimal CashDelta) BuildSale(StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, StaffResponseItem manager, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
+    private (TransactionCreateRequest Request, decimal CashDelta) BuildSale(StoreListResponseItem store, TerminalListResponseItem terminal, StaffListResponseItem cashier, StaffListResponseItem manager, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
     {
         var customer = (customers.Count > 0) && (random.Next(100) < 35) ? Pick(customers) : null;
         var lineCount = random.Next(1, 4);
         var lines = new List<SalesInputLine>();
-        var lineProducts = new List<ProductResponseItem>();
+        var lineProducts = new List<ProductListResponseItem>();
         var discounts = new List<TransactionCreateRequestDiscount>();
         var inputDiscounts = new List<SalesInputDiscount>();
         var serials = new Dictionary<Guid, List<string>>();
@@ -456,7 +456,7 @@ internal sealed class SampleGenerator
     // Return
     //--------------------------------------------------------------------------------
 
-    private (TransactionCreateRequest? Request, decimal CashRefund) BuildReturn(TransactionResponseItem original, StoreResponseItem store, TerminalResponseItem terminal, StaffResponseItem cashier, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
+    private (TransactionCreateRequest? Request, decimal CashRefund) BuildReturn(TransactionResponseItem original, StoreListResponseItem store, TerminalListResponseItem terminal, StaffListResponseItem cashier, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
     {
         if (original.Status != TransactionStatus.Completed)
         {
@@ -595,11 +595,11 @@ internal sealed class SampleGenerator
     }
 
     // 締め済み (再実行) や未精算のシフトがある日は省略して続ける
-    private async Task CloseDayAsync(StoreResponseItem store, DateOnly date)
+    private async Task CloseDayAsync(StoreListResponseItem store, DateOnly date)
     {
         try
         {
-            await client.PostAsync<DailyClosingSummaryResponse>("daily-closings", new DailyClosingCreateRequest { StoreId = store.Id, BusinessDate = date }).ConfigureAwait(false);
+            await client.PostAsync<DailyClosingSummaryResponse>("daily-closings", new DailyClosingCloseRequest { StoreId = store.Id, BusinessDate = date }).ConfigureAwait(false);
             await output.WriteLineAsync($"{date:yyyy-MM-dd} {store.Name}: 日次締め").ConfigureAwait(false);
         }
         catch (ApiException ex) when (ex.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.UnprocessableEntity)
@@ -609,7 +609,7 @@ internal sealed class SampleGenerator
     }
 
     // レジ係の取消は店長以上の承認者を付ける
-    private async Task<bool> PostVoidAsync(TransactionResponseItem target, StaffResponseItem cashier, StaffResponseItem manager, DateTime at)
+    private async Task<bool> PostVoidAsync(TransactionResponseItem target, StaffListResponseItem cashier, StaffListResponseItem manager, DateTime at)
     {
         try
         {
@@ -646,14 +646,14 @@ internal sealed class SampleGenerator
     // Helper
     //--------------------------------------------------------------------------------
 
-    private static void AddPayment(List<SalesInputPayment> payments, List<TransactionCreateRequestPayment> requestPayments, PaymentMethodResponseItem method, decimal amount, decimal tendered, string? reference)
+    private static void AddPayment(List<SalesInputPayment> payments, List<TransactionCreateRequestPayment> requestPayments, PaymentMethodListResponseItem method, decimal amount, decimal tendered, string? reference)
     {
         var id = Guid.CreateVersion7();
         payments.Add(new SalesInputPayment { Id = id, Kind = method.Kind, Amount = amount, TenderedAmount = tendered, AllowsChange = method.AllowsChange });
         requestPayments.Add(new TransactionCreateRequestPayment { Id = id, SeqNo = requestPayments.Count + 1, PaymentMethodId = method.Id, Kind = method.Kind, Amount = amount, TenderedAmount = tendered, Reference = reference });
     }
 
-    private static TransactionCreateRequestLine ToRequestLine(SalesInputLine line, ProductResponseItem product, SalesResultLine calculated, List<string>? serials, Guid? originalLineId) => new()
+    private static TransactionCreateRequestLine ToRequestLine(SalesInputLine line, ProductListResponseItem product, SalesResultLine calculated, List<string>? serials, Guid? originalLineId) => new()
     {
         Id = line.Id,
         LineNo = line.LineNo,

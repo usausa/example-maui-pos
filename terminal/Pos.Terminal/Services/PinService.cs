@@ -29,7 +29,7 @@ public sealed class PinService
     }
 
     // 3 回まで。取り消したとき・3 回違ったときは false
-    public async ValueTask<bool> VerifyAsync(StaffResponseItem staff, string title)
+    public async ValueTask<bool> VerifyAsync(StaffListResponseItem staff, string title)
     {
         for (var attempt = 1; attempt <= MaxAttempts; attempt++)
         {
@@ -52,7 +52,7 @@ public sealed class PinService
     }
 
     // 承認者 (自店か本部の店長以上で、PIN を設定したスタッフ) を選び、その PIN で本人を確かめる。null = 取り消し
-    public async ValueTask<StaffResponseItem?> ChooseApproverAsync(string title)
+    public async ValueTask<StaffListResponseItem?> ChooseApproverAsync(string title)
     {
         var staff = session.StoreId is null
             ? []

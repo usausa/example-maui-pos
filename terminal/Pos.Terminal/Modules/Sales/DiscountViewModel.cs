@@ -3,9 +3,9 @@ namespace Pos.Terminal.Modules.Sales;
 using Pos.Terminal.Models.Cart;
 using Pos.Terminal.Modules.Dialogs;
 
-public sealed record DiscountParameter(string Title, IReadOnlyList<DiscountResponseItem> Discounts, decimal BaseAmount);
+public sealed record DiscountParameter(string Title, IReadOnlyList<DiscountListResponseItem> Discounts, decimal BaseAmount);
 
-public sealed record DiscountItem(DiscountResponseItem Discount, string Name, string ValueText);
+public sealed record DiscountItem(DiscountListResponseItem Discount, string Name, string ValueText);
 
 // 値引 (取引・明細): 定義済みの選択、または任意額・任意率 + 理由。承認が必要な値引は承認者を選び、その PIN で確かめる
 public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupInitialize<DiscountParameter>
@@ -89,7 +89,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
     private async Task SelectAsync(DiscountItem item)
     {
         var definition = item.Discount;
-        StaffResponseItem? approver = null;
+        StaffListResponseItem? approver = null;
         if (definition.RequiresApproval)
         {
             approver = await pins.ChooseApproverAsync("値引の承認者");

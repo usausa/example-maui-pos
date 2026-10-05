@@ -5,7 +5,7 @@ public sealed class StockChange
 {
     public Guid Id { get; set; }
 
-    public ProductResponseItem Product { get; set; } = default!;
+    public ProductListResponseItem Product { get; set; } = default!;
 
     public InventoryChangeType Type { get; set; }
 

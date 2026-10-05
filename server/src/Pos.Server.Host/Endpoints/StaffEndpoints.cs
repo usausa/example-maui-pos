@@ -16,11 +16,38 @@ public static partial class StaffEndpoints
     public static void MapStaffEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Staff);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleListAsync)
+            .WithName("StaffList")
+            .Produces<StaffListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("StaffGet")
+            .Produces<StaffListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("StaffCreate")
+            .Produces<StaffListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("StaffUpdate")
+            .Produces<StaffListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("StaffDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -29,10 +56,10 @@ public static partial class StaffEndpoints
 
     // PIN のハッシュは端末向けの同期応答 (ToSyncResponse) にだけ含める
     [Mapper]
-    [MapIgnore(nameof(StaffResponseItem.PinHash))]
-    internal static partial StaffResponseItem ToResponse(StaffEntity entity);
+    [MapIgnore(nameof(StaffListResponseItem.PinHash))]
+    internal static partial StaffListResponseItem ToResponse(StaffEntity entity);
 
-    internal static StaffResponseItem ToSyncResponse(StaffEntity entity)
+    internal static StaffListResponseItem ToSyncResponse(StaffEntity entity)
     {
         var response = ToResponse(entity);
         response.PinHash = entity.PinHash;
@@ -61,7 +88,7 @@ public static partial class StaffEndpoints
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
         var result = await service.QueryPageAsync(storeId, updatedSince, includeDeleted, EnumHelper.Parse(sort, StaffSort.Code), desc, page, size, cancellationToken);
-        return TypedResults.Ok(new StaffResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new StaffListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

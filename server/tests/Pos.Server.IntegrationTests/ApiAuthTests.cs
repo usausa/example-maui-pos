@@ -162,9 +162,9 @@ public sealed class ApiAuthTests : IClassFixture<TestApplicationFactory>
         // Arrange
         var client = await factory.CreateTerminalClientAsync(TestData.BranchTerminalId);
         var open = new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, TerminalId = TestData.MainTerminal1Id, BusinessDate = BusinessDate, OpenedAt = Now, OpenedByStaffId = TestData.ManagerStaffId, OpeningCash = 0m };
-        var change = new InventoryChangeRequest
+        var change = new InventoryChangesRequest
         {
-            Changes = [new InventoryChangeRequestChange { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = 1m, StaffId = TestData.ManagerStaffId, OccurredAt = Now }]
+            Changes = [new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = 1m, StaffId = TestData.ManagerStaffId, OccurredAt = Now }]
         };
 
         // Act
@@ -192,10 +192,10 @@ public sealed class ApiAuthTests : IClassFixture<TestApplicationFactory>
 
         // Act
         var masters = await terminal.GetJsonAsync<SyncMastersResponse>($"{ApiRoutes.Sync}/masters", options);
-        var staff = await admin.GetJsonAsync<StaffResponseItem>($"{ApiRoutes.Staff}/{TestData.ManagerStaffId}", options);
+        var staff = await admin.GetJsonAsync<StaffListResponseItem>($"{ApiRoutes.Staff}/{TestData.ManagerStaffId}", options);
         using var heartbeat = await terminal.PostJsonAsync($"{ApiRoutes.Terminals}/me/heartbeat", new TerminalHeartbeatRequest { AppVersion = "9.9.9" }, options);
         using var adminHeartbeat = await admin.PostJsonAsync($"{ApiRoutes.Terminals}/me/heartbeat", new TerminalHeartbeatRequest { AppVersion = "0.0.0" }, options);
-        var seen = await admin.GetJsonAsync<TerminalResponseItem>($"{ApiRoutes.Terminals}/{TestData.BranchTerminalId}", options);
+        var seen = await admin.GetJsonAsync<TerminalListResponseItem>($"{ApiRoutes.Terminals}/{TestData.BranchTerminalId}", options);
 
         // Assert
         var manager = masters.Staff.Single(static x => x.Id == TestData.ManagerStaffId);
@@ -246,7 +246,7 @@ public sealed class ApiAuthTests : IClassFixture<TestApplicationFactory>
     {
         var request = new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, TerminalId = TestData.MainTerminal1Id, BusinessDate = BusinessDate, OpenedAt = Now, OpenedByStaffId = TestData.MainCashierStaffId, OpeningCash = 0m };
         using var response = await client.PostJsonAsync(ApiRoutes.Shifts, request, options);
-        return (await response.ReadAsAsync<ShiftResponseItem>(HttpStatusCode.Created, options)).Id;
+        return (await response.ReadAsAsync<ShiftListResponseItem>(HttpStatusCode.Created, options)).Id;
     }
 
     // SD カード 2,000 円 (内税 10%、ポイントなし) をレジ係が現金で。withDiscount は明細値引「展示品 5%」(承認が必要)

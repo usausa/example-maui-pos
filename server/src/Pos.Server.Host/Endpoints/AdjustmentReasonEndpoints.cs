@@ -16,11 +16,37 @@ public static partial class AdjustmentReasonEndpoints
     public static void MapAdjustmentReasonEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.AdjustmentReasons);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleListAsync)
+            .WithName("AdjustmentReasonList")
+            .Produces<AdjustmentReasonListResponse>();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("AdjustmentReasonGet")
+            .Produces<AdjustmentReasonListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("AdjustmentReasonCreate")
+            .Produces<AdjustmentReasonListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("AdjustmentReasonUpdate")
+            .Produces<AdjustmentReasonListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("AdjustmentReasonDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -28,7 +54,7 @@ public static partial class AdjustmentReasonEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial AdjustmentReasonResponseItem ToResponse(AdjustmentReasonEntity entity);
+    internal static partial AdjustmentReasonListResponseItem ToResponse(AdjustmentReasonEntity entity);
 
     [Mapper]
     private static partial AdjustmentReasonEntity ToEntity(AdjustmentReasonCreateRequest request);
@@ -47,7 +73,7 @@ public static partial class AdjustmentReasonEndpoints
         bool includeDeleted = false)
     {
         var items = await service.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
-        return TypedResults.Ok(new AdjustmentReasonResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new AdjustmentReasonListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

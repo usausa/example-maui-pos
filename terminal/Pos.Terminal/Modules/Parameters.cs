@@ -62,11 +62,11 @@ public static class Parameters
 
     // Customer
 
-    public static NavigationParameter WithCustomer(this NavigationParameter parameter, CustomerResponseItem? customer) =>
+    public static NavigationParameter WithCustomer(this NavigationParameter parameter, CustomerListResponseItem? customer) =>
         customer is null ? parameter : parameter.SetValue(CustomerKey, customer);
 
-    public static CustomerResponseItem? GetCustomer(this INavigationParameter parameter) =>
-        parameter.TryGetValue<CustomerResponseItem>(CustomerKey, out var value) ? value : null;
+    public static CustomerListResponseItem? GetCustomer(this INavigationParameter parameter) =>
+        parameter.TryGetValue<CustomerListResponseItem>(CustomerKey, out var value) ? value : null;
 
     // 戻り先 (会員選択などを複数の画面から使う)
 
