@@ -15,11 +15,37 @@ public static partial class TaxRateEndpoints
     public static void MapTaxRateEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.TaxRates);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleListAsync)
+            .WithName("TaxRateList")
+            .Produces<TaxRateListResponse>();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("TaxRateGet")
+            .Produces<TaxRateListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("TaxRateCreate")
+            .Produces<TaxRateListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("TaxRateUpdate")
+            .Produces<TaxRateListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("TaxRateDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -27,7 +53,7 @@ public static partial class TaxRateEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial TaxRateResponseItem ToResponse(TaxRateEntity entity);
+    internal static partial TaxRateListResponseItem ToResponse(TaxRateEntity entity);
 
     [Mapper]
     private static partial TaxRateEntity ToEntity(TaxRateCreateRequest request);
@@ -47,7 +73,7 @@ public static partial class TaxRateEndpoints
         bool includeDeleted = false)
     {
         var items = await service.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
-        return TypedResults.Ok(new TaxRateResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new TaxRateListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

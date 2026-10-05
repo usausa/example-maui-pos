@@ -3,7 +3,7 @@ namespace Pos.Contract.Inventory;
 using Pos.Contract;
 
 // 現在庫
-public sealed class InventoryLevelResponseItem
+public sealed class InventoryLevelListResponseItem
 {
     public Guid StoreId { get; set; }
 
@@ -15,6 +15,6 @@ public sealed class InventoryLevelResponseItem
     public DateTime UpdatedAt { get; set; }
 }
 
-public sealed class InventoryLevelResponse : ListResponse<InventoryLevelResponseItem>;
+public sealed class InventoryLevelListResponse : ListResponse<InventoryLevelListResponseItem>;
 
 // 商品の全店舗在庫 (GET /inventory/{productId})

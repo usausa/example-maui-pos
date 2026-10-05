@@ -16,11 +16,38 @@ public static partial class StoreEndpoints
     public static void MapStoreEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Stores);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleListAsync)
+            .WithName("StoreList")
+            .Produces<StoreListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("StoreGet")
+            .Produces<StoreListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("StoreCreate")
+            .Produces<StoreListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("StoreUpdate")
+            .Produces<StoreListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("StoreDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -28,7 +55,7 @@ public static partial class StoreEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial StoreResponseItem ToResponse(StoreEntity entity);
+    internal static partial StoreListResponseItem ToResponse(StoreEntity entity);
 
     [Mapper]
     private static partial StoreEntity ToEntity(StoreCreateRequest request);
@@ -51,7 +78,7 @@ public static partial class StoreEndpoints
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
         var result = await service.QueryPageAsync(updatedSince, includeDeleted, EnumHelper.Parse(sort, StoreSort.Code), desc, page, size, cancellationToken);
-        return TypedResults.Ok(new StoreResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new StoreListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

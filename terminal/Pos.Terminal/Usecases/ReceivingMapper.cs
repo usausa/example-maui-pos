@@ -7,7 +7,7 @@ using Pos.Contract.InventoryTransfers;
 public static class ReceivingMapper
 {
     // 番号は納品書番号 (発注から作った入荷予定で納品書番号がなければ発注番号)
-    public static ReceivingDocument FromReceipt(InventoryReceiptResponseItem receipt) =>
+    public static ReceivingDocument FromReceipt(InventoryReceiptListResponseItem receipt) =>
         new(
             ReceivingKind.Receipt,
             receipt.Id,
@@ -18,7 +18,7 @@ public static class ReceivingMapper
             receipt.Note,
             receipt.Lines.Select(static x => new ReceivingLine(x.Id, x.ProductId, x.ProductCode, x.ProductName, x.Quantity)).ToList());
 
-    public static ReceivingDocument FromTransfer(InventoryTransferResponseItem transfer) =>
+    public static ReceivingDocument FromTransfer(InventoryTransferListResponseItem transfer) =>
         new(
             ReceivingKind.Transfer,
             transfer.Id,

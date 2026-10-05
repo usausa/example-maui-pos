@@ -7,9 +7,9 @@ public sealed class CartLine
 {
     public Guid Id { get; set; }
 
-    public ProductResponseItem Product { get; set; } = default!;
+    public ProductListResponseItem Product { get; set; } = default!;
 
-    public TaxRateResponseItem TaxRate { get; set; } = default!;
+    public TaxRateListResponseItem TaxRate { get; set; } = default!;
 
     public decimal UnitPrice { get; set; }
 

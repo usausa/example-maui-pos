@@ -24,7 +24,7 @@ public sealed class CategoryItem : NotificationObject
 // 検索結果の商品 (コードは等幅で見せ、シリアル必須はチップで示す。画像は結果を出した後に入れる)
 public sealed class ProductItem : NotificationObject
 {
-    public ProductResponseItem Product { get; }
+    public ProductListResponseItem Product { get; }
 
     public string Name { get; }
 
@@ -42,7 +42,7 @@ public sealed class ProductItem : NotificationObject
         set => SetProperty(ref field, value);
     }
 
-    public ProductItem(ProductResponseItem product, string detail, string priceText)
+    public ProductItem(ProductListResponseItem product, string detail, string priceText)
     {
         Product = product;
         Name = product.Name;
@@ -68,9 +68,9 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
     private readonly SalesUsecase sales;
 
-    private IReadOnlyList<CategoryResponseItem> categories = [];
+    private IReadOnlyList<CategoryListResponseItem> categories = [];
 
-    private Dictionary<Guid, TaxRateResponseItem> taxRates = [];
+    private Dictionary<Guid, TaxRateListResponseItem> taxRates = [];
 
     private CategoryItem? selectedParent;
 

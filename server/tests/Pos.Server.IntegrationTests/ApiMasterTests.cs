@@ -60,7 +60,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         var code = $"T{Guid.NewGuid():N}"[..10];
 
         using var createResponse = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = code, Name = "テスト部門", SortOrder = 99 }, options);
-        var created = await createResponse.ReadAsAsync<CategoryResponseItem>(HttpStatusCode.Created, options);
+        var created = await createResponse.ReadAsAsync<CategoryListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal($"{ApiRoutes.Categories}/{created.Id}", createResponse.Headers.Location?.ToString());
         Assert.Equal(1, created.Version);
 
@@ -68,7 +68,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         await duplicateResponse.ReadProblemAsync(HttpStatusCode.Conflict, "DUPLICATE_CODE", options);
 
         using var updateResponse = await client.PutJsonAsync($"{ApiRoutes.Categories}/{created.Id}", new CategoryUpdateRequest { Code = code, Name = "更新後", SortOrder = 99, Version = 1 }, options);
-        var updated = await updateResponse.ReadAsAsync<CategoryResponseItem>(HttpStatusCode.OK, options);
+        var updated = await updateResponse.ReadAsAsync<CategoryListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal("更新後", updated.Name);
         Assert.Equal(2, updated.Version);
 
@@ -82,15 +82,15 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
         // 論理削除後も id 指定では isDeleted: true で取得でき、更新はできない
-        Assert.True((await client.GetJsonAsync<CategoryResponseItem>($"{ApiRoutes.Categories}/{created.Id}", options)).IsDeleted);
+        Assert.True((await client.GetJsonAsync<CategoryListResponseItem>($"{ApiRoutes.Categories}/{created.Id}", options)).IsDeleted);
         using var updateDeletedResponse = await client.PutJsonAsync($"{ApiRoutes.Categories}/{created.Id}", new CategoryUpdateRequest { Code = code, Name = "削除済み", SortOrder = 99, Version = 3 }, options);
         await updateDeletedResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
         using var getResponse = await client.GetAsync(new Uri($"{ApiRoutes.Categories}/{Guid.NewGuid()}", UriKind.Relative), Token);
         await getResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
 
-        var list = await client.GetJsonAsync<CategoryResponse>($"{ApiRoutes.Categories}?includeDeleted=true&size=100", options);
+        var list = await client.GetJsonAsync<CategoryListResponse>($"{ApiRoutes.Categories}?includeDeleted=true&size=100", options);
         Assert.Contains(list.Items, x => (x.Id == created.Id) && x.IsDeleted);
-        var active = await client.GetJsonAsync<CategoryResponse>($"{ApiRoutes.Categories}?size=100", options);
+        var active = await client.GetJsonAsync<CategoryListResponse>($"{ApiRoutes.Categories}?size=100", options);
         Assert.DoesNotContain(active.Items, x => x.Id == created.Id);
     }
 
@@ -127,17 +127,17 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     {
         var client = await factory.CreateAdminClientAsync();
 
-        var camera = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/lookup?barcode=4901234567894", options);
+        var camera = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/lookup?barcode=4901234567894", options);
         Assert.Equal("CAM-X100", camera.Code);
         Assert.Equal(TestData.CameraProductId, camera.Id);
 
-        var sdCard = await client.GetJsonAsync<ProductResponseItem>($"{ApiRoutes.Products}/lookup?code=SD-64", options);
+        var sdCard = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/lookup?code=SD-64", options);
         Assert.Equal(TestData.SdCardProductId, sdCard.Id);
 
         using var missing = await client.GetAsync(new Uri($"{ApiRoutes.Products}/lookup?barcode=0000000000000", UriKind.Relative), Token);
         await missing.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
 
-        var page = await client.GetJsonAsync<ProductResponse>($"{ApiRoutes.Products}?keyword=カメラ&page=0&size=2", options);
+        var page = await client.GetJsonAsync<ProductListResponse>($"{ApiRoutes.Products}?keyword=カメラ&page=0&size=2", options);
         Assert.Equal(2, page.Items.Count);
         Assert.True(page.Total > 2);
         Assert.All(page.Items, x => Assert.Contains("カメラ", x.Name, StringComparison.Ordinal));
@@ -167,14 +167,14 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     {
         var client = await factory.CreateAdminClientAsync();
 
-        var customer = await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/lookup?code=M0003", options);
+        var customer = await client.GetJsonAsync<CustomerListResponseItem>($"{ApiRoutes.Customers}/lookup?code=M0003", options);
         Assert.Equal(500, customer.PointBalance);
 
         using var adjustResponse = await client.PostJsonAsync($"{ApiRoutes.Customers}/{customer.Id}/points/adjust", new CustomerPointAdjustRequest { Points = 100, Reason = "キャンペーン", StaffId = TestData.ManagerStaffId }, options);
         var adjusted = await adjustResponse.ReadAsAsync<CustomerPointHistoryResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(PointHistoryType.Adjust, adjusted.Type);
         Assert.Equal(600, adjusted.BalanceAfter);
-        Assert.Equal(600, (await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/{customer.Id}", options)).PointBalance);
+        Assert.Equal(600, (await client.GetJsonAsync<CustomerListResponseItem>($"{ApiRoutes.Customers}/{customer.Id}", options)).PointBalance);
 
         var history = await client.GetJsonAsync<CustomerPointHistoryResponse>($"{ApiRoutes.Customers}/{customer.Id}/points/history", options);
         Assert.Equal(2, history.Total);

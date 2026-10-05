@@ -17,11 +17,37 @@ public static partial class SupplierEndpoints
     {
         // 仕入先は管理画面だけで使う
         var group = app.MapApiGroup(ApiRoutes.Suppliers).RequireAuthorization(Policies.Admin);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleListAsync)
+            .WithName("SupplierList")
+            .Produces<SupplierListResponse>();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("SupplierGet")
+            .Produces<SupplierListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("SupplierCreate")
+            .Produces<SupplierListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("SupplierUpdate")
+            .Produces<SupplierListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("SupplierDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -29,7 +55,7 @@ public static partial class SupplierEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    private static partial SupplierResponseItem ToResponse(SupplierEntity entity);
+    private static partial SupplierListResponseItem ToResponse(SupplierEntity entity);
 
     [Mapper]
     private static partial SupplierEntity ToEntity(SupplierCreateRequest request);
@@ -47,7 +73,7 @@ public static partial class SupplierEndpoints
         bool includeDeleted = false)
     {
         var items = await service.QueryListAsync(includeDeleted, cancellationToken);
-        return TypedResults.Ok(new SupplierResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new SupplierListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

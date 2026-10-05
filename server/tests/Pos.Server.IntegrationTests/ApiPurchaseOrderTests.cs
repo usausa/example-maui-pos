@@ -41,7 +41,7 @@ public sealed class ApiPurchaseOrderTests : IClassFixture<TestApplicationFactory
 
         // Act / Assert: 登録すると下書きで、店舗ごとの発注番号を持つ
         using var createResponse = await client.PostJsonAsync(ApiRoutes.PurchaseOrders, create, options);
-        var draft = await createResponse.ReadAsAsync<PurchaseOrderResponseItem>(HttpStatusCode.Created, options);
+        var draft = await createResponse.ReadAsAsync<PurchaseOrderListResponseItem>(HttpStatusCode.Created, options);
         Assert.StartsWith("S001-P-", draft.PurchaseOrderNo, StringComparison.Ordinal);
         Assert.Equal((PurchaseOrderStatus.Draft, 6000m, null), (draft.Status, draft.TotalCost, draft.ReceiptId));
 
@@ -59,16 +59,16 @@ public sealed class ApiPurchaseOrderTests : IClassFixture<TestApplicationFactory
             Version = draft.Version
         };
         using var updateResponse = await client.PutJsonAsync($"{ApiRoutes.PurchaseOrders}/{draft.Id}", update, options);
-        var updated = await updateResponse.ReadAsAsync<PurchaseOrderResponseItem>(HttpStatusCode.OK, options);
+        var updated = await updateResponse.ReadAsAsync<PurchaseOrderListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal((2, 12000m), (updated.Lines.Count, updated.TotalCost));
         using var staleResponse = await client.PutJsonAsync($"{ApiRoutes.PurchaseOrders}/{draft.Id}", update, options);
         await staleResponse.ReadProblemAsync(HttpStatusCode.Conflict, "VERSION_MISMATCH", options);
 
         // Act / Assert: 発注すると明細を写した入荷予定ができ、入荷予定は発注番号を持つ。発注した後は変更できない
         using var orderResponse = await client.PostAsync(new Uri($"{ApiRoutes.PurchaseOrders}/{draft.Id}/order", UriKind.Relative), null, Token);
-        var ordered = await orderResponse.ReadAsAsync<PurchaseOrderResponseItem>(HttpStatusCode.OK, options);
+        var ordered = await orderResponse.ReadAsAsync<PurchaseOrderListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal((PurchaseOrderStatus.Ordered, "admin"), (ordered.Status, ordered.OrderedBy));
-        var receipt = await client.GetJsonAsync<InventoryReceiptResponseItem>($"{ApiRoutes.InventoryReceipts}/{ordered.ReceiptId}", options);
+        var receipt = await client.GetJsonAsync<InventoryReceiptListResponseItem>($"{ApiRoutes.InventoryReceipts}/{ordered.ReceiptId}", options);
         Assert.Equal((InventoryReceiptStatus.Draft, draft.Id, draft.PurchaseOrderNo), (receipt.Status, receipt.PurchaseOrderId, receipt.PurchaseOrderNo));
         Assert.Equal((10m, 1200m), (receipt.Lines[0].Quantity, receipt.Lines[0].Cost));
         Assert.Equal((1m, null), (receipt.Lines[1].Quantity, receipt.Lines[1].Cost));
@@ -83,9 +83,9 @@ public sealed class ApiPurchaseOrderTests : IClassFixture<TestApplicationFactory
             Lines = [new InventoryReceiptReceiveRequestLine { LineId = receipt.Lines[0].Id, Quantity = 8m }]
         };
         using var receiveResponse = await client.PostJsonAsync($"{ApiRoutes.InventoryReceipts}/{receipt.Id}/receive", receive, options);
-        Assert.Equal(InventoryReceiptStatus.Received, (await receiveResponse.ReadAsAsync<InventoryReceiptResponseItem>(HttpStatusCode.OK, options)).Status);
+        Assert.Equal(InventoryReceiptStatus.Received, (await receiveResponse.ReadAsAsync<InventoryReceiptListResponseItem>(HttpStatusCode.OK, options)).Status);
         Assert.Equal(sdCardBefore + 8m, await QuantityAsync(client, TestData.MainStoreId, TestData.SdCardProductId));
-        var completed = await client.GetJsonAsync<PurchaseOrderResponseItem>($"{ApiRoutes.PurchaseOrders}/{draft.Id}", options);
+        var completed = await client.GetJsonAsync<PurchaseOrderListResponseItem>($"{ApiRoutes.PurchaseOrders}/{draft.Id}", options);
         Assert.Equal(PurchaseOrderStatus.Received, completed.Status);
         Assert.Equal([8m, 1m], completed.Lines.Select(static x => x.ReceivedQuantity ?? -1m));
         using var cancelReceivedResponse = await client.PostAsync(new Uri($"{ApiRoutes.PurchaseOrders}/{draft.Id}/cancel", UriKind.Relative), null, Token);
@@ -102,27 +102,27 @@ public sealed class ApiPurchaseOrderTests : IClassFixture<TestApplicationFactory
         // Act / Assert: 発注済みをキャンセルすると入荷予定もキャンセルになる
         var first = await OrderAsync(client, await CreateDraftAsync(client));
         using var cancelResponse = await client.PostAsync(new Uri($"{ApiRoutes.PurchaseOrders}/{first.Id}/cancel", UriKind.Relative), null, Token);
-        Assert.Equal(PurchaseOrderStatus.Cancelled, (await cancelResponse.ReadAsAsync<PurchaseOrderResponseItem>(HttpStatusCode.OK, options)).Status);
-        var firstReceipt = await client.GetJsonAsync<InventoryReceiptResponseItem>($"{ApiRoutes.InventoryReceipts}/{first.ReceiptId}", options);
+        Assert.Equal(PurchaseOrderStatus.Cancelled, (await cancelResponse.ReadAsAsync<PurchaseOrderListResponseItem>(HttpStatusCode.OK, options)).Status);
+        var firstReceipt = await client.GetJsonAsync<InventoryReceiptListResponseItem>($"{ApiRoutes.InventoryReceipts}/{first.ReceiptId}", options);
         Assert.Equal(InventoryReceiptStatus.Cancelled, firstReceipt.Status);
 
         // Act / Assert: 入荷予定をキャンセルすると発注もキャンセルになる
         var second = await OrderAsync(client, await CreateDraftAsync(client));
         using var receiptCancelResponse = await client.PostAsync(new Uri($"{ApiRoutes.InventoryReceipts}/{second.ReceiptId}/cancel", UriKind.Relative), null, Token);
-        Assert.Equal(InventoryReceiptStatus.Cancelled, (await receiptCancelResponse.ReadAsAsync<InventoryReceiptResponseItem>(HttpStatusCode.OK, options)).Status);
-        Assert.Equal(PurchaseOrderStatus.Cancelled, (await client.GetJsonAsync<PurchaseOrderResponseItem>($"{ApiRoutes.PurchaseOrders}/{second.Id}", options)).Status);
+        Assert.Equal(InventoryReceiptStatus.Cancelled, (await receiptCancelResponse.ReadAsAsync<InventoryReceiptListResponseItem>(HttpStatusCode.OK, options)).Status);
+        Assert.Equal(PurchaseOrderStatus.Cancelled, (await client.GetJsonAsync<PurchaseOrderListResponseItem>($"{ApiRoutes.PurchaseOrders}/{second.Id}", options)).Status);
 
         // Act / Assert: 下書きはキャンセルでき、キャンセルした発注は発注できない。ない発注は 404
         var third = await CreateDraftAsync(client);
         using var draftCancelResponse = await client.PostAsync(new Uri($"{ApiRoutes.PurchaseOrders}/{third.Id}/cancel", UriKind.Relative), null, Token);
-        Assert.Equal(PurchaseOrderStatus.Cancelled, (await draftCancelResponse.ReadAsAsync<PurchaseOrderResponseItem>(HttpStatusCode.OK, options)).Status);
+        Assert.Equal(PurchaseOrderStatus.Cancelled, (await draftCancelResponse.ReadAsAsync<PurchaseOrderListResponseItem>(HttpStatusCode.OK, options)).Status);
         using var orderCancelledResponse = await client.PostAsync(new Uri($"{ApiRoutes.PurchaseOrders}/{third.Id}/order", UriKind.Relative), null, Token);
         await orderCancelledResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "PURCHASE_ORDER_STATUS_INVALID", options);
         using var missingResponse = await client.PostAsync(new Uri($"{ApiRoutes.PurchaseOrders}/{Guid.NewGuid()}/cancel", UriKind.Relative), null, Token);
         await missingResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
 
         // Act / Assert: 未完了の一覧には下書きと発注済みだけが出る
-        var open = await client.GetJsonAsync<PurchaseOrderResponse>($"{ApiRoutes.PurchaseOrders}?open=true&size={ApiDefaults.MaxPageSize}", options);
+        var open = await client.GetJsonAsync<PurchaseOrderListResponse>($"{ApiRoutes.PurchaseOrders}?open=true&size={ApiDefaults.MaxPageSize}", options);
         Assert.DoesNotContain(open.Items, x => (x.Id == first.Id) || (x.Id == second.Id) || (x.Id == third.Id));
         Assert.All(open.Items, static x => Assert.True(x.Status.IsOpen()));
     }
@@ -159,7 +159,7 @@ public sealed class ApiPurchaseOrderTests : IClassFixture<TestApplicationFactory
         Assert.Equal(HttpStatusCode.Forbidden, terminalResponse.StatusCode);
     }
 
-    private async Task<PurchaseOrderResponseItem> CreateDraftAsync(HttpClient client)
+    private async Task<PurchaseOrderListResponseItem> CreateDraftAsync(HttpClient client)
     {
         var request = new PurchaseOrderCreateRequest
         {
@@ -168,18 +168,18 @@ public sealed class ApiPurchaseOrderTests : IClassFixture<TestApplicationFactory
             Lines = [new PurchaseOrderCreateRequestLine { ProductId = TestData.SdCardProductId, Quantity = 3m, Cost = 1200m }]
         };
         using var response = await client.PostJsonAsync(ApiRoutes.PurchaseOrders, request, options);
-        return await response.ReadAsAsync<PurchaseOrderResponseItem>(HttpStatusCode.Created, options);
+        return await response.ReadAsAsync<PurchaseOrderListResponseItem>(HttpStatusCode.Created, options);
     }
 
-    private async Task<PurchaseOrderResponseItem> OrderAsync(HttpClient client, PurchaseOrderResponseItem draft)
+    private async Task<PurchaseOrderListResponseItem> OrderAsync(HttpClient client, PurchaseOrderListResponseItem draft)
     {
         using var response = await client.PostAsync(new Uri($"{ApiRoutes.PurchaseOrders}/{draft.Id}/order", UriKind.Relative), null, Token);
-        return await response.ReadAsAsync<PurchaseOrderResponseItem>(HttpStatusCode.OK, options);
+        return await response.ReadAsAsync<PurchaseOrderListResponseItem>(HttpStatusCode.OK, options);
     }
 
     private async Task<decimal> QuantityAsync(HttpClient client, Guid storeId, Guid productId)
     {
-        var levels = await client.GetJsonAsync<InventoryProductResponse>($"{ApiRoutes.Inventory}/{productId}", options);
+        var levels = await client.GetJsonAsync<InventoryProductLevelsResponse>($"{ApiRoutes.Inventory}/{productId}", options);
         return levels.Levels.FirstOrDefault(x => x.StoreId == storeId)?.Quantity ?? 0m;
     }
 }

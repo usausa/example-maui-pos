@@ -20,23 +20,23 @@ public sealed class SyncMastersResponse
     // 変更があるときのみ
     public SettingsResponse? Settings { get; set; }
 
-    public IReadOnlyList<StoreResponseItem> Stores { get; set; } = default!;
+    public IReadOnlyList<StoreListResponseItem> Stores { get; set; } = default!;
 
-    public IReadOnlyList<TerminalResponseItem> Terminals { get; set; } = default!;
+    public IReadOnlyList<TerminalListResponseItem> Terminals { get; set; } = default!;
 
-    public IReadOnlyList<StaffResponseItem> Staff { get; set; } = default!;
+    public IReadOnlyList<StaffListResponseItem> Staff { get; set; } = default!;
 
-    public IReadOnlyList<CategoryResponseItem> Categories { get; set; } = default!;
+    public IReadOnlyList<CategoryListResponseItem> Categories { get; set; } = default!;
 
-    public IReadOnlyList<TaxRateResponseItem> TaxRates { get; set; } = default!;
+    public IReadOnlyList<TaxRateListResponseItem> TaxRates { get; set; } = default!;
 
-    public IReadOnlyList<ProductResponseItem> Products { get; set; } = default!;
+    public IReadOnlyList<ProductListResponseItem> Products { get; set; } = default!;
 
-    public IReadOnlyList<DiscountResponseItem> Discounts { get; set; } = default!;
+    public IReadOnlyList<DiscountListResponseItem> Discounts { get; set; } = default!;
 
-    public IReadOnlyList<PaymentMethodResponseItem> PaymentMethods { get; set; } = default!;
+    public IReadOnlyList<PaymentMethodListResponseItem> PaymentMethods { get; set; } = default!;
 
-    public IReadOnlyList<AdjustmentReasonResponseItem> AdjustmentReasons { get; set; } = default!;
+    public IReadOnlyList<AdjustmentReasonListResponseItem> AdjustmentReasons { get; set; } = default!;
 
     // 商品が多く products を省いたときに true (GET /products?updatedSince で分割取得する)
     public bool ProductsTruncated { get; set; }

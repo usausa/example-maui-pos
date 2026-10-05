@@ -47,14 +47,14 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         // 開設 (再送は 200、別 id で再開設は 409)
         var open = new ShiftOpenRequest { Id = shiftId, StoreId = TestData.MainStoreId, TerminalId = TestData.MainTerminal1Id, BusinessDate = BusinessDate, OpenedAt = Now, OpenedByStaffId = TestData.MainCashierStaffId, OpeningCash = 30000m };
         using var openResponse = await client.PostJsonAsync(ApiRoutes.Shifts, open, options);
-        var shift = await openResponse.ReadAsAsync<ShiftResponseItem>(HttpStatusCode.Created, options);
+        var shift = await openResponse.ReadAsAsync<ShiftListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(ShiftStatus.Open, shift.Status);
         Assert.Equal(30000m, shift.ExpectedCash);
         using var reopenResponse = await client.PostJsonAsync(ApiRoutes.Shifts, open, options);
-        Assert.Equal(shiftId, (await reopenResponse.ReadAsAsync<ShiftResponseItem>(HttpStatusCode.OK, options)).Id);
+        Assert.Equal(shiftId, (await reopenResponse.ReadAsAsync<ShiftListResponseItem>(HttpStatusCode.OK, options)).Id);
         using var secondOpenResponse = await client.PostJsonAsync(ApiRoutes.Shifts, new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, TerminalId = TestData.MainTerminal1Id, BusinessDate = BusinessDate, OpenedAt = Now, OpenedByStaffId = TestData.MainCashierStaffId, OpeningCash = 0m }, options);
         await secondOpenResponse.ReadProblemAsync(HttpStatusCode.Conflict, "TERMINAL_HAS_OPEN_SHIFT", options);
-        Assert.Equal(shiftId, (await client.GetJsonAsync<ShiftResponseItem>($"{ApiRoutes.Shifts}/current?terminalId={TestData.MainTerminal1Id}", options)).Id);
+        Assert.Equal(shiftId, (await client.GetJsonAsync<ShiftListResponseItem>($"{ApiRoutes.Shifts}/current?terminalId={TestData.MainTerminal1Id}", options)).Id);
 
         var cameraBefore = await QuantityAsync(client, TestData.CameraProductId);
         var sdCardBefore = await QuantityAsync(client, TestData.SdCardProductId);
@@ -107,17 +107,17 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(80100m, wrongProblem.Expected?.Total);
 
         // 副作用: ポイント残高・履歴、在庫、端末の連番
-        Assert.Equal(8074, (await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/{TestData.Customer1Id}", options)).PointBalance);
+        Assert.Equal(8074, (await client.GetJsonAsync<CustomerListResponseItem>($"{ApiRoutes.Customers}/{TestData.Customer1Id}", options)).PointBalance);
         var history = await client.GetJsonAsync<CustomerPointHistoryResponse>($"{ApiRoutes.Customers}/{TestData.Customer1Id}/points/history", options);
         Assert.Equal(3, history.Total);
         Assert.Contains(history.Items, static x => (x.Type == PointHistoryType.Redeem) && (x.Points == -5000) && (x.BalanceAfter == 1000));
         Assert.Contains(history.Items, static x => (x.Type == PointHistoryType.Earn) && (x.Points == 7074) && (x.BalanceAfter == 8074));
         Assert.Equal(cameraBefore - 1m, await QuantityAsync(client, TestData.CameraProductId));
         Assert.Equal(sdCardBefore - 2m, await QuantityAsync(client, TestData.SdCardProductId));
-        var changes = await client.GetJsonAsync<InventoryChangeResponse>($"{ApiRoutes.Inventory}/changes?storeId={TestData.MainStoreId}&type=Sale", options);
+        var changes = await client.GetJsonAsync<InventoryChangeListResponse>($"{ApiRoutes.Inventory}/changes?storeId={TestData.MainStoreId}&type=Sale", options);
         Assert.Equal(2, changes.Total);
         Assert.All(changes.Items, x => Assert.Equal(sale.Id, x.ReferenceId));
-        Assert.Equal(1, (await client.GetJsonAsync<TerminalResponseItem>($"{ApiRoutes.Terminals}/{TestData.MainTerminal1Id}", options)).LastReceiptSeq);
+        Assert.Equal(1, (await client.GetJsonAsync<TerminalListResponseItem>($"{ApiRoutes.Terminals}/{TestData.MainTerminal1Id}", options)).LastReceiptSeq);
 
         // 返品 (SD カード 1 枚)
         var sdCardLine = saleResult.Lines[1];
@@ -149,7 +149,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         var voided = await voidReturnResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(TransactionStatus.Voided, voided.Status);
         Assert.Equal("誤操作", voided.Void?.Reason);
-        Assert.Equal(8074, (await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/{TestData.Customer1Id}", options)).PointBalance);
+        Assert.Equal(8074, (await client.GetJsonAsync<CustomerListResponseItem>($"{ApiRoutes.Customers}/{TestData.Customer1Id}", options)).PointBalance);
         Assert.Equal(0m, (await client.GetJsonAsync<TransactionResponseItem>($"{ApiRoutes.Transactions}/{sale.Id}", options)).Lines[1].ReturnedQuantity);
         Assert.Equal(sdCardBefore - 2m, await QuantityAsync(client, TestData.SdCardProductId));
         using var voidAgainResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{returnRequest.Id}/void", voidRequest, options);
@@ -164,13 +164,13 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         // 入出金 (再送は 200)
         var cashEvent = new ShiftCashEventRequest { Id = Guid.NewGuid(), Type = CashEventType.PaidOut, Amount = 10000m, Reason = "両替", StaffId = TestData.MainCashierStaffId, OccurredAt = Now.AddHours(1) };
         using var cashEventResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/cash-events", cashEvent, options);
-        await cashEventResponse.ReadAsAsync<ShiftCashEventResponseItem>(HttpStatusCode.Created, options);
+        await cashEventResponse.ReadAsAsync<ShiftCashEventListResponseItem>(HttpStatusCode.Created, options);
         using var cashEventAgainResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/cash-events", cashEvent, options);
-        await cashEventAgainResponse.ReadAsAsync<ShiftCashEventResponseItem>(HttpStatusCode.OK, options);
-        Assert.Equal(1, (await client.GetJsonAsync<ShiftCashEventResponse>($"{ApiRoutes.Shifts}/{shiftId}/cash-events", options)).Total);
+        await cashEventAgainResponse.ReadAsAsync<ShiftCashEventListResponseItem>(HttpStatusCode.OK, options);
+        Assert.Equal(1, (await client.GetJsonAsync<ShiftCashEventListResponse>($"{ApiRoutes.Shifts}/{shiftId}/cash-events", options)).Total);
 
         // 開設中の集計: 30000 + 25100 − 0 + 0 − 10000
-        var opened = await client.GetJsonAsync<ShiftResponseItem>($"{ApiRoutes.Shifts}/{shiftId}", options);
+        var opened = await client.GetJsonAsync<ShiftListResponseItem>($"{ApiRoutes.Shifts}/{shiftId}", options);
         Assert.Equal(25100m, opened.Totals.CashSales);
         Assert.Equal(1, opened.Totals.SalesCount);
         Assert.Equal(0, opened.Totals.ReturnCount);
@@ -179,7 +179,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
 
         // 精算 → 精算後は取引・取消・入出金を受け付けない
         using var closeResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/close", new ShiftCloseRequest { ClosedAt = Now.AddHours(8), ClosedByStaffId = TestData.MainCashierStaffId, ActualCash = 45000m, Denominations = [new ShiftCloseRequestDenomination { Denomination = 10000, Count = 4 }, new ShiftCloseRequestDenomination { Denomination = 5000, Count = 1 }] }, options);
-        var closed = await closeResponse.ReadAsAsync<ShiftResponseItem>(HttpStatusCode.OK, options);
+        var closed = await closeResponse.ReadAsAsync<ShiftListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(ShiftStatus.Closed, closed.Status);
         Assert.Equal(45100m, closed.ExpectedCash);
         Assert.Equal(-100m, closed.Difference);
@@ -207,7 +207,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(3, summary.ByCategory.Count);
         Assert.Equal(7074, summary.Points.Earned);
         Assert.Equal(5000, summary.Points.Redeemed);
-        Assert.Equal(1, (await client.GetJsonAsync<ShiftResponse>($"{ApiRoutes.Shifts}?storeId={TestData.MainStoreId}&status=Closed&from=2026-09-11&to=2026-09-11", options)).Total);
+        Assert.Equal(1, (await client.GetJsonAsync<ShiftListResponse>($"{ApiRoutes.Shifts}?storeId={TestData.MainStoreId}&status=Closed&from=2026-09-11&to=2026-09-11", options)).Total);
 
         // 帳票 PDF (D-37)
         await AssertPdfAsync(client, $"{ApiRoutes.Shifts}/{shiftId}/summary/pdf", "shift-report");
@@ -257,33 +257,33 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     public async Task InventoryChangesAreIdempotent()
     {
         var client = await factory.CreateAdminClientAsync();
-        var before = (await client.GetJsonAsync<InventoryProductResponse>($"{ApiRoutes.Inventory}/{TestData.SdCardProductId}", options)).Levels.Single(static x => x.StoreId == TestData.BranchStoreId).Quantity;
-        var request = new InventoryChangeRequest
+        var before = (await client.GetJsonAsync<InventoryProductLevelsResponse>($"{ApiRoutes.Inventory}/{TestData.SdCardProductId}", options)).Levels.Single(static x => x.StoreId == TestData.BranchStoreId).Quantity;
+        var request = new InventoryChangesRequest
         {
             Changes =
             [
-                new InventoryChangeRequestChange { Id = Guid.NewGuid(), StoreId = TestData.BranchStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.PhysicalCount, Quantity = before + 5m, StaffId = TestData.BranchCashierStaffId, OccurredAt = Now },
-                new InventoryChangeRequestChange { Id = Guid.NewGuid(), StoreId = TestData.BranchStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = -1m, Reason = "破損", StaffId = TestData.BranchCashierStaffId, OccurredAt = Now }
+                new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = TestData.BranchStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.PhysicalCount, Quantity = before + 5m, StaffId = TestData.BranchCashierStaffId, OccurredAt = Now },
+                new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = TestData.BranchStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = -1m, Reason = "破損", StaffId = TestData.BranchCashierStaffId, OccurredAt = Now }
             ]
         };
 
         using var response = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", request, options);
-        var result = await response.ReadAsAsync<InventoryChangeResultResponse>(HttpStatusCode.OK, options);
+        var result = await response.ReadAsAsync<InventoryChangesResponse>(HttpStatusCode.OK, options);
         Assert.All(result.Results, x => Assert.Equal(InventoryChangeResultStatus.Created, x.Status));
         Assert.Equal(5m, result.Results[0].QuantityDelta);
         Assert.Equal(before + 5m, result.Results[0].QuantityAfter);
         Assert.Equal(before + 4m, result.Results[1].QuantityAfter);
 
         using var againResponse = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", request, options);
-        var again = await againResponse.ReadAsAsync<InventoryChangeResultResponse>(HttpStatusCode.OK, options);
+        var again = await againResponse.ReadAsAsync<InventoryChangesResponse>(HttpStatusCode.OK, options);
         Assert.All(again.Results, x => Assert.Equal(InventoryChangeResultStatus.Duplicate, x.Status));
         Assert.Equal(before + 4m, again.Results[1].QuantityAfter);
 
-        var levels = await client.GetJsonAsync<InventoryLevelResponse>($"{ApiRoutes.Inventory}?storeId={TestData.BranchStoreId}&productId={TestData.SdCardProductId}", options);
+        var levels = await client.GetJsonAsync<InventoryLevelListResponse>($"{ApiRoutes.Inventory}?storeId={TestData.BranchStoreId}&productId={TestData.SdCardProductId}", options);
         Assert.Equal(before + 4m, Assert.Single(levels.Items).Quantity);
-        var changes = await client.GetJsonAsync<InventoryChangeResponse>($"{ApiRoutes.Inventory}/changes?storeId={TestData.BranchStoreId}&productId={TestData.SdCardProductId}", options);
+        var changes = await client.GetJsonAsync<InventoryChangeListResponse>($"{ApiRoutes.Inventory}/changes?storeId={TestData.BranchStoreId}&productId={TestData.SdCardProductId}", options);
         Assert.Equal(2, changes.Total);
-        var negative = await client.GetJsonAsync<InventoryLevelResponse>($"{ApiRoutes.Inventory}?negativeOnly=true", options);
+        var negative = await client.GetJsonAsync<InventoryLevelListResponse>($"{ApiRoutes.Inventory}?negativeOnly=true", options);
         Assert.Equal(0, negative.Total);
     }
 
@@ -307,7 +307,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     }
 
     private async Task<decimal> QuantityAsync(HttpClient client, Guid productId) =>
-        (await client.GetJsonAsync<InventoryProductResponse>($"{ApiRoutes.Inventory}/{productId}", options)).Levels.Single(static x => x.StoreId == TestData.MainStoreId).Quantity;
+        (await client.GetJsonAsync<InventoryProductLevelsResponse>($"{ApiRoutes.Inventory}/{productId}", options)).Levels.Single(static x => x.StoreId == TestData.MainStoreId).Quantity;
 
     // 設計書の販売例: デジカメ (展示品 5%) + SD カード × 2 + 配送料、取引値引 1,000、ポイント 5,000 + カード 50,000 + 現金 25,100 (預り 30,000)
     private static TransactionCreateRequest CreateSaleRequest(Guid shiftId)

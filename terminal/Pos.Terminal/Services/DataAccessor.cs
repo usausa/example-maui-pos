@@ -40,92 +40,92 @@ public sealed partial class DataAccessor
     //--------------------------------------------------------------------------------
 
     [QueryFirst]
-    public partial ValueTask<StoreResponseItem?> QueryStoreAsync(Guid id);
+    public partial ValueTask<StoreListResponseItem?> QueryStoreAsync(Guid id);
 
     [Execute]
     public partial ValueTask<int> DeleteStoreAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(StoreResponseItem), Table = "Stores")]
-    public partial ValueTask<int> InsertStoreAsync(DbTransaction tx, StoreResponseItem entity);
+    [Insert(typeof(StoreListResponseItem), Table = "Stores")]
+    public partial ValueTask<int> InsertStoreAsync(DbTransaction tx, StoreListResponseItem entity);
 
     [QueryFirst]
-    public partial ValueTask<TerminalResponseItem?> QueryTerminalAsync(Guid id);
+    public partial ValueTask<TerminalListResponseItem?> QueryTerminalAsync(Guid id);
 
     [Execute]
     public partial ValueTask<int> DeleteTerminalAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(TerminalResponseItem), Table = "Terminals")]
-    public partial ValueTask<int> InsertTerminalAsync(DbTransaction tx, TerminalResponseItem entity);
+    [Insert(typeof(TerminalListResponseItem), Table = "Terminals")]
+    public partial ValueTask<int> InsertTerminalAsync(DbTransaction tx, TerminalListResponseItem entity);
 
     // 所属店舗のスタッフ (全店舗所属も含む)
     [Query]
-    public partial ValueTask<List<StaffResponseItem>> QueryStaffListAsync(Guid storeId);
+    public partial ValueTask<List<StaffListResponseItem>> QueryStaffListAsync(Guid storeId);
 
     [QueryFirst]
-    public partial ValueTask<StaffResponseItem?> QueryStaffAsync(Guid id);
+    public partial ValueTask<StaffListResponseItem?> QueryStaffAsync(Guid id);
 
     [Execute]
     public partial ValueTask<int> DeleteStaffAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(StaffResponseItem), Table = "Staff")]
-    public partial ValueTask<int> InsertStaffAsync(DbTransaction tx, StaffResponseItem entity);
+    [Insert(typeof(StaffListResponseItem), Table = "Staff")]
+    public partial ValueTask<int> InsertStaffAsync(DbTransaction tx, StaffListResponseItem entity);
 
     //--------------------------------------------------------------------------------
     // Categories / TaxRates / Discounts / PaymentMethods / AdjustmentReasons
     //--------------------------------------------------------------------------------
 
     [Query]
-    public partial ValueTask<List<CategoryResponseItem>> QueryCategoryListAsync();
+    public partial ValueTask<List<CategoryListResponseItem>> QueryCategoryListAsync();
 
     [Execute]
     public partial ValueTask<int> DeleteCategoryAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(CategoryResponseItem), Table = "Categories")]
-    public partial ValueTask<int> InsertCategoryAsync(DbTransaction tx, CategoryResponseItem entity);
+    [Insert(typeof(CategoryListResponseItem), Table = "Categories")]
+    public partial ValueTask<int> InsertCategoryAsync(DbTransaction tx, CategoryListResponseItem entity);
 
     [Query]
-    public partial ValueTask<List<TaxRateResponseItem>> QueryTaxRateListAsync();
+    public partial ValueTask<List<TaxRateListResponseItem>> QueryTaxRateListAsync();
 
     [Execute]
     public partial ValueTask<int> DeleteTaxRateAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(TaxRateResponseItem), Table = "TaxRates")]
-    public partial ValueTask<int> InsertTaxRateAsync(DbTransaction tx, TaxRateResponseItem entity);
+    [Insert(typeof(TaxRateListResponseItem), Table = "TaxRates")]
+    public partial ValueTask<int> InsertTaxRateAsync(DbTransaction tx, TaxRateListResponseItem entity);
 
     [Query]
-    public partial ValueTask<List<DiscountResponseItem>> QueryDiscountListAsync();
+    public partial ValueTask<List<DiscountListResponseItem>> QueryDiscountListAsync();
 
     [Execute]
     public partial ValueTask<int> DeleteDiscountAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(DiscountResponseItem), Table = "Discounts")]
-    public partial ValueTask<int> InsertDiscountAsync(DbTransaction tx, DiscountResponseItem entity);
+    [Insert(typeof(DiscountListResponseItem), Table = "Discounts")]
+    public partial ValueTask<int> InsertDiscountAsync(DbTransaction tx, DiscountListResponseItem entity);
 
     [Query]
-    public partial ValueTask<List<PaymentMethodResponseItem>> QueryPaymentMethodListAsync();
+    public partial ValueTask<List<PaymentMethodListResponseItem>> QueryPaymentMethodListAsync();
 
     [Execute]
     public partial ValueTask<int> DeletePaymentMethodAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(PaymentMethodResponseItem), Table = "PaymentMethods")]
-    public partial ValueTask<int> InsertPaymentMethodAsync(DbTransaction tx, PaymentMethodResponseItem entity);
+    [Insert(typeof(PaymentMethodListResponseItem), Table = "PaymentMethods")]
+    public partial ValueTask<int> InsertPaymentMethodAsync(DbTransaction tx, PaymentMethodListResponseItem entity);
 
     [Query]
-    public partial ValueTask<List<AdjustmentReasonResponseItem>> QueryAdjustmentReasonListAsync();
+    public partial ValueTask<List<AdjustmentReasonListResponseItem>> QueryAdjustmentReasonListAsync();
 
     [Execute]
     public partial ValueTask<int> DeleteAdjustmentReasonAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(AdjustmentReasonResponseItem), Table = "AdjustmentReasons")]
-    public partial ValueTask<int> InsertAdjustmentReasonAsync(DbTransaction tx, AdjustmentReasonResponseItem entity);
+    [Insert(typeof(AdjustmentReasonListResponseItem), Table = "AdjustmentReasons")]
+    public partial ValueTask<int> InsertAdjustmentReasonAsync(DbTransaction tx, AdjustmentReasonListResponseItem entity);
 
     //--------------------------------------------------------------------------------
     // Products
@@ -135,31 +135,31 @@ public sealed partial class DataAccessor
     public partial ValueTask<long> CountProductsAsync();
 
     [QueryFirst]
-    public partial ValueTask<ProductResponseItem?> QueryProductAsync(Guid id);
+    public partial ValueTask<ProductListResponseItem?> QueryProductAsync(Guid id);
 
     [QueryFirst]
-    public partial ValueTask<ProductResponseItem?> QueryProductByBarcodeAsync(string barcode);
+    public partial ValueTask<ProductListResponseItem?> QueryProductByBarcodeAsync(string barcode);
 
     [QueryFirst]
-    public partial ValueTask<ProductResponseItem?> QueryProductByCodeAsync(string code);
+    public partial ValueTask<ProductListResponseItem?> QueryProductByCodeAsync(string code);
 
     // keyword は LIKE パターン (コード / JAN / 名称 / かな / 型番)
     [Query]
-    public partial ValueTask<List<ProductResponseItem>> QueryProductListAsync(Guid[]? categoryIds, string? keyword, int limit);
+    public partial ValueTask<List<ProductListResponseItem>> QueryProductListAsync(Guid[]? categoryIds, string? keyword, int limit);
 
     [Execute]
     public partial ValueTask<int> DeleteProductAsync(DbTransaction tx, Guid id);
 
     [Execute]
-    [Insert(typeof(ProductResponseItem), Table = "Products")]
-    public partial ValueTask<int> InsertProductAsync(DbTransaction tx, ProductResponseItem entity);
+    [Insert(typeof(ProductListResponseItem), Table = "Products")]
+    public partial ValueTask<int> InsertProductAsync(DbTransaction tx, ProductListResponseItem entity);
 
     //--------------------------------------------------------------------------------
     // InventoryLevels (自店分)
     //--------------------------------------------------------------------------------
 
     [QueryFirst]
-    public partial ValueTask<InventoryLevelResponseItem?> QueryInventoryLevelAsync(Guid storeId, Guid productId);
+    public partial ValueTask<InventoryLevelListResponseItem?> QueryInventoryLevelAsync(Guid storeId, Guid productId);
 
     // 同期結果の反映 (UPSERT)
     [Execute]

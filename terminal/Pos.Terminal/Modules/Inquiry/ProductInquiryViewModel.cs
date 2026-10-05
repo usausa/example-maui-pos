@@ -11,7 +11,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
 
     private readonly ProductImageService imageService;
 
-    private ProductResponseItem? product;
+    private ProductListResponseItem? product;
 
     [ObservableProperty]
     public partial string Message { get; set; } = string.Empty;
@@ -72,7 +72,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
         }
     }
 
-    private async Task UpdateProductAsync(ProductResponseItem? value, string key)
+    private async Task UpdateProductAsync(ProductListResponseItem? value, string key)
     {
         product = value;
         Image = null;

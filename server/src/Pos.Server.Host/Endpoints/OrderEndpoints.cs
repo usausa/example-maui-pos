@@ -20,15 +20,71 @@ public static partial class OrderEndpoints
     public static void MapOrderEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Orders);
-        group.MapPost("/", HandleCreateAsync);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapGet("/{id:guid}/pdf", HandlePdfAsync).RequireAuthorization(Policies.Admin);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Admin);
-        group.MapPost("/{id:guid}/arrive", HandleArriveAsync);
-        group.MapPost("/{id:guid}/cancel", HandleCancelAsync);
-        group.MapPost("/{id:guid}/deposit", HandleDepositAsync);
-        group.MapPost("/{id:guid}/deposit/refund", HandleDepositRefundAsync);
+        group.MapPost("/", HandleCreateAsync)
+            .WithName("OrderCreate")
+            .Produces<OrderListResponseItem>()
+            .Produces<OrderListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapGet("/", HandleListAsync)
+            .WithName("OrderList")
+            .Produces<OrderListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("OrderGet")
+            .Produces<OrderListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapGet("/{id:guid}/pdf", HandlePdfAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("OrderPdf")
+            .Produces<Stream>(StatusCodes.Status200OK, "application/pdf")
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("OrderUpdate")
+            .Produces<OrderListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/arrive", HandleArriveAsync)
+            .WithName("OrderArrive")
+            .Produces<OrderListResponseItem>()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/cancel", HandleCancelAsync)
+            .WithName("OrderCancel")
+            .Produces<OrderListResponseItem>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/deposit", HandleDepositAsync)
+            .WithName("OrderDeposit")
+            .Produces<OrderListResponseItem>()
+            .Produces<OrderListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/deposit/refund", HandleDepositRefundAsync)
+            .WithName("OrderDepositRefund")
+            .Produces<OrderListResponseItem>()
+            .Produces<OrderListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -58,15 +114,15 @@ public static partial class OrderEndpoints
         };
 
     [Mapper]
-    private static partial OrderResponseItem ToResponseCore(OrderEntity entity);
+    private static partial OrderListResponseItem ToResponseCore(OrderEntity entity);
 
     [Mapper]
-    private static partial OrderResponseLine ToResponse(OrderLineEntity entity);
+    private static partial OrderListResponseLine ToResponse(OrderLineEntity entity);
 
     [Mapper]
-    private static partial OrderResponseDeposit ToResponse(OrderDepositEntity entity);
+    private static partial OrderListResponseDeposit ToResponse(OrderDepositEntity entity);
 
-    private static OrderResponseItem ToResponse(OrderDetailView detail)
+    private static OrderListResponseItem ToResponse(OrderDetailView detail)
     {
         var response = ToResponseCore(detail.Order);
         response.DepositAmount = detail.DepositBalance;
@@ -173,7 +229,7 @@ public static partial class OrderEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new OrderResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new OrderListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

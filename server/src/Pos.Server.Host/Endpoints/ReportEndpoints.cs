@@ -23,11 +23,34 @@ public static partial class ReportEndpoints
     public static void MapReportEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Reports);
-        group.MapGet("/sales/summary", HandleSalesSummaryAsync);
-        group.MapGet("/sales/summary/csv", HandleSalesSummaryCsvAsync).RequireAuthorization(Policies.Admin);
-        group.MapGet("/sales/products", HandleProductSalesAsync).RequireAuthorization(Policies.Admin);
-        group.MapGet("/sales/products/csv", HandleProductSalesCsvAsync).RequireAuthorization(Policies.Admin);
-        group.MapGet("/sales/daily/pdf", HandleDailySalesPdfAsync).RequireAuthorization(Policies.Admin);
+        group.MapGet("/sales/summary", HandleSalesSummaryAsync)
+            .WithName("ReportSalesSummary")
+            .Produces<ReportSalesSummaryResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+        group.MapGet("/sales/summary/csv", HandleSalesSummaryCsvAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("ReportSalesSummaryCsv")
+            .Produces<Stream>(StatusCodes.Status200OK, "text/csv")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status403Forbidden);
+        group.MapGet("/sales/products", HandleProductSalesAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("ReportProductSales")
+            .Produces<ReportProductSalesResponse>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden);
+        group.MapGet("/sales/products/csv", HandleProductSalesCsvAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("ReportProductSalesCsv")
+            .Produces<Stream>(StatusCodes.Status200OK, "text/csv")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status403Forbidden);
+        group.MapGet("/sales/daily/pdf", HandleDailySalesPdfAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("ReportDailySalesPdf")
+            .Produces<Stream>(StatusCodes.Status200OK, "application/pdf")
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     //--------------------------------------------------------------------------------

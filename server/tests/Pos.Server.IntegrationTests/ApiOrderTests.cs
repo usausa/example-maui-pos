@@ -36,13 +36,13 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
     {
         // Arrange
         var client = await factory.CreateAdminClientAsync();
-        var customer = await client.GetJsonAsync<CustomerResponseItem>($"{ApiRoutes.Customers}/{TestData.Customer1Id}", options);
+        var customer = await client.GetJsonAsync<CustomerListResponseItem>($"{ApiRoutes.Customers}/{TestData.Customer1Id}", options);
         var shiftId = await OpenShiftAsync(client);
         var create = CreateOrderRequest(OrderType.BackOrder, TestData.Customer1Id, null, null);
 
         // Act / Assert: 登録 (会員の名前・電話を使う)、再送は 200、同じ id で内容違いは 409
         using var createResponse = await client.PostJsonAsync(ApiRoutes.Orders, create, options);
-        var order = await createResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.Created, options);
+        var order = await createResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.Created, options);
         Assert.StartsWith("S001-O-", order.OrderNo, StringComparison.Ordinal);
         Assert.Equal(OrderStatus.Ordered, order.Status);
         Assert.Equal(customer.Name, order.CustomerName);
@@ -50,7 +50,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(80000m, order.Total);
         Assert.Null(order.ArrivedAt);
         using var resendResponse = await client.PostJsonAsync(ApiRoutes.Orders, create, options);
-        Assert.Equal(order.OrderNo, (await resendResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.OK, options)).OrderNo);
+        Assert.Equal(order.OrderNo, (await resendResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.OK, options)).OrderNo);
         var mismatch = CreateOrderRequest(OrderType.Hold, TestData.Customer1Id, null, null);
         mismatch.Id = create.Id;
         using var mismatchResponse = await client.PostJsonAsync(ApiRoutes.Orders, mismatch, options);
@@ -71,7 +71,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
             Version = order.Version
         };
         using var updateResponse = await client.PutJsonAsync($"{ApiRoutes.Orders}/{order.Id}", update, options);
-        var updated = await updateResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.OK, options);
+        var updated = await updateResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(84000m, updated.Total);
         Assert.Equal(2, updated.Lines.Count);
         Assert.Equal("090-1111-2222", updated.Phone);
@@ -83,7 +83,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         using var notReadyResponse = await PostSaleAsync(client, shiftId, "S001-01-000201", order.Id);
         await notReadyResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "ORDER_NOT_READY", options);
         using var arriveResponse = await client.PostAsync(new Uri($"{ApiRoutes.Orders}/{order.Id}/arrive", UriKind.Relative), null, Token);
-        var arrived = await arriveResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.OK, options);
+        var arrived = await arriveResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(OrderStatus.Arrived, arrived.Status);
         Assert.NotNull(arrived.ArrivedAt);
         using var arriveAgainResponse = await client.PostAsync(new Uri($"{ApiRoutes.Orders}/{order.Id}/arrive", UriKind.Relative), null, Token);
@@ -92,7 +92,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         var sale = await saleResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(order.Id, sale.OrderId);
         Assert.Equal(order.OrderNo, sale.OrderNo);
-        var completed = await client.GetJsonAsync<OrderResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
+        var completed = await client.GetJsonAsync<OrderListResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
         Assert.Equal(OrderStatus.Completed, completed.Status);
         Assert.Equal(sale.Id, completed.TransactionId);
         Assert.Equal(order.OrderNo, (await client.GetJsonAsync<TransactionResponseItem>($"{ApiRoutes.Transactions}/{sale.Id}", options)).OrderNo);
@@ -100,11 +100,11 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         // Act / Assert: 会計した取引を取り消すと引き渡し待ちに戻り、キャンセルできる
         using var voidResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", new TransactionVoidRequest { StaffId = TestData.ManagerStaffId, Reason = "受注の取り違え", VoidedAt = Now.AddMinutes(30) }, options);
         await voidResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.OK, options);
-        var reopened = await client.GetJsonAsync<OrderResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
+        var reopened = await client.GetJsonAsync<OrderListResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
         Assert.Equal(OrderStatus.Arrived, reopened.Status);
         Assert.Null(reopened.TransactionId);
         using var cancelResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/cancel", new OrderCancelRequest { Reason = "お客様都合" }, options);
-        var cancelled = await cancelResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.OK, options);
+        var cancelled = await cancelResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(OrderStatus.Cancelled, cancelled.Status);
         Assert.Equal("お客様都合", cancelled.CancelReason);
         using var cancelAgainResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/cancel", new OrderCancelRequest(), options);
@@ -135,21 +135,21 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         using var unknownProductResponse = await client.PostJsonAsync(ApiRoutes.Orders, unknownProduct, options);
 
         // Assert
-        var hold = await firstResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.Created, options);
-        var backOrder = await secondResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.Created, options);
+        var hold = await firstResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.Created, options);
+        var backOrder = await secondResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(OrderStatus.Arrived, hold.Status);
         Assert.NotNull(hold.ArrivedAt);
         Assert.Equal(OrderStatus.Ordered, backOrder.Status);
         Assert.Equal(int.Parse(hold.OrderNo[^6..], CultureInfo.InvariantCulture) + 1, int.Parse(backOrder.OrderNo[^6..], CultureInfo.InvariantCulture));
         await noNameResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         await unknownProductResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "PRODUCT_NOT_FOUND", options);
-        var byName = await client.GetJsonAsync<OrderResponse>($"{ApiRoutes.Orders}?keyword={name}", options);
+        var byName = await client.GetJsonAsync<OrderListResponse>($"{ApiRoutes.Orders}?keyword={name}", options);
         Assert.Equal(2, byName.Total);
-        var arrived = await client.GetJsonAsync<OrderResponse>($"{ApiRoutes.Orders}?keyword={name}&status=Arrived", options);
+        var arrived = await client.GetJsonAsync<OrderListResponse>($"{ApiRoutes.Orders}?keyword={name}&status=Arrived", options);
         Assert.Equal(hold.Id, Assert.Single(arrived.Items).Id);
-        var byNo = await client.GetJsonAsync<OrderResponse>($"{ApiRoutes.Orders}?keyword={backOrder.OrderNo}&open=true", options);
+        var byNo = await client.GetJsonAsync<OrderListResponse>($"{ApiRoutes.Orders}?keyword={backOrder.OrderNo}&open=true", options);
         Assert.Equal(backOrder.Id, Assert.Single(byNo.Items).Id);
-        Assert.Equal(0, (await client.GetJsonAsync<OrderResponse>($"{ApiRoutes.Orders}?keyword={name}&type=Hold&status=Cancelled", options)).Total);
+        Assert.Equal(0, (await client.GetJsonAsync<OrderListResponse>($"{ApiRoutes.Orders}?keyword={name}&type=Hold&status=Cancelled", options)).Total);
     }
 
     //--------------------------------------------------------------------------------
@@ -178,7 +178,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
     {
         var request = new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, TerminalId = TestData.MainTerminal1Id, BusinessDate = BusinessDate, OpenedAt = Now, OpenedByStaffId = TestData.MainCashierStaffId, OpeningCash = 0m };
         using var response = await client.PostJsonAsync(ApiRoutes.Shifts, request, options);
-        return (await response.ReadAsAsync<ShiftResponseItem>(HttpStatusCode.Created, options)).Id;
+        return (await response.ReadAsAsync<ShiftListResponseItem>(HttpStatusCode.Created, options)).Id;
     }
 
     // SD カード 2,000 円 (内税 10%、ポイントなし) を現金で。受注の明細と同じでなくてよい

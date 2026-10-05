@@ -2,7 +2,7 @@ namespace Pos.Contract.Discounts;
 
 using Pos.Contract;
 
-public sealed class DiscountResponseItem
+public sealed class DiscountListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -32,4 +32,4 @@ public sealed class DiscountResponseItem
     public int Version { get; set; }
 }
 
-public sealed class DiscountResponse : ListResponse<DiscountResponseItem>;
+public sealed class DiscountListResponse : ListResponse<DiscountListResponseItem>;

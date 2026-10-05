@@ -1,5 +1,6 @@
 namespace Pos.Server;
 
+using System.Text;
 using System.Text.Json;
 
 using Microsoft.AspNetCore.Http.Json;
@@ -82,5 +83,24 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
         Assert.NotNull(request);
         Assert.Equal(TransactionType.Return, request.Type);
         Assert.Empty(request.Lines);
+    }
+
+    // 読めない本文 (壊れた JSON・文字列の数値・重複したキー・知らない項目) は 400 (VALIDATION_ERROR)
+    [Theory]
+    [InlineData("{")]
+    [InlineData("""{"code":"JSON-1","name":"JSON","sortOrder":"1"}""")]
+    [InlineData("""{"code":"JSON-1","code":"JSON-2","name":"JSON"}""")]
+    [InlineData("""{"code":"JSON-1","name":"JSON","ownerId":"other"}""")]
+    public async Task CreateWithUnreadableJsonReturnsValidationError(string body)
+    {
+        // Arrange
+        var client = await factory.CreateAdminClientAsync();
+        using var content = new StringContent(body, Encoding.UTF8, "application/json");
+
+        // Act
+        var response = await client.PostAsync(new Uri("/api/v1/categories", UriKind.Relative), content, TestContext.Current.CancellationToken);
+
+        // Assert
+        await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", factory.JsonOptions());
     }
 }

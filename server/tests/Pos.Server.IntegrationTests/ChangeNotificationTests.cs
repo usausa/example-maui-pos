@@ -41,9 +41,9 @@ public sealed class ChangeNotificationTests : IClassFixture<TestApplicationFacto
         var again = new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, TerminalId = TestData.MainTerminal2Id, BusinessDate = new DateOnly(2026, 9, 14), OpenedAt = Now, OpenedByStaffId = TestData.MainCashierStaffId, OpeningCash = 0m };
         using var againResponse = await client.PostJsonAsync(ApiRoutes.Shifts, again, options);
         Assert.Equal(HttpStatusCode.Conflict, againResponse.StatusCode);
-        var change = new InventoryChangeRequest
+        var change = new InventoryChangesRequest
         {
-            Changes = [new InventoryChangeRequestChange { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = 1m, Reason = "テスト", StaffId = TestData.MainCashierStaffId, OccurredAt = Now }]
+            Changes = [new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = 1m, Reason = "テスト", StaffId = TestData.MainCashierStaffId, OccurredAt = Now }]
         };
         using var changeResponse = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", change, options);
         Assert.Equal(HttpStatusCode.OK, changeResponse.StatusCode);

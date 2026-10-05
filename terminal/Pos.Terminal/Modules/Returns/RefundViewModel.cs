@@ -5,7 +5,7 @@ using Pos.Terminal.Models.Cart;
 
 public sealed class RefundMethodItem : NotificationObject
 {
-    public PaymentMethodResponseItem Method { get; }
+    public PaymentMethodListResponseItem Method { get; }
 
     public string Name => Method.Name;
 
@@ -17,7 +17,7 @@ public sealed class RefundMethodItem : NotificationObject
         set => SetProperty(ref field, value);
     }
 
-    public RefundMethodItem(PaymentMethodResponseItem method, string hint)
+    public RefundMethodItem(PaymentMethodListResponseItem method, string hint)
     {
         Method = method;
         Hint = hint;
@@ -37,7 +37,7 @@ public sealed partial class RefundViewModel : AppViewModelBase
 
     private SalesResult result = default!;
 
-    private PaymentMethodResponseItem? pointsMethod;
+    private PaymentMethodListResponseItem? pointsMethod;
 
     private decimal pointsRefund;
 

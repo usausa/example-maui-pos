@@ -2,7 +2,7 @@ namespace Pos.Contract.Categories;
 
 using Pos.Contract;
 
-public sealed class CategoryResponseItem
+public sealed class CategoryListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -24,4 +24,4 @@ public sealed class CategoryResponseItem
     public int Version { get; set; }
 }
 
-public sealed class CategoryResponse : ListResponse<CategoryResponseItem>;
+public sealed class CategoryListResponse : ListResponse<CategoryListResponseItem>;

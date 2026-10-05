@@ -182,7 +182,7 @@ public sealed partial class ShiftUsecase
     // 開設中の予想現金はサーバが応答の時点で集計した途中の値なので写さない (端末の集計は値がないときに自分で求める)
     [Mapper]
     [MapIgnore(nameof(LocalShiftEntity.ExpectedCash))]
-    private static partial LocalShiftEntity ToEntity(ShiftResponseItem shift);
+    private static partial LocalShiftEntity ToEntity(ShiftListResponseItem shift);
 
     [Mapper]
     private static partial ShiftOpenRequest ToRequest(LocalShiftEntity entity);

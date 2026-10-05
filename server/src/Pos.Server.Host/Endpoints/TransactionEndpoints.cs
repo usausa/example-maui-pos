@@ -21,13 +21,45 @@ public static partial class TransactionEndpoints
     public static void MapTransactionEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Transactions);
-        group.MapPost("/", HandleCreateAsync);
-        group.MapPost("/calculate", HandleCalculateAsync);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/lookup", HandleLookupAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapGet("/{id:guid}/receipt/pdf", HandleReceiptPdfAsync).RequireAuthorization(Policies.Admin);
-        group.MapPost("/{id:guid}/void", HandleVoidAsync);
+        group.MapPost("/", HandleCreateAsync)
+            .WithName("TransactionCreate")
+            .Produces<TransactionResponseItem>()
+            .Produces<TransactionResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/calculate", HandleCalculateAsync)
+            .WithName("TransactionCalculate")
+            .Produces<TransactionCalculateResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapGet("/", HandleListAsync)
+            .WithName("TransactionList")
+            .Produces<TransactionResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/lookup", HandleLookupAsync)
+            .WithName("TransactionLookup")
+            .Produces<TransactionResponseItem>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("TransactionGet")
+            .Produces<TransactionResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapGet("/{id:guid}/receipt/pdf", HandleReceiptPdfAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("TransactionReceiptPdf")
+            .Produces<Stream>(StatusCodes.Status200OK, "application/pdf")
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/{id:guid}/void", HandleVoidAsync)
+            .WithName("TransactionVoid")
+            .Produces<TransactionResponseItem>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------

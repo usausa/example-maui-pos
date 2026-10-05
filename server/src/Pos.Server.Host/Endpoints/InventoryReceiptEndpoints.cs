@@ -19,11 +19,37 @@ public static partial class InventoryReceiptEndpoints
     public static void MapInventoryReceiptEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.InventoryReceipts);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Admin);
-        group.MapPost("/{id:guid}/cancel", HandleCancelAsync).RequireAuthorization(Policies.Admin);
-        group.MapPost("/{id:guid}/receive", HandleReceiveAsync);
+        group.MapGet("/", HandleListAsync)
+            .WithName("InventoryReceiptList")
+            .Produces<InventoryReceiptListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("InventoryReceiptGet")
+            .Produces<InventoryReceiptListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("InventoryReceiptCreate")
+            .Produces<InventoryReceiptListResponseItem>()
+            .Produces<InventoryReceiptListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/cancel", HandleCancelAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("InventoryReceiptCancel")
+            .Produces<InventoryReceiptListResponseItem>()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/{id:guid}/receive", HandleReceiveAsync)
+            .WithName("InventoryReceiptReceive")
+            .Produces<InventoryReceiptListResponseItem>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -37,12 +63,12 @@ public static partial class InventoryReceiptEndpoints
     private static partial InventoryReceiptLineEntity ToEntity(InventoryReceiptCreateRequestLine request);
 
     [Mapper]
-    private static partial InventoryReceiptResponseItem ToResponseCore(InventoryReceiptEntity entity);
+    private static partial InventoryReceiptListResponseItem ToResponseCore(InventoryReceiptEntity entity);
 
     [Mapper]
-    private static partial InventoryReceiptResponseLine ToResponse(InventoryReceiptLineEntity entity);
+    private static partial InventoryReceiptListResponseLine ToResponse(InventoryReceiptLineEntity entity);
 
-    private static InventoryReceiptResponseItem ToResponse(InventoryReceiptDetailView detail)
+    private static InventoryReceiptListResponseItem ToResponse(InventoryReceiptDetailView detail)
     {
         var response = ToResponseCore(detail.Receipt);
         response.SupplierName = detail.SupplierName;
@@ -91,7 +117,7 @@ public static partial class InventoryReceiptEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new InventoryReceiptResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new InventoryReceiptListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

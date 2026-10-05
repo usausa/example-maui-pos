@@ -10,7 +10,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
 
     private readonly NetworkService network;
 
-    private CustomerResponseItem? customer;
+    private CustomerListResponseItem? customer;
 
     public EntryController Keyword { get; }
 
@@ -111,7 +111,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         CurrentState = string.Empty;
     }
 
-    private async Task UpdateCustomerAsync(CustomerResponseItem value)
+    private async Task UpdateCustomerAsync(CustomerListResponseItem value)
     {
         customer = value;
         HasCustomer = true;

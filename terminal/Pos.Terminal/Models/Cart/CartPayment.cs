@@ -4,7 +4,7 @@ public sealed class CartPayment
 {
     public Guid Id { get; set; }
 
-    public PaymentMethodResponseItem Method { get; set; } = default!;
+    public PaymentMethodListResponseItem Method { get; set; } = default!;
 
     public decimal Amount { get; set; }
 

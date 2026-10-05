@@ -2,7 +2,7 @@ namespace Pos.Contract.Customers;
 
 using Pos.Contract;
 
-public sealed class CustomerResponseItem
+public sealed class CustomerListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -37,4 +37,4 @@ public sealed class CustomerResponseItem
     public int Version { get; set; }
 }
 
-public sealed class CustomerResponse : ListResponse<CustomerResponseItem>;
+public sealed class CustomerListResponse : ListResponse<CustomerListResponseItem>;

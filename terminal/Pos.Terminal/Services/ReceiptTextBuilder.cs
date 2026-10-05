@@ -7,7 +7,7 @@ public static class ReceiptTextBuilder
 {
     private const int Width = 32;
 
-    public static string Build(TransactionResponseItem transaction, StoreResponseItem? store, string terminalName, string staffName, IReadOnlyDictionary<Guid, string> paymentMethodNames)
+    public static string Build(TransactionResponseItem transaction, StoreListResponseItem? store, string terminalName, string staffName, IReadOnlyDictionary<Guid, string> paymentMethodNames)
     {
         var sb = new StringBuilder();
         AppendCenter(sb, store?.ReceiptHeader ?? store?.Name ?? string.Empty);

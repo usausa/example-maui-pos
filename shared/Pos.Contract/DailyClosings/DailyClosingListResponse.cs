@@ -3,7 +3,7 @@ namespace Pos.Contract.DailyClosings;
 using Pos.Contract;
 
 // 店舗 × 営業日。締め済みは締めた時点の日計、未締めは取引からの集計 (取消済みを除き、返品は負)
-public sealed class DailyClosingResponseItem
+public sealed class DailyClosingListResponseItem
 {
     // 締め済みのときだけ
     public Guid? Id { get; set; }
@@ -51,4 +51,4 @@ public sealed class DailyClosingResponseItem
     public string? ClosedBy { get; set; }
 }
 
-public sealed class DailyClosingResponse : ListResponse<DailyClosingResponseItem>;
+public sealed class DailyClosingListResponse : ListResponse<DailyClosingListResponseItem>;

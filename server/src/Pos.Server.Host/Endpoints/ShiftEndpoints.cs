@@ -20,15 +20,58 @@ public static partial class ShiftEndpoints
     public static void MapShiftEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Shifts);
-        group.MapPost("/", HandleOpenAsync);
-        group.MapGet("/current", HandleCurrentAsync);
-        group.MapGet("/", HandleListAsync).RequireAuthorization(Policies.Admin);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/{id:guid}/cash-events", HandleCashEventAsync);
-        group.MapGet("/{id:guid}/cash-events", HandleCashEventListAsync);
-        group.MapPost("/{id:guid}/close", HandleCloseAsync);
-        group.MapGet("/{id:guid}/summary", HandleSummaryAsync);
-        group.MapGet("/{id:guid}/summary/pdf", HandleSummaryPdfAsync).RequireAuthorization(Policies.Admin);
+        group.MapPost("/", HandleOpenAsync)
+            .WithName("ShiftOpen")
+            .Produces<ShiftListResponseItem>()
+            .Produces<ShiftListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapGet("/current", HandleCurrentAsync)
+            .WithName("ShiftCurrent")
+            .Produces<ShiftListResponseItem>()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapGet("/", HandleListAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("ShiftList")
+            .Produces<ShiftListResponse>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden);
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("ShiftGet")
+            .Produces<ShiftListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/{id:guid}/cash-events", HandleCashEventAsync)
+            .WithName("ShiftCashEvent")
+            .Produces<ShiftCashEventListResponseItem>()
+            .Produces<ShiftCashEventListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapGet("/{id:guid}/cash-events", HandleCashEventListAsync)
+            .WithName("ShiftCashEventList")
+            .Produces<ShiftCashEventListResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/{id:guid}/close", HandleCloseAsync)
+            .WithName("ShiftClose")
+            .Produces<ShiftListResponseItem>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapGet("/{id:guid}/summary", HandleSummaryAsync)
+            .WithName("ShiftSummary")
+            .Produces<ShiftSummaryResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapGet("/{id:guid}/summary/pdf", HandleSummaryPdfAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("ShiftSummaryPdf")
+            .Produces<Stream>(StatusCodes.Status200OK, "application/pdf")
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     //--------------------------------------------------------------------------------
@@ -51,16 +94,16 @@ public static partial class ShiftEndpoints
     private static List<ShiftDenominationEntity> ToDenominations(ShiftCloseRequest request) => request.Denominations.Select(ToEntity).ToList();
 
     [Mapper]
-    private static partial ShiftResponseItem ToResponseCore(ShiftEntity entity);
+    private static partial ShiftListResponseItem ToResponseCore(ShiftEntity entity);
 
     [Mapper]
-    private static partial ShiftResponseDenomination ToResponse(ShiftDenominationEntity entity);
+    private static partial ShiftListResponseDenomination ToResponse(ShiftDenominationEntity entity);
 
     [Mapper]
-    private static partial ShiftResponseTotals ToResponse(ShiftTotalsView totals);
+    private static partial ShiftListResponseTotals ToResponse(ShiftTotalsView totals);
 
     [Mapper]
-    private static partial ShiftCashEventResponseItem ToResponse(CashEventEntity entity);
+    private static partial ShiftCashEventListResponseItem ToResponse(CashEventEntity entity);
 
     [Mapper]
     private static partial ShiftSummaryResponsePaymentMethod ToResponse(PaymentMethodTotalView total);
@@ -71,7 +114,7 @@ public static partial class ShiftEndpoints
     [Mapper]
     private static partial ShiftSummaryResponseCategory ToResponse(CategoryTotalView total);
 
-    private static ShiftResponseItem ToResponse(ShiftDetailView detail)
+    private static ShiftListResponseItem ToResponse(ShiftDetailView detail)
     {
         var response = ToResponseCore(detail.Shift);
         response.Totals = ToResponse(detail.Totals);
@@ -165,7 +208,7 @@ public static partial class ShiftEndpoints
     {
         var parameter = new ShiftQueryParameter { StoreId = storeId, TerminalId = terminalId, Status = status, From = from, To = to, Sort = EnumHelper.Parse(sort, ShiftSort.OpenedAt), Desc = desc, Page = page, Size = size };
         var result = await service.QueryDetailPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new ShiftResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new ShiftListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -214,7 +257,7 @@ public static partial class ShiftEndpoints
         var result = await service.QueryCashEventPageAsync(id, page, size, cancellationToken);
         return result is null
             ? ApiProblems.NotFound()
-            : TypedResults.Ok(new ShiftCashEventResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+            : TypedResults.Ok(new ShiftCashEventListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     // 精算: 集計を確定して Closed にする (取引・入出金は送信済みであること)。同じ内容の再送は 200

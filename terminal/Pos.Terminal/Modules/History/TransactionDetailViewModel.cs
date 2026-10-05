@@ -198,7 +198,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
         }
 
         // レジ係の取消は店長以上の承認 (PIN) が要る
-        StaffResponseItem? approver = null;
+        StaffListResponseItem? approver = null;
         if (StaffLogic.RequiresVoidApproval(session.Staff.Role))
         {
             approver = await pins.ChooseApproverAsync("取消の承認者");

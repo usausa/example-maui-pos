@@ -2,7 +2,7 @@ namespace Pos.Contract.Shifts;
 
 using Pos.Contract;
 
-public sealed class ShiftCashEventResponseItem
+public sealed class ShiftCashEventListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -21,4 +21,4 @@ public sealed class ShiftCashEventResponseItem
     public DateTime CreatedAt { get; set; }
 }
 
-public sealed class ShiftCashEventResponse : ListResponse<ShiftCashEventResponseItem>;
+public sealed class ShiftCashEventListResponse : ListResponse<ShiftCashEventListResponseItem>;

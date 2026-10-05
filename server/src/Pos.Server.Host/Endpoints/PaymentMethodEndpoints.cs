@@ -15,11 +15,39 @@ public static partial class PaymentMethodEndpoints
     public static void MapPaymentMethodEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.PaymentMethods);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleListAsync)
+            .WithName("PaymentMethodList")
+            .Produces<PaymentMethodListResponse>();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("PaymentMethodGet")
+            .Produces<PaymentMethodListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("PaymentMethodCreate")
+            .Produces<PaymentMethodListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("PaymentMethodUpdate")
+            .Produces<PaymentMethodListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("PaymentMethodDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -27,7 +55,7 @@ public static partial class PaymentMethodEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial PaymentMethodResponseItem ToResponse(PaymentMethodEntity entity);
+    internal static partial PaymentMethodListResponseItem ToResponse(PaymentMethodEntity entity);
 
     [Mapper]
     private static partial PaymentMethodEntity ToEntity(PaymentMethodCreateRequest request);
@@ -47,7 +75,7 @@ public static partial class PaymentMethodEndpoints
         bool includeDeleted = false)
     {
         var items = await service.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
-        return TypedResults.Ok(new PaymentMethodResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new PaymentMethodListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

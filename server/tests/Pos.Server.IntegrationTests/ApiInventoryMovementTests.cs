@@ -46,11 +46,11 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
 
         // Act / Assert: 登録すると入荷予定になり、明細は商品の写しを持つ
         using var createResponse = await client.PostJsonAsync(ApiRoutes.InventoryReceipts, create, options);
-        var receipt = await createResponse.ReadAsAsync<InventoryReceiptResponseItem>(HttpStatusCode.Created, options);
-        var supplier = await client.GetJsonAsync<SupplierResponseItem>($"{ApiRoutes.Suppliers}/{TestData.SupplierId}", options);
+        var receipt = await createResponse.ReadAsAsync<InventoryReceiptListResponseItem>(HttpStatusCode.Created, options);
+        var supplier = await client.GetJsonAsync<SupplierListResponseItem>($"{ApiRoutes.Suppliers}/{TestData.SupplierId}", options);
         Assert.Equal((InventoryReceiptStatus.Draft, supplier.Name), (receipt.Status, receipt.SupplierName));
         Assert.Equal(["SD-64", "CAM-X100"], receipt.Lines.Select(static x => x.ProductCode));
-        var drafts = await client.GetJsonAsync<InventoryReceiptResponse>($"{ApiRoutes.InventoryReceipts}?storeId={TestData.MainStoreId}&status=Draft", options);
+        var drafts = await client.GetJsonAsync<InventoryReceiptListResponse>($"{ApiRoutes.InventoryReceipts}?storeId={TestData.MainStoreId}&status=Draft", options);
         Assert.Contains(drafts.Items, x => x.Id == receipt.Id);
 
         // Act / Assert: SD カードは 9 個だけ届いた (カメラは予定どおり)
@@ -60,11 +60,11 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
             Lines = [new InventoryReceiptReceiveRequestLine { LineId = receipt.Lines[0].Id, Quantity = 9m }]
         };
         using var receiveResponse = await client.PostJsonAsync($"{ApiRoutes.InventoryReceipts}/{receipt.Id}/receive", receive, options);
-        var received = await receiveResponse.ReadAsAsync<InventoryReceiptResponseItem>(HttpStatusCode.OK, options);
+        var received = await receiveResponse.ReadAsAsync<InventoryReceiptListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal((InventoryReceiptStatus.Received, 9m, 2m), (received.Status, received.Lines[0].ReceivedQuantity, received.Lines[1].ReceivedQuantity));
         Assert.Equal(sdCardBefore + 9m, await QuantityAsync(client, TestData.MainStoreId, TestData.SdCardProductId));
         Assert.Equal(cameraBefore + 2m, await QuantityAsync(client, TestData.MainStoreId, TestData.CameraProductId));
-        var changes = await client.GetJsonAsync<InventoryChangeResponse>($"{ApiRoutes.Inventory}/changes?storeId={TestData.MainStoreId}&productId={TestData.SdCardProductId}&type=Receive", options);
+        var changes = await client.GetJsonAsync<InventoryChangeListResponse>($"{ApiRoutes.Inventory}/changes?storeId={TestData.MainStoreId}&productId={TestData.SdCardProductId}&type=Receive", options);
         var change = changes.Items.Single(x => x.ReferenceId == receipt.Id);
         Assert.Equal((9m, "D-1001", "InventoryReceipt"), (change.QuantityDelta, change.Reason, change.ReferenceType));
 
@@ -78,9 +78,9 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
 
         // Act / Assert: 入荷予定はキャンセルでき、仕入先がなければ登録できない
         using var draftResponse = await client.PostJsonAsync(ApiRoutes.InventoryReceipts, create, options);
-        var draft = await draftResponse.ReadAsAsync<InventoryReceiptResponseItem>(HttpStatusCode.Created, options);
+        var draft = await draftResponse.ReadAsAsync<InventoryReceiptListResponseItem>(HttpStatusCode.Created, options);
         using var cancelResponse = await client.PostAsync(new Uri($"{ApiRoutes.InventoryReceipts}/{draft.Id}/cancel", UriKind.Relative), null, Token);
-        Assert.Equal(InventoryReceiptStatus.Cancelled, (await cancelResponse.ReadAsAsync<InventoryReceiptResponseItem>(HttpStatusCode.OK, options)).Status);
+        Assert.Equal(InventoryReceiptStatus.Cancelled, (await cancelResponse.ReadAsAsync<InventoryReceiptListResponseItem>(HttpStatusCode.OK, options)).Status);
         create.SupplierId = Guid.NewGuid();
         using var unknownResponse = await client.PostJsonAsync(ApiRoutes.InventoryReceipts, create, options);
         await unknownResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
@@ -106,7 +106,7 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
         using var sameStoreResponse = await client.PostJsonAsync(ApiRoutes.InventoryTransfers, new InventoryTransferCreateRequest { FromStoreId = TestData.MainStoreId, ToStoreId = TestData.MainStoreId, Lines = create.Lines }, options);
         await sameStoreResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         using var createResponse = await client.PostJsonAsync(ApiRoutes.InventoryTransfers, create, options);
-        var transfer = await createResponse.ReadAsAsync<InventoryTransferResponseItem>(HttpStatusCode.Created, options);
+        var transfer = await createResponse.ReadAsAsync<InventoryTransferListResponseItem>(HttpStatusCode.Created, options);
         Assert.StartsWith("S001-T-", transfer.TransferNo, StringComparison.Ordinal);
         Assert.Equal((InventoryTransferStatus.Requested, "本店", "支店"), (transfer.Status, transfer.FromStoreName, transfer.ToStoreName));
         var receive = new InventoryTransferReceiveRequest { StaffId = TestData.BranchCashierStaffId, Lines = [new InventoryTransferReceiveRequestLine { LineId = transfer.Lines[0].Id, Quantity = 2m }] };
@@ -115,21 +115,21 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
 
         // Act / Assert: 出荷で出荷店の在庫が減り、キャンセルはできなくなる
         using var shipResponse = await client.PostJsonAsync($"{ApiRoutes.InventoryTransfers}/{transfer.Id}/ship", new InventoryTransferShipRequest(), options);
-        Assert.Equal(InventoryTransferStatus.Shipped, (await shipResponse.ReadAsAsync<InventoryTransferResponseItem>(HttpStatusCode.OK, options)).Status);
+        Assert.Equal(InventoryTransferStatus.Shipped, (await shipResponse.ReadAsAsync<InventoryTransferListResponseItem>(HttpStatusCode.OK, options)).Status);
         Assert.Equal(fromBefore - 3m, await QuantityAsync(client, TestData.MainStoreId, TestData.SdCardProductId));
         using var cancelResponse = await client.PostAsync(new Uri($"{ApiRoutes.InventoryTransfers}/{transfer.Id}/cancel", UriKind.Relative), null, Token);
         await cancelResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "INVENTORY_TRANSFER_STATUS_INVALID", options);
-        var open = await client.GetJsonAsync<InventoryTransferResponse>($"{ApiRoutes.InventoryTransfers}?toStoreId={TestData.BranchStoreId}&open=true", options);
+        var open = await client.GetJsonAsync<InventoryTransferListResponse>($"{ApiRoutes.InventoryTransfers}?toStoreId={TestData.BranchStoreId}&open=true", options);
         Assert.Contains(open.Items, x => x.Id == transfer.Id);
 
         // Act / Assert: 2 個だけ届いた。入荷店に数えた数だけ入り、変動は TransferIn
         using var receiveResponse = await client.PostJsonAsync($"{ApiRoutes.InventoryTransfers}/{transfer.Id}/receive", receive, options);
-        var received = await receiveResponse.ReadAsAsync<InventoryTransferResponseItem>(HttpStatusCode.OK, options);
+        var received = await receiveResponse.ReadAsAsync<InventoryTransferListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal((InventoryTransferStatus.Received, 2m), (received.Status, received.Lines[0].ReceivedQuantity));
         Assert.Equal(toBefore + 2m, await QuantityAsync(client, TestData.BranchStoreId, TestData.SdCardProductId));
-        var changes = await client.GetJsonAsync<InventoryChangeResponse>($"{ApiRoutes.Inventory}/changes?productId={TestData.SdCardProductId}&type=TransferIn", options);
+        var changes = await client.GetJsonAsync<InventoryChangeListResponse>($"{ApiRoutes.Inventory}/changes?productId={TestData.SdCardProductId}&type=TransferIn", options);
         Assert.Equal((2m, transfer.TransferNo), changes.Items.Where(x => x.ReferenceId == transfer.Id).Select(static x => (x.QuantityDelta, x.Reason)).Single());
-        open = await client.GetJsonAsync<InventoryTransferResponse>($"{ApiRoutes.InventoryTransfers}?toStoreId={TestData.BranchStoreId}&open=true", options);
+        open = await client.GetJsonAsync<InventoryTransferListResponse>($"{ApiRoutes.InventoryTransfers}?toStoreId={TestData.BranchStoreId}&open=true", options);
         Assert.DoesNotContain(open.Items, x => x.Id == transfer.Id);
     }
 
@@ -139,11 +139,11 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
     {
         // Arrange
         var client = await factory.CreateAdminClientAsync();
-        var request = new InventoryChangeRequest
+        var request = new InventoryChangesRequest
         {
             Changes =
             [
-                new InventoryChangeRequestChange
+                new InventoryChangesRequestChange
                 {
                     Id = Guid.NewGuid(),
                     StoreId = TestData.MainStoreId,
@@ -169,7 +169,7 @@ public sealed class ApiInventoryMovementTests : IClassFixture<TestApplicationFac
 
     private async Task<decimal> QuantityAsync(HttpClient client, Guid storeId, Guid productId)
     {
-        var levels = await client.GetJsonAsync<InventoryProductResponse>($"{ApiRoutes.Inventory}/{productId}", options);
+        var levels = await client.GetJsonAsync<InventoryProductLevelsResponse>($"{ApiRoutes.Inventory}/{productId}", options);
         return levels.Levels.FirstOrDefault(x => x.StoreId == storeId)?.Quantity ?? 0m;
     }
 }

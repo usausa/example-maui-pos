@@ -2,7 +2,7 @@ namespace Pos.Contract.Terminals;
 
 using Pos.Contract;
 
-public sealed class TerminalResponseItem
+public sealed class TerminalListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -31,4 +31,4 @@ public sealed class TerminalResponseItem
     public int Version { get; set; }
 }
 
-public sealed class TerminalResponse : ListResponse<TerminalResponseItem>;
+public sealed class TerminalListResponse : ListResponse<TerminalListResponseItem>;

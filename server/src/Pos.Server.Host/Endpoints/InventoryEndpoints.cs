@@ -18,10 +18,23 @@ public static partial class InventoryEndpoints
     public static void MapInventoryEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Inventory);
-        group.MapGet("/", HandleLevelListAsync);
-        group.MapPost("/changes", HandleChangesAsync);
-        group.MapGet("/changes", HandleChangeListAsync);
-        group.MapGet("/{productId:guid}", HandleProductLevelsAsync);
+        group.MapGet("/", HandleLevelListAsync)
+            .WithName("InventoryLevelList")
+            .Produces<InventoryLevelListResponse>()
+            .ProducesValidationProblem();
+        group.MapPost("/changes", HandleChangesAsync)
+            .WithName("InventoryChanges")
+            .Produces<InventoryChangesResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+        group.MapGet("/changes", HandleChangeListAsync)
+            .WithName("InventoryChangeList")
+            .Produces<InventoryChangeListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/{productId:guid}", HandleProductLevelsAsync)
+            .WithName("InventoryProductLevels")
+            .Produces<InventoryProductLevelsResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     //--------------------------------------------------------------------------------
@@ -29,16 +42,16 @@ public static partial class InventoryEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    private static partial InventoryLevelResponseItem ToResponse(InventoryLevelEntity entity);
+    private static partial InventoryLevelListResponseItem ToResponse(InventoryLevelEntity entity);
 
     [Mapper]
-    private static partial InventoryProductResponseLevel ToResponse(ProductInventoryLevelView level);
+    private static partial InventoryProductLevelsResponseLevel ToResponse(ProductInventoryLevelView level);
 
     [Mapper]
-    private static partial InventoryChangeResponseItem ToResponse(InventoryChangeEntity entity);
+    private static partial InventoryChangeListResponseItem ToResponse(InventoryChangeEntity entity);
 
     [Mapper]
-    private static partial InventoryChangeParameter ToParameter(InventoryChangeRequestChange change);
+    private static partial InventoryChangeParameter ToParameter(InventoryChangesRequestChange change);
 
     //--------------------------------------------------------------------------------
     // Level
@@ -66,7 +79,7 @@ public static partial class InventoryEndpoints
             Size = size
         };
         var result = await service.QueryLevelPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new InventoryLevelResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new InventoryLevelListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     // 商品の全店舗在庫 (他店在庫照会)
@@ -78,7 +91,7 @@ public static partial class InventoryEndpoints
         var levels = await service.QueryProductLevelsAsync(productId, cancellationToken);
         return levels is null
             ? ApiProblems.NotFound("商品が見つかりません")
-            : TypedResults.Ok(new InventoryProductResponse { ProductId = productId, Levels = levels.Select(ToResponse).ToList() });
+            : TypedResults.Ok(new InventoryProductLevelsResponse { ProductId = productId, Levels = levels.Select(ToResponse).ToList() });
     }
 
     //--------------------------------------------------------------------------------
@@ -90,7 +103,7 @@ public static partial class InventoryEndpoints
         TerminalAccess access,
         InventoryService service,
         ClaimsPrincipal user,
-        InventoryChangeRequest request,
+        InventoryChangesRequest request,
         CancellationToken cancellationToken)
     {
         if (!request.Changes.All(x => access.CanAccess(user, x.StoreId)))
@@ -99,9 +112,9 @@ public static partial class InventoryEndpoints
         }
 
         var results = await service.ApplyChangesAsync(request.Changes.Select(ToParameter).ToList(), cancellationToken);
-        return TypedResults.Ok(new InventoryChangeResultResponse
+        return TypedResults.Ok(new InventoryChangesResponse
         {
-            Results = results.Select(static x => new InventoryChangeResultResponseResult
+            Results = results.Select(static x => new InventoryChangesResponseResult
             {
                 Id = x.Change.Id,
                 Status = x.Duplicate ? InventoryChangeResultStatus.Duplicate : InventoryChangeResultStatus.Created,
@@ -125,6 +138,6 @@ public static partial class InventoryEndpoints
     {
         var parameter = new InventoryChangeQueryParameter { StoreId = storeId, ProductId = productId, Type = type, From = from, To = to, Page = page, Size = size };
         var result = await service.QueryChangePageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new InventoryChangeResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new InventoryChangeListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 }

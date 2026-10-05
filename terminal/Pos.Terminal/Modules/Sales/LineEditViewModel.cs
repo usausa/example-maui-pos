@@ -2,7 +2,7 @@ namespace Pos.Terminal.Modules.Sales;
 
 using Pos.Terminal.Models.Cart;
 
-public sealed record LineEditParameter(CartLine Line, IReadOnlyList<DiscountResponseItem> Discounts);
+public sealed record LineEditParameter(CartLine Line, IReadOnlyList<DiscountListResponseItem> Discounts);
 
 public enum LineEditResult
 {
@@ -20,7 +20,7 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
     private CartLine line = default!;
 
-    private IReadOnlyList<DiscountResponseItem> discounts = [];
+    private IReadOnlyList<DiscountListResponseItem> discounts = [];
 
     private decimal quantity;
 

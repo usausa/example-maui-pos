@@ -3,7 +3,7 @@ namespace Pos.Terminal.Modules.Sales;
 using Pos.Contract.Customers;
 
 // 検索結果の会員 (アバターは名前の頭文字と会員番号で決まる色)
-public sealed record CustomerItem(CustomerResponseItem Customer, string Name, string Code, string Phone, string PointsText);
+public sealed record CustomerItem(CustomerListResponseItem Customer, string Name, string Code, string Phone, string PointsText);
 
 // 会員選択: 検索 (オンライン) またはスキャンで取引に会員を紐付ける
 public sealed partial class CustomerSelectViewModel : AppViewModelBase
@@ -115,7 +115,7 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
         Message = "該当する会員がいません";
     }
 
-    private async Task ApplyAsync(CustomerResponseItem customer)
+    private async Task ApplyAsync(CustomerListResponseItem customer)
     {
         SalesContext.Cart.Customer = customer;
         await dialog.Toast($"👤 {customer.Name} ({ViewHelper.Points(customer.PointBalance)})");

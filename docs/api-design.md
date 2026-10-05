@@ -41,7 +41,7 @@ MAUI レジ端末アプリと Blazor 管理画面が利用する POS サーバ (
 | 数量 (`qty`) | `decimal(9,2)` 相当。ホームセンターの切り売り (m 単位) を想定 |
 | ポイント | 整数 (`int`)。1 pt = 1 円 |
 | ID | GUID。端末発の書き込みは端末が GUID v7 を採番 ([D-32](decisions.md#d-32-端末発の書き込みは端末が-id-を採番する)) |
-| 通信データ | `XxxRequest` / `XxxResponse` (一覧は `XxxResponse`、要素は `XxxResponseItem`) を `Pos.Contract` に置き、サーバと端末の両方で使う ([D-26](decisions.md#d-26-サーバ端末共有のプロジェクトに分ける), [D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする)) |
+| 通信データ | `XxxRequest` / `XxxResponse` (一覧は `XxxListResponse`、要素は `XxxListResponseItem`) を `Pos.Contract` に置き、サーバと端末の両方で使う ([D-26](decisions.md#d-26-サーバ端末共有のプロジェクトに分ける), [D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする)) |
 | OpenAPI | `Microsoft.AspNetCore.OpenApi` + 開発時 NSwag UI (`/swagger`, `/redoc`) |
 
 本書のフィールド名は JSON (camelCase) で書く。  
@@ -53,7 +53,7 @@ C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
   ページングしない一覧 (税率など) も同じ形で返す (`page` = 0、`size` = 件数)
 
 ```jsonc
-{ "total": 1234, "page": 0, "size": 20, "items": [ /* XxxResponseItem */ ] }
+{ "total": 1234, "page": 0, "size": 20, "items": [ /* XxxListResponseItem */ ] }
 ```
 
 - 並び替えは `sort` (列名) / `desc` (bool)。  
@@ -71,7 +71,7 @@ C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
 
 | 項目 | 仕様 |
 | --- | --- |
-| 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxResponseItem`。`id` を送る登録 (取引、シフトの開設、入出金、受注、前受金の受取と返金) は、**同じ `id` が既に存在すれば `200 OK` で既存を返し**、主な項目が既存と違えば `409 Conflict` (`DUPLICATE_ID_MISMATCH`)。棚卸・調整は要素ごとに `Duplicate` を返し ([§3.16](#-316-在庫-inventory))、精算は実査金額が同じ再送を `200` で返す ([§3.13](#-313-レジ開閉現金管理-shifts)) |
+| 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxListResponseItem`。`id` を送る登録 (取引、シフトの開設、入出金、受注、前受金の受取と返金) は、**同じ `id` が既に存在すれば `200 OK` で既存を返し**、主な項目が既存と違えば `409 Conflict` (`DUPLICATE_ID_MISMATCH`)。棚卸・調整は要素ごとに `Duplicate` を返し ([§3.16](#-316-在庫-inventory))、精算は実査金額が同じ再送を `200` で返す ([§3.13](#-313-レジ開閉現金管理-shifts)) |
 | 更新 | 管理系は `PUT /resources/{id}` (`XxxUpdateRequest`、全体置換)。本文の `version` で楽観ロック。不一致なら `409 Conflict` (`VERSION_MISMATCH`) |
 | 削除 | 管理系は `DELETE /resources/{id}` で論理削除 (`isDeleted = true`)。取引など履歴は削除しない。削除後も `GET /resources/{id}` は `isDeleted: true` で返し、更新・再削除は `404` |
 | 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422`。本文の JSON や引数の型が読めない要求も `400` (`VALIDATION_ERROR`、[D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする)) |
@@ -135,7 +135,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 ## 🌐 3. リソース別 API
 
 各表の「用途」: **端末** = MAUI レジアプリが使う / **管理** = Blazor 管理画面が使う / **管理 (管理者)** = 管理画面の管理者だけ ([§2.6](#26-認証認可))。  
-フィールド表は `XxxResponseItem` の項目。  
+フィールド表は `XxxListResponseItem` の項目。  
 `XxxCreateRequest` / `XxxUpdateRequest` はそこからサーバ付与項目 (`id`, `createdAt`, `updatedAt`) を除いたもの (`version` は Update のみ)。
 
 ### 🏢 3.1 会社設定 (Settings)
@@ -172,8 +172,8 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| GET | `/stores?updatedSince&includeDeleted&sort&desc&page&size` | 端末 / 管理 | 店舗一覧 (`StoreResponse`)。`sort` = `code` / `name` / `updatedAt` |
-| GET | `/stores/{id}` | 端末 / 管理 | 店舗詳細 (`StoreResponseItem`) |
+| GET | `/stores?updatedSince&includeDeleted&sort&desc&page&size` | 端末 / 管理 | 店舗一覧 (`StoreListResponse`)。`sort` = `code` / `name` / `updatedAt` |
+| GET | `/stores/{id}` | 端末 / 管理 | 店舗詳細 (`StoreListResponseItem`) |
 | POST | `/stores` | 管理 (管理者) | 登録 (`StoreCreateRequest`) |
 | PUT | `/stores/{id}` | 管理 (管理者) | 更新 (`StoreUpdateRequest`) |
 | DELETE | `/stores/{id}` | 管理 (管理者) | 論理削除 (端末・在庫が残っていれば 422) |
@@ -673,7 +673,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 端末ごとの「開設 → 販売 → 入出金 → 精算」の単位。
 
-#### シフトの項目 (`ShiftResponseItem`)
+#### シフトの項目 (`ShiftListResponseItem`)
 
 | フィールド | 型 | 区分 | 説明 |
 | --- | --- | --- | --- |
@@ -692,7 +692,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | `note` | string(500)? | 入力 | |
 | `createdAt`, `updatedAt` | | サーバ | |
 
-`ShiftCashEventResponseItem` (入出金):
+`ShiftCashEventListResponseItem` (入出金):
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
@@ -722,7 +722,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 ```jsonc
 {
-  "shift": { /* ShiftResponseItem */ },
+  "shift": { /* ShiftListResponseItem */ },
   "byPaymentMethod": [ { "paymentMethodId": "...", "name": "現金", "kind": "Cash",
                          "salesAmount": 125000, "salesCount": 40, "returnAmount": 2000, "returnCount": 1 } ],
   "byTaxRate":       [ { "taxRateId": "...", "rate": 0.10, "taxIncluded": true, "taxableAmount": 300000, "taxAmount": 27272 } ],
@@ -748,7 +748,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 店舗 × 営業日の締め ([D-12](decisions.md#d-12-日次締めは日計を写して持ち締めた日の取消を止める))。  
 締めた時点の日計と内訳を確定する (取消の制限と、締めた後に届いた取引の扱いは業務ルール)。
 
-#### 日次締めの項目 (`DailyClosingResponseItem`)
+#### 日次締めの項目 (`DailyClosingListResponseItem`)
 
 一覧の要素は店舗 × 営業日 (シフト・取引・締めのある日) で、未締めの日も含む。  
 締め済みは締めた時点の日計、未締めは取引からの集計 (取消済みを除き、返品は負。[§3.17](#-317-レポート-reports) の売上集計と同じ定義)。
@@ -773,7 +773,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 ```jsonc
 {
-  "dailyClosing":    { /* DailyClosingResponseItem */ },
+  "dailyClosing":    { /* DailyClosingListResponseItem */ },
   "byPaymentMethod": [ { "paymentMethodId": "...", "name": "現金", "kind": "Cash",
                          "salesAmount": 125000, "salesCount": 40, "returnAmount": 2000, "returnCount": 1 } ],
   "byTaxRate":       [ { "taxRateId": "...", "rate": 0.10, "taxIncluded": true, "taxableAmount": 300000, "taxAmount": 27272 } ],
@@ -787,8 +787,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| POST | `/daily-closings` | 管理 | 締め `DailyClosingCreateRequest { storeId, businessDate }` → `201` + `DailyClosingSummaryResponse`。シフトのない日は `422` (`SHIFT_NOT_FOUND`)、未精算のシフトがあれば `422` (`SHIFT_STILL_OPEN`)、締め済みは `409` (`ALREADY_CLOSED`) |
-| GET | `/daily-closings?storeId&status&from&to&sort&desc&page&size` | 管理 | 店舗 × 営業日の一覧 (`DailyClosingResponse`)。営業日の降順、同じ日は店舗コード順。`sort` = `businessDate` / `netSales` |
+| POST | `/daily-closings` | 管理 | 締め `DailyClosingCloseRequest { storeId, businessDate }` → `201` + `DailyClosingSummaryResponse`。シフトのない日は `422` (`SHIFT_NOT_FOUND`)、未精算のシフトがあれば `422` (`SHIFT_STILL_OPEN`)、締め済みは `409` (`ALREADY_CLOSED`) |
+| GET | `/daily-closings?storeId&status&from&to&sort&desc&page&size` | 管理 | 店舗 × 営業日の一覧 (`DailyClosingListResponse`)。営業日の降順、同じ日は店舗コード順。`sort` = `businessDate` / `netSales` |
 | GET | `/daily-closings/preview?storeId&businessDate` | 管理 | その日の内容 (`DailyClosingSummaryResponse`)。未締めの日は締める前の確認に使う |
 | GET | `/daily-closings/{id}` | 管理 | 締めた内容 (`DailyClosingSummaryResponse`) |
 | DELETE | `/daily-closings/{id}` | 管理 (管理者) | 締め解除 (日計と内訳を消して未締めに戻す) → `204` |
@@ -810,7 +810,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 端末からの登録と状態の変更はオンライン限定。  
 前受金は端末のシフトで受け取り、会計で全額を充てる ([D-14](decisions.md#d-14-前受金はシフトで受け取り会計で全額を充てる))。
 
-#### 受注の項目 (`OrderResponseItem`)
+#### 受注の項目 (`OrderListResponseItem`)
 
 | フィールド | 型 | 区分 | 説明 |
 | --- | --- | --- | --- |
@@ -841,7 +841,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | POST | `/orders` | 端末 / 管理 | 登録 (`OrderCreateRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `400` 会員も宛名もない / `422` 商品・会員・店舗が見つからない |
-| GET | `/orders?storeId&status&open&type&customerId&keyword&from&to&sort&desc&page&size` | 端末 / 管理 | 一覧 (`OrderResponse`)。`open=true` は未完了だけ、`keyword` は受注番号・宛名・電話の部分一致、`from` / `to` は受注日。`sort` = `orderedAt` / `orderNo` / `requestedDate` |
+| GET | `/orders?storeId&status&open&type&customerId&keyword&from&to&sort&desc&page&size` | 端末 / 管理 | 一覧 (`OrderListResponse`)。`open=true` は未完了だけ、`keyword` は受注番号・宛名・電話の部分一致、`from` / `to` は受注日。`sort` = `orderedAt` / `orderNo` / `requestedDate` |
 | GET | `/orders/{id}` | 端末 / 管理 | 詳細 |
 | GET | `/orders/{id}/pdf` | 管理 | 受注票 (PDF。お客様の控えで、前受金を受け取ったときは預り証を兼ねる。[D-21](decisions.md#d-21-帳票はサーバが-pdf-にする)) |
 | PUT | `/orders/{id}` | 管理 | 変更 (`OrderUpdateRequest`: 会員・宛名・電話・希望日・備考・明細 (全体を置き換える)・`version`)。完了・キャンセル済みは `422` (`ORDER_STATUS_INVALID`)、版の不一致は `409` |
@@ -870,18 +870,18 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 ### 🚚 3.16 在庫 (Inventory)
 
-現在庫 (`InventoryLevelResponseItem`) と変動履歴 (`InventoryChangeResponseItem`)。  
+現在庫 (`InventoryLevelListResponseItem`) と変動履歴 (`InventoryChangeListResponseItem`)。  
 取引による変動はサーバが自動生成し、端末からは棚卸・調整だけを送る ([D-15](decisions.md#d-15-在庫は変動の履歴と現在庫で持つ))。  
 仕入先からの入荷と店舗間移動は伝票で持ち、受領・出荷の操作で変動を記録する ([D-16](decisions.md#d-16-入荷と店舗間移動は伝票で持つ))。  
 仕入先への発注も伝票で持ち、[発注] で入荷予定を作る ([D-17](decisions.md#d-17-発注は入荷予定を作りその受領とキャンセルに合わせる))。
 
-| `InventoryLevelResponseItem` | 型 | 説明 |
+| `InventoryLevelListResponseItem` | 型 | 説明 |
 | --- | --- | --- |
 | `storeId`, `productId` | guid | 複合キー |
 | `quantity` | qty | 現在庫 (負も許容し、要確認として扱う) |
 | `updatedAt` | datetime | |
 
-| `InventoryChangeResponseItem` | 型 | 説明 |
+| `InventoryChangeListResponseItem` | 型 | 説明 |
 | --- | --- | --- |
 | `id` | guid | 端末採番 (棚卸・調整) / サーバ採番 (取引・入荷・移動由来) |
 | `storeId`, `productId` | guid | |
@@ -898,24 +898,24 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | --- | --- | --- | --- |
 | GET | `/inventory?storeId&productId&categoryId&negativeOnly&updatedSince&page&size` | 端末 / 管理 | 現在庫一覧 (端末は自店分を差分同期) |
 | GET | `/inventory/{productId}` | 端末 / 管理 | 商品の**全店舗**在庫 (他店在庫照会) `{ productId, levels: [{ storeId, storeName, quantity, updatedAt }] }` |
-| POST | `/inventory/changes` | 端末 / 管理 | 棚卸・調整の一括登録 (`InventoryChangeRequest`、下記) |
+| POST | `/inventory/changes` | 端末 / 管理 | 棚卸・調整の一括登録 (`InventoryChangesRequest`、下記) |
 | GET | `/inventory/changes?storeId&productId&type&from&to&page&size` | 端末 / 管理 | 変動履歴 (`from` / `to` は UTC の日時で、`to` を含まない) |
 | GET | `/inventory/adjustment-reasons?updatedSince&includeDeleted` | 端末 / 管理 | 調整理由一覧 (破損 / 廃棄 / 万引き / 自家消費 / 棚卸差異 ...) |
 | GET | `/inventory/adjustment-reasons/{id}` | 端末 / 管理 | 調整理由詳細 |
 | POST / PUT / DELETE | `/inventory/adjustment-reasons`, `.../{id}` | 管理 (管理者) | 登録 / 更新 / 論理削除 |
-| GET | `/inventory/suppliers?includeDeleted`, `.../{id}` | 管理 | 仕入先一覧 / 詳細 (`SupplierResponseItem`: コード・名称・電話・メール・備考・有効) |
+| GET | `/inventory/suppliers?includeDeleted`, `.../{id}` | 管理 | 仕入先一覧 / 詳細 (`SupplierListResponseItem`: コード・名称・電話・メール・備考・有効) |
 | POST / PUT / DELETE | `/inventory/suppliers`, `.../{id}` | 管理 (管理者) | 登録 / 更新 (`version`) / 論理削除。コードの重複は `409` |
 
 `POST /inventory/changes`:
 
 ```jsonc
-// 要求 (InventoryChangeRequest)
+// 要求 (InventoryChangesRequest)
 { "changes": [
     { "id": "...", "storeId": "...", "productId": "...", "type": "PhysicalCount", "quantity": 12,     // 実数
       "staffId": "...", "occurredAt": "..." },
     { "id": "...", "storeId": "...", "productId": "...", "type": "Adjustment",    "quantity": -1,     // 増減
       "reasonId": "...", "reason": "展示品破損", "staffId": "...", "occurredAt": "..." } ] }
-// 応答 200 (InventoryChangeResultResponse。要素ごとに結果)
+// 応答 200 (InventoryChangesResponse。要素ごとに結果)
 { "results": [ { "id": "...", "status": "Created",   "quantityDelta": 2, "quantityAfter": 12 },
                { "id": "...", "status": "Duplicate", "quantityDelta": -1, "quantityAfter": 11 } ] }
 ```
@@ -926,7 +926,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 - `type` は `PhysicalCount` / `Adjustment` だけ (ほかは `400`)。  
   入荷・移動の変動は下の伝票の受領・出荷で作る
 
-#### 入荷の項目 (`InventoryReceiptResponseItem`)
+#### 入荷の項目 (`InventoryReceiptListResponseItem`)
 
 | フィールド | 型 | 区分 | 説明 |
 | --- | --- | --- | --- |
@@ -944,7 +944,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | `lines[]` | object[] | 入力 | `{ id, lineNo, productId, productCode, productName, quantity, receivedQuantity, cost }`。`quantity` は予定の数、`receivedQuantity` は受領した数 (受領まで `null`)、`cost` は仕入単価 |
 | `createdAt`, `updatedAt`, `version` | | サーバ | |
 
-#### 店舗間移動の項目 (`InventoryTransferResponseItem`)
+#### 店舗間移動の項目 (`InventoryTransferListResponseItem`)
 
 | フィールド | 型 | 区分 | 説明 |
 | --- | --- | --- | --- |
@@ -964,12 +964,12 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| GET | `/inventory/receipts?storeId&supplierId&status&from&to&sort&desc&page&size` | 端末 / 管理 | 入荷一覧 (`InventoryReceiptResponse`)。`from` / `to` は入荷予定日、`sort` = `createdAt` / `expectedDate` |
+| GET | `/inventory/receipts?storeId&supplierId&status&from&to&sort&desc&page&size` | 端末 / 管理 | 入荷一覧 (`InventoryReceiptListResponse`)。`from` / `to` は入荷予定日、`sort` = `createdAt` / `expectedDate` |
 | GET | `/inventory/receipts/{id}` | 端末 / 管理 | 詳細 |
 | POST | `/inventory/receipts` | 管理 | 入荷予定の登録 (`InventoryReceiptCreateRequest`: 店舗・仕入先・納品書番号・入荷予定日・備考・明細 `{ productId, quantity, cost }`)。`201`。店舗・仕入先がなければ `422` `VALIDATION_ERROR`、商品がなければ `422` `PRODUCT_NOT_FOUND` |
 | POST | `/inventory/receipts/{id}/receive` | 端末 / 管理 | 受領 (`InventoryReceiptReceiveRequest { staffId, receivedAt, lines: [{ lineId, quantity }] }`)。入荷予定のときだけ |
 | POST | `/inventory/receipts/{id}/cancel` | 管理 | キャンセル (入荷予定のときだけ) |
-| GET | `/inventory/transfers?storeId&fromStoreId&toStoreId&status&open&sort&desc&page&size` | 端末 / 管理 | 移動一覧 (`InventoryTransferResponse`)。`storeId` は出荷店か入荷店のどちらか、`open=true` は未受領 (出荷待ち・受領待ち) だけ。`sort` = `createdAt` / `transferNo` |
+| GET | `/inventory/transfers?storeId&fromStoreId&toStoreId&status&open&sort&desc&page&size` | 端末 / 管理 | 移動一覧 (`InventoryTransferListResponse`)。`storeId` は出荷店か入荷店のどちらか、`open=true` は未受領 (出荷待ち・受領待ち) だけ。`sort` = `createdAt` / `transferNo` |
 | GET | `/inventory/transfers/{id}` | 端末 / 管理 | 詳細 |
 | POST | `/inventory/transfers` | 管理 | 依頼 (`InventoryTransferCreateRequest`: 出荷店・入荷店・備考・明細 `{ productId, quantity }`)。`201`。同じ店舗どうしは `400`、店舗がなければ `422` `VALIDATION_ERROR`、商品がなければ `422` `PRODUCT_NOT_FOUND` |
 | POST | `/inventory/transfers/{id}/ship` | 管理 | 出荷 (`InventoryTransferShipRequest { staffId, shippedAt }`)。出荷待ちのときだけ |
@@ -983,7 +983,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
   出荷と受領の差は移動の明細に残る
 - 端末の受領はオンライン限定 (自店の入荷予定と、自店宛に出荷済みの移動)
 
-#### 発注の項目 (`PurchaseOrderResponseItem`)
+#### 発注の項目 (`PurchaseOrderListResponseItem`)
 
 発注は仕入先への注文の記録で、受領は発注で作った入荷予定で行う ([D-17](decisions.md#d-17-発注は入荷予定を作りその受領とキャンセルに合わせる))。
 
@@ -1008,7 +1008,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| GET | `/inventory/purchase-orders?storeId&supplierId&status&open&from&to&sort&desc&page&size` | 管理 | 発注一覧 (`PurchaseOrderResponse`)。`open=true` は未完了 (下書き・発注済み) だけ、`from` / `to` は希望納期、`sort` = `createdAt` / `expectedDate` / `purchaseOrderNo` |
+| GET | `/inventory/purchase-orders?storeId&supplierId&status&open&from&to&sort&desc&page&size` | 管理 | 発注一覧 (`PurchaseOrderListResponse`)。`open=true` は未完了 (下書き・発注済み) だけ、`from` / `to` は希望納期、`sort` = `createdAt` / `expectedDate` / `purchaseOrderNo` |
 | GET | `/inventory/purchase-orders/{id}` | 管理 | 詳細 |
 | GET | `/inventory/purchase-orders/{id}/pdf` | 管理 | 発注書 (PDF) |
 | POST | `/inventory/purchase-orders` | 管理 | 登録 (`PurchaseOrderCreateRequest`: 店舗・仕入先・希望納期・備考・明細 `{ productId, quantity, cost }`)。下書きで `201`。店舗・仕入先がなければ `422` `VALIDATION_ERROR`、商品がなければ `422` `PRODUCT_NOT_FOUND` |

@@ -3,7 +3,7 @@ namespace Pos.Contract.InventoryReceipts;
 using Pos.Contract;
 
 // 入荷 (仕入先からの入荷予定と受領)
-public sealed class InventoryReceiptResponseItem
+public sealed class InventoryReceiptListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -38,10 +38,10 @@ public sealed class InventoryReceiptResponseItem
 
     public int Version { get; set; }
 
-    public IReadOnlyList<InventoryReceiptResponseLine> Lines { get; set; } = default!;
+    public IReadOnlyList<InventoryReceiptListResponseLine> Lines { get; set; } = default!;
 }
 
-public sealed class InventoryReceiptResponseLine
+public sealed class InventoryReceiptListResponseLine
 {
     public Guid Id { get; set; }
 
@@ -62,4 +62,4 @@ public sealed class InventoryReceiptResponseLine
     public decimal? Cost { get; set; }
 }
 
-public sealed class InventoryReceiptResponse : ListResponse<InventoryReceiptResponseItem>;
+public sealed class InventoryReceiptListResponse : ListResponse<InventoryReceiptListResponseItem>;

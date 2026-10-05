@@ -1,7 +1,7 @@
 namespace Pos.Terminal.Modules.Setup;
 
 // 役割の文言と色は画面側の Converter で付ける
-public sealed record StaffItem(StaffResponseItem Staff, string Name, StaffRole Role, bool HasPin);
+public sealed record StaffItem(StaffListResponseItem Staff, string Name, StaffRole Role, bool HasPin);
 
 // スタッフ選択: 所属店舗のスタッフをタップし、PIN で本人を確かめて担当を決める (PIN 未設定のスタッフは選べない)
 public sealed partial class StaffSelectViewModel : AppViewModelBase

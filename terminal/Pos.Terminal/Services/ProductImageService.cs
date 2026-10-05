@@ -23,7 +23,7 @@ public sealed class ProductImageService
     }
 
     // 表示に使うローカルのファイル (画像がない・取得できないときは null)
-    public async ValueTask<string?> GetImageFileAsync(ProductResponseItem product, CancellationToken cancellationToken = default)
+    public async ValueTask<string?> GetImageFileAsync(ProductListResponseItem product, CancellationToken cancellationToken = default)
     {
         if (String.IsNullOrEmpty(product.ImageUrl))
         {

@@ -3,7 +3,7 @@ namespace Pos.Contract.InventoryTransfers;
 using Pos.Contract;
 
 // 店舗間移動
-public sealed class InventoryTransferResponseItem
+public sealed class InventoryTransferListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -38,10 +38,10 @@ public sealed class InventoryTransferResponseItem
 
     public int Version { get; set; }
 
-    public IReadOnlyList<InventoryTransferResponseLine> Lines { get; set; } = default!;
+    public IReadOnlyList<InventoryTransferListResponseLine> Lines { get; set; } = default!;
 }
 
-public sealed class InventoryTransferResponseLine
+public sealed class InventoryTransferListResponseLine
 {
     public Guid Id { get; set; }
 
@@ -60,4 +60,4 @@ public sealed class InventoryTransferResponseLine
     public decimal? ReceivedQuantity { get; set; }
 }
 
-public sealed class InventoryTransferResponse : ListResponse<InventoryTransferResponseItem>;
+public sealed class InventoryTransferListResponse : ListResponse<InventoryTransferListResponseItem>;

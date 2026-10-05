@@ -40,12 +40,12 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
 
         // Act / Assert: 受取は 201、再送は 200、同じ id で内容違いは 409、2 つ目の前受金は 422
         using var depositResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/deposit", deposit, options);
-        var deposited = await depositResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.Created, options);
+        var deposited = await depositResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(500m, deposited.DepositAmount);
         var received = Assert.Single(deposited.Deposits);
         Assert.Equal((OrderDepositType.Receive, PaymentKind.Cash, 500m, shiftId), (received.Type, received.Kind, received.Amount, received.ShiftId));
         using var resendResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/deposit", deposit, options);
-        Assert.Single((await resendResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.OK, options)).Deposits);
+        Assert.Single((await resendResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.OK, options)).Deposits);
         var mismatch = DepositRequest(shiftId, TestData.MainTerminal1Id, TestData.CashPaymentMethodId, 600m);
         mismatch.Id = deposit.Id;
         using var mismatchResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/deposit", mismatch, options);
@@ -79,7 +79,7 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
         using var saleResponse = await PostSaleAsync(client, shiftId, "S001-01-000302", order.Id, 500m);
         var sale = await saleResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(500m, sale.Payments.Single(static x => x.Kind == PaymentKind.Deposit).Amount);
-        var completed = await client.GetJsonAsync<OrderResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
+        var completed = await client.GetJsonAsync<OrderListResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
         Assert.Equal((OrderStatus.Completed, 0m), (completed.Status, completed.DepositAmount));
         summary = await client.GetJsonAsync<ShiftSummaryResponse>($"{ApiRoutes.Shifts}/{shiftId}/summary", options);
         Assert.Equal((1500m, 500m, 2000m), (summary.Cash.CashSales, summary.Cash.DepositCashIn, summary.Cash.ExpectedCash));
@@ -87,28 +87,28 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
         // Act / Assert: 会計を取り消すと引き渡し待ちに戻り、前受金も戻る
         using var voidResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", new TransactionVoidRequest { StaffId = TestData.ManagerStaffId, Reason = "受注の取り違え", VoidedAt = Now.AddMinutes(30) }, options);
         await voidResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.OK, options);
-        var reopened = await client.GetJsonAsync<OrderResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
+        var reopened = await client.GetJsonAsync<OrderListResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
         Assert.Equal((OrderStatus.Arrived, 500m), (reopened.Status, reopened.DepositAmount));
 
         // Act / Assert: 返金は受け取った方法で全額。返したらキャンセルできる
         var refund = RefundRequest(shiftId, TestData.MainTerminal1Id);
         using var refundResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/deposit/refund", refund, options);
-        var refunded = await refundResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.Created, options);
+        var refunded = await refundResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(0m, refunded.DepositAmount);
         var returned = refunded.Deposits.Single(static x => x.Type == OrderDepositType.Refund);
         Assert.Equal((TestData.CashPaymentMethodId, PaymentKind.Cash, 500m), (returned.PaymentMethodId, returned.Kind, returned.Amount));
         using var refundResendResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/deposit/refund", refund, options);
-        await refundResendResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.OK, options);
+        await refundResendResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.OK, options);
         using var refundAgainResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/deposit/refund", RefundRequest(shiftId, TestData.MainTerminal1Id), options);
         await refundAgainResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "ORDER_DEPOSIT_INVALID", options);
         using var cancelResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/cancel", new OrderCancelRequest { Reason = "お客様都合" }, options);
-        Assert.Equal(OrderStatus.Cancelled, (await cancelResponse.ReadAsAsync<OrderResponseItem>(HttpStatusCode.OK, options)).Status);
+        Assert.Equal(OrderStatus.Cancelled, (await cancelResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.OK, options)).Status);
         using var depositCancelledResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{order.Id}/deposit", DepositRequest(shiftId, TestData.MainTerminal1Id, TestData.CashPaymentMethodId, 100m), options);
         await depositCancelledResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "ORDER_STATUS_INVALID", options);
 
         // Act / Assert: 精算で前受金の現金を確定する (取り消した会計は入らない)
         using var closeResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/close", new ShiftCloseRequest { ClosedAt = Now.AddHours(8), ClosedByStaffId = TestData.MainCashierStaffId, ActualCash = 0m }, options);
-        var closed = await closeResponse.ReadAsAsync<ShiftResponseItem>(HttpStatusCode.OK, options);
+        var closed = await closeResponse.ReadAsAsync<ShiftListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal((0m, 0m), (closed.ExpectedCash, closed.Difference));
         Assert.Equal((500m, 500m), (closed.Totals.DepositCashIn, closed.Totals.DepositCashOut));
     }
@@ -143,7 +143,7 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
         await otherStoreResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "ORDER_NOT_FOUND", options);
         await missingOrderResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
         await secondMethodResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
-        Assert.Empty((await client.GetJsonAsync<OrderResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options)).Deposits);
+        Assert.Empty((await client.GetJsonAsync<OrderListResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options)).Deposits);
     }
 
     //--------------------------------------------------------------------------------
@@ -171,7 +171,7 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
     };
 
     // 取り置き (引き渡し待ちから始まる) の SD カード 2 枚 = 4,000 円
-    private async Task<OrderResponseItem> CreateOrderAsync(HttpClient client)
+    private async Task<OrderListResponseItem> CreateOrderAsync(HttpClient client)
     {
         var request = new OrderCreateRequest
         {
@@ -188,14 +188,14 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
             ]
         };
         using var response = await client.PostJsonAsync(ApiRoutes.Orders, request, options);
-        return await response.ReadAsAsync<OrderResponseItem>(HttpStatusCode.Created, options);
+        return await response.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.Created, options);
     }
 
     private async Task<Guid> OpenShiftAsync(HttpClient client, Guid storeId, Guid terminalId)
     {
         var request = new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = storeId, TerminalId = terminalId, BusinessDate = BusinessDate, OpenedAt = Now, OpenedByStaffId = TestData.AdminStaffId, OpeningCash = 0m };
         using var response = await client.PostJsonAsync(ApiRoutes.Shifts, request, options);
-        return (await response.ReadAsAsync<ShiftResponseItem>(HttpStatusCode.Created, options)).Id;
+        return (await response.ReadAsAsync<ShiftListResponseItem>(HttpStatusCode.Created, options)).Id;
     }
 
     // SD カード 2,000 円 (内税 10%、ポイントなし) を、前受金 (deposit) と残りの現金で

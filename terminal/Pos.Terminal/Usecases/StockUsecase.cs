@@ -28,7 +28,7 @@ public sealed class StockUsecase
         this.sync = sync;
     }
 
-    public async ValueTask<ProductResponseItem?> FindProductAsync(string code) =>
+    public async ValueTask<ProductListResponseItem?> FindProductAsync(string code) =>
         await accessor.QueryProductByBarcodeAsync(code) ?? await accessor.QueryProductByCodeAsync(code);
 
     public async ValueTask<decimal> QueryQuantityAsync(Guid productId)
@@ -42,7 +42,7 @@ public sealed class StockUsecase
         return level?.Quantity ?? 0m;
     }
 
-    public ValueTask<List<AdjustmentReasonResponseItem>> QueryReasonListAsync() => accessor.QueryAdjustmentReasonListAsync();
+    public ValueTask<List<AdjustmentReasonListResponseItem>> QueryReasonListAsync() => accessor.QueryAdjustmentReasonListAsync();
 
     // 店舗・担当が決まっているときだけ呼ぶ
     public async ValueTask SendAsync(IReadOnlyList<StockChange> changes)
@@ -50,9 +50,9 @@ public sealed class StockUsecase
         var now = DateTime.UtcNow;
         var storeId = session.Store!.Id;
         var staffId = session.Staff!.Id;
-        var request = new InventoryChangeRequest
+        var request = new InventoryChangesRequest
         {
-            Changes = changes.Select(x => new InventoryChangeRequestChange
+            Changes = changes.Select(x => new InventoryChangesRequestChange
             {
                 Id = x.Id,
                 StoreId = storeId,

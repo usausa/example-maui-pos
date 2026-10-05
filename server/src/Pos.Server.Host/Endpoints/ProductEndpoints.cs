@@ -28,17 +28,81 @@ public static partial class ProductEndpoints
     public static void MapProductEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Products);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/lookup", HandleLookupAsync);
-        group.MapGet("/csv", HandleExportCsvAsync).RequireAuthorization(Policies.Admin);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
-        group.MapGet("/{id:guid}/image", HandleGetImageAsync);
-        group.MapPut("/{id:guid}/image", HandleSaveImageAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}/image", HandleDeleteImageAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPost("/import", HandleImportAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleListAsync)
+            .WithName("ProductList")
+            .Produces<ProductListResponse>()
+            .ProducesValidationProblem();
+        group.MapGet("/lookup", HandleLookupAsync)
+            .WithName("ProductLookup")
+            .Produces<ProductListResponseItem>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapGet("/csv", HandleExportCsvAsync)
+            .RequireAuthorization(Policies.Admin)
+            .WithName("ProductExportCsv")
+            .Produces<Stream>(StatusCodes.Status200OK, "text/csv")
+            .Produces(StatusCodes.Status403Forbidden);
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("ProductGet")
+            .Produces<ProductListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("ProductCreate")
+            .Produces<ProductListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("ProductUpdate")
+            .Produces<ProductListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("ProductDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapGet("/{id:guid}/image", HandleGetImageAsync)
+            .WithName("ProductGetImage")
+            .Produces<Stream>(StatusCodes.Status200OK, "image/jpeg", "image/png")
+            .Produces(StatusCodes.Status304NotModified)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPut("/{id:guid}/image", HandleSaveImageAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("ProductSaveImage")
+            .Produces<ProductListResponseItem>()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}/image", HandleDeleteImageAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("ProductDeleteImage")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapPost("/import", HandleImportAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("ProductImport")
+            .Produces<ProductImportResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -46,7 +110,7 @@ public static partial class ProductEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial ProductResponseItem ToResponse(ProductEntity entity);
+    internal static partial ProductListResponseItem ToResponse(ProductEntity entity);
 
     [Mapper]
     private static partial ProductEntity ToEntity(ProductCreateRequest request);
@@ -106,7 +170,7 @@ public static partial class ProductEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new ProductResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new ProductListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
     }
 
     // CSV 出力 (削除済みを除く全件、コード順)

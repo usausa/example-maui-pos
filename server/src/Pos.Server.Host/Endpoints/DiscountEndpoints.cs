@@ -15,11 +15,37 @@ public static partial class DiscountEndpoints
     public static void MapDiscountEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Discounts);
-        group.MapGet("/", HandleListAsync);
-        group.MapGet("/{id:guid}", HandleGetAsync);
-        group.MapPost("/", HandleCreateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapPut("/{id:guid}", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
-        group.MapDelete("/{id:guid}", HandleDeleteAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleListAsync)
+            .WithName("DiscountList")
+            .Produces<DiscountListResponse>();
+        group.MapGet("/{id:guid}", HandleGetAsync)
+            .WithName("DiscountGet")
+            .Produces<DiscountListResponseItem>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPost("/", HandleCreateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("DiscountCreate")
+            .Produces<DiscountListResponseItem>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{id:guid}", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("DiscountUpdate")
+            .Produces<DiscountListResponseItem>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapDelete("/{id:guid}", HandleDeleteAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("DiscountDelete")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------
@@ -27,7 +53,7 @@ public static partial class DiscountEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial DiscountResponseItem ToResponse(DiscountEntity entity);
+    internal static partial DiscountListResponseItem ToResponse(DiscountEntity entity);
 
     [Mapper]
     private static partial DiscountEntity ToEntity(DiscountCreateRequest request);
@@ -47,7 +73,7 @@ public static partial class DiscountEndpoints
         bool includeDeleted = false)
     {
         var items = await service.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
-        return TypedResults.Ok(new DiscountResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new DiscountListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(

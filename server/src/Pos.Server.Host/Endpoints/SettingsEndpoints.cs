@@ -15,8 +15,19 @@ public static partial class SettingsEndpoints
     public static void MapSettingsEndpoints(this WebApplication app)
     {
         var group = app.MapApiGroup(ApiRoutes.Settings);
-        group.MapGet("/", HandleGetAsync);
-        group.MapPut("/", HandleUpdateAsync).RequireAuthorization(Policies.Administrator);
+        group.MapGet("/", HandleGetAsync)
+            .WithName("SettingsGet")
+            .Produces<SettingsResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPut("/", HandleUpdateAsync)
+            .RequireAuthorization(Policies.Administrator)
+            .WithName("SettingsUpdate")
+            .Produces<SettingsResponse>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
     //--------------------------------------------------------------------------------

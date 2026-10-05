@@ -2,7 +2,7 @@ namespace Pos.Contract.PaymentMethods;
 
 using Pos.Contract;
 
-public sealed class PaymentMethodResponseItem
+public sealed class PaymentMethodListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -34,4 +34,4 @@ public sealed class PaymentMethodResponseItem
     public int Version { get; set; }
 }
 
-public sealed class PaymentMethodResponse : ListResponse<PaymentMethodResponseItem>;
+public sealed class PaymentMethodListResponse : ListResponse<PaymentMethodListResponseItem>;

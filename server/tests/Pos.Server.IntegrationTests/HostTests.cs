@@ -1,5 +1,7 @@
 namespace Pos.Server;
 
+using System.Text.Json.Nodes;
+
 using Microsoft.AspNetCore.Mvc.Testing;
 
 public sealed class HostTests : IClassFixture<TestApplicationFactory>
@@ -85,6 +87,24 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         Assert.Contains("/api/v1/transactions/calculate", content, StringComparison.Ordinal);
         Assert.Contains("/api/v1/shifts/{id}/summary/pdf", content, StringComparison.Ordinal);
         Assert.Contains("/api/v1/reports/sales/daily/pdf", content, StringComparison.Ordinal);
+    }
+
+    // OpenAPI document describes operation names and responses
+    [Fact]
+    public async Task OpenApiDocumentDescribesResponses()
+    {
+        // Arrange
+        var client = factory.CreateClient();
+
+        // Act
+        var document = JsonNode.Parse(await client.GetStringAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken))!;
+        var operation = document["paths"]!["/api/v1/categories/{id}"]!["get"]!;
+
+        // Assert
+        Assert.Equal("CategoryGet", (string?)operation["operationId"]);
+        Assert.Equal("#/components/schemas/CategoryListResponseItem", (string?)operation["responses"]!["200"]!["content"]!["application/json"]!["schema"]!["$ref"]);
+        Assert.NotNull(operation["responses"]!["404"]!["content"]!["application/problem+json"]);
+        Assert.Equal("integer", (string?)document["components"]!["schemas"]!["CategoryListResponseItem"]!["properties"]!["sortOrder"]!["type"]);
     }
 
     // API returns a plain 404 instead of HTML

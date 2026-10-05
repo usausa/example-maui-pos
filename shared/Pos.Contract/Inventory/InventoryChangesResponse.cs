@@ -1,12 +1,12 @@
 namespace Pos.Contract.Inventory;
 
 // 棚卸・調整の一括登録の結果 (要素ごと)
-public sealed class InventoryChangeResultResponse
+public sealed class InventoryChangesResponse
 {
-    public IReadOnlyList<InventoryChangeResultResponseResult> Results { get; set; } = default!;
+    public IReadOnlyList<InventoryChangesResponseResult> Results { get; set; } = default!;
 }
 
-public sealed class InventoryChangeResultResponseResult
+public sealed class InventoryChangesResponseResult
 {
     public Guid Id { get; set; }
 

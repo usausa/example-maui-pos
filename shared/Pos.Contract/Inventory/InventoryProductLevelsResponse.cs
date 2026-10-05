@@ -1,13 +1,13 @@
 namespace Pos.Contract.Inventory;
 
-public sealed class InventoryProductResponse
+public sealed class InventoryProductLevelsResponse
 {
     public Guid ProductId { get; set; }
 
-    public IReadOnlyList<InventoryProductResponseLevel> Levels { get; set; } = default!;
+    public IReadOnlyList<InventoryProductLevelsResponseLevel> Levels { get; set; } = default!;
 }
 
-public sealed class InventoryProductResponseLevel
+public sealed class InventoryProductLevelsResponseLevel
 {
     public Guid StoreId { get; set; }
 
