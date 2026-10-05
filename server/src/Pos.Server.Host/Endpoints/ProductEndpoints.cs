@@ -110,7 +110,7 @@ public static partial class ProductEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial ProductListResponseItem ToResponse(ProductEntity entity);
+    internal static partial ProductListResponseItem ToListResponseItem(ProductEntity entity);
 
     [Mapper]
     private static partial ProductEntity ToEntity(ProductCreateRequest request);
@@ -121,7 +121,7 @@ public static partial class ProductEndpoints
     [Mapper]
     private static partial ProductExportRow ToExportRow(ProductExportView item);
 
-    private static ProductImportResponse ToResponse(ProductImportResult result, bool dryRun) =>
+    private static ProductImportResponse ToImportResponse(ProductImportResult result, bool dryRun) =>
         new()
         {
             DryRun = dryRun,
@@ -170,7 +170,7 @@ public static partial class ProductEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new ProductListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new ProductListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     // CSV 出力 (削除済みを除く全件、コード順)
@@ -197,7 +197,7 @@ public static partial class ProductEndpoints
         var entity = !String.IsNullOrEmpty(barcode)
             ? await service.QueryByBarcodeAsync(barcode, cancellationToken)
             : await service.QueryByCodeAsync(code!, cancellationToken);
-        return entity is null ? ApiProblems.NotFound("商品が見つかりません") : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound("商品が見つかりません") : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -206,7 +206,7 @@ public static partial class ProductEndpoints
         CancellationToken cancellationToken)
     {
         var entity = await service.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
@@ -217,7 +217,7 @@ public static partial class ProductEndpoints
         var entity = ToEntity(request);
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.Products}/{entity.Id}", ToResponse(entity))
+            ? TypedResults.Created($"{ApiRoutes.Products}/{entity.Id}", ToListResponseItem(entity))
             : ApiProblems.DuplicateCode(DuplicateTitle);
     }
 
@@ -231,7 +231,7 @@ public static partial class ProductEndpoints
         entity.Id = id;
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse(result.Entity!))
+            ? TypedResults.Ok(ToListResponseItem(result.Entity!))
             : ApiProblems.FromStatus(result.Status, duplicateTitle: DuplicateTitle);
     }
 
@@ -286,7 +286,7 @@ public static partial class ProductEndpoints
 
         var result = await service.SaveImageAsync(id, data, ApiRoutes.ProductImage(id), cancellationToken);
         return result.Status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse(result.Entity!))
+            ? TypedResults.Ok(ToListResponseItem(result.Entity!))
             : ApiProblems.FromStatus(result.Status, invalidTitle: ImageInvalidTitle);
     }
 
@@ -336,7 +336,7 @@ public static partial class ProductEndpoints
         var result = await service.ImportAsync(ProductImportRow.ToLines(csv.Rows), dryRun, cancellationToken);
         if ((result.Status == DataWriteStatus.Success) || dryRun)
         {
-            return TypedResults.Ok(ToResponse(result, dryRun));
+            return TypedResults.Ok(ToImportResponse(result, dryRun));
         }
 
         if (result.Status == DataWriteStatus.Invalid)

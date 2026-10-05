@@ -112,39 +112,39 @@ public static partial class TransactionEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    private static partial TransactionResponseItem ToResponseCore(TransactionEntity entity);
+    private static partial TransactionResponseItem ToResponseItemCore(TransactionEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseLine ToResponse(TransactionLineEntity entity);
+    private static partial TransactionResponseLine ToResponseLine(TransactionLineEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseDiscount ToResponse(TransactionDiscountEntity entity);
+    private static partial TransactionResponseDiscount ToResponseDiscount(TransactionDiscountEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseTaxSummary ToResponse(TransactionTaxSummaryEntity entity);
+    private static partial TransactionResponseTaxSummary ToResponseTaxSummary(TransactionTaxSummaryEntity entity);
 
     [Mapper]
-    private static partial TransactionResponsePayment ToResponse(TransactionPaymentEntity entity);
+    private static partial TransactionResponsePayment ToResponsePayment(TransactionPaymentEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseDelivery ToResponse(TransactionDeliveryEntity entity);
+    private static partial TransactionResponseDelivery ToResponseDelivery(TransactionDeliveryEntity entity);
 
     // 明細・値引・税・支払・配送・シリアルを集めて応答にする
-    internal static TransactionResponseItem ToResponse(TransactionDetailView detail, IReadOnlyList<RuleWarning>? warnings = null)
+    internal static TransactionResponseItem ToResponseItem(TransactionDetailView detail, IReadOnlyList<RuleWarning>? warnings = null)
     {
         var entity = detail.Transaction;
         var serialsByLine = detail.Serials.ToLookup(static x => x.TransactionLineId, static x => x.SerialNumber);
-        var response = ToResponseCore(entity);
+        var response = ToResponseItemCore(entity);
         response.Lines = detail.Lines.Select(x =>
         {
-            var line = ToResponse(x);
+            var line = ToResponseLine(x);
             line.SerialNumbers = serialsByLine[x.Id].ToList();
             return line;
         }).ToList();
-        response.Discounts = detail.Discounts.Select(ToResponse).ToList();
-        response.TaxSummaries = detail.TaxSummaries.Select(ToResponse).ToList();
-        response.Payments = detail.Payments.Select(ToResponse).ToList();
-        response.Delivery = detail.Delivery is null ? null : ToResponse(detail.Delivery);
+        response.Discounts = detail.Discounts.Select(ToResponseDiscount).ToList();
+        response.TaxSummaries = detail.TaxSummaries.Select(ToResponseTaxSummary).ToList();
+        response.Payments = detail.Payments.Select(ToResponsePayment).ToList();
+        response.Delivery = detail.Delivery is null ? null : ToResponseDelivery(detail.Delivery);
         response.Void = entity.VoidedAt is null
             ? null
             : new TransactionResponseVoid { VoidedAt = entity.VoidedAt.Value, VoidedByStaffId = entity.VoidedByStaffId ?? Guid.Empty, Reason = entity.VoidReason ?? String.Empty };
@@ -159,7 +159,7 @@ public static partial class TransactionEndpoints
     }
 
     // 計算結果 (Pos.Domain) を応答にする
-    private static TransactionCalculateResponse ToResponse(SalesResult result) => new()
+    private static TransactionCalculateResponse ToCalculateResponse(SalesResult result) => new()
     {
         Lines = result.Lines.Select(static x => new TransactionCalculateResponseLine
         {
@@ -192,7 +192,7 @@ public static partial class TransactionEndpoints
     };
 
     private static IResult ToProblem(TransactionValidation validation) =>
-        ApiProblems.FromValidation(validation, validation.Expected is null ? null : ToResponse(validation.Expected));
+        ApiProblems.FromValidation(validation, validation.Expected is null ? null : ToCalculateResponse(validation.Expected));
 
     //--------------------------------------------------------------------------------
     // Create
@@ -215,8 +215,8 @@ public static partial class TransactionEndpoints
         var result = await service.RegisterAsync(detail, request.OrderId, cancellationToken);
         return result.Status switch
         {
-            TransactionResultStatus.Success => TypedResults.Created($"{ApiRoutes.Transactions}/{detail.Transaction.Id}", ToResponse(result.Detail!, result.Warnings)),
-            TransactionResultStatus.Existing => TypedResults.Ok(ToResponse(result.Detail!)),
+            TransactionResultStatus.Success => TypedResults.Created($"{ApiRoutes.Transactions}/{detail.Transaction.Id}", ToResponseItem(result.Detail!, result.Warnings)),
+            TransactionResultStatus.Existing => TypedResults.Ok(ToResponseItem(result.Detail!)),
             TransactionResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
             TransactionResultStatus.Invalid => ToProblem(result.Validation!),
             _ => ApiProblems.FromViolation(result.Violation!)
@@ -240,7 +240,7 @@ public static partial class TransactionEndpoints
             request.Discounts.Select(ToEntity).ToList(),
             request.Payments.Select(ToEntity).ToList(),
             cancellationToken);
-        return calculation.Error is not null ? ApiProblems.FromViolation(calculation.Error) : TypedResults.Ok(ToResponse(calculation.Result!));
+        return calculation.Error is not null ? ApiProblems.FromViolation(calculation.Error) : TypedResults.Ok(ToCalculateResponse(calculation.Result!));
     }
 
     //--------------------------------------------------------------------------------
@@ -283,7 +283,7 @@ public static partial class TransactionEndpoints
             Size = size
         };
         var result = await service.QueryDetailPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new TransactionResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => ToResponse(x)).ToList() });
+        return TypedResults.Ok(new TransactionResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => ToResponseItem(x)).ToList() });
     }
 
     // レシートの控え (再発行)。項目は端末のレシートと同じ
@@ -315,7 +315,7 @@ public static partial class TransactionEndpoints
         }
 
         var detail = await service.QueryDetailByReceiptNoAsync(receiptNo, cancellationToken);
-        return detail is null ? ApiProblems.NotFound("取引が見つかりません") : TypedResults.Ok(ToResponse(detail));
+        return detail is null ? ApiProblems.NotFound("取引が見つかりません") : TypedResults.Ok(ToResponseItem(detail));
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -324,7 +324,7 @@ public static partial class TransactionEndpoints
         CancellationToken cancellationToken)
     {
         var detail = await service.QueryDetailAsync(id, cancellationToken);
-        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(detail));
+        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponseItem(detail));
     }
 
     //--------------------------------------------------------------------------------
@@ -348,7 +348,7 @@ public static partial class TransactionEndpoints
         var result = await service.VoidAsync(id, request.VoidedAt, request.StaffId, request.ApprovedByStaffId, request.Reason, cancellationToken);
         return result.Status switch
         {
-            TransactionResultStatus.Success => TypedResults.Ok(ToResponse(result.Detail!)),
+            TransactionResultStatus.Success => TypedResults.Ok(ToResponseItem(result.Detail!)),
             TransactionResultStatus.NotFound => ApiProblems.NotFound("取引が見つかりません"),
             TransactionResultStatus.Invalid => ToProblem(result.Validation!),
             _ => ApiProblems.FromViolation(result.Violation!)

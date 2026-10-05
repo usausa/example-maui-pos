@@ -32,15 +32,15 @@ public static class SyncEndpoints
         {
             ServerTime = data.ServerTime,
             Settings = data.Settings is null ? null : SettingsEndpoints.ToResponse(data.Settings),
-            Stores = data.Stores.Select(StoreEndpoints.ToResponse).ToList(),
-            Terminals = data.Terminals.Select(TerminalEndpoints.ToResponse).ToList(),
+            Stores = data.Stores.Select(StoreEndpoints.ToListResponseItem).ToList(),
+            Terminals = data.Terminals.Select(TerminalEndpoints.ToListResponseItem).ToList(),
             Staff = data.Staff.Select(StaffEndpoints.ToSyncResponse).ToList(),
-            Categories = data.Categories.Select(CategoryEndpoints.ToResponse).ToList(),
-            TaxRates = data.TaxRates.Select(TaxRateEndpoints.ToResponse).ToList(),
-            Products = data.Products.Select(ProductEndpoints.ToResponse).ToList(),
-            Discounts = data.Discounts.Select(DiscountEndpoints.ToResponse).ToList(),
-            PaymentMethods = data.PaymentMethods.Select(PaymentMethodEndpoints.ToResponse).ToList(),
-            AdjustmentReasons = data.AdjustmentReasons.Select(AdjustmentReasonEndpoints.ToResponse).ToList(),
+            Categories = data.Categories.Select(CategoryEndpoints.ToListResponseItem).ToList(),
+            TaxRates = data.TaxRates.Select(TaxRateEndpoints.ToListResponseItem).ToList(),
+            Products = data.Products.Select(ProductEndpoints.ToListResponseItem).ToList(),
+            Discounts = data.Discounts.Select(DiscountEndpoints.ToListResponseItem).ToList(),
+            PaymentMethods = data.PaymentMethods.Select(PaymentMethodEndpoints.ToListResponseItem).ToList(),
+            AdjustmentReasons = data.AdjustmentReasons.Select(AdjustmentReasonEndpoints.ToListResponseItem).ToList(),
             ProductsTruncated = false
         });
     }

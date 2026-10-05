@@ -42,13 +42,13 @@ public static partial class InventoryEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    private static partial InventoryLevelListResponseItem ToResponse(InventoryLevelEntity entity);
+    private static partial InventoryLevelListResponseItem ToLevelListResponseItem(InventoryLevelEntity entity);
 
     [Mapper]
-    private static partial InventoryProductLevelsResponseLevel ToResponse(ProductInventoryLevelView level);
+    private static partial InventoryProductLevelsResponseLevel ToProductLevelsResponseLevel(ProductInventoryLevelView level);
 
     [Mapper]
-    private static partial InventoryChangeListResponseItem ToResponse(InventoryChangeEntity entity);
+    private static partial InventoryChangeListResponseItem ToChangeListResponseItem(InventoryChangeEntity entity);
 
     [Mapper]
     private static partial InventoryChangeParameter ToParameter(InventoryChangesRequestChange change);
@@ -79,7 +79,7 @@ public static partial class InventoryEndpoints
             Size = size
         };
         var result = await service.QueryLevelPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new InventoryLevelListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new InventoryLevelListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToLevelListResponseItem).ToList() });
     }
 
     // 商品の全店舗在庫 (他店在庫照会)
@@ -91,7 +91,7 @@ public static partial class InventoryEndpoints
         var levels = await service.QueryProductLevelsAsync(productId, cancellationToken);
         return levels is null
             ? ApiProblems.NotFound("商品が見つかりません")
-            : TypedResults.Ok(new InventoryProductLevelsResponse { ProductId = productId, Levels = levels.Select(ToResponse).ToList() });
+            : TypedResults.Ok(new InventoryProductLevelsResponse { ProductId = productId, Levels = levels.Select(ToProductLevelsResponseLevel).ToList() });
     }
 
     //--------------------------------------------------------------------------------
@@ -138,6 +138,6 @@ public static partial class InventoryEndpoints
     {
         var parameter = new InventoryChangeQueryParameter { StoreId = storeId, ProductId = productId, Type = type, From = from, To = to, Page = page, Size = size };
         var result = await service.QueryChangePageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new InventoryChangeListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new InventoryChangeListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToChangeListResponseItem).ToList() });
     }
 }

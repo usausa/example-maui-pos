@@ -68,24 +68,24 @@ public static partial class InventoryTransferEndpoints
     private static partial InventoryTransferLineEntity ToEntity(InventoryTransferCreateRequestLine request);
 
     [Mapper]
-    private static partial InventoryTransferListResponseItem ToResponseCore(InventoryTransferEntity entity);
+    private static partial InventoryTransferListResponseItem ToListResponseItemCore(InventoryTransferEntity entity);
 
     [Mapper]
-    private static partial InventoryTransferListResponseLine ToResponse(InventoryTransferLineEntity entity);
+    private static partial InventoryTransferListResponseLine ToListResponseLine(InventoryTransferLineEntity entity);
 
-    private static InventoryTransferListResponseItem ToResponse(InventoryTransferDetailView detail)
+    private static InventoryTransferListResponseItem ToListResponseItem(InventoryTransferDetailView detail)
     {
-        var response = ToResponseCore(detail.Transfer);
+        var response = ToListResponseItemCore(detail.Transfer);
         response.FromStoreName = detail.FromStoreName;
         response.ToStoreName = detail.ToStoreName;
-        response.Lines = detail.Lines.Select(ToResponse).ToList();
+        response.Lines = detail.Lines.Select(ToListResponseLine).ToList();
         return response;
     }
 
     private static IResult ToResult(InventoryTransferResult result) =>
         result.Status switch
         {
-            InventoryTransferResultStatus.Success => TypedResults.Ok(ToResponse(result.Detail!)),
+            InventoryTransferResultStatus.Success => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             InventoryTransferResultStatus.NotFound => ApiProblems.NotFound(),
             _ => ApiProblems.FromViolation(result.Violation!)
         };
@@ -121,7 +121,7 @@ public static partial class InventoryTransferEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new InventoryTransferListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new InventoryTransferListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -130,7 +130,7 @@ public static partial class InventoryTransferEndpoints
         CancellationToken cancellationToken)
     {
         var detail = await service.QueryDetailAsync(id, cancellationToken);
-        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(detail));
+        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(detail));
     }
 
     // 出荷店と入荷店が同じなら 400 (要求の検証)
@@ -141,7 +141,7 @@ public static partial class InventoryTransferEndpoints
     {
         var result = await service.CreateAsync(request.FromStoreId, request.ToStoreId, request.Note, request.Lines.Select(ToEntity).ToList(), cancellationToken);
         return result.Status == InventoryTransferResultStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.InventoryTransfers}/{result.Detail!.Transfer.Id}", ToResponse(result.Detail))
+            ? TypedResults.Created($"{ApiRoutes.InventoryTransfers}/{result.Detail!.Transfer.Id}", ToListResponseItem(result.Detail))
             : ToResult(result);
     }
 

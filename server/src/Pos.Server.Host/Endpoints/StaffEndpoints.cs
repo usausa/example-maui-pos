@@ -57,11 +57,11 @@ public static partial class StaffEndpoints
     // PIN のハッシュは端末向けの同期応答 (ToSyncResponse) にだけ含める
     [Mapper]
     [MapIgnore(nameof(StaffListResponseItem.PinHash))]
-    internal static partial StaffListResponseItem ToResponse(StaffEntity entity);
+    internal static partial StaffListResponseItem ToListResponseItem(StaffEntity entity);
 
     internal static StaffListResponseItem ToSyncResponse(StaffEntity entity)
     {
-        var response = ToResponse(entity);
+        var response = ToListResponseItem(entity);
         response.PinHash = entity.PinHash;
         return response;
     }
@@ -88,7 +88,7 @@ public static partial class StaffEndpoints
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
         var result = await service.QueryPageAsync(storeId, updatedSince, includeDeleted, EnumHelper.Parse(sort, StaffSort.Code), desc, page, size, cancellationToken);
-        return TypedResults.Ok(new StaffListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new StaffListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -97,7 +97,7 @@ public static partial class StaffEndpoints
         CancellationToken cancellationToken)
     {
         var entity = await service.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
@@ -108,7 +108,7 @@ public static partial class StaffEndpoints
         var entity = ToEntity(request);
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.Staff}/{entity.Id}", ToResponse(entity))
+            ? TypedResults.Created($"{ApiRoutes.Staff}/{entity.Id}", ToListResponseItem(entity))
             : ApiProblems.DuplicateCode();
     }
 
@@ -122,7 +122,7 @@ public static partial class StaffEndpoints
         entity.Id = id;
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse(result.Entity!))
+            ? TypedResults.Ok(ToListResponseItem(result.Entity!))
             : ApiProblems.FromStatus(result.Status);
     }
 

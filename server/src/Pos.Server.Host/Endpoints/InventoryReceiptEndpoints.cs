@@ -63,25 +63,25 @@ public static partial class InventoryReceiptEndpoints
     private static partial InventoryReceiptLineEntity ToEntity(InventoryReceiptCreateRequestLine request);
 
     [Mapper]
-    private static partial InventoryReceiptListResponseItem ToResponseCore(InventoryReceiptEntity entity);
+    private static partial InventoryReceiptListResponseItem ToListResponseItemCore(InventoryReceiptEntity entity);
 
     [Mapper]
-    private static partial InventoryReceiptListResponseLine ToResponse(InventoryReceiptLineEntity entity);
+    private static partial InventoryReceiptListResponseLine ToListResponseLine(InventoryReceiptLineEntity entity);
 
-    private static InventoryReceiptListResponseItem ToResponse(InventoryReceiptDetailView detail)
+    private static InventoryReceiptListResponseItem ToListResponseItem(InventoryReceiptDetailView detail)
     {
-        var response = ToResponseCore(detail.Receipt);
+        var response = ToListResponseItemCore(detail.Receipt);
         response.SupplierName = detail.SupplierName;
         response.PurchaseOrderId = detail.PurchaseOrder?.Id;
         response.PurchaseOrderNo = detail.PurchaseOrder?.PurchaseOrderNo;
-        response.Lines = detail.Lines.Select(ToResponse).ToList();
+        response.Lines = detail.Lines.Select(ToListResponseLine).ToList();
         return response;
     }
 
     private static IResult ToResult(InventoryReceiptResult result) =>
         result.Status switch
         {
-            InventoryReceiptResultStatus.Success => TypedResults.Ok(ToResponse(result.Detail!)),
+            InventoryReceiptResultStatus.Success => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             InventoryReceiptResultStatus.NotFound => ApiProblems.NotFound(),
             _ => ApiProblems.FromViolation(result.Violation!)
         };
@@ -117,7 +117,7 @@ public static partial class InventoryReceiptEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new InventoryReceiptListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new InventoryReceiptListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -126,7 +126,7 @@ public static partial class InventoryReceiptEndpoints
         CancellationToken cancellationToken)
     {
         var detail = await service.QueryDetailAsync(id, cancellationToken);
-        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(detail));
+        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(detail));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
@@ -136,7 +136,7 @@ public static partial class InventoryReceiptEndpoints
     {
         var result = await service.CreateAsync(ToEntity(request), request.Lines.Select(ToEntity).ToList(), cancellationToken);
         return result.Status == InventoryReceiptResultStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.InventoryReceipts}/{result.Detail!.Receipt.Id}", ToResponse(result.Detail))
+            ? TypedResults.Created($"{ApiRoutes.InventoryReceipts}/{result.Detail!.Receipt.Id}", ToListResponseItem(result.Detail))
             : ToResult(result);
     }
 

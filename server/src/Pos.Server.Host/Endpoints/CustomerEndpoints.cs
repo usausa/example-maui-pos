@@ -77,7 +77,7 @@ public static partial class CustomerEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial CustomerListResponseItem ToResponse(CustomerEntity entity);
+    internal static partial CustomerListResponseItem ToListResponseItem(CustomerEntity entity);
 
     [Mapper]
     private static partial CustomerEntity ToEntity(CustomerCreateRequest request);
@@ -86,7 +86,7 @@ public static partial class CustomerEndpoints
     private static partial CustomerEntity ToEntity(CustomerUpdateRequest request);
 
     [Mapper]
-    private static partial CustomerPointHistoryResponseItem ToResponse(PointHistoryEntity entity);
+    private static partial CustomerPointHistoryResponseItem ToPointHistoryResponseItem(PointHistoryEntity entity);
 
     //--------------------------------------------------------------------------------
     // Customer
@@ -119,7 +119,7 @@ public static partial class CustomerEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new CustomerListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new CustomerListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     // 会員証スキャン用 1 件取得
@@ -134,7 +134,7 @@ public static partial class CustomerEndpoints
         }
 
         var entity = await service.QueryByCodeAsync(code, cancellationToken);
-        return entity is null ? ApiProblems.NotFound("会員が見つかりません") : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound("会員が見つかりません") : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -143,7 +143,7 @@ public static partial class CustomerEndpoints
         CancellationToken cancellationToken)
     {
         var entity = await service.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
@@ -154,7 +154,7 @@ public static partial class CustomerEndpoints
         var entity = ToEntity(request);
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.Customers}/{entity.Id}", ToResponse(entity))
+            ? TypedResults.Created($"{ApiRoutes.Customers}/{entity.Id}", ToListResponseItem(entity))
             : ApiProblems.DuplicateCode(DuplicateTitle);
     }
 
@@ -168,7 +168,7 @@ public static partial class CustomerEndpoints
         entity.Id = id;
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse(result.Entity!))
+            ? TypedResults.Ok(ToListResponseItem(result.Entity!))
             : ApiProblems.FromStatus(result.Status, duplicateTitle: DuplicateTitle);
     }
 
@@ -195,7 +195,7 @@ public static partial class CustomerEndpoints
         var result = await service.QueryPointHistoryPageAsync(id, page, size, cancellationToken);
         return result is null
             ? ApiProblems.NotFound()
-            : TypedResults.Ok(new CustomerPointHistoryResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+            : TypedResults.Ok(new CustomerPointHistoryResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToPointHistoryResponseItem).ToList() });
     }
 
     // 手動調整 (Adjust 履歴を作り、残高を加減算する)
@@ -206,7 +206,7 @@ public static partial class CustomerEndpoints
         CancellationToken cancellationToken)
     {
         var history = await service.AdjustPointsAsync(id, request.Points, request.Reason, request.StaffId, cancellationToken);
-        return history is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(history));
+        return history is null ? ApiProblems.NotFound() : TypedResults.Ok(ToPointHistoryResponseItem(history));
     }
 
     // 購入履歴 (新しい順)
@@ -224,6 +224,6 @@ public static partial class CustomerEndpoints
         }
 
         var result = await transactionService.QueryDetailPageAsync(new TransactionQueryParameter { CustomerId = id, Desc = true, Page = page, Size = size }, cancellationToken);
-        return TypedResults.Ok(new TransactionResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => TransactionEndpoints.ToResponse(x)).ToList() });
+        return TypedResults.Ok(new TransactionResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => TransactionEndpoints.ToResponseItem(x)).ToList() });
     }
 }
