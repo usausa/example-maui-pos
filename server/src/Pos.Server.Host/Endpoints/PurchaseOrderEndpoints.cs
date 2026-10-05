@@ -76,10 +76,10 @@ public static partial class PurchaseOrderEndpoints
     private static partial PurchaseOrderLineEntity ToEntity(PurchaseOrderUpdateRequestLine request);
 
     [Mapper]
-    private static partial PurchaseOrderListResponseItem ToResponseCore(PurchaseOrderEntity entity);
+    private static partial PurchaseOrderListResponseItem ToListResponseItemCore(PurchaseOrderEntity entity);
 
     [Mapper]
-    private static partial PurchaseOrderListResponseLine ToResponseCore(PurchaseOrderLineEntity entity);
+    private static partial PurchaseOrderListResponseLine ToListResponseLineCore(PurchaseOrderLineEntity entity);
 
     private static PurchaseOrderUpdateParameter ToParameter(PurchaseOrderUpdateRequest request) =>
         new()
@@ -91,14 +91,14 @@ public static partial class PurchaseOrderEndpoints
             Version = request.Version
         };
 
-    private static PurchaseOrderListResponseItem ToResponse(PurchaseOrderDetailView detail)
+    private static PurchaseOrderListResponseItem ToListResponseItem(PurchaseOrderDetailView detail)
     {
-        var response = ToResponseCore(detail.PurchaseOrder);
+        var response = ToListResponseItemCore(detail.PurchaseOrder);
         response.SupplierName = detail.SupplierName;
         response.TotalCost = detail.TotalCost;
         response.Lines = detail.Lines.Select(x =>
         {
-            var line = ToResponseCore(x);
+            var line = ToListResponseLineCore(x);
             line.ReceivedQuantity = detail.ReceivedQuantityOf(x);
             return line;
         }).ToList();
@@ -108,7 +108,7 @@ public static partial class PurchaseOrderEndpoints
     private static IResult ToResult(PurchaseOrderResult result) =>
         result.Status switch
         {
-            PurchaseOrderResultStatus.Success => TypedResults.Ok(ToResponse(result.Detail!)),
+            PurchaseOrderResultStatus.Success => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             PurchaseOrderResultStatus.NotFound => ApiProblems.NotFound(),
             PurchaseOrderResultStatus.VersionMismatch => ApiProblems.VersionMismatch(),
             _ => ApiProblems.FromViolation(result.Violation!)
@@ -147,7 +147,7 @@ public static partial class PurchaseOrderEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new PurchaseOrderListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new PurchaseOrderListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -156,7 +156,7 @@ public static partial class PurchaseOrderEndpoints
         CancellationToken cancellationToken)
     {
         var detail = await service.QueryDetailAsync(id, cancellationToken);
-        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(detail));
+        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(detail));
     }
 
     // 発注書 (仕入先へは PDF を人が送る)
@@ -183,7 +183,7 @@ public static partial class PurchaseOrderEndpoints
     {
         var result = await service.CreateAsync(ToEntity(request), request.Lines.Select(ToEntity).ToList(), cancellationToken);
         return result.Status == PurchaseOrderResultStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.PurchaseOrders}/{result.Detail!.PurchaseOrder.Id}", ToResponse(result.Detail))
+            ? TypedResults.Created($"{ApiRoutes.PurchaseOrders}/{result.Detail!.PurchaseOrder.Id}", ToListResponseItem(result.Detail))
             : ToResult(result);
     }
 

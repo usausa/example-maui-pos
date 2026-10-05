@@ -55,7 +55,7 @@ public static partial class PaymentMethodEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial PaymentMethodListResponseItem ToResponse(PaymentMethodEntity entity);
+    internal static partial PaymentMethodListResponseItem ToListResponseItem(PaymentMethodEntity entity);
 
     [Mapper]
     private static partial PaymentMethodEntity ToEntity(PaymentMethodCreateRequest request);
@@ -75,7 +75,7 @@ public static partial class PaymentMethodEndpoints
         bool includeDeleted = false)
     {
         var items = await service.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
-        return TypedResults.Ok(new PaymentMethodListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new PaymentMethodListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -84,7 +84,7 @@ public static partial class PaymentMethodEndpoints
         CancellationToken cancellationToken)
     {
         var entity = await service.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
@@ -95,7 +95,7 @@ public static partial class PaymentMethodEndpoints
         var entity = ToEntity(request);
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.PaymentMethods}/{entity.Id}", ToResponse(entity))
+            ? TypedResults.Created($"{ApiRoutes.PaymentMethods}/{entity.Id}", ToListResponseItem(entity))
             : ApiProblems.FromStatus(status, invalidTitle: "ポイント・前受金の支払方法は 1 件だけ有効にできます");
     }
 
@@ -109,7 +109,7 @@ public static partial class PaymentMethodEndpoints
         entity.Id = id;
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse(result.Entity!))
+            ? TypedResults.Ok(ToListResponseItem(result.Entity!))
             : ApiProblems.FromStatus(result.Status, invalidTitle: "ポイント・前受金の支払方法は 1 件だけ有効にできます");
     }
 

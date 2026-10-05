@@ -71,7 +71,7 @@ public static partial class TerminalEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial TerminalListResponseItem ToResponse(TerminalEntity entity);
+    internal static partial TerminalListResponseItem ToListResponseItem(TerminalEntity entity);
 
     [Mapper]
     private static partial TerminalEntity ToEntity(TerminalCreateRequest request);
@@ -95,7 +95,7 @@ public static partial class TerminalEndpoints
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
         var result = await service.QueryPageAsync(storeId, updatedSince, includeDeleted, EnumHelper.Parse(sort, TerminalSort.TerminalNo), desc, page, size, cancellationToken);
-        return TypedResults.Ok(new TerminalListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new TerminalListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -104,7 +104,7 @@ public static partial class TerminalEndpoints
         CancellationToken cancellationToken)
     {
         var entity = await service.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
@@ -115,7 +115,7 @@ public static partial class TerminalEndpoints
         var entity = ToEntity(request);
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.Terminals}/{entity.Id}", ToResponse(entity))
+            ? TypedResults.Created($"{ApiRoutes.Terminals}/{entity.Id}", ToListResponseItem(entity))
             : ApiProblems.DuplicateCode("端末番号が重複しています");
     }
 
@@ -129,7 +129,7 @@ public static partial class TerminalEndpoints
         entity.Id = id;
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse(result.Entity!))
+            ? TypedResults.Ok(ToListResponseItem(result.Entity!))
             : ApiProblems.FromStatus(result.Status, duplicateTitle: "端末番号が重複しています");
     }
 
@@ -149,7 +149,7 @@ public static partial class TerminalEndpoints
         var store = await storeService.QueryAsync(result.Terminal!.StoreId, cancellationToken);
         return store is null
             ? ApiProblems.PairingCodeInvalid()
-            : TypedResults.Ok(new TerminalPairResponse { Token = result.Token!, Terminal = ToResponse(result.Terminal), Store = StoreEndpoints.ToResponse(store) });
+            : TypedResults.Ok(new TerminalPairResponse { Token = result.Token!, Terminal = ToListResponseItem(result.Terminal), Store = StoreEndpoints.ToListResponseItem(store) });
     }
 
     // 最終通信時刻とアプリのバージョンを記録する (ダッシュボードの通信状態)

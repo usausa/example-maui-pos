@@ -55,7 +55,7 @@ public static partial class SupplierEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    private static partial SupplierListResponseItem ToResponse(SupplierEntity entity);
+    private static partial SupplierListResponseItem ToListResponseItem(SupplierEntity entity);
 
     [Mapper]
     private static partial SupplierEntity ToEntity(SupplierCreateRequest request);
@@ -73,7 +73,7 @@ public static partial class SupplierEndpoints
         bool includeDeleted = false)
     {
         var items = await service.QueryListAsync(includeDeleted, cancellationToken);
-        return TypedResults.Ok(new SupplierListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new SupplierListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -82,7 +82,7 @@ public static partial class SupplierEndpoints
         CancellationToken cancellationToken)
     {
         var entity = await service.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
@@ -93,7 +93,7 @@ public static partial class SupplierEndpoints
         var entity = ToEntity(request);
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.Suppliers}/{entity.Id}", ToResponse(entity))
+            ? TypedResults.Created($"{ApiRoutes.Suppliers}/{entity.Id}", ToListResponseItem(entity))
             : ApiProblems.DuplicateCode();
     }
 
@@ -107,7 +107,7 @@ public static partial class SupplierEndpoints
         entity.Id = id;
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse(result.Entity!))
+            ? TypedResults.Ok(ToListResponseItem(result.Entity!))
             : ApiProblems.FromStatus(result.Status);
     }
 

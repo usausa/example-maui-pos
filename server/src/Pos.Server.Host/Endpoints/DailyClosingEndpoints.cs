@@ -50,24 +50,24 @@ public static partial class DailyClosingEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    private static partial DailyClosingListResponseItem ToResponse(DailyClosingDayView day);
+    private static partial DailyClosingListResponseItem ToListResponseItem(DailyClosingDayView day);
 
     [Mapper]
-    private static partial DailyClosingSummaryResponsePaymentMethod ToResponse(PaymentMethodTotalView total);
+    private static partial DailyClosingSummaryResponsePaymentMethod ToSummaryResponsePaymentMethod(PaymentMethodTotalView total);
 
     [Mapper]
-    private static partial DailyClosingSummaryResponseTaxRate ToResponse(TaxRateTotalView total);
+    private static partial DailyClosingSummaryResponseTaxRate ToSummaryResponseTaxRate(TaxRateTotalView total);
 
     [Mapper]
-    private static partial DailyClosingSummaryResponseShift ToResponse(ShiftEntity shift);
+    private static partial DailyClosingSummaryResponseShift ToSummaryResponseShift(ShiftEntity shift);
 
-    private static DailyClosingSummaryResponse ToResponse(DailyClosingSummaryView summary) =>
+    private static DailyClosingSummaryResponse ToSummaryResponse(DailyClosingSummaryView summary) =>
         new()
         {
-            DailyClosing = ToResponse(summary.Day),
-            ByPaymentMethod = summary.ByPaymentMethod.Select(ToResponse).ToList(),
-            ByTaxRate = summary.ByTaxRate.Select(ToResponse).ToList(),
-            Shifts = summary.Shifts.Select(ToResponse).ToList()
+            DailyClosing = ToListResponseItem(summary.Day),
+            ByPaymentMethod = summary.ByPaymentMethod.Select(ToSummaryResponsePaymentMethod).ToList(),
+            ByTaxRate = summary.ByTaxRate.Select(ToSummaryResponseTaxRate).ToList(),
+            Shifts = summary.Shifts.Select(ToSummaryResponseShift).ToList()
         };
 
     //--------------------------------------------------------------------------------
@@ -85,7 +85,7 @@ public static partial class DailyClosingEndpoints
         var result = await service.CloseAsync(request.StoreId, request.BusinessDate, AuthClaims.AccountOf(user)?.Name, cancellationToken);
         return result.Status switch
         {
-            DailyClosingResultStatus.Success => TypedResults.Created($"{ApiRoutes.DailyClosings}/{result.Summary!.Day.Id}", ToResponse(result.Summary)),
+            DailyClosingResultStatus.Success => TypedResults.Created($"{ApiRoutes.DailyClosings}/{result.Summary!.Day.Id}", ToSummaryResponse(result.Summary)),
             DailyClosingResultStatus.NoShift => ApiProblems.Unprocessable(ErrorCode.ShiftNotFound, "この営業日のシフトがありません"),
             DailyClosingResultStatus.ShiftStillOpen => ApiProblems.Unprocessable(ErrorCode.ShiftStillOpen, "未精算のシフトがあります", $"未精算 {result.Summary!.Day.OpenShiftCount} 件"),
             _ => ApiProblems.Problem(StatusCodes.Status409Conflict, ErrorCode.AlreadyClosed, "既に締め済みです")
@@ -107,7 +107,7 @@ public static partial class DailyClosingEndpoints
     {
         var parameter = new DailyClosingQueryParameter { StoreId = storeId, Status = status, From = from, To = to, Sort = EnumHelper.Parse(sort, DailyClosingSort.BusinessDate), Desc = desc, Page = page, Size = size };
         var result = await service.QueryDayPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new DailyClosingListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new DailyClosingListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     // 店舗 × 営業日の内容。未締めは取引からの集計 (締める前の確認)、締め済みは締めた内容
@@ -118,7 +118,7 @@ public static partial class DailyClosingEndpoints
         CancellationToken cancellationToken)
     {
         var summary = await service.QuerySummaryAsync(storeId, businessDate, cancellationToken);
-        return TypedResults.Ok(ToResponse(summary));
+        return TypedResults.Ok(ToSummaryResponse(summary));
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -127,7 +127,7 @@ public static partial class DailyClosingEndpoints
         CancellationToken cancellationToken)
     {
         var summary = await service.QuerySummaryAsync(id, cancellationToken);
-        return summary is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(summary));
+        return summary is null ? ApiProblems.NotFound() : TypedResults.Ok(ToSummaryResponse(summary));
     }
 
     // 締め解除 (日計と内訳を消して未締めに戻す)

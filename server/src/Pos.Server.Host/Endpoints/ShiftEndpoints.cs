@@ -94,44 +94,44 @@ public static partial class ShiftEndpoints
     private static List<ShiftDenominationEntity> ToDenominations(ShiftCloseRequest request) => request.Denominations.Select(ToEntity).ToList();
 
     [Mapper]
-    private static partial ShiftListResponseItem ToResponseCore(ShiftEntity entity);
+    private static partial ShiftListResponseItem ToListResponseItemCore(ShiftEntity entity);
 
     [Mapper]
-    private static partial ShiftListResponseDenomination ToResponse(ShiftDenominationEntity entity);
+    private static partial ShiftListResponseDenomination ToListResponseDenomination(ShiftDenominationEntity entity);
 
     [Mapper]
-    private static partial ShiftListResponseTotals ToResponse(ShiftTotalsView totals);
+    private static partial ShiftListResponseTotals ToListResponseTotals(ShiftTotalsView totals);
 
     [Mapper]
-    private static partial ShiftCashEventListResponseItem ToResponse(CashEventEntity entity);
+    private static partial ShiftCashEventListResponseItem ToCashEventListResponseItem(CashEventEntity entity);
 
     [Mapper]
-    private static partial ShiftSummaryResponsePaymentMethod ToResponse(PaymentMethodTotalView total);
+    private static partial ShiftSummaryResponsePaymentMethod ToSummaryResponsePaymentMethod(PaymentMethodTotalView total);
 
     [Mapper]
-    private static partial ShiftSummaryResponseTaxRate ToResponse(TaxRateTotalView total);
+    private static partial ShiftSummaryResponseTaxRate ToSummaryResponseTaxRate(TaxRateTotalView total);
 
     [Mapper]
-    private static partial ShiftSummaryResponseCategory ToResponse(CategoryTotalView total);
+    private static partial ShiftSummaryResponseCategory ToSummaryResponseCategory(CategoryTotalView total);
 
-    private static ShiftListResponseItem ToResponse(ShiftDetailView detail)
+    private static ShiftListResponseItem ToListResponseItem(ShiftDetailView detail)
     {
-        var response = ToResponseCore(detail.Shift);
-        response.Totals = ToResponse(detail.Totals);
-        response.Denominations = detail.Denominations.Select(ToResponse).ToList();
+        var response = ToListResponseItemCore(detail.Shift);
+        response.Totals = ToListResponseTotals(detail.Totals);
+        response.Denominations = detail.Denominations.Select(ToListResponseDenomination).ToList();
         response.ExpectedCash = detail.ExpectedCash;
         return response;
     }
 
-    private static ShiftSummaryResponse ToResponse(ShiftSummaryView summary)
+    private static ShiftSummaryResponse ToSummaryResponse(ShiftSummaryView summary)
     {
-        var shift = ToResponse(summary.Shift);
+        var shift = ToListResponseItem(summary.Shift);
         return new ShiftSummaryResponse
         {
             Shift = shift,
-            ByPaymentMethod = summary.ByPaymentMethod.Select(ToResponse).ToList(),
-            ByTaxRate = summary.ByTaxRate.Select(ToResponse).ToList(),
-            ByCategory = summary.ByCategory.Select(ToResponse).ToList(),
+            ByPaymentMethod = summary.ByPaymentMethod.Select(ToSummaryResponsePaymentMethod).ToList(),
+            ByTaxRate = summary.ByTaxRate.Select(ToSummaryResponseTaxRate).ToList(),
+            ByCategory = summary.ByCategory.Select(ToSummaryResponseCategory).ToList(),
             Points = new ShiftSummaryResponsePoints { Earned = summary.Points.Earned, Redeemed = summary.Points.Redeemed },
             Cash = new ShiftSummaryResponseCash
             {
@@ -170,8 +170,8 @@ public static partial class ShiftEndpoints
         var result = await service.OpenAsync(entity, cancellationToken);
         return result.Status switch
         {
-            ShiftResultStatus.Success => TypedResults.Created($"{ApiRoutes.Shifts}/{entity.Id}", ToResponse(result.Detail!)),
-            ShiftResultStatus.Existing => TypedResults.Ok(ToResponse(result.Detail!)),
+            ShiftResultStatus.Success => TypedResults.Created($"{ApiRoutes.Shifts}/{entity.Id}", ToListResponseItem(result.Detail!)),
+            ShiftResultStatus.Existing => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             ShiftResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
             _ => ApiProblems.Problem(StatusCodes.Status409Conflict, ErrorCode.TerminalHasOpenShift, "この端末には開設中のシフトがあります")
         };
@@ -190,7 +190,7 @@ public static partial class ShiftEndpoints
         }
 
         var detail = await service.QueryCurrentAsync(terminalId, cancellationToken);
-        return detail is null ? ApiProblems.NotFound("開設中のシフトはありません") : TypedResults.Ok(ToResponse(detail));
+        return detail is null ? ApiProblems.NotFound("開設中のシフトはありません") : TypedResults.Ok(ToListResponseItem(detail));
     }
 
     private static async ValueTask<IResult> HandleListAsync(
@@ -208,7 +208,7 @@ public static partial class ShiftEndpoints
     {
         var parameter = new ShiftQueryParameter { StoreId = storeId, TerminalId = terminalId, Status = status, From = from, To = to, Sort = EnumHelper.Parse(sort, ShiftSort.OpenedAt), Desc = desc, Page = page, Size = size };
         var result = await service.QueryDetailPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new ShiftListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new ShiftListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -217,7 +217,7 @@ public static partial class ShiftEndpoints
         CancellationToken cancellationToken)
     {
         var detail = await service.QueryDetailAsync(id, cancellationToken);
-        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(detail));
+        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(detail));
     }
 
     // 入出金 (Open のみ)。同じ id は 200 で既存を返す
@@ -239,8 +239,8 @@ public static partial class ShiftEndpoints
         var result = await service.AddCashEventAsync(entity, cancellationToken);
         return result.Status switch
         {
-            CashEventResultStatus.Success => TypedResults.Created($"{ApiRoutes.Shifts}/{id}/cash-events/{entity.Id}", ToResponse(result.Entity!)),
-            CashEventResultStatus.Existing => TypedResults.Ok(ToResponse(result.Entity!)),
+            CashEventResultStatus.Success => TypedResults.Created($"{ApiRoutes.Shifts}/{id}/cash-events/{entity.Id}", ToCashEventListResponseItem(result.Entity!)),
+            CashEventResultStatus.Existing => TypedResults.Ok(ToCashEventListResponseItem(result.Entity!)),
             CashEventResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
             CashEventResultStatus.ShiftNotFound => ApiProblems.Unprocessable(ErrorCode.ShiftNotFound, "シフトが見つかりません"),
             _ => ApiProblems.Unprocessable(ErrorCode.ShiftClosed, "精算済みのシフトには登録できません")
@@ -257,7 +257,7 @@ public static partial class ShiftEndpoints
         var result = await service.QueryCashEventPageAsync(id, page, size, cancellationToken);
         return result is null
             ? ApiProblems.NotFound()
-            : TypedResults.Ok(new ShiftCashEventListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+            : TypedResults.Ok(new ShiftCashEventListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToCashEventListResponseItem).ToList() });
     }
 
     // 精算: 集計を確定して Closed にする (取引・入出金は送信済みであること)。同じ内容の再送は 200
@@ -277,7 +277,7 @@ public static partial class ShiftEndpoints
         var result = await service.CloseAsync(id, ToParameter(request), cancellationToken);
         return result.Status switch
         {
-            ShiftResultStatus.Success or ShiftResultStatus.Existing => TypedResults.Ok(ToResponse(result.Detail!)),
+            ShiftResultStatus.Success or ShiftResultStatus.Existing => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             ShiftResultStatus.NotFound => ApiProblems.NotFound(),
             _ => ApiProblems.Unprocessable(ErrorCode.ShiftClosed, "既に精算済みです")
         };
@@ -289,7 +289,7 @@ public static partial class ShiftEndpoints
         CancellationToken cancellationToken)
     {
         var summary = await service.QuerySummaryAsync(id, cancellationToken);
-        return summary is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(summary));
+        return summary is null ? ApiProblems.NotFound() : TypedResults.Ok(ToSummaryResponse(summary));
     }
 
     // 精算レポート PDF

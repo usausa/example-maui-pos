@@ -54,7 +54,7 @@ public static partial class AdjustmentReasonEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial AdjustmentReasonListResponseItem ToResponse(AdjustmentReasonEntity entity);
+    internal static partial AdjustmentReasonListResponseItem ToListResponseItem(AdjustmentReasonEntity entity);
 
     [Mapper]
     private static partial AdjustmentReasonEntity ToEntity(AdjustmentReasonCreateRequest request);
@@ -73,7 +73,7 @@ public static partial class AdjustmentReasonEndpoints
         bool includeDeleted = false)
     {
         var items = await service.QueryListAsync(updatedSince, includeDeleted, cancellationToken);
-        return TypedResults.Ok(new AdjustmentReasonListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new AdjustmentReasonListResponse { Total = items.Count, Page = 0, Size = items.Count, Items = items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -82,7 +82,7 @@ public static partial class AdjustmentReasonEndpoints
         CancellationToken cancellationToken)
     {
         var entity = await service.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
@@ -93,7 +93,7 @@ public static partial class AdjustmentReasonEndpoints
         var entity = ToEntity(request);
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.AdjustmentReasons}/{entity.Id}", ToResponse(entity))
+            ? TypedResults.Created($"{ApiRoutes.AdjustmentReasons}/{entity.Id}", ToListResponseItem(entity))
             : ApiProblems.DuplicateCode();
     }
 
@@ -107,7 +107,7 @@ public static partial class AdjustmentReasonEndpoints
         entity.Id = id;
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse(result.Entity!))
+            ? TypedResults.Ok(ToListResponseItem(result.Entity!))
             : ApiProblems.FromStatus(result.Status);
     }
 

@@ -114,20 +114,20 @@ public static partial class OrderEndpoints
         };
 
     [Mapper]
-    private static partial OrderListResponseItem ToResponseCore(OrderEntity entity);
+    private static partial OrderListResponseItem ToListResponseItemCore(OrderEntity entity);
 
     [Mapper]
-    private static partial OrderListResponseLine ToResponse(OrderLineEntity entity);
+    private static partial OrderListResponseLine ToListResponseLine(OrderLineEntity entity);
 
     [Mapper]
-    private static partial OrderListResponseDeposit ToResponse(OrderDepositEntity entity);
+    private static partial OrderListResponseDeposit ToListResponseDeposit(OrderDepositEntity entity);
 
-    private static OrderListResponseItem ToResponse(OrderDetailView detail)
+    private static OrderListResponseItem ToListResponseItem(OrderDetailView detail)
     {
-        var response = ToResponseCore(detail.Order);
+        var response = ToListResponseItemCore(detail.Order);
         response.DepositAmount = detail.DepositBalance;
-        response.Lines = detail.Lines.Select(ToResponse).ToList();
-        response.Deposits = detail.Deposits.Select(ToResponse).ToList();
+        response.Lines = detail.Lines.Select(ToListResponseLine).ToList();
+        response.Deposits = detail.Deposits.Select(ToListResponseDeposit).ToList();
         return response;
     }
 
@@ -160,7 +160,7 @@ public static partial class OrderEndpoints
     private static IResult ToResult(OrderResult result) =>
         result.Status switch
         {
-            OrderResultStatus.Success or OrderResultStatus.Existing => TypedResults.Ok(ToResponse(result.Detail!)),
+            OrderResultStatus.Success or OrderResultStatus.Existing => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             OrderResultStatus.NotFound => ApiProblems.NotFound(),
             OrderResultStatus.VersionMismatch => ApiProblems.VersionMismatch(),
             OrderResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
@@ -170,7 +170,7 @@ public static partial class OrderEndpoints
     // 前受金は端末が id を決める登録なので、新規は 201 (Location は受注)
     private static IResult ToDepositResult(Guid id, OrderResult result) =>
         result.Status == OrderResultStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.Orders}/{id}", ToResponse(result.Detail!))
+            ? TypedResults.Created($"{ApiRoutes.Orders}/{id}", ToListResponseItem(result.Detail!))
             : ToResult(result);
 
     //--------------------------------------------------------------------------------
@@ -192,7 +192,7 @@ public static partial class OrderEndpoints
 
         var result = await service.CreateAsync(ToDetail(request), cancellationToken);
         return result.Status == OrderResultStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.Orders}/{request.Id}", ToResponse(result.Detail!))
+            ? TypedResults.Created($"{ApiRoutes.Orders}/{request.Id}", ToListResponseItem(result.Detail!))
             : ToResult(result);
     }
 
@@ -229,7 +229,7 @@ public static partial class OrderEndpoints
             Size = size
         };
         var result = await service.QueryPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new OrderListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new OrderListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -238,7 +238,7 @@ public static partial class OrderEndpoints
         CancellationToken cancellationToken)
     {
         var detail = await service.QueryDetailAsync(id, cancellationToken);
-        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(detail));
+        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(detail));
     }
 
     // 受注票 (お客様の控え。前受金を受け取ったときは預り証を兼ねる)

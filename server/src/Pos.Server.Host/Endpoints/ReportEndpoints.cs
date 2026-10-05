@@ -60,10 +60,10 @@ public static partial class ReportEndpoints
     [Mapper]
     [MapProperty(nameof(ReportSalesSummaryResponseRow.Key), nameof(SalesSummaryView.GroupKey))]
     [MapProperty(nameof(ReportSalesSummaryResponseRow.Label), nameof(SalesSummaryView.GroupLabel))]
-    private static partial ReportSalesSummaryResponseRow ToResponse(SalesSummaryView row);
+    private static partial ReportSalesSummaryResponseRow ToSalesSummaryResponseRow(SalesSummaryView row);
 
     [Mapper]
-    private static partial ReportProductSalesResponseRow ToResponse(ProductSalesView row);
+    private static partial ReportProductSalesResponseRow ToProductSalesResponseRow(ProductSalesView row);
 
     [Mapper]
     [MapProperty(nameof(SalesSummaryExportRow.Key), nameof(SalesSummaryView.GroupKey))]
@@ -98,8 +98,8 @@ public static partial class ReportEndpoints
             From = start,
             To = end,
             GroupBy = ToKey(group),
-            Rows = rows.Select(ToResponse).ToList(),
-            Total = ToResponse(ReportService.Sum(rows, group == SalesSummaryGroupBy.TaxRate))
+            Rows = rows.Select(ToSalesSummaryResponseRow).ToList(),
+            Total = ToSalesSummaryResponseRow(ReportService.Sum(rows, group == SalesSummaryGroupBy.TaxRate))
         });
     }
 
@@ -139,7 +139,7 @@ public static partial class ReportEndpoints
 
         var (start, end) = service.ResolvePeriod(query.From, query.To);
         var rows = await service.QueryProductSalesAsync(query.StoreId, start, end, categoryId, order, size, cancellationToken);
-        return TypedResults.Ok(new ReportProductSalesResponse { Rows = rows.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new ReportProductSalesResponse { Rows = rows.Select(ToProductSalesResponseRow).ToList() });
     }
 
     private static async ValueTask<IResult> HandleProductSalesCsvAsync(

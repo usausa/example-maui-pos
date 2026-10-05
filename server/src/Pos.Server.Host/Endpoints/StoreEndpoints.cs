@@ -55,7 +55,7 @@ public static partial class StoreEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    internal static partial StoreListResponseItem ToResponse(StoreEntity entity);
+    internal static partial StoreListResponseItem ToListResponseItem(StoreEntity entity);
 
     [Mapper]
     private static partial StoreEntity ToEntity(StoreCreateRequest request);
@@ -78,7 +78,7 @@ public static partial class StoreEndpoints
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
         var result = await service.QueryPageAsync(updatedSince, includeDeleted, EnumHelper.Parse(sort, StoreSort.Code), desc, page, size, cancellationToken);
-        return TypedResults.Ok(new StoreListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToResponse).ToList() });
+        return TypedResults.Ok(new StoreListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -87,7 +87,7 @@ public static partial class StoreEndpoints
         CancellationToken cancellationToken)
     {
         var entity = await service.QueryAsync(id, cancellationToken);
-        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponse(entity));
+        return entity is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(entity));
     }
 
     private static async ValueTask<IResult> HandleCreateAsync(
@@ -98,7 +98,7 @@ public static partial class StoreEndpoints
         var entity = ToEntity(request);
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
-            ? TypedResults.Created($"{ApiRoutes.Stores}/{entity.Id}", ToResponse(entity))
+            ? TypedResults.Created($"{ApiRoutes.Stores}/{entity.Id}", ToListResponseItem(entity))
             : ApiProblems.DuplicateCode();
     }
 
@@ -112,7 +112,7 @@ public static partial class StoreEndpoints
         entity.Id = id;
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
-            ? TypedResults.Ok(ToResponse(result.Entity!))
+            ? TypedResults.Ok(ToListResponseItem(result.Entity!))
             : ApiProblems.FromStatus(result.Status);
     }
 
