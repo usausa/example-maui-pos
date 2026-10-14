@@ -9,6 +9,8 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
 
     private readonly IDialog dialog;
 
+    private readonly Session session;
+
     // 販売の画面間で共有する状態 (Scope プラグインが同じインスタンスを注入し、どの画面からも参照されなくなると破棄する)
     [Scope]
     public SalesContext SalesContext { get; set; } = default!;
@@ -32,7 +34,7 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
     public partial bool HasRequestedDate { get; set; }
 
     [ObservableProperty]
-    public partial DateTime RequestedDate { get; set; } = DateTime.Today;
+    public partial DateTime RequestedDate { get; set; }
 
     [ObservableProperty]
     public partial string TimeSlotText { get; set; } = TimeSlots[0];
@@ -49,16 +51,20 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
 
     public DeliveryViewModel(
         IDialog dialog,
-        IPopupNavigator popupNavigator)
+        IPopupNavigator popupNavigator,
+        Session session)
     {
         this.dialog = dialog;
+        this.session = session;
+
+        RequestedDate = BusinessDay;
 
         InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputPhoneAsync(PhoneText) ?? PhoneText);
         InputPostalCodeCommand = MakeAsyncCommand(async () => PostalCodeText = await popupNavigator.InputPostalCodeAsync(PostalCodeText) ?? PostalCodeText);
 
         SetDateCommand = MakeDelegateCommand(() =>
         {
-            RequestedDate = DateTime.Today.AddDays(1);
+            RequestedDate = BusinessDay.AddDays(1);
             HasRequestedDate = true;
         });
         ClearDateCommand = MakeDelegateCommand(() => HasRequestedDate = false);
@@ -72,6 +78,9 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
         });
     }
 
+    // 希望日の基準は営業日 (切替時刻より前は前日)
+    private DateTime BusinessDay => session.BusinessDate.ToDateTime(TimeOnly.MinValue);
+
     public override Task OnNavigatedToAsync(INavigationContext context)
     {
         HasCustomer = SalesContext.Cart.Customer is not null;
@@ -84,7 +93,7 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
             PostalCodeText = delivery.PostalCode;
             Address.Text = delivery.Address;
             HasRequestedDate = delivery.RequestedDate is not null;
-            RequestedDate = delivery.RequestedDate?.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today;
+            RequestedDate = delivery.RequestedDate?.ToDateTime(TimeOnly.MinValue) ?? BusinessDay;
             TimeSlotText = delivery.TimeSlot ?? TimeSlots[0];
             Note.Text = delivery.Note;
         }

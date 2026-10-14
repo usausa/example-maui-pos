@@ -140,7 +140,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
 
         HasOtherStores = false;
         OtherStores.Clear();
-        var result = await network.ExecuteAsync(h => h.GetProductInventoryAsync(product.Id), notifyNotFound: true);
+        var result = await network.ExecuteAsync(h => h.GetProductInventoryAsync(product.Id), notify: false);
         HasOtherStores = true;
         if (!result.IsSuccess)
         {

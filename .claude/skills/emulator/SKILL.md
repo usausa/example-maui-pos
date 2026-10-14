@@ -25,7 +25,7 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 1. ペアリングコード (6 桁、10 分) を発行する。管理画面の「レジ端末」の操作なので、手順を作って撮影のスクリプトで実行する
    - `python .claude/skills/emulator/scripts/admin_steps.py pair --out <一時フォルダ> --base <サーバの URL>` (端末は `--terminal <名称>`。既定は「本店 レジ 2」)
    - `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json` の出力の `"code: 123456"` がコード
-2. アプリを起動すると、初期設定がカメラの許可を求める。ダイアログが出ている間に `emu.py key BACK` で断る (座標で押すと許可に当たることがある)
+2. アプリを起動すると、初期設定がカメラの許可を求める。`emu.py camera deny` で断る (ダイアログが出るのを待って戻るを送る。`emu.py key BACK` をダイアログのないときに送ると、アプリが背面へ回る)
 3. サーバ URL の欄をタップし、`emu.py text http://10.0.2.2:<ポート>/` で入れて `emu.py key ENTER` でキーボードを閉じる
    - 前の値が残っているときは、先に `emu.py key MOVE_END` と `emu.py key DEL --repeat 40` で消す
    - 未登録の初期設定で戻るキーを押すと、アプリが背面へ回る。そのときは `emu.py launch` で戻す
@@ -49,7 +49,7 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 - 起動と停止: `emu.py launch`、`emu.py stop`
 - オフライン: `emu.py airplane on` / `off`
 - 例外の確認: `emu.py logcat --grep "Exception|FATAL"` (`--lines` で読む行数を変える)
-- カメラの許可: `emu.py camera status` / `grant` / `revoke` (QR の読み取りを確かめるときだけ許可する)
+- カメラの許可: `emu.py camera status` / `grant` / `revoke` / `deny` (QR の読み取りを確かめるときだけ許可する)
 - エミュレータの仮想のカメラの初期の視野には画像を映せない (`virtualscene-image` の壁と台は視野の外) ので、設定 QR の読み取りは利用者に実機での確認を頼む
 
 ## Release で確かめる

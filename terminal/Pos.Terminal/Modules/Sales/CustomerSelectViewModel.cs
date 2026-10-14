@@ -12,9 +12,9 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
 
     private readonly IPopupNavigator popupNavigator;
 
-    private ViewId returnTo = ViewId.Sales;
-
     private readonly NetworkService network;
+
+    private ViewId returnTo = ViewId.Sales;
 
     // 販売の画面間で共有する状態 (Scope プラグインが同じインスタンスを注入し、どの画面からも参照されなくなると破棄する)
     [Scope]
@@ -32,6 +32,10 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
 
     [ObservableProperty]
     public partial string Message { get; set; } = string.Empty;
+
+    // 検索中 / 取得できない / 結果 (空文字) を切り替える
+    [ObservableProperty]
+    public partial string CurrentState { get; set; } = string.Empty;
 
     public IObserveCommand SearchCommand { get; }
 
@@ -103,9 +107,12 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
             return;
         }
 
-        var result = await network.ExecuteAsync(h => h.SearchCustomersAsync(keyword));
+        CurrentState = ViewHelper.LoadingState;
+        var result = await network.ExecuteAsync(h => h.SearchCustomersAsync(keyword), notify: false);
         if (!result.IsSuccess)
         {
+            Message = "取得できません";
+            CurrentState = ViewHelper.OfflineState;
             return;
         }
 
@@ -113,6 +120,7 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
             .Where(static x => !x.IsDeleted)
             .Select(static x => new CustomerItem(x, x.Name, x.Code, x.Phone ?? string.Empty, ViewHelper.Points(x.PointBalance))));
         Message = "該当する会員がいません";
+        CurrentState = string.Empty;
     }
 
     private async Task ApplyAsync(CustomerListResponseItem customer)

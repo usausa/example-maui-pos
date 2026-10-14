@@ -25,7 +25,7 @@ public sealed class NetworkService
 
     public bool IsConnected => deviceState.NetworkState.IsConnected();
 
-    // 404 は呼び出し側が扱う (notifyNotFound = false なら通知しない)
+    // 404 は呼び出し側が扱う (notifyNotFound = false なら通知しない)。401 は MainPageViewModel が知らせるので通知しない
     public async ValueTask<ApiResult<T>> ExecuteAsync<T>(Func<HttpService, ValueTask<ApiResult<T>>> func, bool notify = true, bool notifyNotFound = false)
     {
         if (!IsConnected)
@@ -51,7 +51,7 @@ public sealed class NetworkService
 
         log.WarnApiFailed(result.Status, (int)result.StatusCode, result.ErrorCode, result.Exception);
 
-        if (notify && (!result.IsNotFound || notifyNotFound))
+        if (notify && !result.IsUnauthorized && (!result.IsNotFound || notifyNotFound))
         {
             await dialog.InformationAsync(result.Message);
         }

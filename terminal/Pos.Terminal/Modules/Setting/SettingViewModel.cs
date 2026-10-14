@@ -209,7 +209,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
         {
             await dialog.Toast(result.Sent > 0 ? $"同期しました (送信 {result.Sent} 件)" : "同期しました");
         }
-        else
+        else if (!result.Result.IsUnauthorized)
         {
             await dialog.InformationAsync("同期できませんでした\n" + result.Result.Message);
         }

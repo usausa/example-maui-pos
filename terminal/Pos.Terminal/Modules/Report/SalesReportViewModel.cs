@@ -57,7 +57,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string GroupText { get; set; } = Groups[0].Name;
 
-    // 読込中 / 取得できない / 結果 (空文字) を切り替える
+    // 取得中 / 取得できない / 結果 (空文字) を切り替える
     [ObservableProperty]
     public partial string CurrentState { get; set; } = ViewHelper.LoadingState;
 
@@ -152,31 +152,29 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
     {
         var (from, to) = ResolvePeriod();
         var storeId = scope == 2 ? null : session.StoreId;
+        CurrentState = ViewHelper.LoadingState;
 
-        // 合計は日別集計の Total (支払方法別などは値引・税を持たない)。自端末は端末別集計から自分の行を取り出す (集計軸は選べない)
+        // 合計は日別集計の Total (支払方法別などは値引・税を持たない)。自端末は端末別集計から自分の行を取り出す (集計軸は選べない)。
+        // 合計と集計軸の 2 つの取得は 1 回の実行にまとめ、通信中の表示を 1 回にする (続けて出し入れすると描画が止まることがある)
         var totalGroupBy = scope == 0 ? "terminal" : "day";
-        var result = await network.ExecuteAsync(h => h.GetSalesSummaryAsync(storeId, from, to, totalGroupBy));
+        var groupBy = scope == 0 ? totalGroupBy : Groups[group].GroupBy;
+        var result = await network.ExecuteAsync(async h =>
+        {
+            var first = await h.GetSalesSummaryAsync(storeId, from, to, totalGroupBy);
+            return (!first.IsSuccess || (groupBy == totalGroupBy))
+                ? Combine(first, first)
+                : Combine(first, await h.GetSalesSummaryAsync(storeId, from, to, groupBy));
+        }, notify: false);
         if (!result.IsSuccess)
         {
-            ShowOffline();
+            SetOffline();
             return;
         }
 
+        var (totals, summary) = result.Content;
         var total = scope == 0
-            ? result.Content!.Rows.FirstOrDefault(x => x.Key == session.TerminalId?.ToString()) ?? new ReportSalesSummaryResponseRow { Key = string.Empty, Label = string.Empty }
-            : result.Content!.Total;
-        var summary = result.Content;
-        if ((scope != 0) && (Groups[group].GroupBy != totalGroupBy))
-        {
-            var rows = await network.ExecuteAsync(h => h.GetSalesSummaryAsync(storeId, from, to, Groups[group].GroupBy));
-            if (!rows.IsSuccess)
-            {
-                ShowOffline();
-                return;
-            }
-
-            summary = rows.Content!;
-        }
+            ? totals.Rows.FirstOrDefault(x => x.Key == session.TerminalId?.ToString()) ?? new ReportSalesSummaryResponseRow { Key = string.Empty, Label = string.Empty }
+            : totals.Total;
 
         RangeText = $"{ViewHelper.Date(from)} 〜 {ViewHelper.Date(to)}  {Scopes[scope]}";
         NetSales = (double)total.NetSales;
@@ -210,7 +208,16 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         CurrentState = string.Empty;
     }
 
-    private void ShowOffline()
+    // 合計と集計軸の結果を 1 つにする (どちらかが失敗なら、その失敗)
+    private static ApiResult<(ReportSalesSummaryResponse Totals, ReportSalesSummaryResponse Rows)> Combine(ApiResult<ReportSalesSummaryResponse> totals, ApiResult<ReportSalesSummaryResponse> rows)
+    {
+        var failed = !totals.IsSuccess ? totals : !rows.IsSuccess ? rows : null;
+        return failed is null
+            ? new(ApiStatus.Success, HttpStatusCode.OK, (totals.Content!, rows.Content!), null, null)
+            : new(failed.Status, failed.StatusCode, default, failed.Problem, failed.Exception);
+    }
+
+    private void SetOffline()
     {
         Message = "取得できません";
         CurrentState = ViewHelper.OfflineState;

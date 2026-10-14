@@ -14,7 +14,7 @@
 #   python emu.py key <BACK|ENTER|DEL|...> [--repeat N]   キーを送る (入力欄を消すときは DEL を繰り返す)
 #   python emu.py swipe <x1> <y1> <x2> <y2> [ms]
 #   python emu.py airplane <on|off>          機内モード (オフラインの確認)
-#   python emu.py camera <status|grant|revoke>   カメラの許可を見る / 付ける / 取り消す (取り消すと次の起動で聞き直す)
+#   python emu.py camera <status|grant|revoke|deny>   カメラの許可を見る / 付ける / 取り消す (取り消すと次の起動で聞き直す) / ダイアログを断る
 #   python emu.py screen                     今の画面の遷移 (logcat の Navigated) を出す
 #   python emu.py logcat [--lines N] [--grep 正規表現]
 #   python emu.py pref get <key>             アプリの設定 (shared_prefs) の値を出す
@@ -226,7 +226,13 @@ def logcat(lines, pattern):
             print(line)
 
 
-def camera(action):
+def permission_dialog_shown():
+    # 前面のウインドウが許可のダイアログ (GrantPermissionsActivity) か
+    focus = re.search(r'mCurrentFocus=(.*)', shell('dumpsys window'))
+    return focus is not None and 'GrantPermissionsActivity' in focus.group(1)
+
+
+def camera(action, timeout):
     permission = 'android.permission.CAMERA'
     if action == 'grant':
         shell(f'pm grant {PACKAGE} {permission}', capture=False)
@@ -234,6 +240,16 @@ def camera(action):
         # 「今後表示しない」の印も消して、次の起動で許可を聞き直す元の状態に戻す
         shell(f'pm revoke {PACKAGE} {permission}', capture=False)
         shell(f'pm clear-permission-flags {PACKAGE} {permission} user-set user-fixed', capture=False)
+    elif action == 'deny':
+        # 戻るで断る (座標で押すと許可に当たることがある)。ダイアログがないときに送るとアプリが背面へ回るので、出るまで待つ
+        deadline = time.time() + timeout
+        while not permission_dialog_shown() and time.time() < deadline:
+            time.sleep(1)
+        if permission_dialog_shown():
+            shell('input keyevent KEYCODE_BACK', capture=False)
+            pause(0.6)
+        else:
+            print('許可のダイアログは出ていません')
     granted = re.search(re.escape(permission) + r': granted=(\w+)', shell(f'dumpsys package {PACKAGE}'))
     print(f'カメラの許可: {granted.group(1) if granted else "未設定"}')
 
@@ -330,7 +346,8 @@ def main():
     p = sub.add_parser('airplane')
     p.add_argument('state', choices=['on', 'off'])
     p = sub.add_parser('camera')
-    p.add_argument('action', choices=['status', 'grant', 'revoke'])
+    p.add_argument('action', choices=['status', 'grant', 'revoke', 'deny'])
+    p.add_argument('--timeout', type=int, default=10)
     sub.add_parser('screen')
     p = sub.add_parser('logcat')
     p.add_argument('--lines', type=int, default=200)
@@ -378,7 +395,7 @@ def main():
         shell(f'cmd connectivity airplane-mode {"enable" if args.state == "on" else "disable"}', capture=False)
         pause(2)
     elif args.command == 'camera':
-        camera(args.action)
+        camera(args.action, args.timeout)
     elif args.command == 'screen':
         logcat(500, r'Navigated:')
     elif args.command == 'logcat':

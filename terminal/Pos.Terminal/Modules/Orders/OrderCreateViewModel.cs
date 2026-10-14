@@ -14,6 +14,8 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
 
     private readonly IDialog dialog;
 
+    private readonly Session session;
+
     private readonly OrderUsecase orders;
 
     private int typeIndex;
@@ -34,7 +36,7 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
     public partial bool HasRequestedDate { get; set; }
 
     [ObservableProperty]
-    public partial DateTime RequestedDate { get; set; } = DateTime.Today;
+    public partial DateTime RequestedDate { get; set; }
 
     public EntryController Note { get; } = new();
 
@@ -55,10 +57,14 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
     public OrderCreateViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
+        Session session,
         OrderUsecase orders)
     {
         this.dialog = dialog;
+        this.session = session;
         this.orders = orders;
+
+        RequestedDate = BusinessDay;
 
         SelectTypeCommand = MakeAsyncCommand(async () =>
         {
@@ -72,11 +78,14 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
         InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputPhoneAsync(PhoneText) ?? PhoneText);
         SetDateCommand = MakeDelegateCommand(() =>
         {
-            RequestedDate = DateTime.Today.AddDays(7);
+            RequestedDate = BusinessDay.AddDays(7);
             HasRequestedDate = true;
         });
         ClearDateCommand = MakeDelegateCommand(() => HasRequestedDate = false);
     }
+
+    // 希望日の基準は営業日 (切替時刻より前は前日)
+    private DateTime BusinessDay => session.BusinessDate.ToDateTime(TimeOnly.MinValue);
 
     // 会員の名前と電話を初期値にする
     public override Task OnNavigatedToAsync(INavigationContext context)

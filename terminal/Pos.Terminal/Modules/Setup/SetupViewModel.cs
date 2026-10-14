@@ -215,6 +215,11 @@ public sealed partial class SetupViewModel : AppViewModelBase
             {
                 await dialog.Toast($"{paired.Store.Name} {paired.Terminal.Name} として登録しました");
             }
+            else if (result.IsUnauthorized)
+            {
+                // 登録した直後に解除された。知らせと初期設定への戻りは MainPageViewModel が行う
+                return;
+            }
             else
             {
                 await dialog.InformationAsync("同期できませんでした\n" + result.Message);

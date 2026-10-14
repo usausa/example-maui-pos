@@ -36,7 +36,8 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 
 - サーバの API は `HttpService` が例外を投げずに `ApiResult<T>` を返す
 - オンライン限定の操作は `NetworkService.ExecuteAsync(h => h.Xxx(...))` で呼んで `IsSuccess` を見る。知らせとインジケータは NetworkService が出し、画面で重ねて出すときは `notify: false` にする
-- 401 は `ApiContext` がイベントで 1 回だけ知らせ、`MainPageViewModel` が知らせて初期設定へ戻すので、画面で 401 を扱わない
+- 401 は `ApiContext` がイベントで 1 回だけ知らせ、`MainPageViewModel` が知らせて初期設定へ戻すので、画面で 401 を知らせない
+- `NetworkService` は 401 を知らせない。同期のように `NetworkService` を通さない失敗を画面で知らせるときは、401 (`ApiResult.IsUnauthorized`) を除く
 - 409 と 422 は `ApiResult.Message` (Problem Details の title) をそのまま出す
 - 取引・シフト・入出金・在庫の変動は、Usecase がローカル DB と Outbox (`SyncService.CreateEntry`) を 1 つのトランザクションで書き、`UpdateCountsAsync()` と `Trigger()` で送信を促す
 - Outbox の種類を足すときは `OutboxKind`、`SyncService.SendAsync`、`SyncService.Reassign`、`ViewHelper.Name(OutboxKind)`、`DisplayNameConverter` を揃える

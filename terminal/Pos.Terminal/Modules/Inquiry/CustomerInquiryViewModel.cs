@@ -97,7 +97,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         customer = null;
         CurrentState = ViewHelper.LoadingState;
 
-        var result = await network.ExecuteAsync(h => h.SearchCustomersAsync(keyword));
+        var result = await network.ExecuteAsync(h => h.SearchCustomersAsync(keyword), notify: false);
         if (!result.IsSuccess)
         {
             Message = "取得できません";
