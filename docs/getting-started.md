@@ -89,7 +89,7 @@ dotnet run --project server/tools/Pos.Server.SampleData -- --days 7
 開設中のシフトがある端末は省略する。  
 詳細は [architecture.md §6](architecture.md#-6-初期データ) と [D-42](decisions.md#d-42-サンプルの取引は-api-を呼ぶツールで作る)。
 
-商品マスタの CSV 取込は、初期データと同じ 33 商品の [docs/samples/products.csv](samples/products.csv) を編集して管理画面の「商品 › CSV 取込」で試せる (列は「CSV 出力」と同じ)。
+商品マスタの CSV 取込は、初期データと同じ商品の [docs/samples/products.csv](samples/products.csv) を編集して管理画面の「商品 › CSV 取込」で試せる (列は「CSV 出力」と同じ)。
 
 ## 🧪 テスト・静的解析
 
