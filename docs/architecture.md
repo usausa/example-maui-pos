@@ -90,7 +90,7 @@ Pos.Server.Host ───────┤                      ▲
 | `Pos.Server.Core` | Usa.Smart.Data.Accessor (+ Extensions.DependencyInjection)、BunnyTail.ServiceRegistration |
 | `Pos.Server.Host` | MudBlazor、FluentValidation、Usa.Smart.Mapper、Microsoft.Data.Sqlite、MiniDataProfiler.*、OysterReport、CsvHelper、QRCoder、Microsoft.AspNetCore.OpenApi + NSwag.AspNetCore、Serilog.*、OpenTelemetry.* (計装と OTLP / Prometheus のエクスポータ)、Microsoft.Extensions.Hosting.WindowsServices / Systemd |
 | `Pos.Server.AppHost` | Aspire.AppHost.Sdk (SDK) |
-| `Pos.Terminal` | Usa.Smart.Navigation.*、Usa.Smart.Mvvm、Usa.Smart.Maui (+ Extensions)、BunnyTail.DependencyInjection、Components.Maui、CommunityToolkit.Maui、Syncfusion.Maui.Toolkit (SfEffectsView)、BarcodeScanning.Native.Maui、SkiaSharp (+ Views.Maui.Controls)、QRCoder、Microsoft.Data.Sqlite + Usa.Smart.Data.Accessor、Usa.Smart.Mapper、Microsoft.Extensions.Http、System.Reactive |
+| `Pos.Terminal` | Usa.Smart.Navigation.*、Usa.Smart.Mvvm、Usa.Smart.Maui (+ Extensions)、BunnyTail.DependencyInjection、Components.Maui、CommunityToolkit.Maui、BarcodeScanning.Native.Maui、SkiaSharp (+ Views.Maui.Controls)、QRCoder、Microsoft.Data.Sqlite + Usa.Smart.Data.Accessor、Usa.Smart.Mapper、Microsoft.Extensions.Http、System.Reactive |
 | テスト | xunit.v3、Microsoft.Testing.Extensions.CodeCoverage、bunit + NSubstitute (`Pos.Server.UnitTests`)、Microsoft.AspNetCore.Mvc.Testing (`Pos.Server.IntegrationTests`) |
 
 - 脆弱性の警告が出る推移的な依存は直接ピンし、GHSA 番号を csproj のコメントに書く (`Microsoft.OpenApi`、`SQLitePCLRaw.bundle_e_sqlite3`)
@@ -322,12 +322,14 @@ App.xaml.cs                          起動時に前回の異常終了を知ら�
                                      ローカル DB を開けないときは理由を出して終了する (未送信を含む DB を作り直さない)
 Extensions.cs                        拡張メソッド (リソース、IDialog の日本語ボタン、PostForwardAsync / PostActionAsync、TrimToNull、ObservableCollection.Replace)
 Shell/ ShellProperty (+ Active: 表示中の View だけがシェルを更新) / ShellEvent / ShellUpdateBehavior / IShellControl
-Behaviors/                           Entry / Label / Scroll などの動作、EntryBind (EntryController)、BarcodeBind (CameraView)
+Behaviors/                           Entry / Label / Scroll などの動作 (Scroll はオーバースクロールを既定で止める)、TouchOption (押したときの波紋とクリック。要素を増やさずにビューに付ける)、
+                                     EntryBind (EntryController)、BarcodeBind (CameraView)
 Messaging/                           BarcodeController、EntryController
 Controls/                            SectionPanel (見出しと白い面の節)、StatusChip (状態を色と短い文言で示すチップ)
 Components/                          StorageManager (アプリのフォルダ。ローカル DB の置き場所)、
                                      DeviceInformation (回線の状態を Android の通知から受けて持ち、変化をイベントで知らせる。起動時に開始)
-Extender/                            NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)
+Extender/                            NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)、
+                                     PopupActivationPlugin (ポップアップを開いている間は、後ろの画面の操作を受け付けない)
 Log.cs                               [LoggerMessage] の集約
 Diagnostics/                         CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)
 Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、YenConverter、StockSendTextConverter、AvatarColorConverter / InitialConverter (会員のアバターの色と頭文字)。  
@@ -338,7 +340,8 @@ Helpers/                             アプリに依存しない処理だけ: Da
                                      Data/ (EnumTextConverter<T> / DateOnlyTextConverter / DateTimeTicksConverter / SchemaHelper / SqlHelper: LIKE のエスケープ)、Json/JsonDateTimeConverter
 Permissions.cs                       カメラ権限
 Modules/
-  ViewId.cs, DialogId.cs, Parameters.cs (遷移パラメータ: スキャンのモードと結果 / 戻り先 / 取引・シフト・商品・受注の ID / 会員), AppViewModelBase.cs (コマンドと F キーは表示中の画面だけが受け付ける), AppDialogViewModelBase.cs
+  ViewId.cs, DialogId.cs, Parameters.cs (遷移パラメータ: スキャンのモードと結果 / 戻り先 / 取引・シフト・商品・受注の ID / 会員), AppViewModelBase.cs (コマンドと F キーは表示中の画面だけが受け付ける), AppDialogViewModelBase.cs (CloseAsync で閉じ、閉じ始めたら操作を受け付けない),
+  ValidationHelper.cs (入力の検証。AppViewModelBase と AppDialogViewModelBase が使う)
   PopupNavigatorExtensions.cs        入力の種類ごとの電卓 (電話番号 / 郵便番号 / 生年月日 / 会員番号 / 商品コード / レシート番号 / 伝票番号 / ペアリングコード / PIN (伏せ字) / 数量 / 金額 / 実査金額 / ポイント / 枚数 / 在庫 / 値引。桁数は Pos.Domain.Length) と一覧からの選択 (ChooseAsync)
   Helpers/ViewHelper.cs              金額・数量・日時・列挙型・業務ルールの文言 (XAML からは DisplayNameConverter で使う)
   Setup/      SetupView (T-00), StaffSelectView (T-01)
@@ -390,7 +393,7 @@ State/
 Resources/
   Fonts/      MaterialIcons のみ
   Styles/     Colors.xaml、Styles.xaml (Converter の構成、POS 節: Pos 接頭辞のスタイル、ヘッダの状態表示 / 一覧行 / チップ / テンキー / 入力欄)
-Platforms/Android/ MainActivity (pos.terminal.MainActivity)、AndroidHelper (外部ストレージがなければアプリ内のフォルダ)、
+Platforms/Android/ MainActivity (pos.terminal.MainActivity。オーバースクロールを止めるテーマ NoOverScrollTheme を当てる)、AndroidHelper (外部ストレージがなければアプリ内のフォルダ)、
                    DirectFontImageSourceService (FontImageSource の画像を MAUI の画像の読み込み (Glide) を通さずにその場で描く)。権限はネットワークとカメラ。  
                    バックアップと端末間の転送はしない (allowBackup = false、Resources/xml/data_extraction_rules.xml)
 ```
