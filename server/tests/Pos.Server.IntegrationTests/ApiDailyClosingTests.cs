@@ -13,8 +13,6 @@ public sealed class ApiDailyClosingTests : IClassFixture<TestApplicationFactory>
 {
     private static readonly DateTime Now = new(2026, 9, 12, 1, 0, 0, DateTimeKind.Utc);
 
-    private static readonly Guid ServiceCategoryId = new("00000000-0000-0000-0004-000000000004");
-
     private readonly TestApplicationFactory factory;
 
     private readonly JsonSerializerOptions options;
@@ -24,6 +22,8 @@ public sealed class ApiDailyClosingTests : IClassFixture<TestApplicationFactory>
         this.factory = factory;
         options = factory.JsonOptions();
     }
+
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     // 締めの前後で取消・遅れて届いた取引の扱いが変わり、解除して締め直すと日計に取り込まれる
     [Fact]
@@ -91,7 +91,7 @@ public sealed class ApiDailyClosingTests : IClassFixture<TestApplicationFactory>
         // Act / Assert: 解除すると未締めに戻り、締め直すと遅れて届いた取引も日計に入る
         using var reopenResponse = await client.DeleteUrlAsync($"{ApiRoutes.DailyClosings}/{closingId}");
         Assert.Equal(HttpStatusCode.NoContent, reopenResponse.StatusCode);
-        using var missingResponse = await client.GetAsync(new Uri($"{ApiRoutes.DailyClosings}/{closingId}", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var missingResponse = await client.GetAsync(new Uri($"{ApiRoutes.DailyClosings}/{closingId}", UriKind.Relative), Token);
         await missingResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
         using var reopenAgainResponse = await client.DeleteUrlAsync($"{ApiRoutes.DailyClosings}/{closingId}");
         await reopenAgainResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
@@ -172,7 +172,7 @@ public sealed class ApiDailyClosingTests : IClassFixture<TestApplicationFactory>
             TransactedAt = Now.AddMinutes(10),
             Lines =
             [
-                new TransactionCreateRequestLine { Id = Guid.NewGuid(), LineNo = 1, ProductId = TestData.DeliveryProductId, ProductCode = "SVC-DELIVERY", ProductName = "配送料", CategoryId = ServiceCategoryId, Kind = ProductKind.Service, ListPrice = 1100m, UnitPrice = 1100m, Quantity = 1m, TaxRateId = TestData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0m }
+                new TransactionCreateRequestLine { Id = Guid.NewGuid(), LineNo = 1, ProductId = TestData.DeliveryProductId, ProductCode = "SVC-DELIVERY", ProductName = "配送料", CategoryId = TestData.ServiceCategoryId, Kind = ProductKind.Service, ListPrice = 1100m, UnitPrice = 1100m, Quantity = 1m, TaxRateId = TestData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0m }
             ],
             Payments =
             [

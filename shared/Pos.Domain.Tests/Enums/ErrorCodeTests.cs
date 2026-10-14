@@ -43,6 +43,7 @@ public sealed class ErrorCodeTests
         Assert.Equal(expected, code.ToCode());
     }
 
+    // 警告コードは通信の文字列 (UPPER_SNAKE_CASE) にする
     [Theory]
     [InlineData(WarningCode.PointBalanceNegative, "POINT_BALANCE_NEGATIVE")]
     [InlineData(WarningCode.ProductInactive, "PRODUCT_INACTIVE")]

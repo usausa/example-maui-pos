@@ -3,27 +3,29 @@ namespace Pos.Server;
 using System.Text;
 using System.Text.Json;
 
-using Microsoft.AspNetCore.Http.Json;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-
 using Pos.Contract.Transactions;
+using Pos.Server.Host.Endpoints;
 
 // JSON の約束: camelCase、null は省略、列挙型は文字列、日時は yyyy-MM-ddTHH:mm:ss.fffZ、日付は yyyy-MM-dd
 public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
 {
     private readonly TestApplicationFactory factory;
 
+    private readonly JsonSerializerOptions options;
+
     public JsonContractTests(TestApplicationFactory factory)
     {
         this.factory = factory;
+        options = factory.JsonOptions();
     }
 
-    private JsonSerializerOptions Options => factory.Services.GetRequiredService<IOptions<JsonOptions>>().Value.SerializerOptions;
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
 
+    // 項目名は camelCase、日時は UTC のミリ秒付き (yyyy-MM-ddTHH:mm:ss.fffZ) で書く
     [Fact]
     public void SerializeUsesContractFormats()
     {
+        // Arrange
         var request = new TransactionVoidRequest
         {
             StaffId = new Guid("00000000-0000-0000-0000-000000000001"),
@@ -31,14 +33,18 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
             VoidedAt = new DateTime(2026, 9, 11, 3, 15, 0, DateTimeKind.Utc)
         };
 
-        var json = JsonSerializer.Serialize(request, Options);
+        // Act
+        var json = JsonSerializer.Serialize(request, options);
 
+        // Assert
         Assert.Equal("{\"staffId\":\"00000000-0000-0000-0000-000000000001\",\"reason\":\"レジ誤操作\",\"voidedAt\":\"2026-09-11T03:15:00.000Z\"}", json);
     }
 
+    // null の項目だけを省き (Guid.Empty は書く)、小数は桁を保ち、日付は yyyy-MM-dd、列挙型は文字列で書く
     [Fact]
     public void SerializeOmitsNullAndWritesEnumAsString()
     {
+        // Arrange
         var response = new TransactionCalculateResponse
         {
             Lines = [],
@@ -48,38 +54,48 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
         };
         var delivery = new TransactionListResponseDelivery { RecipientName = "山田 太郎", Address = "東京都", RequestedDate = new DateOnly(2026, 9, 14) };
 
-        var json = JsonSerializer.Serialize(response, Options);
-        var deliveryJson = JsonSerializer.Serialize(delivery, Options);
-        var typeJson = JsonSerializer.Serialize(new TransactionVoidRequest { Reason = "x" }, Options);
+        // Act
+        var json = JsonSerializer.Serialize(response, options);
+        var deliveryJson = JsonSerializer.Serialize(delivery, options);
+        var typeJson = JsonSerializer.Serialize(new TransactionVoidRequest { Reason = "x" }, options);
 
+        // Assert
         Assert.Contains("\"taxableAmount\":80100", json, StringComparison.Ordinal);
         Assert.Contains("\"rate\":0.10", json, StringComparison.Ordinal);
         Assert.DoesNotContain("phone", deliveryJson, StringComparison.Ordinal);
         Assert.Contains("\"requestedDate\":\"2026-09-14\"", deliveryJson, StringComparison.Ordinal);
         Assert.Contains("\"staffId\":\"00000000-0000-0000-0000-000000000000\"", typeJson, StringComparison.Ordinal);
-        Assert.Equal("\"Sale\"", JsonSerializer.Serialize(TransactionType.Sale, Options));
-        Assert.Equal("\"TaxIncluded\"", JsonSerializer.Serialize(PointBasis.TaxIncluded, Options));
+        Assert.Equal("\"Sale\"", JsonSerializer.Serialize(TransactionType.Sale, options));
+        Assert.Equal("\"TaxIncluded\"", JsonSerializer.Serialize(PointBasis.TaxIncluded, options));
     }
 
+    // オフセット付きの日時は UTC に直して読む
     [Fact]
     public void DeserializeRoundTripsDateTimeAsUtc()
     {
+        // Arrange
         const string json = "{\"staffId\":\"00000000-0000-0000-0000-000000000001\",\"reason\":\"x\",\"voidedAt\":\"2026-09-11T12:15:00.000+09:00\"}";
 
-        var request = JsonSerializer.Deserialize<TransactionVoidRequest>(json, Options);
+        // Act
+        var request = JsonSerializer.Deserialize<TransactionVoidRequest>(json, options);
 
+        // Assert
         Assert.NotNull(request);
         Assert.Equal(DateTimeKind.Utc, request.VoidedAt.Kind);
         Assert.Equal(new DateTime(2026, 9, 11, 3, 15, 0, DateTimeKind.Utc), request.VoidedAt);
     }
 
+    // 列挙型は文字列から読む
     [Fact]
     public void DeserializeEnumFromString()
     {
+        // Arrange
         const string json = "{\"type\":\"Return\",\"lines\":[],\"discounts\":[],\"payments\":[]}";
 
-        var request = JsonSerializer.Deserialize<TransactionCalculateRequest>(json, Options);
+        // Act
+        var request = JsonSerializer.Deserialize<TransactionCalculateRequest>(json, options);
 
+        // Assert
         Assert.NotNull(request);
         Assert.Equal(TransactionType.Return, request.Type);
         Assert.Empty(request.Lines);
@@ -98,9 +114,9 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
         using var content = new StringContent(body, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await client.PostAsync(new Uri("/api/v1/categories", UriKind.Relative), content, TestContext.Current.CancellationToken);
+        using var response = await client.PostAsync(new Uri(ApiRoutes.Categories, UriKind.Relative), content, Token);
 
         // Assert
-        await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", factory.JsonOptions());
+        await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
     }
 }

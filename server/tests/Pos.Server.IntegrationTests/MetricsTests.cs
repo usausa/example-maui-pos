@@ -16,6 +16,8 @@ public sealed class MetricsTests : IClassFixture<TestApplicationFactory>
         this.factory = factory;
     }
 
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
     // API の要求は api.request.execution に数えられる
     [Fact]
     public async Task ApiRequestIsCounted()
@@ -35,7 +37,7 @@ public sealed class MetricsTests : IClassFixture<TestApplicationFactory>
         var client = await factory.CreateAdminClientAsync();
 
         // Act
-        var response = await client.GetAsync(new Uri(ApiRoutes.Stores, UriKind.Relative), TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync(new Uri(ApiRoutes.Stores, UriKind.Relative), Token);
 
         // Assert
         response.EnsureSuccessStatusCode();

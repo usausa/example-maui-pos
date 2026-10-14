@@ -56,38 +56,44 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task CategoryCrudAndConflicts()
     {
+        // Arrange
         var client = await factory.CreateAdminClientAsync();
         var code = $"T{Guid.NewGuid():N}"[..10];
 
+        // Act / Assert: 登録
         using var createResponse = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = code, Name = "テスト部門", SortOrder = 99 }, options);
         var created = await createResponse.ReadAsAsync<CategoryListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal($"{ApiRoutes.Categories}/{created.Id}", createResponse.Headers.Location?.ToString());
         Assert.Equal(1, created.Version);
 
+        // Act / Assert: コードの重複は 409
         using var duplicateResponse = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = code, Name = "重複", SortOrder = 1 }, options);
         await duplicateResponse.ReadProblemAsync(HttpStatusCode.Conflict, "DUPLICATE_CODE", options);
 
+        // Act / Assert: 更新は版が上がり、古い版での更新は 409
         using var updateResponse = await client.PutJsonAsync($"{ApiRoutes.Categories}/{created.Id}", new CategoryUpdateRequest { Code = code, Name = "更新後", SortOrder = 99, Version = 1 }, options);
         var updated = await updateResponse.ReadAsAsync<CategoryListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal("更新後", updated.Name);
         Assert.Equal(2, updated.Version);
-
         using var staleResponse = await client.PutJsonAsync($"{ApiRoutes.Categories}/{created.Id}", new CategoryUpdateRequest { Code = code, Name = "古い版", SortOrder = 99, Version = 1 }, options);
         await staleResponse.ReadProblemAsync(HttpStatusCode.Conflict, "VERSION_MISMATCH", options);
 
-        using var inUseResponse = await client.DeleteUrlAsync($"{ApiRoutes.Categories}/00000000-0000-0000-0004-000000000015");
+        // Act / Assert: 商品が使っている部門の削除は 422
+        using var inUseResponse = await client.DeleteUrlAsync($"{ApiRoutes.Categories}/{TestData.CameraCategoryId}");
         await inUseResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "IN_USE", options);
 
+        // Act / Assert: 削除は 204
         using var deleteResponse = await client.DeleteUrlAsync($"{ApiRoutes.Categories}/{created.Id}");
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        // 論理削除後も id 指定では isDeleted: true で取得でき、更新はできない
+        // Act / Assert: 論理削除後も id 指定では isDeleted: true で取得でき、更新はできない (ない id は 404)
         Assert.True((await client.GetJsonAsync<CategoryListResponseItem>($"{ApiRoutes.Categories}/{created.Id}", options)).IsDeleted);
         using var updateDeletedResponse = await client.PutJsonAsync($"{ApiRoutes.Categories}/{created.Id}", new CategoryUpdateRequest { Code = code, Name = "削除済み", SortOrder = 99, Version = 3 }, options);
         await updateDeletedResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
         using var getResponse = await client.GetAsync(new Uri($"{ApiRoutes.Categories}/{Guid.NewGuid()}", UriKind.Relative), Token);
         await getResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
 
+        // Act / Assert: 一覧は削除済みを含めたときだけ載る
         var list = await client.GetJsonAsync<CategoryListResponse>($"{ApiRoutes.Categories}?includeDeleted=true&size=100", options);
         Assert.Contains(list.Items, x => (x.Id == created.Id) && x.IsDeleted);
         var active = await client.GetJsonAsync<CategoryListResponse>($"{ApiRoutes.Categories}?size=100", options);
@@ -122,6 +128,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
     }
 
+    // 商品はバーコードとコードで引け (ないものは 404)、キーワードで一覧をページで取れる
     [Fact]
     public async Task ProductLookupAndList()
     {
@@ -161,6 +168,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
     }
 
+    // 会社設定の更新は版で守り、古い版での更新は 409
     [Fact]
     public async Task SettingsUpdateUsesVersion()
     {

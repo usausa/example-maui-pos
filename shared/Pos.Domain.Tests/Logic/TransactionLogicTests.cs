@@ -24,6 +24,7 @@ public sealed class TransactionLogicTests
     // Sale
     // ------------------------------------------------------------
 
+    // 正しい販売は警告なしで受け付ける
     [Fact]
     public void ValidateSaleAccepts()
     {
@@ -38,6 +39,7 @@ public sealed class TransactionLogicTests
         Assert.True(SalesLogic.Matches(claimed, validation.Expected));
     }
 
+    // 販売はシフトがない・精算済み・別の端末のシフトなら拒む
     [Fact]
     public void ValidateSaleShift()
     {
@@ -54,6 +56,7 @@ public sealed class TransactionLogicTests
         Assert.Contains(mismatch.Errors, static x => x.Code == ErrorCode.ShiftTerminalMismatch);
     }
 
+    // 使用済みのレシート番号の販売は拒む
     [Fact]
     public void ValidateSaleDuplicateReceiptNo()
     {
@@ -65,6 +68,7 @@ public sealed class TransactionLogicTests
         Assert.Contains(validation.Errors, static x => x.Code == ErrorCode.DuplicateReceiptNo);
     }
 
+    // ない商品の明細は拒む
     [Fact]
     public void ValidateSaleProductNotFound()
     {
@@ -117,6 +121,7 @@ public sealed class TransactionLogicTests
         Assert.Null(validation.Expected);
     }
 
+    // 取引値引が明細値引後の合計を超えると拒む
     [Fact]
     public void ValidateSaleTransactionDiscountExceeded()
     {
@@ -282,6 +287,7 @@ public sealed class TransactionLogicTests
     // Return
     // ------------------------------------------------------------
 
+    // 正しい返品は受け付け、計算の期待値を返す
     [Fact]
     public void ValidateReturnAccepts()
     {
@@ -316,6 +322,7 @@ public sealed class TransactionLogicTests
         Assert.Equal((ErrorCode.PaymentMismatch, RuleReason.DepositRefundNotAllowed), (Assert.Single(validation.Errors).Code, validation.Errors[0].Reason));
     }
 
+    // 元の取引がない・取消済み・返品の返品は拒む
     [Fact]
     public void ValidateReturnOriginal()
     {
@@ -352,6 +359,7 @@ public sealed class TransactionLogicTests
         Assert.Contains(exceededByReturned.Errors, static x => x.Code == ErrorCode.ReturnQuantityExceeded);
     }
 
+    // 元の取引にない明細の返品は拒む
     [Fact]
     public void ValidateReturnUnknownOriginalLine()
     {
@@ -388,6 +396,7 @@ public sealed class TransactionLogicTests
         Assert.Contains(validation.Errors, static x => x.Code == ErrorCode.PaymentMismatch);
     }
 
+    // ポイントを戻す返品は、会員が見つからなければ拒む
     [Fact]
     public void ValidateReturnCustomerRequired()
     {
@@ -403,6 +412,7 @@ public sealed class TransactionLogicTests
     // Void
     // ------------------------------------------------------------
 
+    // 取消は、ない・取消済み・精算済みのシフト・返品のある販売・締めた日の取引を拒む (返品ありで拒むのは販売だけ)
     [Fact]
     public void ValidateVoid()
     {

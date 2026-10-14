@@ -23,7 +23,7 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    // 初期データ が入る
+    // 初期データの設定・マスタ・会員・在庫が入る
     [Fact]
     public async Task InitialDataIsSeeded()
     {

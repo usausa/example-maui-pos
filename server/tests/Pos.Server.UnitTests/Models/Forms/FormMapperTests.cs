@@ -6,6 +6,7 @@ using Pos.Server.Models.Entity;
 // Entity ↔ Form の変換 (Guid ↔ Guid?、DateOnly ↔ DateTime)
 public sealed class FormMapperTests
 {
+    // 端末のフォームはエンティティと往復しても値が変わらず、店舗の未選択は Guid.Empty にする
     [Fact]
     public void TerminalRoundTrip()
     {
@@ -21,6 +22,7 @@ public sealed class FormMapperTests
         Assert.Equal(Guid.Empty, TerminalForm.ToEntity(new TerminalForm()).StoreId);
     }
 
+    // 会員の生年月日は DateOnly と DateTime を変換する (空は null)
     [Fact]
     public void CustomerBirthDateConverts()
     {
@@ -33,6 +35,7 @@ public sealed class FormMapperTests
         Assert.Null(CustomerForm.ToEntity(new CustomerForm()).BirthDate);
     }
 
+    // 商品の部門と税率の選択はエンティティと往復しても変わらない
     [Fact]
     public void ProductSelectsConvert()
     {

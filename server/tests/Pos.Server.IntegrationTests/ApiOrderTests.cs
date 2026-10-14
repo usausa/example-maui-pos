@@ -16,8 +16,6 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
 
     private static readonly DateOnly BusinessDate = new(2026, 9, 13);
 
-    private static readonly Guid AccessoryCategoryId = new("00000000-0000-0000-0004-000000000017");
-
     private readonly TestApplicationFactory factory;
 
     private readonly JsonSerializerOptions options;
@@ -199,7 +197,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
             OrderId = orderId,
             Lines =
             [
-                new TransactionCreateRequestLine { Id = Guid.NewGuid(), LineNo = 1, ProductId = TestData.SdCardProductId, ProductCode = "SD-64", ProductName = "SD カード 64GB", CategoryId = AccessoryCategoryId, Kind = ProductKind.Goods, ListPrice = 2000m, UnitPrice = 2000m, Quantity = 1m, TaxRateId = TestData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0m }
+                new TransactionCreateRequestLine { Id = Guid.NewGuid(), LineNo = 1, ProductId = TestData.SdCardProductId, ProductCode = "SD-64", ProductName = "SD カード 64GB", CategoryId = TestData.AccessoryCategoryId, Kind = ProductKind.Goods, ListPrice = 2000m, UnitPrice = 2000m, Quantity = 1m, TaxRateId = TestData.StandardTaxRateId, TaxRate = 0.10m, TaxIncluded = true, PointRate = 0m }
             ],
             Payments =
             [

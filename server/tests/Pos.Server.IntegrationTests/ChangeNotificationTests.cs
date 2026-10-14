@@ -10,7 +10,7 @@ using Pos.Contract.Shifts;
 using Pos.Server.Host.Endpoints;
 using Pos.Server.Services;
 
-// 変更の通知: シフト・入出金・在庫を書くと、管理画面に読み直させる通知が出る。受け付けなかった書き込みは通知しない
+// 変更の通知: 書き込みを管理画面に知らせて読み直させる
 public sealed class ChangeNotificationTests : IClassFixture<TestApplicationFactory>
 {
     private static readonly DateTime Now = new(2026, 9, 14, 1, 0, 0, DateTimeKind.Utc);
@@ -25,6 +25,7 @@ public sealed class ChangeNotificationTests : IClassFixture<TestApplicationFacto
         options = factory.JsonOptions();
     }
 
+    // シフトと在庫を書くと変更を通知し、受け付けなかった書き込みは通知しない
     [Fact]
     public async Task WritesNotifyChanges()
     {

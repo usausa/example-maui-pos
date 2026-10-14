@@ -132,7 +132,7 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
         using var otherTerminalResponse = await client.PostJsonAsync(url, DepositRequest(shiftId, TestData.MainTerminal1Id, TestData.CashPaymentMethodId, 100m), options);
         using var otherStoreResponse = await client.PostJsonAsync(url, DepositRequest(branchShiftId, TestData.BranchTerminalId, TestData.CashPaymentMethodId, 100m), options);
         using var missingOrderResponse = await client.PostJsonAsync($"{ApiRoutes.Orders}/{Guid.NewGuid()}/deposit", DepositRequest(shiftId, TestData.MainTerminal2Id, TestData.CashPaymentMethodId, 100m), options);
-        using var secondMethodResponse = await client.PostJsonAsync(ApiRoutes.PaymentMethods, new PaymentMethodCreateRequest { Code = "DEPOSIT2", Name = "前受金 2", Kind = PaymentKind.Deposit, IsActive = true, SortOrder = 99 }, options);
+        using var secondMethodResponse = await client.PostJsonAsync(ApiRoutes.PaymentMethods, new PaymentMethodCreateRequest { Code = $"T{Guid.NewGuid():N}"[..10], Name = "前受金 2", Kind = PaymentKind.Deposit, IsActive = true, SortOrder = 99 }, options);
 
         // Assert
         await zeroResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);

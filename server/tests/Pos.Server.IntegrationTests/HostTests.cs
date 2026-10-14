@@ -4,6 +4,8 @@ using System.Text.Json.Nodes;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 
+using Pos.Server.Host.Endpoints;
+
 public sealed class HostTests : IClassFixture<TestApplicationFactory>
 {
     private readonly TestApplicationFactory factory;
@@ -13,6 +15,9 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         this.factory = factory;
     }
 
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    // ヘルスチェックはログインなしで 200
     [Fact]
     public async Task HealthReturnsOk()
     {
@@ -20,7 +25,7 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         var client = factory.CreateClient();
 
         // Act
-        var response = await client.GetAsync(new Uri("/health", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync(new Uri("/health", UriKind.Relative), Token);
 
         // Assert
         response.EnsureSuccessStatusCode();
@@ -34,13 +39,14 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         // Act
-        var response = await client.GetAsync(new Uri("/", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync(new Uri("/", UriKind.Relative), Token);
 
         // Assert
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.StartsWith("http://localhost/login", response.Headers.Location?.ToString(), StringComparison.Ordinal);
     }
 
+    // ログインしていれば管理画面の HTML を返す (プリレンダリングしないので、中身は対話型で描く)
     [Fact]
     public async Task RootShowsHomePage()
     {
@@ -48,14 +54,15 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         var client = await factory.CreateAdminClientAsync();
 
         // Act
-        var response = await client.GetAsync(new Uri("/", UriKind.Relative), TestContext.Current.CancellationToken);
-        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync(new Uri("/", UriKind.Relative), Token);
+        var content = await response.Content.ReadAsStringAsync(Token);
 
         // Assert
         response.EnsureSuccessStatusCode();
-        Assert.Contains("POS", content, StringComparison.Ordinal);
+        Assert.Contains("<title>POS 管理</title>", content, StringComparison.Ordinal);
     }
 
+    // ない画面は 404 のページを出す
     [Fact]
     public async Task UnknownPageReturnsNotFoundPage()
     {
@@ -63,15 +70,15 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         var client = factory.CreateClient();
 
         // Act
-        var response = await client.GetAsync(new Uri("/unknown", UriKind.Relative), TestContext.Current.CancellationToken);
-        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync(new Uri("/unknown", UriKind.Relative), Token);
+        var content = await response.Content.ReadAsStringAsync(Token);
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Contains("ページが見つかりません", content, StringComparison.Ordinal);
     }
 
-    // OpenAPI document (Development) lists the API
+    // 開発環境の OpenAPI の文書に API が載る
     [Fact]
     public async Task OpenApiDocumentListsApi()
     {
@@ -79,17 +86,17 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         var client = factory.CreateClient();
 
         // Act
-        var response = await client.GetAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken);
-        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync(new Uri("/openapi/v1.json", UriKind.Relative), Token);
+        var content = await response.Content.ReadAsStringAsync(Token);
 
         // Assert
         response.EnsureSuccessStatusCode();
-        Assert.Contains("/api/v1/transactions/calculate", content, StringComparison.Ordinal);
-        Assert.Contains("/api/v1/shifts/{id}/summary/pdf", content, StringComparison.Ordinal);
-        Assert.Contains("/api/v1/reports/sales/daily/pdf", content, StringComparison.Ordinal);
+        Assert.Contains($"{ApiRoutes.Transactions}/calculate", content, StringComparison.Ordinal);
+        Assert.Contains(ApiRoutes.Shifts + "/{id}/summary/pdf", content, StringComparison.Ordinal);
+        Assert.Contains($"{ApiRoutes.Reports}/sales/daily/pdf", content, StringComparison.Ordinal);
     }
 
-    // OpenAPI document describes operation names and responses
+    // OpenAPI の文書に操作名と応答の型 (失敗は Problem Details) が載り、整数の項目は integer になる
     [Fact]
     public async Task OpenApiDocumentDescribesResponses()
     {
@@ -97,8 +104,8 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         var client = factory.CreateClient();
 
         // Act
-        var document = JsonNode.Parse(await client.GetStringAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken))!;
-        var operation = document["paths"]!["/api/v1/categories/{id}"]!["get"]!;
+        var document = JsonNode.Parse(await client.GetStringAsync(new Uri("/openapi/v1.json", UriKind.Relative), Token))!;
+        var operation = document["paths"]![ApiRoutes.Categories + "/{id}"]!["get"]!;
 
         // Assert
         Assert.Equal("CategoryGet", (string?)operation["operationId"]);
@@ -107,7 +114,7 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         Assert.Equal("integer", (string?)document["components"]!["schemas"]!["CategoryListResponseItem"]!["properties"]!["sortOrder"]!["type"]);
     }
 
-    // API returns a plain 404 instead of HTML
+    // ない API は HTML ではなく本文のない 404 を返す
     [Fact]
     public async Task UnknownApiReturnsPlainNotFound()
     {
@@ -115,8 +122,8 @@ public sealed class HostTests : IClassFixture<TestApplicationFactory>
         var client = factory.CreateClient();
 
         // Act
-        var response = await client.GetAsync(new Uri("/api/unknown", UriKind.Relative), TestContext.Current.CancellationToken);
-        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync(new Uri("/api/unknown", UriKind.Relative), Token);
+        var content = await response.Content.ReadAsStringAsync(Token);
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

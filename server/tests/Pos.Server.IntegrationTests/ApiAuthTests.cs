@@ -293,6 +293,9 @@ public sealed class ApiAuthDisabledTests : IClassFixture<AuthDisabledApplication
         this.factory = factory;
     }
 
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    // 認証を無効にすると、ログインしていない要求でも API を呼べる
     [Fact]
     public async Task AnonymousApiIsAllowed()
     {
@@ -300,7 +303,7 @@ public sealed class ApiAuthDisabledTests : IClassFixture<AuthDisabledApplication
         var client = factory.CreateClient();
 
         // Act
-        using var response = await client.GetAsync(new Uri(ApiRoutes.Stores, UriKind.Relative), TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync(new Uri(ApiRoutes.Stores, UriKind.Relative), Token);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

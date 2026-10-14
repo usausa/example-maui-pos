@@ -2,6 +2,7 @@ namespace Pos.Domain.Logic;
 
 public sealed class RoundingLogicTests
 {
+    // 端数処理 (切り捨て、四捨五入、切り上げ)
     [Theory]
     [InlineData(TaxRounding.Floor, 100.9, 100)]
     [InlineData(TaxRounding.Floor, 100.0, 100)]
@@ -15,6 +16,7 @@ public sealed class RoundingLogicTests
         Assert.Equal(expected, RoundingLogic.Apply((decimal)value, rounding));
     }
 
+    // 定義にない端数処理は例外
     [Fact]
     public void ApplyThrowsForUndefinedRounding()
     {

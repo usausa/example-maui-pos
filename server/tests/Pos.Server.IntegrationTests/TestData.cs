@@ -16,6 +16,8 @@ internal static class TestData
     public static readonly Guid MainCashierStaffId = Id(3, 3);
     public static readonly Guid BranchCashierStaffId = Id(3, 4);
 
+    public static readonly Guid ServiceCategoryId = Id(4, 4);
+    public static readonly Guid CameraCategoryId = Id(4, 21);
     public static readonly Guid AccessoryCategoryId = Id(4, 23);
 
     public static readonly Guid StandardTaxRateId = Id(5, 1);

@@ -94,6 +94,7 @@ public sealed class ReturnLogicTests
         }
     }
 
+    // 元の取引にない明細の返品は計算できない (例外)
     [Fact]
     public void CalculateThrowsForUnknownOriginalLine()
     {

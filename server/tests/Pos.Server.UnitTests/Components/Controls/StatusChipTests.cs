@@ -20,6 +20,7 @@ public sealed class StatusChipTests : MudBlazorTestBase
         Assert.Contains("mud-chip-icon", cut.Markup, StringComparison.Ordinal);
     }
 
+    // 過不足のチップは符号で色を変え、未入力は「-」
     [Fact]
     public void DifferenceChipReflectsSign()
     {

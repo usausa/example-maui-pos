@@ -16,6 +16,7 @@ public sealed class DependencyTests
         "Pos.Terminal"
     ];
 
+    // Domain は UI・DB・HTTP・通信データ・サーバ・端末のアセンブリを参照しない
     [Fact]
     public void DomainDoesNotReferenceInfrastructure()
     {
