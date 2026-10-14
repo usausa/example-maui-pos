@@ -3,24 +3,25 @@ namespace Pos.Server.Services;
 using Pos.Server.Accessors;
 using Pos.Server.Models;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
 
 public sealed class StoreService
 {
+    private readonly TimeProvider timeProvider;
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
     private readonly InventoryAccessor inventoryAccessor;
-    private readonly TimeProvider timeProvider;
 
     public StoreService(
+        TimeProvider timeProvider,
         IDialect dialect,
         MasterAccessor masterAccessor,
-        InventoryAccessor inventoryAccessor,
-        TimeProvider timeProvider)
+        InventoryAccessor inventoryAccessor)
     {
+        this.timeProvider = timeProvider;
         this.dialect = dialect;
         this.masterAccessor = masterAccessor;
         this.inventoryAccessor = inventoryAccessor;
-        this.timeProvider = timeProvider;
     }
 
     // 店舗の TimeZone (IANA / Windows) を解決し、不明ならサーバのローカル
@@ -28,11 +29,11 @@ public sealed class StoreService
         !String.IsNullOrEmpty(id) && TimeZoneInfo.TryFindSystemTimeZoneById(id, out var timeZone) ? timeZone : TimeZoneInfo.Local;
 
     // 差分同期 (updatedSince 指定時) は updatedAt, id 順 (SQL 側で固定)
-    public async ValueTask<PagedResult<StoreEntity>> QueryPageAsync(DateTime? updatedSince, bool includeDeleted, StoreSort sort, bool desc, int page, int size, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<StoreEntity>> QueryPageAsync(StoreQueryParameter parameter, CancellationToken cancellationToken)
     {
-        var total = await masterAccessor.CountStoresAsync(updatedSince, includeDeleted, cancellationToken);
-        var items = await masterAccessor.QueryStoreListAsync(updatedSince, includeDeleted, sort, desc, size, page * size, cancellationToken);
-        return new PagedResult<StoreEntity>((int)total, page, size, items);
+        var total = await masterAccessor.CountStoresAsync(parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
+        var items = await masterAccessor.QueryStoreListAsync(parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<StoreEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 
     // 全件 (コード順)

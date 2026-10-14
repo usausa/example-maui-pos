@@ -3,6 +3,7 @@ namespace Pos.Server.Services;
 using Pos.Server.Accessors;
 using Pos.Server.Models;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
 
 public sealed class TerminalService
 {
@@ -23,11 +24,11 @@ public sealed class TerminalService
         this.masterAccessor = masterAccessor;
     }
 
-    public async ValueTask<PagedResult<TerminalEntity>> QueryPageAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, TerminalSort sort, bool desc, int page, int size, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<TerminalEntity>> QueryPageAsync(TerminalQueryParameter parameter, CancellationToken cancellationToken)
     {
-        var total = await masterAccessor.CountTerminalsAsync(storeId, updatedSince, includeDeleted, cancellationToken);
-        var items = await masterAccessor.QueryTerminalListAsync(storeId, updatedSince, includeDeleted, sort, desc, size, page * size, cancellationToken);
-        return new PagedResult<TerminalEntity>((int)total, page, size, items);
+        var total = await masterAccessor.CountTerminalsAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
+        var items = await masterAccessor.QueryTerminalListAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<TerminalEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 
     // 全件 (店舗、端末番号順)

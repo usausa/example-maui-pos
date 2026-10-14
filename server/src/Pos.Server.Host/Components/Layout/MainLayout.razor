@@ -31,7 +31,7 @@
     <MudDrawer @bind-Open="drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
     </MudDrawer>
-    @* Padding on MudMainContent would cancel the AppBar offset, so pad the inner div *@
+    @* MudMainContent に余白を付けると AppBar の分のずらしが消えるので、内側の div に付ける *@
     <MudMainContent>
         <div class="pa-2">
             <ErrorBoundary @ref="errorBoundary">

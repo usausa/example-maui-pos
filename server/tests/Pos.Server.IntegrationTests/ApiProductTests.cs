@@ -125,8 +125,8 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
         var preview = await previewResponse.ReadAsAsync<ProductImportResponse>(HttpStatusCode.OK, options);
         Assert.True(preview.DryRun);
         Assert.Equal((1, 1, rows.Count - 2, 0), (preview.InsertCount, preview.UpdateCount, preview.UnchangedCount, preview.ErrorCount));
-        Assert.Equal(ImportAction.Update, preview.Items.Single(x => x.Code == sdCard.Code).Action);
-        var inserted = preview.Items.Single(x => x.Code == code);
+        Assert.Equal(ImportAction.Update, preview.Lines.Single(x => x.Code == sdCard.Code).Action);
+        var inserted = preview.Lines.Single(x => x.Code == code);
         Assert.Equal((ImportAction.Insert, rows.Count + 1), (inserted.Action, inserted.LineNo));
         Assert.Equal(sdCard.Price, (await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/{TestData.SdCardProductId}", options)).Price);
 

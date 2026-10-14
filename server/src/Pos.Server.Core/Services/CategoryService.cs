@@ -3,29 +3,30 @@ namespace Pos.Server.Services;
 using Pos.Server.Accessors;
 using Pos.Server.Models;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
 
 // 部門 (2 階層)
 public sealed class CategoryService
 {
+    private readonly TimeProvider timeProvider;
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
-    private readonly TimeProvider timeProvider;
 
     public CategoryService(
+        TimeProvider timeProvider,
         IDialect dialect,
-        MasterAccessor masterAccessor,
-        TimeProvider timeProvider)
+        MasterAccessor masterAccessor)
     {
+        this.timeProvider = timeProvider;
         this.dialect = dialect;
         this.masterAccessor = masterAccessor;
-        this.timeProvider = timeProvider;
     }
 
-    public async ValueTask<PagedResult<CategoryEntity>> QueryPageAsync(DateTime? updatedSince, bool includeDeleted, CategorySort sort, bool desc, int page, int size, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<CategoryEntity>> QueryPageAsync(CategoryQueryParameter parameter, CancellationToken cancellationToken)
     {
-        var total = await masterAccessor.CountCategoriesAsync(updatedSince, includeDeleted, cancellationToken);
-        var items = await masterAccessor.QueryCategoryListAsync(updatedSince, includeDeleted, sort, desc, size, page * size, cancellationToken);
-        return new PagedResult<CategoryEntity>((int)total, page, size, items);
+        var total = await masterAccessor.CountCategoriesAsync(parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
+        var items = await masterAccessor.QueryCategoryListAsync(parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<CategoryEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 
     // 全件を大分類の並び順に、その中分類を続けた順で返す (セレクタ・ツリー用)。親のない中分類は末尾

@@ -4,6 +4,7 @@ using Pos.Domain.Logic;
 using Pos.Server.Accessors;
 using Pos.Server.Models;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
 
 public sealed class StaffService
 {
@@ -22,11 +23,11 @@ public sealed class StaffService
     }
 
     // storeId 指定時は本部 (StoreId = NULL) も含める
-    public async ValueTask<PagedResult<StaffEntity>> QueryPageAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, StaffSort sort, bool desc, int page, int size, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<StaffEntity>> QueryPageAsync(StaffQueryParameter parameter, CancellationToken cancellationToken)
     {
-        var total = await masterAccessor.CountStaffAsync(storeId, updatedSince, includeDeleted, cancellationToken);
-        var items = await masterAccessor.QueryStaffListAsync(storeId, updatedSince, includeDeleted, sort, desc, size, page * size, cancellationToken);
-        return new PagedResult<StaffEntity>((int)total, page, size, items);
+        var total = await masterAccessor.CountStaffAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
+        var items = await masterAccessor.QueryStaffListAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<StaffEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 
     // 全件 (コード順)

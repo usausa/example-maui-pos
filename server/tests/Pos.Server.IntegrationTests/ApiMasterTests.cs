@@ -143,6 +143,24 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         Assert.All(page.Items, x => Assert.Contains("カメラ", x.Name, StringComparison.Ordinal));
     }
 
+    // lookup はキーがない・空なら 400 + VALIDATION_ERROR (商品は barcode か code、会員は code)
+    [Theory]
+    [InlineData(ApiRoutes.Products + "/lookup")]
+    [InlineData(ApiRoutes.Products + "/lookup?barcode=&code=")]
+    [InlineData(ApiRoutes.Customers + "/lookup")]
+    [InlineData(ApiRoutes.Customers + "/lookup?code=")]
+    public async Task LookupWithoutKeyReturnsBadRequest(string path)
+    {
+        // Arrange
+        var client = await factory.CreateAdminClientAsync();
+
+        // Act
+        using var response = await client.GetAsync(new Uri(path, UriKind.Relative), Token);
+
+        // Assert
+        await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+    }
+
     [Fact]
     public async Task SettingsUpdateUsesVersion()
     {

@@ -3,6 +3,7 @@ namespace Pos.Server.Host.Endpoints;
 using Pos.Contract.Terminals;
 using Pos.Server.Host.Helpers;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
 
 using Smart.Mapper;
@@ -92,7 +93,8 @@ public static partial class TerminalEndpoints
         [Range(0, Int32.MaxValue)] int page = 0,
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        var result = await service.QueryPageAsync(storeId, updatedSince, includeDeleted, EnumHelper.Parse(sort, TerminalSort.TerminalNo), desc, page, size, cancellationToken);
+        var parameter = new TerminalQueryParameter { StoreId = storeId, UpdatedSince = updatedSince, IncludeDeleted = includeDeleted, Sort = EnumHelper.Parse(sort, TerminalSort.TerminalNo), Desc = desc, Page = page, Size = size };
+        var result = await service.QueryPageAsync(parameter, cancellationToken);
         return TypedResults.Ok(new TerminalListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 

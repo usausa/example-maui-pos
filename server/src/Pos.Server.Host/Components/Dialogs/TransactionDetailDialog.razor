@@ -40,7 +40,7 @@
                             <tr><td class="mud-text-secondary">値引</td><td class="text-right">-@transaction.DiscountTotal.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">合計 (内税 @transaction.TaxTotal.ToYen())</td><td class="text-right"><strong>@transaction.Total.ToYen()</strong></td></tr>
                             <tr><td class="mud-text-secondary">預り / 釣銭</td><td class="text-right">@transaction.TenderedTotal.ToYen() / @transaction.ChangeAmount.ToYen()</td></tr>
-                            <tr><td class="mud-text-secondary">ポイント</td><td class="text-right">付与 @transaction.PointsEarned.ToPointText() / 利用 @transaction.PointsRedeemed.ToPointText()@(transaction.PointsBalanceAfter is null ? string.Empty : $" / 残高 {transaction.PointsBalanceAfter:N0}")</td></tr>
+                            <tr><td class="mud-text-secondary">ポイント</td><td class="text-right">付与 @transaction.PointsEarned.ToPointText() / 利用 @transaction.PointsRedeemed.ToPointText()@(transaction.PointsBalanceAfter is null ? string.Empty : $" / 残高 {transaction.PointsBalanceAfter.Value.ToPointText()}")</td></tr>
                         </tbody>
                     </MudSimpleTable>
                 </MudItem>

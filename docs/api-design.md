@@ -331,7 +331,7 @@ CSV にない商品は削除しない ([D-19](decisions.md#d-19-商品の-csv-�
 | 反映 | 1 行でも誤りがあれば何も反映せず `422` (`VALIDATION_ERROR`、`errors` は行番号ごとの文言)。全行が正しければ 1 トランザクションで反映して `200`。検証の後に他で変わっていれば `409` (`VERSION_MISMATCH`) |
 | 形式の誤り | 列が足りない・行がない `400`、`text/csv` 以外 `415`、5 MB 超 `413` |
 
-`ProductImportResponse`: `{ dryRun, insertCount, updateCount, unchangedCount, errorCount, items: [{ lineNo, code, name, action (Insert / Update / Unchanged / Error), errors[] }] }`。  
+`ProductImportResponse`: `{ dryRun, insertCount, updateCount, unchangedCount, errorCount, lines: [{ lineNo, code, name, action (Insert / Update / Unchanged / Error), errors[] }] }`。  
 `lineNo` はファイルの行番号 (見出しが 1 行目)。
 
 ### 🔖 3.8 値引 (Discounts)

@@ -41,7 +41,7 @@ public static partial class TransactionEndpoints
         group.MapGet("/lookup", HandleLookupAsync)
             .WithName("TransactionLookup")
             .Produces<TransactionListResponseItem>()
-            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapGet("/{id:guid}", HandleGetAsync)
             .WithName("TransactionGet")
@@ -306,14 +306,9 @@ public static partial class TransactionEndpoints
     // 返品時のレシート番号検索
     private static async ValueTask<IResult> HandleLookupAsync(
         TransactionService service,
-        string? receiptNo,
+        [Required] string receiptNo,
         CancellationToken cancellationToken)
     {
-        if (String.IsNullOrEmpty(receiptNo))
-        {
-            return ApiProblems.BadRequest("receiptNo を指定してください");
-        }
-
         var detail = await service.QueryDetailByReceiptNoAsync(receiptNo, cancellationToken);
         return detail is null ? ApiProblems.NotFound("取引が見つかりません") : TypedResults.Ok(ToListResponseItem(detail));
     }

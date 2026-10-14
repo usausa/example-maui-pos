@@ -7,6 +7,7 @@ using Pos.Server.Host.Helpers;
 using Pos.Server.Host.Infrastructure.Csv;
 using Pos.Server.Host.Models.Export;
 using Pos.Server.Host.Models.Import;
+using Pos.Server.Host.Models.Queries;
 using Pos.Server.Infrastructure.Imaging;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
@@ -35,7 +36,7 @@ public static partial class ProductEndpoints
         group.MapGet("/lookup", HandleLookupAsync)
             .WithName("ProductLookup")
             .Produces<ProductListResponseItem>()
-            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapGet("/csv", HandleExportCsvAsync)
             .RequireAuthorization(Policies.Admin)
@@ -123,7 +124,7 @@ public static partial class ProductEndpoints
             UpdateCount = result.UpdateCount,
             UnchangedCount = result.UnchangedCount,
             ErrorCount = result.ErrorCount,
-            Items = result.Lines.Select(static x => new ProductImportResponseItem
+            Lines = result.Lines.Select(static x => new ProductImportResponseLine
             {
                 LineNo = x.LineNo,
                 Code = x.Code,
@@ -179,18 +180,12 @@ public static partial class ProductEndpoints
     // スキャン用 1 件取得 (barcode または code)
     private static async ValueTask<IResult> HandleLookupAsync(
         ProductService service,
-        string? barcode,
-        string? code,
+        [AsParameters] ProductLookupQuery query,
         CancellationToken cancellationToken)
     {
-        if (String.IsNullOrEmpty(barcode) && String.IsNullOrEmpty(code))
-        {
-            return ApiProblems.BadRequest("barcode または code を指定してください");
-        }
-
-        var entity = !String.IsNullOrEmpty(barcode)
-            ? await service.QueryByBarcodeAsync(barcode, cancellationToken)
-            : await service.QueryByCodeAsync(code!, cancellationToken);
+        var entity = !String.IsNullOrEmpty(query.Barcode)
+            ? await service.QueryByBarcodeAsync(query.Barcode, cancellationToken)
+            : await service.QueryByCodeAsync(query.Code!, cancellationToken);
         return entity is null ? ApiProblems.NotFound("商品が見つかりません") : TypedResults.Ok(ToListResponseItem(entity));
     }
 
@@ -338,7 +333,7 @@ public static partial class ProductEndpoints
             var errors = result.Lines
                 .Where(static x => x.Errors.Count > 0)
                 .ToDictionary(static x => x.LineNo.ToString(CultureInfo.InvariantCulture), static x => x.Errors.Select(ApiRuleText.Of).ToArray(), StringComparer.Ordinal);
-            return ApiProblems.Problem(StatusCodes.Status422UnprocessableEntity, ErrorCode.ValidationError, "取り込めない行があります", $"{errors.Count} 行に誤りがあります", errors);
+            return ApiProblems.ImportRowsInvalid(errors);
         }
 
         return ApiProblems.VersionMismatch();

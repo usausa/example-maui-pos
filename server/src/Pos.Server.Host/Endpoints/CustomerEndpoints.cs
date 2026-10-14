@@ -27,7 +27,7 @@ public static partial class CustomerEndpoints
         group.MapGet("/lookup", HandleLookupAsync)
             .WithName("CustomerLookup")
             .Produces<CustomerListResponseItem>()
-            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapGet("/{id:guid}", HandleGetAsync)
             .WithName("CustomerGet")
@@ -122,14 +122,9 @@ public static partial class CustomerEndpoints
     // 会員証スキャン用 1 件取得
     private static async ValueTask<IResult> HandleLookupAsync(
         CustomerService service,
-        string? code,
+        [Required] string code,
         CancellationToken cancellationToken)
     {
-        if (String.IsNullOrEmpty(code))
-        {
-            return ApiProblems.BadRequest("code を指定してください");
-        }
-
         var entity = await service.QueryByCodeAsync(code, cancellationToken);
         return entity is null ? ApiProblems.NotFound("会員が見つかりません") : TypedResults.Ok(ToListResponseItem(entity));
     }

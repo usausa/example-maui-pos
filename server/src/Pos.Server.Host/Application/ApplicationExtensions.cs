@@ -177,7 +177,7 @@ public static class ApplicationExtensions
         {
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
 
-            // Do not restrict to local network/proxy
+            // ローカルのネットワークとプロキシに限らず、転送ヘッダーを受け付ける
             options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
         });
@@ -232,10 +232,10 @@ public static class ApplicationExtensions
 
     public static WebApplication UseErrorHandler(this WebApplication app)
     {
-        // Page: not found (re-execution does not work inside a UseWhen branch)
+        // Page: not found (UseWhen の中では再実行が効かないので外に置く)
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
-        // API: ProblemDetails, status code as is
+        // API: Problem Details で返し、状態コードはそのままにする (状態コードのページに置き換えない)
         app.UseWhen(
             static context => context.Request.Path.StartsWithSegments(ApiPathPrefix, StringComparison.OrdinalIgnoreCase),
             static b =>
@@ -474,9 +474,7 @@ public static class ApplicationExtensions
     {
         var useOtlpExporter = builder.Configuration.IsOtelExporterEnabled();
 
-        var prometheusSection = builder.Configuration.GetSection("Prometheus");
-        var prometheusUri = prometheusSection.GetValue<string>("Uri")!;
-        var usePrometheusExporter = !String.IsNullOrEmpty(prometheusUri);
+        var prometheusUri = builder.Configuration.GetSection("Prometheus").Get<PrometheusSetting>()?.Uri;
 
         var telemetry = builder.Services.AddOpenTelemetry()
             .ConfigureResource(config =>
@@ -502,7 +500,7 @@ public static class ApplicationExtensions
         }
 
         // Metrics
-        if (useOtlpExporter || usePrometheusExporter)
+        if (useOtlpExporter || (prometheusUri is not null))
         {
             telemetry
                 .WithMetrics(metrics =>
@@ -518,13 +516,12 @@ public static class ApplicationExtensions
                         metrics.AddOtlpExporter();
                     }
 
-                    if (usePrometheusExporter)
+                    if (prometheusUri is not null)
                     {
-                        var prometheusEndpoint = new Uri(prometheusUri);
                         metrics.AddPrometheusHttpListener(config =>
                         {
-                            config.Host = prometheusEndpoint.Host;
-                            config.Port = prometheusEndpoint.Port;
+                            config.Host = prometheusUri.Host;
+                            config.Port = prometheusUri.Port;
                         });
                     }
                 });
@@ -614,6 +611,8 @@ public static class ApplicationExtensions
         builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<LogSetting>>().Value);
         builder.Services.AddOptions<TelemetrySetting>().BindConfiguration("Telemetry").ValidateDataAnnotations().ValidateOnStart();
         builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<TelemetrySetting>>().Value);
+        builder.Services.AddOptions<PrometheusSetting>().BindConfiguration("Prometheus").ValidateDataAnnotations().ValidateOnStart();
+        builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<PrometheusSetting>>().Value);
         builder.Services.AddOptions<AuthSetting>().BindConfiguration("Auth").ValidateDataAnnotations().ValidateOnStart();
         builder.Services.AddSingleton(static p => p.GetRequiredService<IOptions<AuthSetting>>().Value);
         builder.Services.AddOptions<TerminalSetting>().BindConfiguration("Terminal").ValidateDataAnnotations().ValidateOnStart();
@@ -630,8 +629,7 @@ public static class ApplicationExtensions
     {
         ThreadPool.GetMinThreads(out var workerThreads, out var completionPortThreads);
 
-        var prometheusSection = app.Configuration.GetSection("Prometheus");
-        var prometheusUri = prometheusSection.GetValue("Uri", string.Empty);
+        var prometheusUri = app.Services.GetRequiredService<PrometheusSetting>().Uri?.OriginalString ?? string.Empty;
 
         app.Logger.InfoServiceStart();
         app.Logger.InfoServiceSettingsRuntime(RuntimeInformation.OSDescription, RuntimeInformation.FrameworkDescription, RuntimeInformation.RuntimeIdentifier);
@@ -651,10 +649,10 @@ public static class ApplicationExtensions
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
-            // [MEMO] Add yaml support
+            // YAML でも出す
             app.MapOpenApi("/openapi/{documentName}.yaml");
 
-            // NSwag UI (SwaggerUI / ReDoc) using MapOpenApi generated specification
+            // MapOpenApi の文書を NSwag の UI (SwaggerUI、ReDoc) で見る
             app.UseSwaggerUi(static options =>
             {
                 options.DocumentPath = "/openapi/v1.json";
@@ -729,7 +727,7 @@ public static class ApplicationExtensions
     // Profiler
     //--------------------------------------------------------------------------------
 
-    // Writes SQL traces to the log when enabled by settings
+    // 設定で有効にした SQL の記録先 (ログ、OpenTelemetry)。なければ null
     private static IProfileListener? CreateProfileListener(IServiceProvider provider, ProfilerSetting setting)
     {
         var listeners = new List<IProfileListener>();

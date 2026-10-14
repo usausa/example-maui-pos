@@ -81,7 +81,7 @@ public static partial class PurchaseOrderEndpoints
     private static partial PurchaseOrderListResponseItem ToListResponseItemCore(PurchaseOrderEntity entity);
 
     [Mapper]
-    private static partial PurchaseOrderListResponseLine ToListResponseLineCore(PurchaseOrderLineEntity entity);
+    private static partial PurchaseOrderListResponseLine ToListResponseLine(PurchaseOrderLineEntity entity);
 
     private static PurchaseOrderUpdateParameter ToParameter(PurchaseOrderUpdateRequest request) =>
         new()
@@ -100,7 +100,7 @@ public static partial class PurchaseOrderEndpoints
         response.TotalCost = detail.TotalCost;
         response.Lines = detail.Lines.Select(x =>
         {
-            var line = ToListResponseLineCore(x);
+            var line = ToListResponseLine(x);
             line.ReceivedQuantity = detail.ReceivedQuantityOf(x);
             return line;
         }).ToList();

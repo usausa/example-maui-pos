@@ -13,7 +13,8 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - サーバの Core は Service だけにし、Usecase 層を置かない (件数 + ページ取得の合成も Service のメソッドにする)
 - Service は個別に DI 登録しない (`AddCoreServices()` が自動で登録する)
 - 表の行は `Models/Entity` の `XxxEntity`、結合・集計の結果と Service が組み立てる複合 (明細付き、帳票) は `Models/Views` の `XxxView` にする
-- Service への入力は `Models/Parameters` に置く。一覧は `PagedParameter<TSort>` を基底にした `XxxQueryParameter` (`Sort` は資源ごとの列挙型) にする
+- Service への入力は `Models/Parameters` に置く
+- 並び順を選べる一覧は `PagedParameter<TSort>` を基底にした `XxxQueryParameter` (`Sort` は資源ごとの列挙型) にする。並び順のない一覧は、絞り込みがあれば `Page` と `Size` を持つ `XxxQueryParameter` にし、親の ID とページだけなら引数で受ける
 - 列挙型 (並び順など) は `Views` や `Parameters` に混ぜず `Models/Enums` に置く
 - 1 つの Service だけが返す結果型 (`XxxResult`) とその状態 (`XxxResultStatus`) は、その Service のファイルの先頭で定義する。複数の Service で使う型 (`DataWriteStatus`、`DataWriteResult<T>`) は独自のファイルにする
 - 重複 (`IDialect.IsDuplicate`)、楽観ロック (`RETURNING` で行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す。「読んでから更新」で判定しない
@@ -115,6 +116,8 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - 件数の少ないマスタ (税率、値引、支払方法、理由、仕入先) の一覧はページングせずに全件を返し、部門の一覧は `size` の既定を `ApiDefaults.MaxPageSize` にする
 - API の入力検証は DataAnnotations で統一する (FluentValidation は管理画面のフォームだけに使う)
 - 大小比較 (`from` ≤ `to`) や「どちらか必須」は `[AsParameters]` のクエリ型か Request の `IValidatableObject` で行い、ハンドラの中の `if` にしない
+- `[AsParameters]` のクエリ型の引数は `[FromQuery(Name = "camelCase の名前")]` で名前を付ける (付けないと OpenAPI の引数名がプロパティ名になる)
+- 必須の文字列のクエリは `[Required]` を付ける (空の値は束縛を通ってハンドラに届く)
 - 一覧の `sort` は文字列で受けて列挙型に解析し、不正な値は既定の列にする
 - レポートの `sort` と `groupBy` の不正な値は、ハンドラで 400 (`ApiProblems.BadRequest`) にする
 - 本文をそのまま受ける API (画像、CSV) は `RequestHelper.IsMediaType` と `ReadBodyAsync` で形式と上限を確かめ、415 と 413 を返す。取込の行は文字列で受け、Service が行ごとに検証する

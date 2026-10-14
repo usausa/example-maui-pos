@@ -159,6 +159,8 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(2, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Transactions}?shiftId={shiftId}", options)).Total);
         Assert.Equal(1, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Transactions}?shiftId={shiftId}&status=Completed", options)).Total);
         Assert.Equal(sale.Id, (await client.GetJsonAsync<TransactionListResponseItem>($"{ApiRoutes.Transactions}/lookup?receiptNo={sale.ReceiptNo}", options)).Id);
+        using var noReceiptNoResponse = await client.GetAsync(new Uri($"{ApiRoutes.Transactions}/lookup?receiptNo=", UriKind.Relative), Token);
+        await noReceiptNoResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         Assert.Equal(2, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Customers}/{TestData.Customer1Id}/transactions", options)).Total);
 
         // 入出金 (再送は 200)

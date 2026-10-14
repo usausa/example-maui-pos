@@ -203,7 +203,7 @@ public static class ViewHelper
         hasPin ? ("設定済み", Color.Success, Icons.Material.Filled.Lock) : ("未設定", Color.Warning, Icons.Material.Filled.LockOpen);
 
     public static (string Text, Color Color, string? Icon) PointBalanceChip(int balance) =>
-        balance < 0 ? ($"{balance:N0} pt", Color.Error, Icons.Material.Filled.Error) : ($"{balance:N0} pt", Color.Default, null);
+        balance < 0 ? ($"{balance.ToPointText()} pt", Color.Error, Icons.Material.Filled.Error) : ($"{balance.ToPointText()} pt", Color.Default, null);
 
     public static (string Text, Color Color, string? Icon) NegativeBalanceChip() => ("残高がマイナスです", Color.Error, Icons.Material.Filled.Error);
 

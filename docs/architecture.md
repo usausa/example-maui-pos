@@ -180,7 +180,7 @@ Models/Forms/                        管理画面のフォーム + FluentValidat
                                      PurchaseOrder / InventoryReceipt / InventoryTransfer / InventoryMovement (出荷・受領の確認) / Account / AccountPassword)。
                                      Entity ↔ Form の変換 ([Mapper]。Guid? / DateOnly の変換は [MapUsing]) はフォームが持つ。
                                      1 つのページだけで使うフォーム (SettingsForm) はそのページの内部クラス。文字列の長さは Pos.Domain.Length の定数
-Models/Queries/                      API のクエリ ([AsParameters]): ReportPeriodQuery (店舗と期間。from ≤ to は IValidatableObject)
+Models/Queries/                      API のクエリ ([AsParameters]): ReportPeriodQuery (店舗と期間。from ≤ to は IValidatableObject)、ProductLookupQuery (barcode か code のどちらかが要る。IValidatableObject)
 Models/Export/                       CSV の行 (ProductExportRow, SalesSummaryExportRow, ProductSalesExportRow。CsvHelper の [Name] で日本語見出し)、ProductCsvHeader (商品 CSV の見出し)
 Models/Import/                       取込の行 (ProductImportRow: 見出しは出力と同じで値は文字列のまま。Service の ProductImportLine に写す)
 Components/
@@ -201,7 +201,7 @@ Components/
   RedirectToLogin.razor              ログインしていないときにログイン画面へ (戻り先を付ける)
 Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート)、Data/Schema.sql (DDL) と Data/InitialData.sql (初期データ。起動時に読んで実行する)。どれも出力ディレクトリへコピーする
 Settings/                            LogSetting (HTTP ログ・本文ダンプ・W3C アクセスログ) / ProfilerSetting (SQL のログとトレース) / TelemetrySetting (長時間実行のしきい値) /
-                                     AuthSetting (認証の有効、Cookie の期限、試行回数、初期の管理者) / TerminalSetting (設定 QR の接続先)
+                                     AuthSetting (認証の有効、Cookie の期限、試行回数、初期の管理者) / TerminalSetting (設定 QR の接続先) / PrometheusSetting (メトリクスを公開する URI)
 wwwroot/                             css/app.css, js/reconnect.js
 ```
 
@@ -220,7 +220,7 @@ wwwroot/                             css/app.css, js/reconnect.js
   `OTEL_EXPORTER_OTLP_ENDPOINT` があるとき (Aspire から起動したときなど) だけログ・メトリクス・トレースを OTLP で送り、`Prometheus:Uri` が設定されていればメトリクスを HTTP で公開する (既定 9464)。  
   SQL のトレース (`Profiler:SqlTelemetry`) と API の要求数・長時間実行 (`Telemetry:LongExecutionThreshold`) も同じ経路
 - 一覧の `sort` / レポートの `groupBy` は文字列で受け取り `EnumHelper` で列挙型にする (一覧の不正な値は既定、`groupBy` / レポートの `sort` は 400)。  
-  レポートの期間 (`ReportPeriodQuery`) の `from > to` は `IValidatableObject` で 400 にする (API の入力検証は DataAnnotations、FluentValidation は管理画面のフォームだけ)
+  レポートの期間 (`ReportPeriodQuery`) の `from > to` と、商品の lookup (`ProductLookupQuery`) の `barcode` と `code` がどちらもないときは、`IValidatableObject` で 400 にする (API の入力検証は DataAnnotations、FluentValidation は管理画面のフォームだけ)
 - 描画モードは対話型 (プリレンダリングなし)。  
   ログイン・エラー・404 のページ (`[ExcludeFromInteractiveRouting]`) は静的 SSR にする (ログインはフォームの POST、エラーと 404 は例外や 404 の再実行で描画され、常に対話型にすると回線のない再実行で空の HTML になる)
 
@@ -271,7 +271,7 @@ ListResponse.cs  一覧の共通形 (Total / Page / Size / Items)。一覧は Xx
 Settings/      SettingsResponse / SettingsUpdateRequest
 Stores/ Terminals/ Staff/ Categories/ TaxRates/ Products/ Discounts/ PaymentMethods/
                XxxListResponse (一覧) / XxxListResponseItem / XxxCreateRequest / XxxUpdateRequest
-               Terminals は TerminalPairRequest / TerminalPairResponse / TerminalHeartbeatRequest も、Products は ProductImportResponse (+ Item) も持つ
+               Terminals は TerminalPairRequest / TerminalPairResponse / TerminalHeartbeatRequest も、Products は ProductImportResponse (+ Line) も持つ
 Sync/          SyncMastersResponse
 Customers/     CustomerListResponse / CustomerListResponseItem / CustomerCreateRequest / CustomerUpdateRequest,
                CustomerPointHistoryResponse / CustomerPointHistoryResponseItem, CustomerPointAdjustRequest

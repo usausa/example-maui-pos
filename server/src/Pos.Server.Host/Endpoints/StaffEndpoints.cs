@@ -3,6 +3,7 @@ namespace Pos.Server.Host.Endpoints;
 using Pos.Contract.Staff;
 using Pos.Server.Host.Helpers;
 using Pos.Server.Models.Entity;
+using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
 
 using Smart.Mapper;
@@ -84,7 +85,8 @@ public static partial class StaffEndpoints
         [Range(0, Int32.MaxValue)] int page = 0,
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        var result = await service.QueryPageAsync(storeId, updatedSince, includeDeleted, EnumHelper.Parse(sort, StaffSort.Code), desc, page, size, cancellationToken);
+        var parameter = new StaffQueryParameter { StoreId = storeId, UpdatedSince = updatedSince, IncludeDeleted = includeDeleted, Sort = EnumHelper.Parse(sort, StaffSort.Code), Desc = desc, Page = page, Size = size };
+        var result = await service.QueryPageAsync(parameter, cancellationToken);
         return TypedResults.Ok(new StaffListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(ToListResponseItem).ToList() });
     }
 

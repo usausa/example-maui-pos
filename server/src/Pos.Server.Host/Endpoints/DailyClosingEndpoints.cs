@@ -89,9 +89,9 @@ public static partial class DailyClosingEndpoints
         return result.Status switch
         {
             DailyClosingResultStatus.Success => TypedResults.Created($"{ApiRoutes.DailyClosings}/{result.Summary!.Day.Id}", ToSummaryResponse(result.Summary)),
-            DailyClosingResultStatus.NoShift => ApiProblems.Unprocessable(ErrorCode.ShiftNotFound, "この営業日のシフトがありません"),
-            DailyClosingResultStatus.ShiftStillOpen => ApiProblems.Unprocessable(ErrorCode.ShiftStillOpen, "未精算のシフトがあります", $"未精算 {result.Summary!.Day.OpenShiftCount} 件"),
-            _ => ApiProblems.Problem(StatusCodes.Status409Conflict, ErrorCode.AlreadyClosed, "既に締め済みです")
+            DailyClosingResultStatus.NoShift => ApiProblems.ShiftNotFound("この営業日のシフトがありません"),
+            DailyClosingResultStatus.ShiftStillOpen => ApiProblems.ShiftStillOpen(result.Summary!.Day.OpenShiftCount),
+            _ => ApiProblems.AlreadyClosed()
         };
     }
 

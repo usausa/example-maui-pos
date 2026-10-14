@@ -13,10 +13,10 @@ public sealed class ProductImportResponse
 
     public int ErrorCount { get; set; }
 
-    public IReadOnlyList<ProductImportResponseItem> Items { get; set; } = default!;
+    public IReadOnlyList<ProductImportResponseLine> Lines { get; set; } = default!;
 }
 
-public sealed class ProductImportResponseItem
+public sealed class ProductImportResponseLine
 {
     // ファイルの行番号 (見出しが 1 行目)
     public int LineNo { get; set; }

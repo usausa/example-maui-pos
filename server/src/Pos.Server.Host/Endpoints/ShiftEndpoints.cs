@@ -173,7 +173,7 @@ public static partial class ShiftEndpoints
             ShiftResultStatus.Success => TypedResults.Created($"{ApiRoutes.Shifts}/{entity.Id}", ToListResponseItem(result.Detail!)),
             ShiftResultStatus.Existing => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             ShiftResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
-            _ => ApiProblems.Problem(StatusCodes.Status409Conflict, ErrorCode.TerminalHasOpenShift, "この端末には開設中のシフトがあります")
+            _ => ApiProblems.TerminalHasOpenShift()
         };
     }
 
@@ -242,8 +242,8 @@ public static partial class ShiftEndpoints
             CashEventResultStatus.Success => TypedResults.Created($"{ApiRoutes.Shifts}/{id}/cash-events/{entity.Id}", ToCashEventListResponseItem(result.Entity!)),
             CashEventResultStatus.Existing => TypedResults.Ok(ToCashEventListResponseItem(result.Entity!)),
             CashEventResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
-            CashEventResultStatus.ShiftNotFound => ApiProblems.Unprocessable(ErrorCode.ShiftNotFound, "シフトが見つかりません"),
-            _ => ApiProblems.Unprocessable(ErrorCode.ShiftClosed, "精算済みのシフトには登録できません")
+            CashEventResultStatus.ShiftNotFound => ApiProblems.ShiftNotFound(),
+            _ => ApiProblems.ShiftClosed("精算済みのシフトには登録できません")
         };
     }
 
@@ -279,7 +279,7 @@ public static partial class ShiftEndpoints
         {
             ShiftResultStatus.Success or ShiftResultStatus.Existing => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             ShiftResultStatus.NotFound => ApiProblems.NotFound(),
-            _ => ApiProblems.Unprocessable(ErrorCode.ShiftClosed, "既に精算済みです")
+            _ => ApiProblems.ShiftClosed("既に精算済みです")
         };
     }
 
