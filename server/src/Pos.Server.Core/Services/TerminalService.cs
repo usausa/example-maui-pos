@@ -45,20 +45,31 @@ public sealed class TerminalService
     public ValueTask<int> UpdateSeenAsync(Guid id, string? appVersion, CancellationToken cancellationToken) =>
         masterAccessor.UpdateTerminalSeenAsync(id, timeProvider.GetUtcNow().UtcDateTime, appVersion, cancellationToken);
 
-    public ValueTask<DataWriteStatus> InsertAsync(TerminalEntity entity, CancellationToken cancellationToken)
+    // 登録・更新は、店舗がなければ Invalid
+    public async ValueTask<DataWriteStatus> InsertAsync(TerminalEntity entity, CancellationToken cancellationToken)
     {
+        if (!await ExistsStoreAsync(entity.StoreId, cancellationToken))
+        {
+            return DataWriteStatus.Invalid;
+        }
+
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
         entity.UpdatedAt = now;
         entity.Version = 1;
-        return ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertTerminalAsync(entity, cancellationToken));
+        return await ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertTerminalAsync(entity, cancellationToken));
     }
 
-    public ValueTask<DataWriteResult<TerminalEntity>> UpdateAsync(TerminalEntity entity, CancellationToken cancellationToken)
+    public async ValueTask<DataWriteResult<TerminalEntity>> UpdateAsync(TerminalEntity entity, CancellationToken cancellationToken)
     {
+        if (!await ExistsStoreAsync(entity.StoreId, cancellationToken))
+        {
+            return new DataWriteResult<TerminalEntity>(DataWriteStatus.Invalid, null);
+        }
+
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
-        return ServiceHelper.UpdateAsync(
+        return await ServiceHelper.UpdateAsync(
             dialect,
             () => masterAccessor.UpdateTerminalAsync(entity.Id, entity.StoreId, entity.TerminalNo, entity.Name, entity.IsActive, entity.UpdatedAt, entity.Version, cancellationToken),
             async () => await masterAccessor.QueryTerminalAsync(entity.Id, cancellationToken) is { IsDeleted: false });
@@ -74,4 +85,8 @@ public sealed class TerminalService
 
         return await masterAccessor.DeleteTerminalAsync(id, timeProvider.GetUtcNow().UtcDateTime, cancellationToken) > 0 ? DataWriteStatus.Success : DataWriteStatus.NotFound;
     }
+
+    // 参照先は書く前に確かめ、削除済みはないものとする (削除済みを指すと、削除の側の使用中の確かめが崩れる)
+    private async ValueTask<bool> ExistsStoreAsync(Guid storeId, CancellationToken cancellationToken) =>
+        await masterAccessor.QueryStoreAsync(storeId, cancellationToken) is { IsDeleted: false };
 }

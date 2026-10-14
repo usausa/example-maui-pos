@@ -37,20 +37,31 @@ public sealed class StaffService
     public ValueTask<StaffEntity?> QueryAsync(Guid id, CancellationToken cancellationToken) =>
         masterAccessor.QueryStaffAsync(id, cancellationToken);
 
-    public ValueTask<DataWriteStatus> InsertAsync(StaffEntity entity, CancellationToken cancellationToken)
+    // 登録・更新は、店舗 (本部は null) がなければ Invalid
+    public async ValueTask<DataWriteStatus> InsertAsync(StaffEntity entity, CancellationToken cancellationToken)
     {
+        if (!await ExistsStoreAsync(entity.StoreId, cancellationToken))
+        {
+            return DataWriteStatus.Invalid;
+        }
+
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
         entity.UpdatedAt = now;
         entity.Version = 1;
-        return ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertStaffAsync(entity, cancellationToken));
+        return await ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertStaffAsync(entity, cancellationToken));
     }
 
-    public ValueTask<DataWriteResult<StaffEntity>> UpdateAsync(StaffEntity entity, CancellationToken cancellationToken)
+    public async ValueTask<DataWriteResult<StaffEntity>> UpdateAsync(StaffEntity entity, CancellationToken cancellationToken)
     {
+        if (!await ExistsStoreAsync(entity.StoreId, cancellationToken))
+        {
+            return new DataWriteResult<StaffEntity>(DataWriteStatus.Invalid, null);
+        }
+
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
-        return ServiceHelper.UpdateAsync(
+        return await ServiceHelper.UpdateAsync(
             dialect,
             () => masterAccessor.UpdateStaffAsync(entity.Id, entity.Code, entity.Name, entity.Role, entity.StoreId, entity.IsActive, entity.UpdatedAt, entity.Version, cancellationToken),
             async () => await masterAccessor.QueryStaffAsync(entity.Id, cancellationToken) is { IsDeleted: false });
@@ -65,4 +76,8 @@ public sealed class StaffService
 
     public async ValueTask<DataWriteStatus> DeleteAsync(Guid id, CancellationToken cancellationToken) =>
         await masterAccessor.DeleteStaffAsync(id, timeProvider.GetUtcNow().UtcDateTime, cancellationToken) > 0 ? DataWriteStatus.Success : DataWriteStatus.NotFound;
+
+    // 参照先は書く前に確かめ、削除済みはないものとする (削除済みを指すと、削除の側の使用中の確かめが崩れる)
+    private async ValueTask<bool> ExistsStoreAsync(Guid? storeId, CancellationToken cancellationToken) =>
+        (storeId is null) || (await masterAccessor.QueryStoreAsync(storeId.Value, cancellationToken) is { IsDeleted: false });
 }

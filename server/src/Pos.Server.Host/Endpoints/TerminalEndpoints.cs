@@ -10,6 +10,10 @@ using Smart.Mapper;
 
 public static partial class TerminalEndpoints
 {
+    private const string DuplicateTitle = "端末番号が重複しています";
+
+    private const string ReferenceInvalidTitle = "店舗が見つかりません";
+
     //--------------------------------------------------------------------------------
     // Mapping
     //--------------------------------------------------------------------------------
@@ -31,7 +35,8 @@ public static partial class TerminalEndpoints
             .Produces<TerminalListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{id:guid}", HandleUpdateAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("TerminalUpdate")
@@ -39,7 +44,8 @@ public static partial class TerminalEndpoints
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapDelete("/{id:guid}", HandleDeleteAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("TerminalDelete")
@@ -116,7 +122,7 @@ public static partial class TerminalEndpoints
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
             ? TypedResults.Created($"{ApiRoutes.Terminals}/{entity.Id}", ToListResponseItem(entity))
-            : ApiProblems.DuplicateCode("端末番号が重複しています");
+            : ApiProblems.FromStatus(status, duplicateTitle: DuplicateTitle, invalidTitle: ReferenceInvalidTitle);
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(
@@ -130,7 +136,7 @@ public static partial class TerminalEndpoints
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
             ? TypedResults.Ok(ToListResponseItem(result.Entity!))
-            : ApiProblems.FromStatus(result.Status, duplicateTitle: "端末番号が重複しています");
+            : ApiProblems.FromStatus(result.Status, duplicateTitle: DuplicateTitle, invalidTitle: ReferenceInvalidTitle);
     }
 
     // コードの不一致・期限切れ・使用済み、無効・削除済みの端末は 422

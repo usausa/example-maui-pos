@@ -146,7 +146,7 @@ ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistrati
 - SQL は Accessor だけが持つ。  
   Service が Accessor を束ね、複数テーブルにまたがる書き込み (取引登録・取消・精算・日次締め・受注・発注・入荷・移動など) は Service の中で `IDbProvider.UsingTxAsync` を使う ([db-design.md §5](db-design.md#-5-整合性と更新の単位))
 - 業務ルールは `Pos.Domain`、LIKE のエスケープ・既定値・現在時刻 (`TimeProvider`) は Service が扱う
-- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`UPDATE ... RETURNING *` で更新後の行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す (API と管理画面で同じ規則)
+- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`UPDATE ... RETURNING *` で更新後の行が返らない)、使用中 (件数クエリ)、参照先の有無 (書く前に確かめる) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す (API と管理画面で同じ規則)
 - Accessor の DI 登録は Host の `AddDataAccessors(typeof(DataProfile).Assembly)`、Service は `AddCoreServices()`
 
 ### 3.2 `Pos.Server.Host`

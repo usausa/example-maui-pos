@@ -1,5 +1,7 @@
 namespace Pos.Server;
 
+using System.Data.Common;
+
 using Microsoft.Extensions.DependencyInjection;
 
 using Pos.Server.Accessors;
@@ -118,6 +120,26 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
         var levels = await accessor.QueryLevelListByProductAsync(productId, Token);
         Assert.Equal(levels.Sum(static x => x.Quantity), sum);
         Assert.Equal(before + 3.75m, levels.Single(x => x.StoreId == storeId).Quantity);
+    }
+
+    // 重複 (IsDuplicate) は一意・主キーの違反だけで、外部キーの違反は重複にしない
+    [Fact]
+    public async Task DuplicateIsOnlyUniqueViolation()
+    {
+        // Arrange
+        var dialect = Resolve<IDialect>();
+        var accessor = Resolve<MasterAccessor>();
+        var store = await accessor.QueryStoreAsync(TestData.MainStoreId, Token);
+        Assert.NotNull(store);
+        var now = DateTime.UtcNow;
+
+        // Act
+        var duplicate = await Assert.ThrowsAnyAsync<DbException>(async () => await accessor.InsertStoreAsync(new StoreEntity { Id = Guid.NewGuid(), Code = store.Code, Name = "重複", TimeZone = "Asia/Tokyo", IsActive = true, CreatedAt = now, UpdatedAt = now, Version = 1 }, Token));
+        var missing = await Assert.ThrowsAnyAsync<DbException>(async () => await accessor.InsertTerminalAsync(new TerminalEntity { Id = Guid.NewGuid(), StoreId = Guid.NewGuid(), TerminalNo = 99, Name = "店舗なし", IsActive = true, CreatedAt = now, UpdatedAt = now, Version = 1 }, Token));
+
+        // Assert
+        Assert.True(dialect.IsDuplicate(duplicate));
+        Assert.False(dialect.IsDuplicate(missing));
     }
 
     // 日時は UTC として読み戻される

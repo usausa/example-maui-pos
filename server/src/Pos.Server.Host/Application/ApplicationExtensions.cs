@@ -586,8 +586,9 @@ public static class ApplicationExtensions
 
             return new DelegateDbProvider(() => new SqliteConnection(connectionString));
         });
+        // 重複は一意・主キーの違反だけにする (外部キーや NOT NULL の違反も SqliteErrorCode は同じ 19)
         builder.Services.AddSingleton<IDialect>(new DelegateDialect(
-            static ex => ex is SqliteException { SqliteErrorCode: 19 } or SqliteException { SqliteExtendedErrorCode: 1555 or 2067 },
+            static ex => ex is SqliteException { SqliteExtendedErrorCode: 1555 or 2067 },
             static x => Regex.Replace(x, @"[%_\\]", @"\$0")));
         builder.Services.AddDataAccessors(typeof(DataProfile).Assembly);
 

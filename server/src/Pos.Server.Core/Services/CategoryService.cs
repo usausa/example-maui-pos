@@ -51,26 +51,32 @@ public sealed class CategoryService
     public async ValueTask<Dictionary<Guid, long>> QueryProductCountsAsync(CancellationToken cancellationToken) =>
         (await masterAccessor.QueryCategoryProductSummaryAsync(cancellationToken)).ToDictionary(static x => x.CategoryId, static x => x.Count);
 
-    public ValueTask<DataWriteStatus> InsertAsync(CategoryEntity entity, CancellationToken cancellationToken)
+    // 親部門がなければ Invalid
+    public async ValueTask<DataWriteStatus> InsertAsync(CategoryEntity entity, CancellationToken cancellationToken)
     {
+        if (!await ExistsParentAsync(entity.ParentId, cancellationToken))
+        {
+            return DataWriteStatus.Invalid;
+        }
+
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
         entity.UpdatedAt = now;
         entity.Version = 1;
-        return ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertCategoryAsync(entity, cancellationToken));
+        return await ServiceHelper.InsertAsync(dialect, () => masterAccessor.InsertCategoryAsync(entity, cancellationToken));
     }
 
-    // 親部門に自分自身は指定できない (Invalid)
-    public ValueTask<DataWriteResult<CategoryEntity>> UpdateAsync(CategoryEntity entity, CancellationToken cancellationToken)
+    // 親部門に自分自身か、ない部門は指定できない (Invalid)
+    public async ValueTask<DataWriteResult<CategoryEntity>> UpdateAsync(CategoryEntity entity, CancellationToken cancellationToken)
     {
-        if (entity.ParentId == entity.Id)
+        if ((entity.ParentId == entity.Id) || !await ExistsParentAsync(entity.ParentId, cancellationToken))
         {
-            return ValueTask.FromResult(new DataWriteResult<CategoryEntity>(DataWriteStatus.Invalid, null));
+            return new DataWriteResult<CategoryEntity>(DataWriteStatus.Invalid, null);
         }
 
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
-        return ServiceHelper.UpdateAsync(
+        return await ServiceHelper.UpdateAsync(
             dialect,
             () => masterAccessor.UpdateCategoryAsync(entity.Id, entity.Code, entity.Name, entity.ParentId, entity.SortOrder, entity.UpdatedAt, entity.Version, cancellationToken),
             async () => await masterAccessor.QueryCategoryAsync(entity.Id, cancellationToken) is { IsDeleted: false });
@@ -87,4 +93,8 @@ public sealed class CategoryService
 
         return await masterAccessor.DeleteCategoryAsync(id, timeProvider.GetUtcNow().UtcDateTime, cancellationToken) > 0 ? DataWriteStatus.Success : DataWriteStatus.NotFound;
     }
+
+    // 参照先は書く前に確かめ、削除済みはないものとする (削除済みを指すと、削除の側の使用中の確かめが崩れる)
+    private async ValueTask<bool> ExistsParentAsync(Guid? parentId, CancellationToken cancellationToken) =>
+        (parentId is null) || (await masterAccessor.QueryCategoryAsync(parentId.Value, cancellationToken) is { IsDeleted: false });
 }

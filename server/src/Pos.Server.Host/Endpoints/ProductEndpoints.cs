@@ -20,6 +20,8 @@ public static partial class ProductEndpoints
 {
     private const string DuplicateTitle = "商品コードまたはバーコードが重複しています";
 
+    private const string ReferenceInvalidTitle = "部門か税率が見つかりません";
+
     private const string ImageInvalidTitle = "JPEG か PNG の画像を指定してください";
 
     //--------------------------------------------------------------------------------
@@ -53,7 +55,8 @@ public static partial class ProductEndpoints
             .Produces<ProductListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{id:guid}", HandleUpdateAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("ProductUpdate")
@@ -61,7 +64,8 @@ public static partial class ProductEndpoints
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapDelete("/{id:guid}", HandleDeleteAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("ProductDelete")
@@ -207,7 +211,7 @@ public static partial class ProductEndpoints
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
             ? TypedResults.Created($"{ApiRoutes.Products}/{entity.Id}", ToListResponseItem(entity))
-            : ApiProblems.DuplicateCode(DuplicateTitle);
+            : ApiProblems.FromStatus(status, duplicateTitle: DuplicateTitle, invalidTitle: ReferenceInvalidTitle);
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(
@@ -221,7 +225,7 @@ public static partial class ProductEndpoints
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
             ? TypedResults.Ok(ToListResponseItem(result.Entity!))
-            : ApiProblems.FromStatus(result.Status, duplicateTitle: DuplicateTitle);
+            : ApiProblems.FromStatus(result.Status, duplicateTitle: DuplicateTitle, invalidTitle: ReferenceInvalidTitle);
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(

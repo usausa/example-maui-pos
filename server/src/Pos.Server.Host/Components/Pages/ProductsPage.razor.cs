@@ -18,6 +18,8 @@ public sealed partial class ProductsPage
 {
     private const string DuplicateMessage = "商品コードまたはバーコードが重複しています";
 
+    private const string ReferenceInvalidMessage = "部門か税率が見つかりません";
+
     private MudDataGrid<ProductEntity> Grid { get; set; } = default!;
 
     private List<CategoryEntity> categories = [];
@@ -94,7 +96,7 @@ public sealed partial class ProductsPage
             {
                 var entity = ProductForm.ToEntity(form);
                 var status = await ProductService.InsertAsync(entity, CancellationToken);
-                NotifyResult(status, "追加しました", duplicate: DuplicateMessage);
+                NotifyResult(status, "追加しました", duplicate: DuplicateMessage, invalid: ReferenceInvalidMessage);
                 if (status == DataWriteStatus.Success)
                 {
                     await SaveImageAsync(entity.Id, form);
@@ -115,7 +117,7 @@ public sealed partial class ProductsPage
             async () =>
             {
                 var result = await ProductService.UpdateAsync(ProductForm.ToEntity(form), CancellationToken);
-                NotifyResult(result, "更新しました", duplicate: DuplicateMessage);
+                NotifyResult(result, "更新しました", duplicate: DuplicateMessage, invalid: ReferenceInvalidMessage);
                 if (result.Status == DataWriteStatus.Success)
                 {
                     await SaveImageAsync(entity.Id, form);

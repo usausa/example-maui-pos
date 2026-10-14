@@ -49,7 +49,7 @@ public sealed partial class TerminalsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await TerminalService.InsertAsync(TerminalForm.ToEntity(form), CancellationToken), "追加しました", duplicate: "端末番号が重複しています"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await TerminalService.InsertAsync(TerminalForm.ToEntity(form), CancellationToken), "追加しました", duplicate: "端末番号が重複しています", invalid: "店舗が見つかりません"), LoadAsync);
     }
 
     private async Task EditAsync(TerminalEntity entity)
@@ -60,7 +60,7 @@ public sealed partial class TerminalsPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await TerminalService.UpdateAsync(TerminalForm.ToEntity(form), CancellationToken), "更新しました", duplicate: "端末番号が重複しています"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await TerminalService.UpdateAsync(TerminalForm.ToEntity(form), CancellationToken), "更新しました", duplicate: "端末番号が重複しています", invalid: "店舗が見つかりません"), LoadAsync);
     }
 
     private async Task DeleteAsync(TerminalEntity entity)

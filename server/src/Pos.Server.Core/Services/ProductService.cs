@@ -89,20 +89,31 @@ public sealed class ProductService
     // Write
     //--------------------------------------------------------------------------------
 
-    public ValueTask<DataWriteStatus> InsertAsync(ProductEntity entity, CancellationToken cancellationToken)
+    // 登録・更新は、部門か税率がなければ Invalid
+    public async ValueTask<DataWriteStatus> InsertAsync(ProductEntity entity, CancellationToken cancellationToken)
     {
+        if (!await ExistsReferencesAsync(entity, cancellationToken))
+        {
+            return DataWriteStatus.Invalid;
+        }
+
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Id = Guid.CreateVersion7();
         entity.CreatedAt = now;
         entity.UpdatedAt = now;
         entity.Version = 1;
-        return ServiceHelper.InsertAsync(dialect, () => WriteAsync(tx => productAccessor.InsertAsync(tx, entity, cancellationToken), cancellationToken));
+        return await ServiceHelper.InsertAsync(dialect, () => WriteAsync(tx => productAccessor.InsertAsync(tx, entity, cancellationToken), cancellationToken));
     }
 
-    public ValueTask<DataWriteResult<ProductEntity>> UpdateAsync(ProductEntity entity, CancellationToken cancellationToken)
+    public async ValueTask<DataWriteResult<ProductEntity>> UpdateAsync(ProductEntity entity, CancellationToken cancellationToken)
     {
+        if (!await ExistsReferencesAsync(entity, cancellationToken))
+        {
+            return new DataWriteResult<ProductEntity>(DataWriteStatus.Invalid, null);
+        }
+
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
-        return ServiceHelper.UpdateAsync(
+        return await ServiceHelper.UpdateAsync(
             dialect,
             () => WriteAsync(tx => UpdateAsync(tx, entity, cancellationToken), cancellationToken),
             async () => await productAccessor.QueryAsync(entity.Id, cancellationToken) is { IsDeleted: false });
@@ -145,6 +156,11 @@ public sealed class ProductService
             entity.UpdatedAt,
             entity.Version,
             cancellationToken);
+
+    // 参照先は書く前に確かめ、削除済みはないものとする (削除済みを指すと、削除の側の使用中の確かめが崩れる)
+    private async ValueTask<bool> ExistsReferencesAsync(ProductEntity entity, CancellationToken cancellationToken) =>
+        (await masterAccessor.QueryCategoryAsync(entity.CategoryId, cancellationToken) is { IsDeleted: false }) &&
+        (await masterAccessor.QueryTaxRateAsync(entity.TaxRateId, cancellationToken) is { IsDeleted: false });
 
     //--------------------------------------------------------------------------------
     // Image
@@ -308,7 +324,7 @@ public sealed class ProductService
             return new ProductImportResult(DataWriteStatus.Success, results);
         }
 
-        // 検証の後に他で変わっていたら (一意制約・外部キーの違反、版の不一致) 全体を取り消す
+        // 検証の後に他で変わっていたら (一意制約の違反、版の不一致) 全体を取り消す
         try
         {
             await provider.UsingTxAsync(async (_, tx) =>

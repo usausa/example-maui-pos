@@ -250,6 +250,33 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal("SD-64", Assert.Single(byQuantity.Rows).ProductCode);
     }
 
+    // 店舗・端末・担当が見つからない開設・入出金・精算は 422 (外部キーの違反の 500 にすると、端末の未送信が送り直し続ける)
+    [Fact]
+    public async Task ShiftWritesRejectMissingReferences()
+    {
+        // Arrange
+        var client = await factory.CreateAdminClientAsync();
+        var missingId = Guid.NewGuid();
+        var businessDate = new DateOnly(2026, 9, 20);
+
+        // Act / Assert: 開設の店舗・端末・担当
+        using var noStoreResponse = await client.PostJsonAsync(ApiRoutes.Shifts, new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = missingId, TerminalId = TestData.BranchTerminalId, BusinessDate = businessDate, OpenedAt = Now, OpenedByStaffId = TestData.BranchCashierStaffId, OpeningCash = 0m }, options);
+        await noStoreResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var noTerminalResponse = await client.PostJsonAsync(ApiRoutes.Shifts, new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = TestData.BranchStoreId, TerminalId = missingId, BusinessDate = businessDate, OpenedAt = Now, OpenedByStaffId = TestData.BranchCashierStaffId, OpeningCash = 0m }, options);
+        await noTerminalResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var noStaffResponse = await client.PostJsonAsync(ApiRoutes.Shifts, new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = TestData.BranchStoreId, TerminalId = TestData.BranchTerminalId, BusinessDate = businessDate, OpenedAt = Now, OpenedByStaffId = missingId, OpeningCash = 0m }, options);
+        await noStaffResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "STAFF_INVALID", options);
+
+        // Act / Assert: 入出金と精算の担当
+        var shiftId = Guid.NewGuid();
+        using var openResponse = await client.PostJsonAsync(ApiRoutes.Shifts, new ShiftOpenRequest { Id = shiftId, StoreId = TestData.BranchStoreId, TerminalId = TestData.BranchTerminalId, BusinessDate = businessDate, OpenedAt = Now, OpenedByStaffId = TestData.BranchCashierStaffId, OpeningCash = 0m }, options);
+        Assert.Equal(HttpStatusCode.Created, openResponse.StatusCode);
+        using var cashEventResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/cash-events", new ShiftCashEventRequest { Id = Guid.NewGuid(), Type = CashEventType.PaidIn, Amount = 100m, Reason = "両替", StaffId = missingId, OccurredAt = Now }, options);
+        await cashEventResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "STAFF_INVALID", options);
+        using var closeResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/close", new ShiftCloseRequest { ClosedAt = Now, ClosedByStaffId = missingId, ActualCash = 0m }, options);
+        await closeResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "STAFF_INVALID", options);
+    }
+
     // 棚卸 (絶対数量) と調整 (増減)、同じ id の再送は Duplicate
     [Fact]
     public async Task InventoryChangesAreIdempotent()

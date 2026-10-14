@@ -207,6 +207,7 @@ public static class ViewHelper
         RuleReason.OrderNotOrdered => "入荷待ちの受注ではありません",
         RuleReason.OrderNotCancellable => "完了・キャンセルした受注はキャンセルできません",
         RuleReason.StoreNotFound => "店舗が見つかりません",
+        RuleReason.TerminalNotFound => "端末が見つかりません",
         RuleReason.CustomerNotFound => "会員が見つかりません",
         RuleReason.SupplierNotFound => "仕入先が見つかりません",
         RuleReason.InventoryReceiptNotDraft => "受領・キャンセルした入荷です",

@@ -7,7 +7,9 @@ using Pos.Contract.Categories;
 using Pos.Contract.Customers;
 using Pos.Contract.Products;
 using Pos.Contract.Settings;
+using Pos.Contract.Staff;
 using Pos.Contract.Sync;
+using Pos.Contract.Terminals;
 using Pos.Server.Host.Endpoints;
 
 // マスタ・設定・同期・顧客の API
@@ -98,6 +100,39 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         Assert.Contains(list.Items, x => (x.Id == created.Id) && x.IsDeleted);
         var active = await client.GetJsonAsync<CategoryListResponse>($"{ApiRoutes.Categories}?size=100", options);
         Assert.DoesNotContain(active.Items, x => x.Id == created.Id);
+    }
+
+    // 参照先 (親部門、店舗、部門、税率) が見つからない書き込みは、重複ではなく 422 (VALIDATION_ERROR)。削除済みも見つからないものとする
+    [Fact]
+    public async Task WriteWithMissingReferenceReturnsUnprocessable()
+    {
+        // Arrange
+        var client = await factory.CreateAdminClientAsync();
+        var missingId = Guid.NewGuid();
+        using var deletedResponse = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = $"T{Guid.NewGuid():N}"[..10], Name = "削除する部門", SortOrder = 99 }, options);
+        var deleted = await deletedResponse.ReadAsAsync<CategoryListResponseItem>(HttpStatusCode.Created, options);
+        using var deleteResponse = await client.DeleteUrlAsync($"{ApiRoutes.Categories}/{deleted.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        // Act / Assert: 部門の親部門 (ない部門と削除済みの部門)
+        using var categoryResponse = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = $"T{Guid.NewGuid():N}"[..10], Name = "親部門なし", ParentId = missingId, SortOrder = 99 }, options);
+        await categoryResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var deletedParentResponse = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = $"T{Guid.NewGuid():N}"[..10], Name = "削除済みの親部門", ParentId = deleted.Id, SortOrder = 99 }, options);
+        await deletedParentResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+
+        // Act / Assert: 担当と端末の店舗 (端末は更新も)
+        using var staffResponse = await client.PostJsonAsync(ApiRoutes.Staff, new StaffCreateRequest { Code = $"T{Guid.NewGuid():N}"[..10], Name = "店舗なし", Role = StaffRole.Cashier, StoreId = missingId }, options);
+        await staffResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var terminalResponse = await client.PostJsonAsync(ApiRoutes.Terminals, new TerminalCreateRequest { StoreId = missingId, TerminalNo = 99, Name = "店舗なし" }, options);
+        await terminalResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var terminalUpdateResponse = await client.PutJsonAsync($"{ApiRoutes.Terminals}/{TestData.MainTerminal2Id}", new TerminalUpdateRequest { StoreId = missingId, TerminalNo = 2, Name = "店舗なし", IsActive = true, Version = 1 }, options);
+        await terminalUpdateResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+
+        // Act / Assert: 商品の部門と税率
+        using var productResponse = await client.PostJsonAsync(ApiRoutes.Products, new ProductCreateRequest { Code = $"T{Guid.NewGuid():N}"[..10], Name = "部門なし", CategoryId = missingId, Kind = ProductKind.Goods, Price = 100m, TaxRateId = TestData.StandardTaxRateId }, options);
+        await productResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var taxRateResponse = await client.PostJsonAsync(ApiRoutes.Products, new ProductCreateRequest { Code = $"T{Guid.NewGuid():N}"[..10], Name = "税率なし", CategoryId = TestData.CameraCategoryId, Kind = ProductKind.Goods, Price = 100m, TaxRateId = missingId }, options);
+        await taxRateResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
     }
 
     // 入力検証は 400 + VALIDATION_ERROR + errors

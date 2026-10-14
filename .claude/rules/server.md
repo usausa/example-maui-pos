@@ -18,6 +18,9 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - 列挙型 (並び順など) は `Views` や `Parameters` に混ぜず `Models/Enums` に置く
 - 1 つの Service だけが返す結果型 (`XxxResult`) とその状態 (`XxxResultStatus`) は、その Service のファイルの先頭で定義する。複数の Service で使う型 (`DataWriteStatus`、`DataWriteResult<T>`) は独自のファイルにする
 - 重複 (`IDialect.IsDuplicate`)、楽観ロック (`RETURNING` で行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す。「読んでから更新」で判定しない
+- `IDialect.IsDuplicate` は一意・主キーの違反だけを重複にする (外部キーの違反を `DUPLICATE_CODE` にしない)
+- 書き込みが指す参照先は Service が書く前に確かめ、なければ 422 にする (マスタは `Invalid`、ほかは `RuleError`)。外部キーの違反 (500) に任せない (端末の未送信が要確認にならずに送り直し続ける)
+- 参照先の確かめでは、管理の入力 (マスタ、発注、入荷、移動) は削除済みもないものとし、端末の記録 (シフト、入出金、受注) は行があればよい (記録した後の無効・削除で拒まない)
 - マスタの登録は、Service が `Id` (`Guid.CreateVersion7()`)、`CreatedAt`、`UpdatedAt`、`Version = 1` を補って `ServiceHelper.InsertAsync` で行う。更新は `ServiceHelper.UpdateAsync` を使う
 - LIKE のパターンは Service で作る (`ServiceHelper.ToLikePattern`)
 - 状態の遷移は `UpdateXxxedAsync` で行い、行が返らなければ読み直して NotFound か業務ルール違反 (`XxxLogic.ValidateXxx`) を返す

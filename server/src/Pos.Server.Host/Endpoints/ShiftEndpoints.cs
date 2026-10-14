@@ -26,7 +26,8 @@ public static partial class ShiftEndpoints
             .Produces<ShiftListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapGet("/current", HandleCurrentAsync)
             .WithName("ShiftCurrent")
             .Produces<ShiftListResponseItem>()
@@ -173,6 +174,7 @@ public static partial class ShiftEndpoints
             ShiftResultStatus.Success => TypedResults.Created($"{ApiRoutes.Shifts}/{entity.Id}", ToListResponseItem(result.Detail!)),
             ShiftResultStatus.Existing => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             ShiftResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
+            ShiftResultStatus.Violation => ApiProblems.FromViolation(result.Violation!),
             _ => ApiProblems.TerminalHasOpenShift()
         };
     }
@@ -243,6 +245,7 @@ public static partial class ShiftEndpoints
             CashEventResultStatus.Existing => TypedResults.Ok(ToCashEventListResponseItem(result.Entity!)),
             CashEventResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
             CashEventResultStatus.ShiftNotFound => ApiProblems.ShiftNotFound(),
+            CashEventResultStatus.Violation => ApiProblems.FromViolation(result.Violation!),
             _ => ApiProblems.ShiftClosed("精算済みのシフトには登録できません")
         };
     }
@@ -279,6 +282,7 @@ public static partial class ShiftEndpoints
         {
             ShiftResultStatus.Success or ShiftResultStatus.Existing => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             ShiftResultStatus.NotFound => ApiProblems.NotFound(),
+            ShiftResultStatus.Violation => ApiProblems.FromViolation(result.Violation!),
             _ => ApiProblems.ShiftClosed("既に精算済みです")
         };
     }

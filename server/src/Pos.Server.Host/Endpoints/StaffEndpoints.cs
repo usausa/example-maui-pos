@@ -10,6 +10,8 @@ using Smart.Mapper;
 
 public static partial class StaffEndpoints
 {
+    private const string ReferenceInvalidTitle = "店舗が見つかりません";
+
     //--------------------------------------------------------------------------------
     // Mapping
     //--------------------------------------------------------------------------------
@@ -31,7 +33,8 @@ public static partial class StaffEndpoints
             .Produces<StaffListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{id:guid}", HandleUpdateAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("StaffUpdate")
@@ -39,7 +42,8 @@ public static partial class StaffEndpoints
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapDelete("/{id:guid}", HandleDeleteAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("StaffDelete")
@@ -108,7 +112,7 @@ public static partial class StaffEndpoints
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
             ? TypedResults.Created($"{ApiRoutes.Staff}/{entity.Id}", ToListResponseItem(entity))
-            : ApiProblems.DuplicateCode();
+            : ApiProblems.FromStatus(status, invalidTitle: ReferenceInvalidTitle);
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(
@@ -122,7 +126,7 @@ public static partial class StaffEndpoints
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
             ? TypedResults.Ok(ToListResponseItem(result.Entity!))
-            : ApiProblems.FromStatus(result.Status);
+            : ApiProblems.FromStatus(result.Status, invalidTitle: ReferenceInvalidTitle);
     }
 
     private static async ValueTask<IResult> HandleDeleteAsync(

@@ -1,5 +1,6 @@
 namespace Pos.Server.Services;
 
+using Pos.Domain.Logic;
 using Pos.Server.Accessors;
 using Pos.Server.Models;
 using Pos.Server.Models.Entity;
@@ -17,11 +18,13 @@ public enum ShiftResultStatus
     // 端末に開設中のシフトがある
     TerminalHasOpenShift,
     // 精算済み
-    Closed
+    Closed,
+    // 業務ルール違反 (Violation に理由)
+    Violation
 }
 
 // 開設・精算の結果
-public sealed record ShiftResult(ShiftResultStatus Status, ShiftDetailView? Detail = null);
+public sealed record ShiftResult(ShiftResultStatus Status, ShiftDetailView? Detail = null, RuleError? Violation = null);
 
 public enum CashEventResultStatus
 {
@@ -29,11 +32,13 @@ public enum CashEventResultStatus
     Existing,
     DuplicateMismatch,
     ShiftNotFound,
-    ShiftClosed
+    ShiftClosed,
+    // 業務ルール違反 (Violation に理由)
+    Violation
 }
 
 // 入出金の結果
-public sealed record CashEventResult(CashEventResultStatus Status, CashEventEntity? Entity = null);
+public sealed record CashEventResult(CashEventResultStatus Status, CashEventEntity? Entity = null, RuleError? Violation = null);
 
 // レジ開閉・現金管理。Open 中の集計は取引から都度求め、精算時に Shifts へ確定する
 public sealed class ShiftService
@@ -154,6 +159,11 @@ public sealed class ShiftService
                 : new ShiftResult(ShiftResultStatus.DuplicateMismatch);
         }
 
+        if (await ValidateOpenAsync(entity, cancellationToken) is { } violation)
+        {
+            return new ShiftResult(ShiftResultStatus.Violation, Violation: violation);
+        }
+
         var now = timeProvider.GetUtcNow().UtcDateTime;
         entity.Status = ShiftStatus.Open;
         entity.CreatedAt = now;
@@ -183,6 +193,11 @@ public sealed class ShiftService
         if (shift.Status == ShiftStatus.Closed)
         {
             return await ClosedResultAsync(shift, parameter, cancellationToken);
+        }
+
+        if (await ValidateStaffAsync(parameter.ClosedByStaffId, cancellationToken) is { } violation)
+        {
+            return new ShiftResult(ShiftResultStatus.Violation, Violation: violation);
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -269,6 +284,11 @@ public sealed class ShiftService
             return new CashEventResult(CashEventResultStatus.ShiftClosed);
         }
 
+        if (await ValidateStaffAsync(entity.StaffId, cancellationToken) is { } violation)
+        {
+            return new CashEventResult(CashEventResultStatus.Violation, Violation: violation);
+        }
+
         entity.CreatedAt = timeProvider.GetUtcNow().UtcDateTime;
         await shiftAccessor.InsertCashEventAsync(entity, cancellationToken);
         changeNotification.Notify(DataChangeKind.Shift);
@@ -291,6 +311,27 @@ public sealed class ShiftService
     //--------------------------------------------------------------------------------
     // Helper
     //--------------------------------------------------------------------------------
+
+    // 参照先は書く前に確かめる。外部キーの違反 (500) にすると、端末の未送信が要確認にならずに送り直し続ける
+    // (別のサーバに登録し直した端末が、前のサーバの担当で送ったときなど)
+    private async ValueTask<RuleError?> ValidateOpenAsync(ShiftEntity entity, CancellationToken cancellationToken)
+    {
+        if (await masterAccessor.QueryStoreAsync(entity.StoreId, cancellationToken) is null)
+        {
+            return new RuleError(ErrorCode.ValidationError, RuleReason.StoreNotFound);
+        }
+
+        if (await masterAccessor.QueryTerminalAsync(entity.TerminalId, cancellationToken) is null)
+        {
+            return new RuleError(ErrorCode.ValidationError, RuleReason.TerminalNotFound);
+        }
+
+        return await ValidateStaffAsync(entity.OpenedByStaffId, cancellationToken);
+    }
+
+    // 端末の記録なので、担当は行があればよい (記録した後で無効・削除になっても受け付ける)
+    private async ValueTask<RuleError?> ValidateStaffAsync(Guid staffId, CancellationToken cancellationToken) =>
+        await masterAccessor.QueryStaffAsync(staffId, cancellationToken) is null ? new RuleError(ErrorCode.StaffInvalid, RuleReason.StaffNotAllowed) : null;
 
     // Open 中は取引から都度集計し、Closed は確定値 (Shifts の列) を使う
     private async ValueTask<ShiftDetailView> LoadDetailAsync(ShiftEntity entity, CancellationToken cancellationToken)

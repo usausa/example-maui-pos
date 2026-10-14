@@ -33,7 +33,8 @@ public static partial class CategoryEndpoints
             .Produces<CategoryListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{id:guid}", HandleUpdateAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("CategoryUpdate")
@@ -102,7 +103,7 @@ public static partial class CategoryEndpoints
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
             ? TypedResults.Created($"{ApiRoutes.Categories}/{entity.Id}", ToListResponseItem(entity))
-            : ApiProblems.DuplicateCode();
+            : ApiProblems.FromStatus(status, invalidTitle: "親部門が見つかりません");
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(
@@ -116,7 +117,7 @@ public static partial class CategoryEndpoints
         var result = await service.UpdateAsync(entity, cancellationToken);
         return result.Status == DataWriteStatus.Success
             ? TypedResults.Ok(ToListResponseItem(result.Entity!))
-            : ApiProblems.FromStatus(result.Status, invalidTitle: "親部門に自分自身は指定できません");
+            : ApiProblems.FromStatus(result.Status, invalidTitle: "親部門に自分自身か、見つからない部門は指定できません");
     }
 
     // 商品または子部門がある部門は削除できません

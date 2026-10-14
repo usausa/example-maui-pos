@@ -75,7 +75,8 @@ C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
 | 更新 | 管理系は `PUT /resources/{id}` (`XxxUpdateRequest`、全体置換)。本文の `version` で楽観ロック。不一致なら `409 Conflict` (`VERSION_MISMATCH`) |
 | 削除 | 管理系は `DELETE /resources/{id}` で論理削除 (`isDeleted = true`)。取引など履歴は削除しない。削除後も `GET /resources/{id}` は `isDeleted: true` で返し、更新・再削除は `404` |
 | 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422`。本文の JSON や引数の型が読めない要求も `400` (`VALIDATION_ERROR`、[D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする)) |
-| 重複 | コード・バーコード等の一意制約違反は `409` (`DUPLICATE_CODE`)。`IDialect.IsDuplicate` で SQLite の制約違反を判定する |
+| 重複 | コード・バーコード等の一意制約違反は `409` (`DUPLICATE_CODE`)。`IDialect.IsDuplicate` で SQLite の一意・主キーの違反だけを判定する (外部キーの違反は重複にしない) |
+| 参照先 | 書き込みが指す参照先がなければ、Service が書く前に確かめて `422` にする (外部キーの違反の `500` にしない)。マスタの店舗・部門・税率は削除済みもないものとする (`VALIDATION_ERROR`)。シフトの開設・入出金・精算は、店舗・端末 (`VALIDATION_ERROR`) と担当 (`STAFF_INVALID`) の行があればよい (端末の記録なので、記録した後の無効・削除では拒まない) |
 
 ### 2.4 エラー応答
 
@@ -249,8 +250,8 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | --- | --- | --- | --- |
 | GET | `/categories?updatedSince&includeDeleted&sort&desc&page&size` | 端末 / 管理 | 部門一覧 (階層は `parentId` で組み立てる)。`sort` = `sortOrder` / `code` / `name` / `updatedAt`、`size` は既定 1000 |
 | GET | `/categories/{id}` | 管理 | 部門詳細 |
-| POST | `/categories` | 管理 (管理者) | 登録 |
-| PUT | `/categories/{id}` | 管理 (管理者) | 更新 (親部門に自身を指定すると `422` `VALIDATION_ERROR`) |
+| POST | `/categories` | 管理 (管理者) | 登録 (見つからない親部門を指定すると `422` `VALIDATION_ERROR`) |
+| PUT | `/categories/{id}` | 管理 (管理者) | 更新 (親部門に自身か、見つからない部門を指定すると `422` `VALIDATION_ERROR`) |
 | DELETE | `/categories/{id}` | 管理 (管理者) | 論理削除 (所属商品か子部門があれば `422` `IN_USE`) |
 
 ### 💹 3.6 税率 (TaxRates)
@@ -708,7 +709,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| POST | `/shifts` | 端末 | 開設 (`ShiftOpenRequest`)。端末に `Open` のシフトがあれば `409` (`TERMINAL_HAS_OPEN_SHIFT`) |
+| POST | `/shifts` | 端末 | 開設 (`ShiftOpenRequest`)。端末に `Open` のシフトがあれば `409` (`TERMINAL_HAS_OPEN_SHIFT`)、店舗・端末・担当が見つからなければ `422` |
 | GET | `/shifts/current?terminalId=` | 端末 | 端末の開設中シフト (なければ 404) |
 | GET | `/shifts?storeId&terminalId&status&from&to&sort&desc&page&size` | 管理 | シフト一覧。`sort` = `openedAt` / `businessDate` / `closedAt` (既定は `openedAt` の降順) |
 | GET | `/shifts/{id}` | 端末 / 管理 | シフト詳細 (集計付き) |
@@ -1169,7 +1170,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 403 | `TERMINAL_MISMATCH` | 端末のトークンと、本文・クエリの店舗・端末が一致しない |
 | 429 | (本文なし) | ログイン・ペアリングの試行回数の上限 |
 | 413 / 415 | `VALIDATION_ERROR` | 本文をそのまま送る API (商品画像・CSV 取込) の大きさ・`Content-Type` |
-| 422 | `VALIDATION_ERROR` | 取引の入力の誤り (明細なし、数量・単価・値引の値、値引の超過など)、取消済みの取引の取消、参照先 (店舗・会員・仕入先) がない、有効な `Points` / `Deposit` の支払方法の 2 件目、部門の親に自身、商品画像の形式、CSV 取込の誤りのある行 (`errors` は行番号ごと) |
+| 422 | `VALIDATION_ERROR` | 取引の入力の誤り (明細なし、数量・単価・値引の値、値引の超過など)、取消済みの取引の取消、参照先 (店舗・端末・部門・税率・会員・仕入先) がない、有効な `Points` / `Deposit` の支払方法の 2 件目、部門の親に自身、商品画像の形式、CSV 取込の誤りのある行 (`errors` は行番号ごと) |
 | 404 | `NOT_FOUND` | 対象なし |
 | 409 | `DUPLICATE_ID_MISMATCH` | 同一 `id` で内容が異なる再送 |
 | 409 | `VERSION_MISMATCH` | 楽観ロック失敗 |
@@ -1195,7 +1196,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 422 | `HAS_RETURNS` | 返品済み取引の取消 |
 | 422 | `IN_USE` | 使用中マスタの削除 |
 | 422 | `PAIRING_CODE_INVALID` | ペアリングコードの不一致・期限切れ・使用済み、無効な端末 |
-| 422 | `STAFF_INVALID` | 担当がその店舗 (または本部) の有効なスタッフでない (取引の登録・取消、前受金の受取・返金) |
+| 422 | `STAFF_INVALID` | 担当がその店舗 (または本部) の有効なスタッフでない (取引の登録・取消、前受金の受取・返金)。シフトの開設・入出金・精算の担当が見つからない |
 | 422 | `APPROVAL_REQUIRED` | 承認が必要な値引・レジ係の取消に、店長以上の承認者がない (承認者が無効・役割不足を含む) |
 | 500 | (なし) | 想定外の例外 (Problem Details。`errorCode` は付かない) |
 

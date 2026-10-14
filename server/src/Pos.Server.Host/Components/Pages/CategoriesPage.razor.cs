@@ -50,7 +50,7 @@ public sealed partial class CategoriesPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await CategoryService.InsertAsync(CategoryForm.ToEntity(form), CancellationToken), "追加しました"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await CategoryService.InsertAsync(CategoryForm.ToEntity(form), CancellationToken), "追加しました", invalid: "親部門が見つかりません"), LoadAsync);
     }
 
     private async Task EditAsync(CategoryEntity entity)
@@ -61,7 +61,7 @@ public sealed partial class CategoriesPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await CategoryService.UpdateAsync(CategoryForm.ToEntity(form), CancellationToken), "更新しました", invalid: "親部門に自分自身は指定できません"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await CategoryService.UpdateAsync(CategoryForm.ToEntity(form), CancellationToken), "更新しました", invalid: "親部門に自分自身か、見つからない部門は指定できません"), LoadAsync);
     }
 
     // 商品または子部門がある部門は削除できない

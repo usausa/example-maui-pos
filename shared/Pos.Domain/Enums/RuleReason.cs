@@ -44,6 +44,7 @@ public enum RuleReason
     OrderNotOrdered,
     OrderNotCancellable,
     StoreNotFound,
+    TerminalNotFound,
     CustomerNotFound,
     SupplierNotFound,
     InventoryReceiptNotDraft,

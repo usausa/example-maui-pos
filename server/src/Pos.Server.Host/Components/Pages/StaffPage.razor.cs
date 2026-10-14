@@ -40,7 +40,7 @@ public sealed partial class StaffPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await StaffService.InsertAsync(StaffForm.ToEntity(form), CancellationToken), "追加しました"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await StaffService.InsertAsync(StaffForm.ToEntity(form), CancellationToken), "追加しました", invalid: "店舗が見つかりません"), LoadAsync);
     }
 
     private async Task EditAsync(StaffEntity entity)
@@ -51,7 +51,7 @@ public sealed partial class StaffPage
             return;
         }
 
-        await RunAsync(async () => NotifyResult(await StaffService.UpdateAsync(StaffForm.ToEntity(form), CancellationToken), "更新しました"), LoadAsync);
+        await RunAsync(async () => NotifyResult(await StaffService.UpdateAsync(StaffForm.ToEntity(form), CancellationToken), "更新しました", invalid: "店舗が見つかりません"), LoadAsync);
     }
 
     // PIN がないスタッフは端末で担当に選べない
