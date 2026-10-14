@@ -451,11 +451,11 @@ CSV にない商品は削除しない ([D-19](decisions.md#d-19-商品の-csv-�
 ### 🧾 3.12 取引 (Transactions)
 
 販売 (`Sale`) と返品 (`Return`) を同じ形で扱う。  
-端末が計算した結果をそのまま送り (`TransactionCreateRequest`)、サーバは [§4](#-4-金額税ポイント計算仕様-共有ライブラリ) の仕様で再計算して検証し、`TransactionResponseItem` を返す。
+端末が計算した結果をそのまま送り (`TransactionCreateRequest`)、サーバは [§4](#-4-金額税ポイント計算仕様-共有ライブラリ) の仕様で再計算して検証し、`TransactionListResponseItem` を返す。
 
 #### 取引の項目
 
-「入力」= 端末が決める値、「計算」= 端末が計算しサーバが検証する値、「サーバ」= サーバ付与 (`TransactionResponseItem` にのみ含まれる)。
+「入力」= 端末が決める値、「計算」= 端末が計算しサーバが検証する値、「サーバ」= サーバ付与 (`TransactionListResponseItem` にのみ含まれる)。
 
 | フィールド | 型 | 区分 | 説明 |
 | --- | --- | --- | --- |
@@ -490,7 +490,7 @@ CSV にない商品は削除しない ([D-19](decisions.md#d-19-商品の-csv-�
 | `warnings[]` | `{ code, message, lineId? }[]` | サーバ | 受理したが確認が必要な事項 ([§5](#-5-エラーコード) の警告コード。登録した `201` の応答だけに付く) |
 | `createdAt`, `updatedAt` | datetime | サーバ | |
 
-`lines[]` (`TransactionCreateRequestLine` / `TransactionResponseLine`):
+`lines[]` (`TransactionCreateRequestLine` / `TransactionListResponseLine`):
 
 | フィールド | 型 | 区分 | 説明 |
 | --- | --- | --- | --- |
@@ -609,15 +609,15 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 }
 ```
 
-応答 `201 Created` (`TransactionResponseItem`) は同じ形に `pointsBalanceAfter: 8074`、`createdAt`、`updatedAt` が付く。
+応答 `201 Created` (`TransactionListResponseItem`) は同じ形に `pointsBalanceAfter: 8074`、`createdAt`、`updatedAt` が付く。
 
 #### エンドポイント
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | POST | `/transactions` | 端末 | 取引登録 (`TransactionCreateRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `422` 検証エラー |
-| GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&serialNumber&sort&desc&page&size` | 端末 / 管理 | 取引検索 (`TransactionResponse`)。`sort` = `transactedAt` / `receiptNo` / `total` / `businessDate` (既定は `transactedAt` の降順)。`serialNumber` は明細のシリアル番号の完全一致 (端末は全店の取引を探す) |
-| GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionResponseItem`) |
+| GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&serialNumber&sort&desc&page&size` | 端末 / 管理 | 取引検索 (`TransactionListResponse`)。`sort` = `transactedAt` / `receiptNo` / `total` / `businessDate` (既定は `transactedAt` の降順)。`serialNumber` は明細のシリアル番号の完全一致 (端末は全店の取引を探す) |
+| GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionListResponseItem`) |
 | GET | `/transactions/{id}/receipt/pdf` | 管理 | レシートの控え (再発行) の PDF。項目は端末のレシートと同じ ([D-21](decisions.md#d-21-帳票はサーバが-pdf-にする)) |
 | GET | `/transactions/lookup?receiptNo=` | 端末 | 返品時のレシート番号検索 |
 | POST | `/transactions/{id}/void` | 端末 | 取消 `TransactionVoidRequest { staffId, approvedByStaffId?, reason, voidedAt }` → `200` 取引。レジ係の取消は店長以上の `approvedByStaffId` が要る |

@@ -9,7 +9,7 @@ public static class ShiftSummaryCalculator
 {
     public static ShiftSummaryResponse Calculate(
         LocalShiftEntity shift,
-        IEnumerable<TransactionResponseItem> transactions,
+        IEnumerable<TransactionListResponseItem> transactions,
         IEnumerable<LocalCashEventEntity> cashEvents,
         IEnumerable<LocalOrderDepositEntity> deposits,
         IEnumerable<PaymentMethodListResponseItem> paymentMethods,

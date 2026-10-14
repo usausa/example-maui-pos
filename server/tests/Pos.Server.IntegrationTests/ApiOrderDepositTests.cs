@@ -77,7 +77,7 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
         using var withoutDepositResponse = await PostSaleAsync(client, shiftId, "S001-01-000301", order.Id, 0m);
         await withoutDepositResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "PAYMENT_MISMATCH", options);
         using var saleResponse = await PostSaleAsync(client, shiftId, "S001-01-000302", order.Id, 500m);
-        var sale = await saleResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.Created, options);
+        var sale = await saleResponse.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(500m, sale.Payments.Single(static x => x.Kind == PaymentKind.Deposit).Amount);
         var completed = await client.GetJsonAsync<OrderListResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
         Assert.Equal((OrderStatus.Completed, 0m), (completed.Status, completed.DepositAmount));
@@ -86,7 +86,7 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
 
         // Act / Assert: 会計を取り消すと引き渡し待ちに戻り、前受金も戻る
         using var voidResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", new TransactionVoidRequest { StaffId = TestData.ManagerStaffId, Reason = "受注の取り違え", VoidedAt = Now.AddMinutes(30) }, options);
-        await voidResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.OK, options);
+        await voidResponse.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.OK, options);
         var reopened = await client.GetJsonAsync<OrderListResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
         Assert.Equal((OrderStatus.Arrived, 500m), (reopened.Status, reopened.DepositAmount));
 

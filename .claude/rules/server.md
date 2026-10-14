@@ -80,8 +80,11 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 ### エンドポイント
 
 - API は `XxxEndpoints` (static partial) に `// Mapping` / `// Mapper` / `// Handler` の区切りで書き、経路は `ApiRoutes` の定数にし、`MapXxxEndpoints` を `MapEndpoints` に足す
+- エンドポイントには `WithName` で操作名を付け、通信データと同じ機能名 + 操作名 (`XxxEndpoints` の `Xxx` + `HandleXxxAsync` の `Xxx`。`CategoryList`) にする
+- エンドポイントは返す応答をすべて宣言する (本文は `Produces<T>(状態, 種類)`、本文なしは `Produces(状態)`、Problem Details は `ProducesProblem(状態)`、入力の誤りは `ProducesValidationProblem()`)。ポリシーで拒む 403 は本文なし、`TerminalMismatch` の 403 は Problem Details で宣言する
 - API のグループは `MapApiGroup` で作る (計測と既定の認可 `Policies.Api` が付く)。API の経路は `/api` の下に置く (例外処理、HTTP ログ、未認証の応答、流量制限の拒否が `/api` かどうかで分かれる)
 - ハンドラは要求の確認 (`TerminalAccess`、`RequestHelper`) → Request の変換 (`[Mapper]`) → Service → Response の変換だけを持つ。静的なユーティリティ (`TryParse` など) はエンドポイントのクラスに書かず、`Helpers/` に置く
+- Response への変換は、返す型の名前から機能名を除いた名前に `To` を付ける (`ToListResponseItem`、`ToCashEventListResponseItem`、`ToSummaryResponsePaymentMethod`)。手で補う変換が呼ぶ `[Mapper]` は `Core` を付け (`ToListResponseItemCore`)、同じ型への別の変換は用途の名前にする (`ToSyncResponse`)。Entity への変換は `ToEntity` の多重定義にする
 - 更新の応答は `DataWriteResult<T>` の行から作る
 - 失敗は `ApiProblems` で Problem Details にし (`errorCode` は `ErrorCode`)、`DataWriteStatus` は `FromStatus`、`RuleError` は `FromViolation` で写す。新しい失敗は `ErrorCode` と `ApiProblems` のメソッドを足す
 - 業務ルール違反の文言は、API・管理画面とも `ApiRuleText` から引く。それ以外の Problem Details の title は `ApiProblems` の既定値かハンドラに書く

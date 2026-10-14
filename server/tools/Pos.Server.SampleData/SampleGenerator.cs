@@ -225,7 +225,7 @@ internal sealed class SampleGenerator
         await client.PostAsync<ShiftListResponseItem>("shifts", shift).ConfigureAwait(false);
 
         var count = Math.Max(1, options.PerDay + random.Next(-2, 3));
-        var sales = new List<TransactionResponseItem>();
+        var sales = new List<TransactionListResponseItem>();
         var cashTotal = 0m;
         for (var i = 0; i < count; i++)
         {
@@ -456,7 +456,7 @@ internal sealed class SampleGenerator
     // Return
     //--------------------------------------------------------------------------------
 
-    private (TransactionCreateRequest? Request, decimal CashRefund) BuildReturn(TransactionResponseItem original, StoreListResponseItem store, TerminalListResponseItem terminal, StaffListResponseItem cashier, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
+    private (TransactionCreateRequest? Request, decimal CashRefund) BuildReturn(TransactionListResponseItem original, StoreListResponseItem store, TerminalListResponseItem terminal, StaffListResponseItem cashier, Guid shiftId, DateOnly date, DateTime at, string receiptNo)
     {
         if (original.Status != TransactionStatus.Completed)
         {
@@ -579,11 +579,11 @@ internal sealed class SampleGenerator
     // Post
     //--------------------------------------------------------------------------------
 
-    private async Task<TransactionResponseItem?> PostTransactionAsync(TransactionCreateRequest request)
+    private async Task<TransactionListResponseItem?> PostTransactionAsync(TransactionCreateRequest request)
     {
         try
         {
-            var response = await client.PostAsync<TransactionResponseItem>("transactions", request).ConfigureAwait(false);
+            var response = await client.PostAsync<TransactionListResponseItem>("transactions", request).ConfigureAwait(false);
             created++;
             return response;
         }
@@ -609,7 +609,7 @@ internal sealed class SampleGenerator
     }
 
     // レジ係の取消は店長以上の承認者を付ける
-    private async Task<bool> PostVoidAsync(TransactionResponseItem target, StaffListResponseItem cashier, StaffListResponseItem manager, DateTime at)
+    private async Task<bool> PostVoidAsync(TransactionListResponseItem target, StaffListResponseItem cashier, StaffListResponseItem manager, DateTime at)
     {
         try
         {
@@ -620,7 +620,7 @@ internal sealed class SampleGenerator
                 Reason = "登録誤り",
                 VoidedAt = at
             };
-            await client.PostAsync<TransactionResponseItem>($"transactions/{target.Id}/void", request).ConfigureAwait(false);
+            await client.PostAsync<TransactionListResponseItem>($"transactions/{target.Id}/void", request).ConfigureAwait(false);
             return true;
         }
         catch (ApiException ex) when (ex.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.UnprocessableEntity)
@@ -631,7 +631,7 @@ internal sealed class SampleGenerator
     }
 
     // 会員のポイント残高を追いかける (次の販売で使える額を決めるため)
-    private void Apply(TransactionResponseItem response, bool revert = false)
+    private void Apply(TransactionListResponseItem response, bool revert = false)
     {
         if (response.CustomerId is null)
         {

@@ -5,7 +5,7 @@ using Pos.Terminal.Modules.Dialogs;
 
 public sealed class ReturnLineItem : NotificationObject
 {
-    public TransactionResponseLine Line { get; }
+    public TransactionListResponseLine Line { get; }
 
     public string Name => Line.ProductName;
 
@@ -33,7 +33,7 @@ public sealed class ReturnLineItem : NotificationObject
     // 返品する明細 (帯と背景の色は画面側のトリガーで変える)
     public bool IsSelected => Quantity > 0;
 
-    public ReturnLineItem(TransactionResponseLine line)
+    public ReturnLineItem(TransactionListResponseLine line)
     {
         Line = line;
     }

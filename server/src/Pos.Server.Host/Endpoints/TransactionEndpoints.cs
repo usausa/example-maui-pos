@@ -23,8 +23,8 @@ public static partial class TransactionEndpoints
         var group = app.MapApiGroup(ApiRoutes.Transactions);
         group.MapPost("/", HandleCreateAsync)
             .WithName("TransactionCreate")
-            .Produces<TransactionResponseItem>()
-            .Produces<TransactionResponseItem>(StatusCodes.Status201Created)
+            .Produces<TransactionListResponseItem>()
+            .Produces<TransactionListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -36,16 +36,16 @@ public static partial class TransactionEndpoints
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapGet("/", HandleListAsync)
             .WithName("TransactionList")
-            .Produces<TransactionResponse>()
+            .Produces<TransactionListResponse>()
             .ProducesValidationProblem();
         group.MapGet("/lookup", HandleLookupAsync)
             .WithName("TransactionLookup")
-            .Produces<TransactionResponseItem>()
+            .Produces<TransactionListResponseItem>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapGet("/{id:guid}", HandleGetAsync)
             .WithName("TransactionGet")
-            .Produces<TransactionResponseItem>()
+            .Produces<TransactionListResponseItem>()
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapGet("/{id:guid}/receipt/pdf", HandleReceiptPdfAsync)
             .RequireAuthorization(Policies.Admin)
@@ -55,7 +55,7 @@ public static partial class TransactionEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapPost("/{id:guid}/void", HandleVoidAsync)
             .WithName("TransactionVoid")
-            .Produces<TransactionResponseItem>()
+            .Produces<TransactionListResponseItem>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
@@ -112,47 +112,47 @@ public static partial class TransactionEndpoints
     //--------------------------------------------------------------------------------
 
     [Mapper]
-    private static partial TransactionResponseItem ToResponseItemCore(TransactionEntity entity);
+    private static partial TransactionListResponseItem ToListResponseItemCore(TransactionEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseLine ToResponseLine(TransactionLineEntity entity);
+    private static partial TransactionListResponseLine ToListResponseLine(TransactionLineEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseDiscount ToResponseDiscount(TransactionDiscountEntity entity);
+    private static partial TransactionListResponseDiscount ToListResponseDiscount(TransactionDiscountEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseTaxSummary ToResponseTaxSummary(TransactionTaxSummaryEntity entity);
+    private static partial TransactionListResponseTaxSummary ToListResponseTaxSummary(TransactionTaxSummaryEntity entity);
 
     [Mapper]
-    private static partial TransactionResponsePayment ToResponsePayment(TransactionPaymentEntity entity);
+    private static partial TransactionListResponsePayment ToListResponsePayment(TransactionPaymentEntity entity);
 
     [Mapper]
-    private static partial TransactionResponseDelivery ToResponseDelivery(TransactionDeliveryEntity entity);
+    private static partial TransactionListResponseDelivery ToListResponseDelivery(TransactionDeliveryEntity entity);
 
     // 明細・値引・税・支払・配送・シリアルを集めて応答にする
-    internal static TransactionResponseItem ToResponseItem(TransactionDetailView detail, IReadOnlyList<RuleWarning>? warnings = null)
+    internal static TransactionListResponseItem ToListResponseItem(TransactionDetailView detail, IReadOnlyList<RuleWarning>? warnings = null)
     {
         var entity = detail.Transaction;
         var serialsByLine = detail.Serials.ToLookup(static x => x.TransactionLineId, static x => x.SerialNumber);
-        var response = ToResponseItemCore(entity);
+        var response = ToListResponseItemCore(entity);
         response.Lines = detail.Lines.Select(x =>
         {
-            var line = ToResponseLine(x);
+            var line = ToListResponseLine(x);
             line.SerialNumbers = serialsByLine[x.Id].ToList();
             return line;
         }).ToList();
-        response.Discounts = detail.Discounts.Select(ToResponseDiscount).ToList();
-        response.TaxSummaries = detail.TaxSummaries.Select(ToResponseTaxSummary).ToList();
-        response.Payments = detail.Payments.Select(ToResponsePayment).ToList();
-        response.Delivery = detail.Delivery is null ? null : ToResponseDelivery(detail.Delivery);
+        response.Discounts = detail.Discounts.Select(ToListResponseDiscount).ToList();
+        response.TaxSummaries = detail.TaxSummaries.Select(ToListResponseTaxSummary).ToList();
+        response.Payments = detail.Payments.Select(ToListResponsePayment).ToList();
+        response.Delivery = detail.Delivery is null ? null : ToListResponseDelivery(detail.Delivery);
         response.Void = entity.VoidedAt is null
             ? null
-            : new TransactionResponseVoid { VoidedAt = entity.VoidedAt.Value, VoidedByStaffId = entity.VoidedByStaffId ?? Guid.Empty, Reason = entity.VoidReason ?? String.Empty };
+            : new TransactionListResponseVoid { VoidedAt = entity.VoidedAt.Value, VoidedByStaffId = entity.VoidedByStaffId ?? Guid.Empty, Reason = entity.VoidReason ?? String.Empty };
         response.OrderId = detail.Order?.Id;
         response.OrderNo = detail.Order?.OrderNo;
         if (warnings is not null)
         {
-            response.Warnings = warnings.Select(static x => new TransactionResponseWarning { Code = x.Code.ToCode(), Message = ApiRuleText.Of(x.Code), LineId = x.LineId }).ToList();
+            response.Warnings = warnings.Select(static x => new TransactionListResponseWarning { Code = x.Code.ToCode(), Message = ApiRuleText.Of(x.Code), LineId = x.LineId }).ToList();
         }
 
         return response;
@@ -215,8 +215,8 @@ public static partial class TransactionEndpoints
         var result = await service.RegisterAsync(detail, request.OrderId, cancellationToken);
         return result.Status switch
         {
-            TransactionResultStatus.Success => TypedResults.Created($"{ApiRoutes.Transactions}/{detail.Transaction.Id}", ToResponseItem(result.Detail!, result.Warnings)),
-            TransactionResultStatus.Existing => TypedResults.Ok(ToResponseItem(result.Detail!)),
+            TransactionResultStatus.Success => TypedResults.Created($"{ApiRoutes.Transactions}/{detail.Transaction.Id}", ToListResponseItem(result.Detail!, result.Warnings)),
+            TransactionResultStatus.Existing => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             TransactionResultStatus.DuplicateMismatch => ApiProblems.DuplicateIdMismatch(),
             TransactionResultStatus.Invalid => ToProblem(result.Validation!),
             _ => ApiProblems.FromViolation(result.Violation!)
@@ -283,7 +283,7 @@ public static partial class TransactionEndpoints
             Size = size
         };
         var result = await service.QueryDetailPageAsync(parameter, cancellationToken);
-        return TypedResults.Ok(new TransactionResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => ToResponseItem(x)).ToList() });
+        return TypedResults.Ok(new TransactionListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => ToListResponseItem(x)).ToList() });
     }
 
     // レシートの控え (再発行)。項目は端末のレシートと同じ
@@ -315,7 +315,7 @@ public static partial class TransactionEndpoints
         }
 
         var detail = await service.QueryDetailByReceiptNoAsync(receiptNo, cancellationToken);
-        return detail is null ? ApiProblems.NotFound("取引が見つかりません") : TypedResults.Ok(ToResponseItem(detail));
+        return detail is null ? ApiProblems.NotFound("取引が見つかりません") : TypedResults.Ok(ToListResponseItem(detail));
     }
 
     private static async ValueTask<IResult> HandleGetAsync(
@@ -324,7 +324,7 @@ public static partial class TransactionEndpoints
         CancellationToken cancellationToken)
     {
         var detail = await service.QueryDetailAsync(id, cancellationToken);
-        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToResponseItem(detail));
+        return detail is null ? ApiProblems.NotFound() : TypedResults.Ok(ToListResponseItem(detail));
     }
 
     //--------------------------------------------------------------------------------
@@ -348,7 +348,7 @@ public static partial class TransactionEndpoints
         var result = await service.VoidAsync(id, request.VoidedAt, request.StaffId, request.ApprovedByStaffId, request.Reason, cancellationToken);
         return result.Status switch
         {
-            TransactionResultStatus.Success => TypedResults.Ok(ToResponseItem(result.Detail!)),
+            TransactionResultStatus.Success => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             TransactionResultStatus.NotFound => ApiProblems.NotFound("取引が見つかりません"),
             TransactionResultStatus.Invalid => ToProblem(result.Validation!),
             _ => ApiProblems.FromViolation(result.Violation!)

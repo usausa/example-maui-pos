@@ -76,7 +76,7 @@ public sealed partial class ReturnViewModel : AppViewModelBase
         }
     }
 
-    private void Apply(TransactionResponseItem? transaction, string key)
+    private void Apply(TransactionListResponseItem? transaction, string key)
     {
         if (transaction is null)
         {
@@ -93,7 +93,7 @@ public sealed partial class ReturnViewModel : AppViewModelBase
         UpdateOriginal(transaction);
     }
 
-    private void UpdateOriginal(TransactionResponseItem transaction)
+    private void UpdateOriginal(TransactionListResponseItem transaction)
     {
         HasOriginal = true;
         ReceiptNo = transaction.ReceiptNo;

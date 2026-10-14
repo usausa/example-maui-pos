@@ -37,7 +37,7 @@ public sealed class SalesUsecase
         TransactionLogic.ValidateInput(TransactionMapper.ToSalesInput(cart, payments, session.TaxRounding, session.PointBasis));
 
     // 会計の確定 (Validate が通った入力を渡す)。Session.CanTransact のときだけ呼ぶ
-    public async ValueTask<TransactionResponseItem> CompleteAsync(SalesCart cart, IReadOnlyList<CartPayment> payments)
+    public async ValueTask<TransactionListResponseItem> CompleteAsync(SalesCart cart, IReadOnlyList<CartPayment> payments)
     {
         var result = Calculate(cart, payments);
         var receiptNo = await sync.NextReceiptNoAsync();

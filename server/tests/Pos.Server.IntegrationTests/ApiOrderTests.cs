@@ -89,17 +89,17 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         using var arriveAgainResponse = await client.PostAsync(new Uri($"{ApiRoutes.Orders}/{order.Id}/arrive", UriKind.Relative), null, Token);
         await arriveAgainResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "ORDER_STATUS_INVALID", options);
         using var saleResponse = await PostSaleAsync(client, shiftId, "S001-01-000202", order.Id);
-        var sale = await saleResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.Created, options);
+        var sale = await saleResponse.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(order.Id, sale.OrderId);
         Assert.Equal(order.OrderNo, sale.OrderNo);
         var completed = await client.GetJsonAsync<OrderListResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
         Assert.Equal(OrderStatus.Completed, completed.Status);
         Assert.Equal(sale.Id, completed.TransactionId);
-        Assert.Equal(order.OrderNo, (await client.GetJsonAsync<TransactionResponseItem>($"{ApiRoutes.Transactions}/{sale.Id}", options)).OrderNo);
+        Assert.Equal(order.OrderNo, (await client.GetJsonAsync<TransactionListResponseItem>($"{ApiRoutes.Transactions}/{sale.Id}", options)).OrderNo);
 
         // Act / Assert: 会計した取引を取り消すと引き渡し待ちに戻り、キャンセルできる
         using var voidResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", new TransactionVoidRequest { StaffId = TestData.ManagerStaffId, Reason = "受注の取り違え", VoidedAt = Now.AddMinutes(30) }, options);
-        await voidResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.OK, options);
+        await voidResponse.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.OK, options);
         var reopened = await client.GetJsonAsync<OrderListResponseItem>($"{ApiRoutes.Orders}/{order.Id}", options);
         Assert.Equal(OrderStatus.Arrived, reopened.Status);
         Assert.Null(reopened.TransactionId);

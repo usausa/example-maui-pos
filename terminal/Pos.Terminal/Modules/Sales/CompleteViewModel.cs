@@ -7,7 +7,7 @@ public sealed partial class CompleteViewModel : AppViewModelBase
 {
     private readonly TransactionUsecase transactions;
 
-    private TransactionResponseItem? transaction;
+    private TransactionListResponseItem? transaction;
 
     [ObservableProperty]
     public partial string Title { get; set; } = "会計完了";

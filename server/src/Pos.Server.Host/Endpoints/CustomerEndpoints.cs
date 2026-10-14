@@ -67,7 +67,7 @@ public static partial class CustomerEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapGet("/{id:guid}/transactions", HandleTransactionsAsync)
             .WithName("CustomerTransactions")
-            .Produces<TransactionResponse>()
+            .Produces<TransactionListResponse>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
     }
@@ -224,6 +224,6 @@ public static partial class CustomerEndpoints
         }
 
         var result = await transactionService.QueryDetailPageAsync(new TransactionQueryParameter { CustomerId = id, Desc = true, Page = page, Size = size }, cancellationToken);
-        return TypedResults.Ok(new TransactionResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => TransactionEndpoints.ToResponseItem(x)).ToList() });
+        return TypedResults.Ok(new TransactionListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => TransactionEndpoints.ToListResponseItem(x)).ToList() });
     }
 }

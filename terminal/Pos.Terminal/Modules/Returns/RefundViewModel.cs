@@ -109,7 +109,7 @@ public sealed partial class RefundViewModel : AppViewModelBase
         await Navigator.PostActionAsync(() => LoadMethodsAsync(original));
     }
 
-    private async Task LoadMethodsAsync(Pos.Contract.Transactions.TransactionResponseItem original)
+    private async Task LoadMethodsAsync(Pos.Contract.Transactions.TransactionListResponseItem original)
     {
         var methods = (await accessor.QueryPaymentMethodListAsync()).Where(static x => x.IsActive && !x.IsDeleted).OrderBy(static x => x.SortOrder).ToList();
         pointsMethod = methods.FirstOrDefault(static x => x.Kind == PaymentKind.Points);

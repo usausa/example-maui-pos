@@ -106,8 +106,8 @@ public sealed class HttpService
     public ValueTask<ApiResult<CustomerPointHistoryResponse>> GetCustomerPointHistoryAsync(Guid id, CancellationToken cancellationToken = default) =>
         GetAsync<CustomerPointHistoryResponse>($"customers/{id}/points/history?size=50", cancellationToken);
 
-    public ValueTask<ApiResult<TransactionResponse>> GetCustomerTransactionsAsync(Guid id, CancellationToken cancellationToken = default) =>
-        GetAsync<TransactionResponse>($"customers/{id}/transactions?size=50", cancellationToken);
+    public ValueTask<ApiResult<TransactionListResponse>> GetCustomerTransactionsAsync(Guid id, CancellationToken cancellationToken = default) =>
+        GetAsync<TransactionListResponse>($"customers/{id}/transactions?size=50", cancellationToken);
 
     public ValueTask<ApiResult<CustomerListResponseItem>> PostCustomerAsync(CustomerCreateRequest request, CancellationToken cancellationToken = default) =>
         PostAsync<CustomerListResponseItem>("customers", request, cancellationToken);
@@ -119,21 +119,21 @@ public sealed class HttpService
     // Transaction
     //--------------------------------------------------------------------------------
 
-    public ValueTask<ApiResult<TransactionResponseItem>> PostTransactionAsync(TransactionCreateRequest request, CancellationToken cancellationToken = default) =>
-        PostAsync<TransactionResponseItem>("transactions", request, cancellationToken);
+    public ValueTask<ApiResult<TransactionListResponseItem>> PostTransactionAsync(TransactionCreateRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<TransactionListResponseItem>("transactions", request, cancellationToken);
 
-    public ValueTask<ApiResult<TransactionResponseItem>> PostTransactionVoidAsync(Guid id, TransactionVoidRequest request, CancellationToken cancellationToken = default) =>
-        PostAsync<TransactionResponseItem>($"transactions/{id}/void", request, cancellationToken);
+    public ValueTask<ApiResult<TransactionListResponseItem>> PostTransactionVoidAsync(Guid id, TransactionVoidRequest request, CancellationToken cancellationToken = default) =>
+        PostAsync<TransactionListResponseItem>($"transactions/{id}/void", request, cancellationToken);
 
-    public ValueTask<ApiResult<TransactionResponseItem>> LookupTransactionAsync(string receiptNo, CancellationToken cancellationToken = default) =>
-        GetAsync<TransactionResponseItem>($"transactions/lookup?receiptNo={Uri.EscapeDataString(receiptNo)}", cancellationToken);
+    public ValueTask<ApiResult<TransactionListResponseItem>> LookupTransactionAsync(string receiptNo, CancellationToken cancellationToken = default) =>
+        GetAsync<TransactionListResponseItem>($"transactions/lookup?receiptNo={Uri.EscapeDataString(receiptNo)}", cancellationToken);
 
     // シリアル番号 (完全一致) を含む取引。新しい順
-    public ValueTask<ApiResult<TransactionResponse>> GetTransactionsBySerialAsync(string serialNumber, CancellationToken cancellationToken = default) =>
-        GetAsync<TransactionResponse>($"transactions?serialNumber={Uri.EscapeDataString(serialNumber)}&size=50", cancellationToken);
+    public ValueTask<ApiResult<TransactionListResponse>> GetTransactionsBySerialAsync(string serialNumber, CancellationToken cancellationToken = default) =>
+        GetAsync<TransactionListResponse>($"transactions?serialNumber={Uri.EscapeDataString(serialNumber)}&size=50", cancellationToken);
 
-    public ValueTask<ApiResult<TransactionResponseItem>> GetTransactionAsync(Guid id, CancellationToken cancellationToken = default) =>
-        GetAsync<TransactionResponseItem>($"transactions/{id}", cancellationToken);
+    public ValueTask<ApiResult<TransactionListResponseItem>> GetTransactionAsync(Guid id, CancellationToken cancellationToken = default) =>
+        GetAsync<TransactionListResponseItem>($"transactions/{id}", cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Order (オンライン限定)

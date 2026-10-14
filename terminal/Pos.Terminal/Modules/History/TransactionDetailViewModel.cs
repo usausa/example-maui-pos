@@ -29,7 +29,7 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
 
     private Guid transactionId;
 
-    private TransactionResponseItem? transaction;
+    private TransactionListResponseItem? transaction;
 
     // 種別・送信状態の文言と色は画面側の Converter で付ける
     [ObservableProperty]

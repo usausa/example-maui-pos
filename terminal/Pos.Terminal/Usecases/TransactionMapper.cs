@@ -157,7 +157,7 @@ public static partial class TransactionMapper
     // Return
     //--------------------------------------------------------------------------------
 
-    public static ReturnInput ToReturnInput(TransactionResponseItem original, IEnumerable<(TransactionResponseLine Line, decimal Quantity)> returns, IEnumerable<CartPayment> payments, TaxRounding taxRounding)
+    public static ReturnInput ToReturnInput(TransactionListResponseItem original, IEnumerable<(TransactionListResponseLine Line, decimal Quantity)> returns, IEnumerable<CartPayment> payments, TaxRounding taxRounding)
     {
         return new ReturnInput
         {
@@ -169,9 +169,9 @@ public static partial class TransactionMapper
     }
 
     [Mapper]
-    private static partial ReturnOriginalLine ToOriginalLine(TransactionResponseLine line);
+    private static partial ReturnOriginalLine ToOriginalLine(TransactionListResponseLine line);
 
-    public static TransactionCreateRequest ToReturnRequest(TransactionResponseItem original, IReadOnlyList<(TransactionResponseLine Line, decimal Quantity)> returns, IEnumerable<CartPayment> payments, SalesResult result, TransactionContext context, string? note)
+    public static TransactionCreateRequest ToReturnRequest(TransactionListResponseItem original, IReadOnlyList<(TransactionListResponseLine Line, decimal Quantity)> returns, IEnumerable<CartPayment> payments, SalesResult result, TransactionContext context, string? note)
     {
         var lines = new List<TransactionCreateRequestLine>(returns.Count);
         for (var i = 0; i < returns.Count; i++)
@@ -250,28 +250,28 @@ public static partial class TransactionMapper
 
     // 端末側の履歴用にサーバ応答と同じ形へ (送信後はサーバの応答で置き換える)。端末が作る要求は取消を持たない
     [Mapper]
-    [MapCollection(nameof(TransactionResponseItem.Lines), Mapper = nameof(ToResponse))]
-    [MapCollection(nameof(TransactionResponseItem.Discounts), Mapper = nameof(ToResponse))]
-    [MapCollection(nameof(TransactionResponseItem.TaxSummaries), Mapper = nameof(ToResponse))]
-    [MapCollection(nameof(TransactionResponseItem.Payments), Mapper = nameof(ToResponse))]
-    [MapNested(nameof(TransactionResponseItem.Delivery), Mapper = nameof(ToResponse))]
-    [MapIgnore(nameof(TransactionResponseItem.Void))]
-    [MapProperty(nameof(TransactionResponseItem.CreatedAt), nameof(TransactionCreateRequest.TransactedAt))]
-    [MapProperty(nameof(TransactionResponseItem.UpdatedAt), nameof(TransactionCreateRequest.TransactedAt))]
-    public static partial TransactionResponseItem ToResponse(TransactionCreateRequest request);
+    [MapCollection(nameof(TransactionListResponseItem.Lines), Mapper = nameof(ToResponse))]
+    [MapCollection(nameof(TransactionListResponseItem.Discounts), Mapper = nameof(ToResponse))]
+    [MapCollection(nameof(TransactionListResponseItem.TaxSummaries), Mapper = nameof(ToResponse))]
+    [MapCollection(nameof(TransactionListResponseItem.Payments), Mapper = nameof(ToResponse))]
+    [MapNested(nameof(TransactionListResponseItem.Delivery), Mapper = nameof(ToResponse))]
+    [MapIgnore(nameof(TransactionListResponseItem.Void))]
+    [MapProperty(nameof(TransactionListResponseItem.CreatedAt), nameof(TransactionCreateRequest.TransactedAt))]
+    [MapProperty(nameof(TransactionListResponseItem.UpdatedAt), nameof(TransactionCreateRequest.TransactedAt))]
+    public static partial TransactionListResponseItem ToResponse(TransactionCreateRequest request);
 
     [Mapper]
-    private static partial TransactionResponseLine ToResponse(TransactionCreateRequestLine line);
+    private static partial TransactionListResponseLine ToResponse(TransactionCreateRequestLine line);
 
     [Mapper]
-    private static partial TransactionResponseDiscount ToResponse(TransactionCreateRequestDiscount discount);
+    private static partial TransactionListResponseDiscount ToResponse(TransactionCreateRequestDiscount discount);
 
     [Mapper]
-    private static partial TransactionResponseTaxSummary ToResponse(TransactionCreateRequestTaxSummary summary);
+    private static partial TransactionListResponseTaxSummary ToResponse(TransactionCreateRequestTaxSummary summary);
 
     [Mapper]
-    private static partial TransactionResponsePayment ToResponse(TransactionCreateRequestPayment payment);
+    private static partial TransactionListResponsePayment ToResponse(TransactionCreateRequestPayment payment);
 
     [Mapper]
-    private static partial TransactionResponseDelivery ToResponse(TransactionCreateRequestDelivery delivery);
+    private static partial TransactionListResponseDelivery ToResponse(TransactionCreateRequestDelivery delivery);
 }

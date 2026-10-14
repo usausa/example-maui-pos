@@ -3,7 +3,7 @@ namespace Pos.Contract.Transactions;
 using Pos.Contract;
 
 // 取引。TransactionCreateRequest と同じ形にサーバ付与項目が付く
-public sealed class TransactionResponseItem
+public sealed class TransactionListResponseItem
 {
     public Guid Id { get; set; }
 
@@ -29,11 +29,11 @@ public sealed class TransactionResponseItem
 
     public Guid? OriginalTransactionId { get; set; }
 
-    public IReadOnlyList<TransactionResponseLine> Lines { get; set; } = default!;
+    public IReadOnlyList<TransactionListResponseLine> Lines { get; set; } = default!;
 
-    public IReadOnlyList<TransactionResponseDiscount> Discounts { get; set; } = default!;
+    public IReadOnlyList<TransactionListResponseDiscount> Discounts { get; set; } = default!;
 
-    public IReadOnlyList<TransactionResponseTaxSummary> TaxSummaries { get; set; } = default!;
+    public IReadOnlyList<TransactionListResponseTaxSummary> TaxSummaries { get; set; } = default!;
 
     public decimal Subtotal { get; set; }
 
@@ -45,7 +45,7 @@ public sealed class TransactionResponseItem
 
     public decimal Total { get; set; }
 
-    public IReadOnlyList<TransactionResponsePayment> Payments { get; set; } = default!;
+    public IReadOnlyList<TransactionListResponsePayment> Payments { get; set; } = default!;
 
     public decimal TenderedTotal { get; set; }
 
@@ -58,11 +58,11 @@ public sealed class TransactionResponseItem
     // 処理後残高 (サーバ)
     public int? PointsBalanceAfter { get; set; }
 
-    public TransactionResponseDelivery? Delivery { get; set; }
+    public TransactionListResponseDelivery? Delivery { get; set; }
 
     public string? Note { get; set; }
 
-    public TransactionResponseVoid? Void { get; set; }
+    public TransactionListResponseVoid? Void { get; set; }
 
     // 受注から会計した取引
     public Guid? OrderId { get; set; }
@@ -70,14 +70,14 @@ public sealed class TransactionResponseItem
     public string? OrderNo { get; set; }
 
     // 受理したが確認が必要な事項
-    public IReadOnlyList<TransactionResponseWarning> Warnings { get; set; } = [];
+    public IReadOnlyList<TransactionListResponseWarning> Warnings { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
 }
 
-public sealed class TransactionResponseLine
+public sealed class TransactionListResponseLine
 {
     public Guid Id { get; set; }
 
@@ -129,7 +129,7 @@ public sealed class TransactionResponseLine
     public string? Note { get; set; }
 }
 
-public sealed class TransactionResponseDiscount
+public sealed class TransactionListResponseDiscount
 {
     public Guid Id { get; set; }
 
@@ -150,7 +150,7 @@ public sealed class TransactionResponseDiscount
     public Guid? ApprovedByStaffId { get; set; }
 }
 
-public sealed class TransactionResponseTaxSummary
+public sealed class TransactionListResponseTaxSummary
 {
     public Guid TaxRateId { get; set; }
 
@@ -163,7 +163,7 @@ public sealed class TransactionResponseTaxSummary
     public decimal TaxAmount { get; set; }
 }
 
-public sealed class TransactionResponsePayment
+public sealed class TransactionListResponsePayment
 {
     public Guid Id { get; set; }
 
@@ -182,7 +182,7 @@ public sealed class TransactionResponsePayment
     public string? Note { get; set; }
 }
 
-public sealed class TransactionResponseDelivery
+public sealed class TransactionListResponseDelivery
 {
     public string RecipientName { get; set; } = default!;
 
@@ -199,7 +199,7 @@ public sealed class TransactionResponseDelivery
     public string? Note { get; set; }
 }
 
-public sealed class TransactionResponseVoid
+public sealed class TransactionListResponseVoid
 {
     public DateTime VoidedAt { get; set; }
 
@@ -208,7 +208,7 @@ public sealed class TransactionResponseVoid
     public string Reason { get; set; } = default!;
 }
 
-public sealed class TransactionResponseWarning
+public sealed class TransactionListResponseWarning
 {
     // WarningCode.ToCode() (UPPER_SNAKE_CASE)
     public string Code { get; set; } = default!;
@@ -218,15 +218,15 @@ public sealed class TransactionResponseWarning
     public Guid? LineId { get; set; }
 }
 
-public sealed class TransactionResponse : ListResponse<TransactionResponseItem>;
+public sealed class TransactionListResponse : ListResponse<TransactionListResponseItem>;
 
-public static class TransactionResponseItemExtensions
+public static class TransactionListResponseItemExtensions
 {
     // 返品できる明細が残っているか
-    public static bool HasReturnableLine(this TransactionResponseItem transaction) =>
+    public static bool HasReturnableLine(this TransactionListResponseItem transaction) =>
         transaction.Lines.Any(static x => x.Quantity > x.ReturnedQuantity);
 
     // 完了した販売で、返品できる明細が残っているもの
-    public static bool IsReturnable(this TransactionResponseItem transaction) =>
+    public static bool IsReturnable(this TransactionListResponseItem transaction) =>
         (transaction.Type == TransactionType.Sale) && (transaction.Status == TransactionStatus.Completed) && transaction.HasReturnableLine();
 }

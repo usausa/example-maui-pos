@@ -277,7 +277,7 @@ Customers/     CustomerListResponse / CustomerListResponseItem / CustomerCreateR
 Orders/        OrderCreateRequest (+ Line), OrderUpdateRequest (+ Line), OrderCancelRequest, OrderDepositRequest, OrderDepositRefundRequest,
                OrderListResponse / OrderListResponseItem (+ Line / Deposit)
 Transactions/  TransactionCreateRequest (+ TransactionCreateRequestLine / Discount / TaxSummary / Payment / Delivery / Void),
-               TransactionResponse / TransactionResponseItem (+ TransactionResponseLine / ... / Warning),
+               TransactionListResponse / TransactionListResponseItem (+ TransactionListResponseLine / ... / Warning),
                TransactionVoidRequest, TransactionCalculateRequest, TransactionCalculateResponse (計算項目のみ。calculate の応答と expected)
 Shifts/        ShiftOpenRequest, ShiftListResponse / ShiftListResponseItem (+ Denomination / Totals), ShiftCloseRequest (+ Denomination),
                ShiftCashEventRequest / ShiftCashEventListResponse / ShiftCashEventListResponseItem, ShiftSummaryResponse (+ PaymentMethod / TaxRate / Category / Points / Cash)
@@ -298,7 +298,7 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
   書き方は `sealed class` と `{ get; set; }` (null にならない参照型は `= default!`) で、Request の検証は `Required` / `MaxLength` / `Range` (文字列の長さは `Pos.Domain.Length` の定数)。  
   camelCase への変換はシリアライザ設定で行い、属性は付けない
 - クラス名はエンドポイントのクラス名 + メソッド名 (`TransactionCreateRequest` / `TransactionCalculateResponse` / `CustomerPointHistoryResponse` / `ShiftCashEventRequest` / `ReportSalesSummaryResponse`)。  
-  入れ子の要素は親の名前に要素名を続ける (`TransactionResponseLine`)
+  入れ子の要素は親の名前に要素名を続ける (`TransactionListResponseLine`)
 - 列挙型は `Pos.Domain` のものをそのまま使う。  
   エラーコード定数は持たず、`Pos.Domain` の `ErrorCode.ToCode()` / `WarningCode.ToCode()` と端末の `ProblemResponse.ErrorCode` (文字列) で突き合わせる
 - 日付は `DateOnly`、日時は `DateTime` (UTC)。  

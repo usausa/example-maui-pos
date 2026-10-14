@@ -75,7 +75,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
 
         // 登録 → 再送 200 → 内容違いの再送 409 → 計算違い 422
         using var saleResponse = await client.PostJsonAsync(ApiRoutes.Transactions, sale, options);
-        var saleResult = await saleResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.Created, options);
+        var saleResult = await saleResponse.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(TransactionStatus.Completed, saleResult.Status);
         Assert.Equal(8074, saleResult.PointsBalanceAfter);
         Assert.Empty(saleResult.Warnings);
@@ -84,12 +84,12 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(2, saleResult.Discounts.Count);
 
         using var resendResponse = await client.PostJsonAsync(ApiRoutes.Transactions, sale, options);
-        Assert.Equal(sale.Id, (await resendResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.OK, options)).Id);
+        Assert.Equal(sale.Id, (await resendResponse.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.OK, options)).Id);
 
         // シリアル番号 (完全一致) で取引を引ける
-        var bySerial = await client.GetJsonAsync<TransactionResponse>($"{ApiRoutes.Transactions}?serialNumber=SN-0001234", options);
+        var bySerial = await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Transactions}?serialNumber=SN-0001234", options);
         Assert.Equal(sale.Id, Assert.Single(bySerial.Items).Id);
-        Assert.Equal(0, (await client.GetJsonAsync<TransactionResponse>($"{ApiRoutes.Transactions}?serialNumber=SN-000123", options)).Total);
+        Assert.Equal(0, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Transactions}?serialNumber=SN-000123", options)).Total);
 
         var mismatch = CreateSaleRequest(shiftId);
         mismatch.Id = sale.Id;
@@ -130,10 +130,10 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(-123, returnCalculation.PointsRedeemed);
         TransactionRequests.Apply(returnRequest, returnCalculation);
         using var returnResponse = await client.PostJsonAsync(ApiRoutes.Transactions, returnRequest, options);
-        var returnResult = await returnResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.Created, options);
+        var returnResult = await returnResponse.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.Created, options);
         Assert.Equal(TransactionType.Return, returnResult.Type);
         Assert.Equal(8074 + 123 - 18, returnResult.PointsBalanceAfter);
-        Assert.Equal(1m, (await client.GetJsonAsync<TransactionResponseItem>($"{ApiRoutes.Transactions}/{sale.Id}", options)).Lines[1].ReturnedQuantity);
+        Assert.Equal(1m, (await client.GetJsonAsync<TransactionListResponseItem>($"{ApiRoutes.Transactions}/{sale.Id}", options)).Lines[1].ReturnedQuantity);
         Assert.Equal(sdCardBefore - 1m, await QuantityAsync(client, TestData.SdCardProductId));
 
         // 返品可能数量超過
@@ -146,20 +146,20 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         using var voidSaleResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", voidRequest, options);
         await voidSaleResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "HAS_RETURNS", options);
         using var voidReturnResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{returnRequest.Id}/void", voidRequest, options);
-        var voided = await voidReturnResponse.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.OK, options);
+        var voided = await voidReturnResponse.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(TransactionStatus.Voided, voided.Status);
         Assert.Equal("誤操作", voided.Void?.Reason);
         Assert.Equal(8074, (await client.GetJsonAsync<CustomerListResponseItem>($"{ApiRoutes.Customers}/{TestData.Customer1Id}", options)).PointBalance);
-        Assert.Equal(0m, (await client.GetJsonAsync<TransactionResponseItem>($"{ApiRoutes.Transactions}/{sale.Id}", options)).Lines[1].ReturnedQuantity);
+        Assert.Equal(0m, (await client.GetJsonAsync<TransactionListResponseItem>($"{ApiRoutes.Transactions}/{sale.Id}", options)).Lines[1].ReturnedQuantity);
         Assert.Equal(sdCardBefore - 2m, await QuantityAsync(client, TestData.SdCardProductId));
         using var voidAgainResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{returnRequest.Id}/void", voidRequest, options);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, voidAgainResponse.StatusCode);
 
         // 一覧・検索
-        Assert.Equal(2, (await client.GetJsonAsync<TransactionResponse>($"{ApiRoutes.Transactions}?shiftId={shiftId}", options)).Total);
-        Assert.Equal(1, (await client.GetJsonAsync<TransactionResponse>($"{ApiRoutes.Transactions}?shiftId={shiftId}&status=Completed", options)).Total);
-        Assert.Equal(sale.Id, (await client.GetJsonAsync<TransactionResponseItem>($"{ApiRoutes.Transactions}/lookup?receiptNo={sale.ReceiptNo}", options)).Id);
-        Assert.Equal(2, (await client.GetJsonAsync<TransactionResponse>($"{ApiRoutes.Customers}/{TestData.Customer1Id}/transactions", options)).Total);
+        Assert.Equal(2, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Transactions}?shiftId={shiftId}", options)).Total);
+        Assert.Equal(1, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Transactions}?shiftId={shiftId}&status=Completed", options)).Total);
+        Assert.Equal(sale.Id, (await client.GetJsonAsync<TransactionListResponseItem>($"{ApiRoutes.Transactions}/lookup?receiptNo={sale.ReceiptNo}", options)).Id);
+        Assert.Equal(2, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Customers}/{TestData.Customer1Id}/transactions", options)).Total);
 
         // 入出金 (再送は 200)
         var cashEvent = new ShiftCashEventRequest { Id = Guid.NewGuid(), Type = CashEventType.PaidOut, Amount = 10000m, Reason = "両替", StaffId = TestData.MainCashierStaffId, OccurredAt = Now.AddHours(1) };
@@ -348,7 +348,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     }
 
     // 返品: ポイント返還分 (−pointsRedeemed) をポイント、残りを現金で返金する
-    private static TransactionCreateRequest CreateReturnRequest(Guid shiftId, Guid originalId, TransactionResponseLine original, decimal quantity, string receiptNo)
+    private static TransactionCreateRequest CreateReturnRequest(Guid shiftId, Guid originalId, TransactionListResponseLine original, decimal quantity, string receiptNo)
     {
         var refundPoints = (int)Math.Floor(original.PointsRedeemed * quantity / original.Quantity);
         var netAmount = Math.Floor(original.UnitPrice * quantity) - Math.Floor(original.DiscountAmount * quantity / original.Quantity) - Math.Floor(original.AllocatedDiscountAmount * quantity / original.Quantity);

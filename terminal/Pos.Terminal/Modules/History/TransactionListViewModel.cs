@@ -207,7 +207,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
     }
 
     // 担当 (数人) と支払方法の名前はまとめて引く
-    private async Task<(Dictionary<Guid, string> Staff, Dictionary<Guid, string> Methods)> QueryNamesAsync(IEnumerable<TransactionResponseItem> list)
+    private async Task<(Dictionary<Guid, string> Staff, Dictionary<Guid, string> Methods)> QueryNamesAsync(IEnumerable<TransactionListResponseItem> list)
     {
         var staff = new Dictionary<Guid, string>();
         foreach (var staffId in list.Select(static x => x.StaffId).Distinct())
@@ -228,7 +228,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         CountText = countText;
     }
 
-    private static TransactionItem ToItem(TransactionResponseItem detail, OutboxStatus syncStatus, Dictionary<Guid, string> staff, Dictionary<Guid, string> methods)
+    private static TransactionItem ToItem(TransactionListResponseItem detail, OutboxStatus syncStatus, Dictionary<Guid, string> staff, Dictionary<Guid, string> methods)
     {
         var payments = detail.Payments
             .Select(x => new SummaryRow(methods.GetValueOrDefault(x.PaymentMethodId) ?? ViewHelper.Name(x.Kind), ViewHelper.Yen(x.Amount)))

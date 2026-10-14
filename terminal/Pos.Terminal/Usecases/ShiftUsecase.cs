@@ -147,11 +147,11 @@ public sealed partial class ShiftUsecase
     // Summary
     //--------------------------------------------------------------------------------
 
-    // ローカルの取引 (Payload = TransactionResponseItem)・入出金・前受金から集計する
+    // ローカルの取引 (Payload = TransactionListResponseItem)・入出金・前受金から集計する
     public async ValueTask<ShiftSummaryResponse> BuildSummaryAsync(LocalShiftEntity shift)
     {
         var transactions = (await accessor.QueryTransactionListAsync(shift.Id, null, null, 10000))
-            .Select(static x => JsonSerializer.Deserialize<TransactionResponseItem>(x.Payload, HttpService.JsonOptions)!)
+            .Select(static x => JsonSerializer.Deserialize<TransactionListResponseItem>(x.Payload, HttpService.JsonOptions)!)
             .ToList();
         var cashEvents = await accessor.QueryCashEventListAsync(shift.Id);
         var deposits = await accessor.QueryOrderDepositListAsync(shift.Id);

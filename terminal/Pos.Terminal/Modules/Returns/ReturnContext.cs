@@ -5,9 +5,9 @@ using Pos.Contract.Transactions;
 // 返品の画面 (返品・明細選択・返金・スキャン) で共有する状態。ViewModel の [Scope] プロパティに Scope プラグインが注入する
 public sealed class ReturnContext
 {
-    public TransactionResponseItem? Original { get; set; }
+    public TransactionListResponseItem? Original { get; set; }
 
-    public Collection<(TransactionResponseLine Line, decimal Quantity)> Lines { get; } = [];
+    public Collection<(TransactionListResponseLine Line, decimal Quantity)> Lines { get; } = [];
 
     public string? Reason { get; set; }
 

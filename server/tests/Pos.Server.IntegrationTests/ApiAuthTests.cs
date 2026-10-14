@@ -218,14 +218,14 @@ public sealed class ApiAuthTests : IClassFixture<TestApplicationFactory>
         // Act
         using var withoutApproval = await PostSaleAsync(client, shiftId, "S001-01-000901", approvedBy: null, withDiscount: true);
         using var approved = await PostSaleAsync(client, shiftId, "S001-01-000902", approvedBy: TestData.ManagerStaffId, withDiscount: true);
-        var sale = await approved.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.Created, options);
+        var sale = await approved.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.Created, options);
         using var voidWithoutApproval = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", new TransactionVoidRequest { StaffId = TestData.MainCashierStaffId, Reason = "誤操作", VoidedAt = Now.AddMinutes(30) }, options);
         using var voidWithApproval = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", new TransactionVoidRequest { StaffId = TestData.MainCashierStaffId, ApprovedByStaffId = TestData.ManagerStaffId, Reason = "誤操作", VoidedAt = Now.AddMinutes(30) }, options);
 
         // Assert
         await withoutApproval.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "APPROVAL_REQUIRED", options);
         await voidWithoutApproval.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "APPROVAL_REQUIRED", options);
-        Assert.Equal(TransactionStatus.Voided, (await voidWithApproval.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.OK, options)).Status);
+        Assert.Equal(TransactionStatus.Voided, (await voidWithApproval.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.OK, options)).Status);
     }
 
     //--------------------------------------------------------------------------------

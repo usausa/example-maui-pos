@@ -8,7 +8,7 @@ using Pos.Terminal.Models.Entity;
 using Smart.Data;
 using Smart.Mapper;
 
-public sealed record TransactionSummary(TransactionResponseItem Detail, OutboxStatus SyncStatus);
+public sealed record TransactionSummary(TransactionListResponseItem Detail, OutboxStatus SyncStatus);
 
 // 取引の保存 (ローカル取引 + Outbox + 自店在庫キャッシュを 1 トランザクションで書く)、取消、履歴
 public sealed partial class TransactionUsecase
@@ -37,14 +37,14 @@ public sealed partial class TransactionUsecase
     // Query
     //--------------------------------------------------------------------------------
 
-    public async ValueTask<TransactionResponseItem?> QueryAsync(Guid id)
+    public async ValueTask<TransactionListResponseItem?> QueryAsync(Guid id)
     {
         var entity = await accessor.QueryTransactionAsync(id);
         return entity is null ? null : Deserialize(entity.Payload);
     }
 
     // ローカルになければ、オンラインのときにサーバから取る (シリアル番号で探した他の端末の取引を開くとき)
-    public async ValueTask<TransactionResponseItem?> FindAsync(Guid id)
+    public async ValueTask<TransactionListResponseItem?> FindAsync(Guid id)
     {
         var local = await QueryAsync(id);
         if ((local is not null) || !network.IsConnected)
@@ -55,7 +55,7 @@ public sealed partial class TransactionUsecase
         return (await network.ExecuteAsync(h => h.GetTransactionAsync(id), notify: false)).Content;
     }
 
-    public async ValueTask<TransactionResponseItem?> QueryByReceiptNoAsync(string receiptNo)
+    public async ValueTask<TransactionListResponseItem?> QueryByReceiptNoAsync(string receiptNo)
     {
         var entity = await accessor.QueryTransactionByReceiptNoAsync(receiptNo);
         return entity is null ? null : Deserialize(entity.Payload);
@@ -99,7 +99,7 @@ public sealed partial class TransactionUsecase
     //--------------------------------------------------------------------------------
 
     // 販売・返品の確定。書いたら送信を促す
-    public async ValueTask RegisterAsync(TransactionCreateRequest request, TransactionResponseItem response)
+    public async ValueTask RegisterAsync(TransactionCreateRequest request, TransactionListResponseItem response)
     {
         var now = DateTime.UtcNow;
         var sign = request.Type == TransactionType.Return ? 1m : -1m;
@@ -122,7 +122,7 @@ public sealed partial class TransactionUsecase
     }
 
     // 取消: ローカル取引の状態を更新し、在庫を戻す。approvedByStaffId はレジ係の取消を承認した店長以上
-    public async ValueTask VoidAsync(TransactionResponseItem transaction, Guid staffId, Guid? approvedByStaffId, string reason)
+    public async ValueTask VoidAsync(TransactionListResponseItem transaction, Guid staffId, Guid? approvedByStaffId, string reason)
     {
         var now = DateTime.UtcNow;
         var request = new TransactionVoidRequest { StaffId = staffId, ApprovedByStaffId = approvedByStaffId, Reason = reason, VoidedAt = now };
@@ -130,7 +130,7 @@ public sealed partial class TransactionUsecase
         var deltas = await ResolveInventoryDeltasAsync(transaction.Lines.Select(x => (x.ProductId, x.Quantity * sign)));
 
         transaction.Status = TransactionStatus.Voided;
-        transaction.Void = new TransactionResponseVoid { VoidedAt = request.VoidedAt, VoidedByStaffId = request.StaffId, Reason = request.Reason };
+        transaction.Void = new TransactionListResponseVoid { VoidedAt = request.VoidedAt, VoidedByStaffId = request.StaffId, Reason = request.Reason };
 
         await provider.UsingTxAsync(async (_, tx) =>
         {
@@ -152,15 +152,15 @@ public sealed partial class TransactionUsecase
     // Helper
     //--------------------------------------------------------------------------------
 
-    private static string Serialize(TransactionResponseItem transaction) =>
+    private static string Serialize(TransactionListResponseItem transaction) =>
         JsonSerializer.Serialize(transaction, HttpService.JsonOptions);
 
-    private static TransactionResponseItem? Deserialize(string payload) =>
-        JsonSerializer.Deserialize<TransactionResponseItem>(payload, HttpService.JsonOptions);
+    private static TransactionListResponseItem? Deserialize(string payload) =>
+        JsonSerializer.Deserialize<TransactionListResponseItem>(payload, HttpService.JsonOptions);
 
     [Mapper]
     [MapUsing(nameof(LocalTransactionEntity.Payload), nameof(Serialize))]
-    private static partial LocalTransactionEntity ToEntity(TransactionResponseItem response);
+    private static partial LocalTransactionEntity ToEntity(TransactionListResponseItem response);
 
     // 在庫管理対象の商品だけ増減する
     private async ValueTask<List<(Guid ProductId, decimal Delta)>> ResolveInventoryDeltasAsync(IEnumerable<(Guid ProductId, decimal Delta)> lines)

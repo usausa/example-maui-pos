@@ -156,7 +156,7 @@ public sealed class ApiDailyClosingTests : IClassFixture<TestApplicationFactory>
     }
 
     // 配送料 1,100 円 (内税 10%、ポイントなし) を現金で
-    private async Task<TransactionResponseItem> PostSaleAsync(HttpClient client, Guid storeId, Guid terminalId, Guid shiftId, DateOnly businessDate, string receiptNo)
+    private async Task<TransactionListResponseItem> PostSaleAsync(HttpClient client, Guid storeId, Guid terminalId, Guid shiftId, DateOnly businessDate, string receiptNo)
     {
         var sale = new TransactionCreateRequest
         {
@@ -182,6 +182,6 @@ public sealed class ApiDailyClosingTests : IClassFixture<TestApplicationFactory>
         using var calculateResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/calculate", TransactionRequests.ToCalculateRequest(sale), options);
         TransactionRequests.Apply(sale, await calculateResponse.ReadAsAsync<TransactionCalculateResponse>(HttpStatusCode.OK, options));
         using var response = await client.PostJsonAsync(ApiRoutes.Transactions, sale, options);
-        return await response.ReadAsAsync<TransactionResponseItem>(HttpStatusCode.Created, options);
+        return await response.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.Created, options);
     }
 }

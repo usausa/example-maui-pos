@@ -17,7 +17,7 @@ public sealed class ReceiptService
         this.session = session;
     }
 
-    public async ValueTask<SKImage> BuildAsync(TransactionResponseItem transaction)
+    public async ValueTask<SKImage> BuildAsync(TransactionListResponseItem transaction)
     {
         // シリアル番号で探した他の店舗・端末の取引は、その店舗と端末で組み立てる
         var store = transaction.StoreId == session.StoreId ? session.Store : await accessor.QueryStoreAsync(transaction.StoreId);
