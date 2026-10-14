@@ -28,11 +28,14 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleAccepts()
     {
+        // Arrange
         var input = SalesExample.Input();
         var claimed = SalesLogic.Calculate(input);
 
+        // Act
         var validation = TransactionLogic.ValidateSale(SaleContext(), input, claimed);
 
+        // Assert
         Assert.True(validation.IsValid);
         Assert.Empty(validation.Warnings);
         Assert.NotNull(validation.Expected);
@@ -43,15 +46,19 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleShift()
     {
+        // Arrange
         var input = SalesExample.Input();
         var claimed = SalesLogic.Calculate(input);
 
+        // Act / Assert: シフトがない
         var notFound = TransactionLogic.ValidateSale(SaleContext(shiftMissing: true), input, claimed);
         Assert.Contains(notFound.Errors, static x => x.Code == ErrorCode.ShiftNotFound);
 
+        // Act / Assert: 精算済みのシフト
         var closed = TransactionLogic.ValidateSale(SaleContext(shift: Shift(ShiftStatus.Closed)), input, claimed);
         Assert.Contains(closed.Errors, static x => x.Code == ErrorCode.ShiftClosed);
 
+        // Act / Assert: 別の端末のシフト
         var mismatch = TransactionLogic.ValidateSale(SaleContext(shift: Shift(ShiftStatus.Open, OtherTerminalId)), input, claimed);
         Assert.Contains(mismatch.Errors, static x => x.Code == ErrorCode.ShiftTerminalMismatch);
     }
@@ -60,11 +67,14 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleDuplicateReceiptNo()
     {
+        // Arrange
         var input = SalesExample.Input();
         var claimed = SalesLogic.Calculate(input);
 
+        // Act
         var validation = TransactionLogic.ValidateSale(SaleContext(receiptNoInUse: true), input, claimed);
 
+        // Assert
         Assert.Contains(validation.Errors, static x => x.Code == ErrorCode.DuplicateReceiptNo);
     }
 
@@ -72,12 +82,15 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleProductNotFound()
     {
+        // Arrange
         var input = SalesExample.Input();
         var claimed = SalesLogic.Calculate(input);
         var context = SaleContext(products: [Product(SalesExample.CameraProduct), Product(SalesExample.SdCardProduct)]);
 
+        // Act
         var validation = TransactionLogic.ValidateSale(context, input, claimed);
 
+        // Assert
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.ProductNotFound, error.Code);
         Assert.Equal(SalesExample.DeliveryLine, error.LineId);
@@ -87,6 +100,7 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSalePriceOverrideNotAllowed()
     {
+        // Arrange
         var lines = SalesExample.Lines();
         lines[0] = lines[0] with { UnitPrice = 79000m };
         var payments = SalesExample.Payments();
@@ -95,11 +109,13 @@ public sealed class TransactionLogicTests
         var claimed = SalesLogic.Calculate(input);
         Assert.Equal(79150m, claimed.Total);
 
+        // Act / Assert: 売価変更不可の商品は拒む
         var denied = TransactionLogic.ValidateSale(SaleContext(), input, claimed);
         var error = Assert.Single(denied.Errors);
         Assert.Equal(ErrorCode.PriceOverrideNotAllowed, error.Code);
         Assert.Equal(SalesExample.CameraLine, error.LineId);
 
+        // Act / Assert: 売価変更可の商品は受け付ける
         var allowed = TransactionLogic.ValidateSale(SaleContext(products: [Product(SalesExample.CameraProduct, allowsPriceOverride: true), Product(SalesExample.SdCardProduct), Product(SalesExample.DeliveryProduct)]), input, claimed);
         Assert.True(allowed.IsValid);
     }
@@ -108,13 +124,16 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleLineDiscountExceeded()
     {
+        // Arrange
         var discounts = SalesExample.Discounts();
         discounts[0] = new SalesInputDiscount { Id = SalesExample.CameraDiscount, LineId = SalesExample.CameraLine, Type = DiscountType.Amount, Value = 90000m };
         var input = SalesExample.Input() with { Discounts = discounts };
         var claimed = SalesLogic.Calculate(SalesExample.Input());
 
+        // Act
         var validation = TransactionLogic.ValidateSale(SaleContext(), input, claimed);
 
+        // Assert
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.ValidationError, error.Code);
         Assert.Equal(SalesExample.CameraLine, error.LineId);
@@ -125,13 +144,16 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleTransactionDiscountExceeded()
     {
+        // Arrange
         var discounts = SalesExample.Discounts();
         discounts[1] = new SalesInputDiscount { Id = SalesExample.TransactionDiscount, LineId = null, Type = DiscountType.Amount, Value = 90000m };
         var input = SalesExample.Input() with { Discounts = discounts };
         var claimed = SalesLogic.Calculate(SalesExample.Input());
 
+        // Act
         var validation = TransactionLogic.ValidateSale(SaleContext(), input, claimed);
 
+        // Assert
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.ValidationError, error.Code);
         Assert.Null(validation.Expected);
@@ -141,11 +163,14 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleCalculationMismatch()
     {
+        // Arrange
         var input = SalesExample.Input();
         var claimed = SalesLogic.Calculate(input) with { Total = 80000m };
 
+        // Act
         var validation = TransactionLogic.ValidateSale(SaleContext(), input, claimed);
 
+        // Assert
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.CalculationMismatch, error.Code);
         Assert.NotNull(validation.Expected);
@@ -156,13 +181,16 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSalePaymentTotalMismatch()
     {
+        // Arrange
         var payments = SalesExample.Payments();
         payments[2] = SalesExample.Cash(25000m, 30000m);
         var input = SalesExample.Input() with { Payments = payments };
         var claimed = SalesLogic.Calculate(input);
 
+        // Act
         var validation = TransactionLogic.ValidateSale(SaleContext(), input, claimed);
 
+        // Assert
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.PaymentMismatch, error.Code);
     }
@@ -171,6 +199,7 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleChangeMismatch()
     {
+        // Act / Assert: 釣銭が出せない支払方法で預り額 ≠ 充当額
         var payments = SalesExample.Payments();
         payments[1] = new SalesInputPayment { Id = SalesExample.CardPayment, Kind = PaymentKind.Card, Amount = 50000m, TenderedAmount = 60000m };
         var input = SalesExample.Input() with { Payments = payments };
@@ -178,6 +207,7 @@ public sealed class TransactionLogicTests
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.PaymentMismatch, error.Code);
 
+        // Act / Assert: 預り額 < 充当額
         payments[1] = new SalesInputPayment { Id = SalesExample.CardPayment, Kind = PaymentKind.Card, Amount = 50000m, TenderedAmount = 50000m };
         payments[2] = SalesExample.Cash(25100m, 20000m);
         input = SalesExample.Input() with { Payments = payments };
@@ -189,11 +219,14 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleCustomerRequired()
     {
+        // Arrange
         var input = SalesExample.Input();
         var claimed = SalesLogic.Calculate(input);
 
+        // Act
         var validation = TransactionLogic.ValidateSale(SaleContext(hasCustomer: false), input, claimed);
 
+        // Assert
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.CustomerRequired, error.Code);
     }
@@ -202,14 +235,17 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateSaleWarnings()
     {
+        // Arrange
         var input = SalesExample.Input();
         var claimed = SalesLogic.Calculate(input);
         var context = SaleContext(
             products: [Product(SalesExample.CameraProduct, isActive: false), Product(SalesExample.SdCardProduct), Product(SalesExample.DeliveryProduct)],
             pointBalance: 1000);
 
+        // Act
         var validation = TransactionLogic.ValidateSale(context, input, claimed);
 
+        // Assert
         Assert.True(validation.IsValid);
         Assert.Equal(2, validation.Warnings.Count);
         Assert.Contains(validation.Warnings, static x => (x.Code == WarningCode.ProductInactive) && (x.LineId == SalesExample.CameraLine));
@@ -291,11 +327,14 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateReturnAccepts()
     {
+        // Arrange
         var input = ReturnInput(1m);
         var claimed = ReturnLogic.Calculate(input);
 
+        // Act
         var validation = TransactionLogic.ValidateReturn(ReturnContext(), input, claimed);
 
+        // Assert
         Assert.True(validation.IsValid);
         Assert.NotNull(validation.Expected);
     }
@@ -326,15 +365,19 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateReturnOriginal()
     {
+        // Arrange
         var input = ReturnInput(1m);
         var claimed = ReturnLogic.Calculate(input);
 
+        // Act / Assert: 元の取引がない
         var notFound = TransactionLogic.ValidateReturn(ReturnContext(originalMissing: true), input, claimed);
         Assert.Contains(notFound.Errors, static x => x.Code == ErrorCode.OriginalNotFound);
 
+        // Act / Assert: 取消済みの販売
         var voided = TransactionLogic.ValidateReturn(ReturnContext(original: Original(TransactionType.Sale, TransactionStatus.Voided)), input, claimed);
         Assert.Contains(voided.Errors, static x => x.Code == ErrorCode.OriginalNotReturnable);
 
+        // Act / Assert: 返品の返品
         var returnOfReturn = TransactionLogic.ValidateReturn(ReturnContext(original: Original(TransactionType.Return, TransactionStatus.Completed)), input, claimed);
         Assert.Contains(returnOfReturn.Errors, static x => x.Code == ErrorCode.OriginalNotReturnable);
     }
@@ -343,9 +386,11 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateReturnQuantityExceeded()
     {
+        // Arrange
         var input = ReturnInput(3m);
         var claimed = ReturnLogic.Calculate(input);
 
+        // Act / Assert: 元の数量を超える
         var validation = TransactionLogic.ValidateReturn(ReturnContext(), input, claimed);
 
         var error = Assert.Single(validation.Errors);
@@ -353,6 +398,7 @@ public sealed class TransactionLogicTests
         Assert.Equal(ReturnLineId, error.LineId);
         Assert.Null(validation.Expected);
 
+        // Act / Assert: 返品済みの数量と合わせて超える
         var originals = SalesExample.OriginalLines();
         originals[1] = originals[1] with { ReturnedQuantity = 1m };
         var exceededByReturned = TransactionLogic.ValidateReturn(ReturnContext(), ReturnInput(2m) with { OriginalLines = originals }, claimed);
@@ -363,13 +409,16 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateReturnUnknownOriginalLine()
     {
+        // Arrange
         var input = ReturnInput(1m) with
         {
             Lines = [new ReturnInputLine { Id = ReturnLineId, LineNo = 1, OriginalLineId = Guid.NewGuid(), Quantity = 1m }]
         };
 
+        // Act
         var validation = TransactionLogic.ValidateReturn(ReturnContext(), input, ReturnLogic.Calculate(ReturnInput(1m)));
 
+        // Assert
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.ValidationError, error.Code);
         Assert.Null(validation.Expected);
@@ -379,11 +428,13 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateReturnPaymentMismatch()
     {
+        // Act / Assert: ポイントを戻さない
         var cashOnly = ReturnInput(1m) with { Payments = [SalesExample.Cash(1976m)] };
         var validation = TransactionLogic.ValidateReturn(ReturnContext(), cashOnly, ReturnLogic.Calculate(cashOnly));
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.PaymentMismatch, error.Code);
 
+        // Act / Assert: 預り額 ≠ 返金額
         var withChange = ReturnInput(1m) with
         {
             Payments =
@@ -400,10 +451,13 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateReturnCustomerRequired()
     {
+        // Arrange
         var input = ReturnInput(1m);
 
+        // Act
         var validation = TransactionLogic.ValidateReturn(ReturnContext(hasCustomer: false), input, ReturnLogic.Calculate(input));
 
+        // Assert
         var error = Assert.Single(validation.Errors);
         Assert.Equal(ErrorCode.CustomerRequired, error.Code);
     }
@@ -416,24 +470,31 @@ public sealed class TransactionLogicTests
     [Fact]
     public void ValidateVoid()
     {
+        // Act / Assert: 取消できる
         var valid = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Open));
         Assert.True(valid.IsValid);
 
+        // Act / Assert: ない取引
         var notFound = TransactionLogic.ValidateVoid(VoidContext(null, ShiftStatus.Open));
         Assert.Contains(notFound.Errors, static x => x.Code == ErrorCode.NotFound);
 
+        // Act / Assert: 取消済み
         var voided = TransactionLogic.ValidateVoid(VoidContext(Transaction(status: TransactionStatus.Voided), ShiftStatus.Open));
         Assert.Contains(voided.Errors, static x => x.Code == ErrorCode.ValidationError);
 
+        // Act / Assert: 精算済みのシフト
         var closed = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Closed));
         Assert.Contains(closed.Errors, static x => x.Code == ErrorCode.ShiftClosed);
 
+        // Act / Assert: 返品のある販売
         var hasReturns = TransactionLogic.ValidateVoid(VoidContext(Transaction(hasReturns: true), ShiftStatus.Open));
         Assert.Contains(hasReturns.Errors, static x => x.Code == ErrorCode.HasReturns);
 
+        // Act / Assert: 返品の取引は返品ありでも取消せる
         var returnWithFlag = TransactionLogic.ValidateVoid(VoidContext(Transaction(TransactionType.Return, hasReturns: true), ShiftStatus.Open));
         Assert.True(returnWithFlag.IsValid);
 
+        // Act / Assert: 締めた日
         var dayClosed = TransactionLogic.ValidateVoid(VoidContext(Transaction(), ShiftStatus.Open, dayClosed: true));
         Assert.Equal(ErrorCode.DayClosed, Assert.Single(dayClosed.Errors).Code);
     }

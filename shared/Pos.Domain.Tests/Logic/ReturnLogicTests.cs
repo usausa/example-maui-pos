@@ -12,6 +12,7 @@ public sealed class ReturnLogicTests
     [Fact]
     public void CalculatePartialReturn()
     {
+        // Arrange
         var input = new ReturnInput
         {
             TaxRounding = TaxRounding.Floor,
@@ -24,8 +25,10 @@ public sealed class ReturnLogicTests
             ]
         };
 
+        // Act
         var result = ReturnLogic.Calculate(input);
 
+        // Assert
         var line = Assert.Single(result.Lines);
         Assert.Equal(ReturnLine1, line.Id);
         Assert.Equal(2000m, line.Amount);
@@ -55,6 +58,7 @@ public sealed class ReturnLogicTests
     [Fact]
     public void CalculateFullReturnEqualsOriginal()
     {
+        // Arrange
         var original = SalesLogic.Calculate(SalesExample.Input());
 
         var input = new ReturnInput
@@ -74,8 +78,10 @@ public sealed class ReturnLogicTests
             ]
         };
 
+        // Act
         var result = ReturnLogic.Calculate(input);
 
+        // Assert
         Assert.Equal(original.Subtotal, result.Subtotal);
         Assert.Equal(original.DiscountTotal, result.DiscountTotal);
         Assert.Equal(original.NetSubtotal, result.NetSubtotal);
@@ -98,6 +104,7 @@ public sealed class ReturnLogicTests
     [Fact]
     public void CalculateThrowsForUnknownOriginalLine()
     {
+        // Arrange
         var input = new ReturnInput
         {
             TaxRounding = TaxRounding.Floor,
@@ -105,6 +112,7 @@ public sealed class ReturnLogicTests
             Lines = [new() { Id = ReturnLine1, LineNo = 1, OriginalLineId = Guid.NewGuid(), Quantity = 1m }]
         };
 
+        // Act / Assert
         Assert.Throws<ArgumentException>(() => ReturnLogic.Calculate(input));
     }
 }

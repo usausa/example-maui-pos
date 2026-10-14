@@ -6,10 +6,13 @@ public sealed class AllocationLogicTests
     [Fact]
     public void AllocateByLargestRemainder()
     {
+        // Arrange
         decimal[] weights = [76000m, 4000m, 1100m];
 
+        // Act
         var result = AllocationLogic.Allocate(1000m, weights);
 
+        // Assert
         Assert.Equal([937m, 49m, 14m], result);
     }
 
@@ -17,10 +20,13 @@ public sealed class AllocationLogicTests
     [Fact]
     public void AllocateMultipleRemainders()
     {
+        // Arrange
         decimal[] weights = [75063m, 3951m, 1086m];
 
+        // Act
         var result = AllocationLogic.Allocate(5000m, weights);
 
+        // Assert
         Assert.Equal([4685m, 247m, 68m], result);
     }
 
@@ -28,10 +34,13 @@ public sealed class AllocationLogicTests
     [Fact]
     public void AllocateTiesInOrder()
     {
+        // Arrange
         decimal[] weights = [1m, 1m, 1m];
 
+        // Act
         var result = AllocationLogic.Allocate(2m, weights);
 
+        // Assert
         Assert.Equal([1m, 1m, 0m], result);
     }
 
@@ -39,10 +48,13 @@ public sealed class AllocationLogicTests
     [Fact]
     public void AllocateExact()
     {
+        // Arrange
         decimal[] weights = [200m, 300m];
 
+        // Act
         var result = AllocationLogic.Allocate(50m, weights);
 
+        // Assert
         Assert.Equal([20m, 30m], result);
     }
 
@@ -50,10 +62,13 @@ public sealed class AllocationLogicTests
     [Fact]
     public void AllocateZeroWeights()
     {
+        // Arrange
         decimal[] weights = [0m, 0m];
 
+        // Act
         var result = AllocationLogic.Allocate(0m, weights);
 
+        // Assert
         Assert.Equal([0m, 0m], result);
     }
 
@@ -61,8 +76,10 @@ public sealed class AllocationLogicTests
     [Fact]
     public void AllocateEmpty()
     {
+        // Act
         var result = AllocationLogic.Allocate(100m, []);
 
+        // Assert
         Assert.Empty(result);
     }
 }

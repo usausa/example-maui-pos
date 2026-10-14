@@ -10,10 +10,14 @@ public sealed class FormMapperTests
     [Fact]
     public void TerminalRoundTrip()
     {
+        // Arrange
         var entity = new TerminalEntity { Id = Guid.NewGuid(), StoreId = Guid.NewGuid(), TerminalNo = 3, Name = "レジ 3", IsActive = true, Version = 2 };
+
+        // Act
         var form = TerminalForm.ToForm(entity);
         var mapped = TerminalForm.ToEntity(form);
 
+        // Assert
         Assert.Equal(entity.StoreId, form.StoreId);
         Assert.Equal(entity.StoreId, mapped.StoreId);
         Assert.Equal(3, mapped.TerminalNo);
@@ -26,10 +30,14 @@ public sealed class FormMapperTests
     [Fact]
     public void CustomerBirthDateConverts()
     {
+        // Arrange
         var entity = new CustomerEntity { Id = Guid.NewGuid(), Code = "M0001", Name = "山田", BirthDate = new DateOnly(1980, 4, 1) };
+
+        // Act
         var form = CustomerForm.ToForm(entity);
         var mapped = CustomerForm.ToEntity(form);
 
+        // Assert
         Assert.Equal(new DateTime(1980, 4, 1), form.BirthDate);
         Assert.Equal(new DateOnly(1980, 4, 1), mapped.BirthDate);
         Assert.Null(CustomerForm.ToEntity(new CustomerForm()).BirthDate);
@@ -39,12 +47,16 @@ public sealed class FormMapperTests
     [Fact]
     public void ProductSelectsConvert()
     {
+        // Arrange
         var categoryId = Guid.NewGuid();
         var taxRateId = Guid.NewGuid();
         var form = new ProductForm { Code = "X", Name = "商品", CategoryId = categoryId, TaxRateId = taxRateId, Price = 100m };
+
+        // Act
         var entity = ProductForm.ToEntity(form);
         var back = ProductForm.ToForm(entity);
 
+        // Assert
         Assert.Equal(categoryId, entity.CategoryId);
         Assert.Equal(taxRateId, entity.TaxRateId);
         Assert.Equal(categoryId, back.CategoryId);

@@ -37,12 +37,14 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task MasterUpdateUsesOptimisticLock()
     {
+        // Arrange
         var accessor = Resolve<MasterAccessor>();
         var now = DateTime.UtcNow;
         var id = Guid.NewGuid();
         var code = $"L{id:N}"[..10];
         await accessor.InsertStoreAsync(new StoreEntity { Id = id, Code = code, Name = "楽観ロック", TimeZone = "Asia/Tokyo", IsActive = true, CreatedAt = now, UpdatedAt = now, Version = 1 }, Token);
 
+        // Act / Assert: 版が合う更新だけが通る
         var updated = await accessor.UpdateStoreAsync(id, code, "更新 1", null, null, null, null, null, null, "Asia/Tokyo", true, now.AddSeconds(1), 1, Token);
         var conflicted = await accessor.UpdateStoreAsync(id, code, "更新 2", null, null, null, null, null, null, "Asia/Tokyo", true, now.AddSeconds(2), 1, Token);
         var stored = await accessor.QueryStoreAsync(id, Token);
@@ -55,11 +57,12 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal("更新 1", stored.Name);
         Assert.Equal(2, stored.Version);
 
-        // 差分同期: updatedSince 以降のものだけ
+        // Act / Assert: 差分同期は updatedSince 以降のものだけ
         var since = await accessor.QueryStoreListAsync(now.AddMilliseconds(500), true, StoreSort.Code, false, 100, 0, Token);
         Assert.Contains(since, x => x.Id == id);
         Assert.DoesNotContain(since, x => x.Id == TestData.MainStoreId);
 
+        // Act / Assert: 削除は論理削除で、2 回目は 0 件
         Assert.Equal(1, await accessor.DeleteStoreAsync(id, now.AddSeconds(3), Token));
         Assert.Equal(0, await accessor.DeleteStoreAsync(id, now.AddSeconds(4), Token));
         Assert.DoesNotContain(await accessor.QueryStoreListAsync(null, false, StoreSort.Code, false, 100, 0, Token), x => x.Id == id);
@@ -70,21 +73,26 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task ProductListFilters()
     {
+        // Arrange
         var accessor = Resolve<ProductAccessor>();
 
+        // Act / Assert: キーワード
         var byKeyword = await accessor.QueryListAsync(null, "%カメラ%", null, null, false, ProductSort.Code, false, 100, 0, Token);
         Assert.NotEmpty(byKeyword);
         Assert.All(byKeyword, x => Assert.Contains("カメラ", x.Name + x.Kana + x.Code, StringComparison.Ordinal));
 
+        // Act / Assert: 部門 (件数は一覧と合う)
         var camera = await accessor.QueryByCodeAsync("CAM-X100", Token);
         Assert.NotNull(camera);
         var byCategory = await accessor.QueryListAsync(camera.CategoryId, null, null, null, false, ProductSort.Code, false, 100, 0, Token);
         Assert.Contains(byCategory, x => x.Id == camera.Id);
         Assert.Equal(await accessor.CountAsync(camera.CategoryId, null, null, null, false, Token), byCategory.Count);
 
+        // Act / Assert: ID の一覧
         var byIds = await accessor.QueryListByIdsAsync([TestData.CameraProductId, TestData.SdCardProductId], Token);
         Assert.Equal(2, byIds.Count);
 
+        // Act / Assert: 無効の商品はない (初期データ)
         var inactive = await accessor.QueryListAsync(null, null, false, null, false, ProductSort.Code, false, 100, 0, Token);
         Assert.Empty(inactive);
     }

@@ -6,8 +6,10 @@ public sealed class SalesLogicTests
     [Fact]
     public void CalculateExample()
     {
+        // Act
         var result = SalesLogic.Calculate(SalesExample.Input());
 
+        // Assert
         Assert.Equal(3, result.Lines.Count);
 
         var camera = result.Lines[0];
@@ -61,6 +63,7 @@ public sealed class SalesLogicTests
     [Fact]
     public void CalculateMixedTaxGroups()
     {
+        // Arrange
         var input = new SalesInput
         {
             TaxRounding = TaxRounding.Floor,
@@ -74,8 +77,10 @@ public sealed class SalesLogicTests
             Payments = [SalesExample.Cash(3280m)]
         };
 
+        // Act
         var result = SalesLogic.Calculate(input);
 
+        // Assert
         Assert.Equal(2, result.TaxSummaries.Count);
 
         var excluded = result.TaxSummaries[0];
@@ -106,6 +111,7 @@ public sealed class SalesLogicTests
     [InlineData(PointBasis.TaxExcluded, true, 100)]
     public void CalculatePointBasis(PointBasis basis, bool taxIncluded, int expectedPoints)
     {
+        // Arrange
         var unitPrice = taxIncluded ? 1100m : 1000m;
         var input = new SalesInput
         {
@@ -115,8 +121,10 @@ public sealed class SalesLogicTests
             Payments = [SalesExample.Cash(1100m)]
         };
 
+        // Act
         var result = SalesLogic.Calculate(input);
 
+        // Assert
         Assert.Equal(1100m, result.Total);
         Assert.Equal(expectedPoints, result.PointsEarned);
     }
@@ -125,6 +133,7 @@ public sealed class SalesLogicTests
     [Fact]
     public void CalculatePointBasisWithAllocatedTax()
     {
+        // Arrange
         var input = new SalesInput
         {
             TaxRounding = TaxRounding.Floor,
@@ -137,8 +146,10 @@ public sealed class SalesLogicTests
             Payments = [SalesExample.Cash(4400m)]
         };
 
+        // Act
         var result = SalesLogic.Calculate(input);
 
+        // Assert
         Assert.Equal(400m, result.TaxTotal);
         Assert.Equal(110, result.Lines[0].PointsEarned);
         Assert.Equal(330, result.Lines[1].PointsEarned);
@@ -148,6 +159,7 @@ public sealed class SalesLogicTests
     [Fact]
     public void CalculateFractionalQuantity()
     {
+        // Arrange
         var input = new SalesInput
         {
             TaxRounding = TaxRounding.Floor,
@@ -156,8 +168,10 @@ public sealed class SalesLogicTests
             Payments = [SalesExample.Cash(499m)]
         };
 
+        // Act
         var result = SalesLogic.Calculate(input);
 
+        // Assert
         Assert.Equal(499m, result.Lines[0].Amount);
         Assert.Equal(499m, result.Total);
     }
@@ -169,6 +183,7 @@ public sealed class SalesLogicTests
     [InlineData(TaxRounding.Ceiling, 101)]
     public void CalculateTaxRounding(TaxRounding rounding, int expectedTax)
     {
+        // Arrange
         var input = new SalesInput
         {
             TaxRounding = rounding,
@@ -177,8 +192,10 @@ public sealed class SalesLogicTests
             Payments = [SalesExample.Cash(1005m + expectedTax)]
         };
 
+        // Act
         var result = SalesLogic.Calculate(input);
 
+        // Assert
         Assert.Equal(expectedTax, result.TaxTotal);
         Assert.Equal(1005m + expectedTax, result.Total);
     }
@@ -187,6 +204,7 @@ public sealed class SalesLogicTests
     [Fact]
     public void CalculateTransactionPercentDiscount()
     {
+        // Arrange
         var input = new SalesInput
         {
             TaxRounding = TaxRounding.Floor,
@@ -200,8 +218,10 @@ public sealed class SalesLogicTests
             Payments = [SalesExample.Cash(76500m)]
         };
 
+        // Act
         var result = SalesLogic.Calculate(input);
 
+        // Assert
         // (85,100 − 100) × 10% = 8,500
         Assert.Equal(8500m, result.Discounts[1].Amount);
         Assert.Equal(8600m, result.DiscountTotal);
@@ -213,6 +233,7 @@ public sealed class SalesLogicTests
     [Fact]
     public void CalculateThrowsForUnknownDiscountLine()
     {
+        // Arrange
         var input = new SalesInput
         {
             TaxRounding = TaxRounding.Floor,
@@ -221,6 +242,7 @@ public sealed class SalesLogicTests
             Discounts = [new() { Id = SalesExample.CameraDiscount, LineId = Guid.NewGuid(), Type = DiscountType.Amount, Value = 100m }]
         };
 
+        // Act / Assert
         Assert.Throws<ArgumentException>(() => SalesLogic.Calculate(input));
     }
 }

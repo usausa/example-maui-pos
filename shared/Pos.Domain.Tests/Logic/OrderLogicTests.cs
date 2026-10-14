@@ -16,6 +16,7 @@ public sealed class OrderLogicTests
     [InlineData(OrderType.Hold, OrderStatus.Arrived)]
     public void InitialStatus(OrderType type, OrderStatus expected)
     {
+        // Act / Assert
         Assert.Equal(expected, OrderLogic.InitialStatus(type));
     }
 
@@ -27,6 +28,7 @@ public sealed class OrderLogicTests
     [InlineData(OrderStatus.Cancelled, false, false, false)]
     public void ValidateTransitions(OrderStatus status, bool canArrive, bool canUpdate, bool canCancel)
     {
+        // Act / Assert
         Assert.Equal(canArrive, OrderLogic.ValidateArrive(status) is null);
         Assert.Equal(canUpdate, OrderLogic.ValidateUpdate(status) is null);
         Assert.Equal(canCancel, OrderLogic.ValidateCancel(status) is null);
@@ -52,6 +54,7 @@ public sealed class OrderLogicTests
     [Fact]
     public void ValidateCancelWithDeposit()
     {
+        // Act / Assert
         Assert.Null(OrderLogic.ValidateCancel(OrderStatus.Ordered, 0m));
         Assert.Equal((ErrorCode.OrderDepositInvalid, RuleReason.DepositHeld), Pair(OrderLogic.ValidateCancel(OrderStatus.Arrived, 1000m)));
         Assert.Equal((ErrorCode.OrderStatusInvalid, RuleReason.OrderNotCancellable), Pair(OrderLogic.ValidateCancel(OrderStatus.Completed, 0m)));
@@ -69,6 +72,7 @@ public sealed class OrderLogicTests
     [InlineData(OrderStatus.Ordered, 0, 1000, PaymentKind.Deposit, RuleReason.DepositMethodInvalid)]
     public void ValidateDeposit(OrderStatus status, int balance, int amount, PaymentKind kind, RuleReason? expected)
     {
+        // Act / Assert
         Assert.Equal(expected, OrderLogic.ValidateDeposit(status, balance, 5000m, amount, kind)?.Reason);
     }
 
@@ -76,6 +80,7 @@ public sealed class OrderLogicTests
     [Fact]
     public void ValidateDepositRefund()
     {
+        // Act / Assert
         Assert.Null(OrderLogic.ValidateDepositRefund(OrderStatus.Arrived, 1000m));
         Assert.Equal((ErrorCode.OrderDepositInvalid, RuleReason.DepositNotFound), Pair(OrderLogic.ValidateDepositRefund(OrderStatus.Ordered, 0m)));
         Assert.Equal((ErrorCode.OrderStatusInvalid, RuleReason.OrderNotEditable), Pair(OrderLogic.ValidateDepositRefund(OrderStatus.Cancelled, 0m)));
@@ -108,6 +113,7 @@ public sealed class OrderLogicTests
     [InlineData(OrderStatus.Cancelled, 0)]
     public void DepositBalance(OrderStatus status, int expected)
     {
+        // Act / Assert
         Assert.Equal(expected, OrderLogic.DepositBalance(status, 1000m));
     }
 
@@ -115,6 +121,7 @@ public sealed class OrderLogicTests
     [Fact]
     public void LineAmount()
     {
+        // Act / Assert
         Assert.Equal(3333m, OrderLogic.LineAmount(1333.33m, 2.5m));
     }
 

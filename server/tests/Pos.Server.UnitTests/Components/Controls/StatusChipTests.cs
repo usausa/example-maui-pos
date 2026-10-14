@@ -24,6 +24,7 @@ public sealed class StatusChipTests : MudBlazorTestBase
     [Fact]
     public void DifferenceChipReflectsSign()
     {
+        // Act / Assert
         Assert.Equal(Color.Success, ViewHelper.DifferenceChip(0m).Color);
         Assert.Equal(Color.Warning, ViewHelper.DifferenceChip(100m).Color);
         Assert.Equal(Color.Error, ViewHelper.DifferenceChip(-100m).Color);

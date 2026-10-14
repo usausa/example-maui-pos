@@ -281,6 +281,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
     [Fact]
     public async Task InventoryChangesAreIdempotent()
     {
+        // Arrange
         var client = await factory.CreateAdminClientAsync();
         var before = (await client.GetJsonAsync<InventoryProductLevelsResponse>($"{ApiRoutes.Inventory}/{TestData.SdCardProductId}", options)).Levels.Single(static x => x.StoreId == TestData.BranchStoreId).Quantity;
         var request = new InventoryChangesRequest
@@ -292,6 +293,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
             ]
         };
 
+        // Act / Assert: 棚卸 (絶対数量) と調整 (増減)
         using var response = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", request, options);
         var result = await response.ReadAsAsync<InventoryChangesResponse>(HttpStatusCode.OK, options);
         Assert.All(result.Results, x => Assert.Equal(InventoryChangeResultStatus.Created, x.Status));
@@ -299,11 +301,13 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(before + 5m, result.Results[0].QuantityAfter);
         Assert.Equal(before + 4m, result.Results[1].QuantityAfter);
 
+        // Act / Assert: 同じ id の再送は Duplicate
         using var againResponse = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", request, options);
         var again = await againResponse.ReadAsAsync<InventoryChangesResponse>(HttpStatusCode.OK, options);
         Assert.All(again.Results, x => Assert.Equal(InventoryChangeResultStatus.Duplicate, x.Status));
         Assert.Equal(before + 4m, again.Results[1].QuantityAfter);
 
+        // Act / Assert: 在庫と変動の一覧
         var levels = await client.GetJsonAsync<InventoryLevelListResponse>($"{ApiRoutes.Inventory}?storeId={TestData.BranchStoreId}&productId={TestData.SdCardProductId}", options);
         Assert.Equal(before + 4m, Assert.Single(levels.Items).Quantity);
         var changes = await client.GetJsonAsync<InventoryChangeListResponse>($"{ApiRoutes.Inventory}/changes?storeId={TestData.BranchStoreId}&productId={TestData.SdCardProductId}", options);

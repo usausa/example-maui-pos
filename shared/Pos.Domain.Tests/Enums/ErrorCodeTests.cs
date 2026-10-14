@@ -40,6 +40,7 @@ public sealed class ErrorCodeTests
     [InlineData(ErrorCode.OrderDepositInvalid, "ORDER_DEPOSIT_INVALID")]
     public void ErrorCodeToCode(ErrorCode code, string expected)
     {
+        // Act / Assert
         Assert.Equal(expected, code.ToCode());
     }
 
@@ -51,6 +52,7 @@ public sealed class ErrorCodeTests
     [InlineData(WarningCode.DayAlreadyClosed, "DAY_ALREADY_CLOSED")]
     public void WarningCodeToCode(WarningCode code, string expected)
     {
+        // Act / Assert
         Assert.Equal(expected, code.ToCode());
     }
 }

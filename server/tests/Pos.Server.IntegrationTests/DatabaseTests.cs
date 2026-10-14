@@ -29,11 +29,13 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task InitialDataIsSeeded()
     {
+        // Act / Assert: 会社設定
         var settings = await Resolve<MasterAccessor>().QuerySettingsAsync(Token);
         Assert.NotNull(settings);
         Assert.Equal(TaxRounding.Floor, settings.TaxRounding);
         Assert.Equal(PointBasis.TaxIncluded, settings.PointBasis);
 
+        // Act / Assert: マスタ・会員・在庫の件数
         var masters = Resolve<MasterAccessor>();
         Assert.NotNull(await masters.QueryStoreAsync(TestData.MainStoreId, Token));
         Assert.NotNull(await masters.QueryStoreAsync(TestData.BranchStoreId, Token));
@@ -48,11 +50,11 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(5, await Resolve<CustomerAccessor>().CountAsync(null, null, null, null, false, Token));
         Assert.Equal(60, await Resolve<InventoryAccessor>().CountLevelsAsync(null, null, null, false, null, Token));
 
-        // 前受金の支払方法は初期データにあり、起動時の追加 (初期データより前の DB 向け) は何もしない
+        // Act / Assert: 前受金の支払方法は初期データにあり、起動時の追加 (初期データより前の DB 向け) は何もしない
         Assert.Equal(PaymentKind.Deposit, (await masters.QueryPaymentMethodAsync(TestData.DepositPaymentMethodId, Token))?.Kind);
         Assert.Equal(0, await Resolve<GenericAccessor>().InsertDepositPaymentMethodAsync(DateTime.UtcNow, Token));
 
-        // 販売例の商品 (JAN で引ける)
+        // Act / Assert: 販売例の商品 (JAN で引ける)
         var camera = await Resolve<ProductAccessor>().QueryByBarcodeAsync("4901234567894", Token);
         Assert.NotNull(camera);
         Assert.Equal(TestData.CameraProductId, camera.Id);
@@ -65,10 +67,12 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task ColumnsAreStoredAsText()
     {
+        // Arrange
         var provider = Resolve<IDbProvider>();
         await using var con = provider.CreateConnection();
         await con.OpenAsync(Token);
 
+        // Act / Assert: 商品の列の型と書式
         await using var command = con.CreateCommand();
         command.CommandText = "SELECT typeof(Id), Id, typeof(Kind), Kind, typeof(Price), typeof(PointRate), typeof(CreatedAt), CreatedAt FROM Products WHERE Code = 'CAM-X100'";
         await using var reader = await command.ExecuteReaderAsync(Token);
@@ -82,6 +86,7 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
         Assert.Equal("text", reader.GetString(6));
         Assert.Matches(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{7}$", reader.GetString(7));
 
+        // Act / Assert: 日付の書式
         await using var dateCommand = con.CreateCommand();
         dateCommand.CommandText = "SELECT BirthDate FROM Customers WHERE Code = 'M0001'";
         Assert.Equal("1980-04-01", await dateCommand.ExecuteScalarAsync(Token));
@@ -91,12 +96,14 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task DecimalRoundTripsAndSums()
     {
+        // Arrange
         var accessor = Resolve<InventoryAccessor>();
         var provider = Resolve<IDbProvider>();
         var storeId = TestData.BranchStoreId;
         var productId = TestData.SdCardProductId;
         var now = DateTime.UtcNow;
 
+        // Act / Assert: 小数の数量を足す
         var before = (await accessor.QueryLevelListByProductAsync(productId, Token)).Single(x => x.StoreId == storeId).Quantity;
         await provider.UsingTxAsync(async (_, tx) =>
         {
@@ -107,6 +114,7 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
             await tx.CommitAsync(Token);
         }, Token);
 
+        // Act / Assert: SUM は行の合計と合う
         await using var con = provider.CreateConnection();
         await con.OpenAsync(Token);
         await using var command = con.CreateCommand();
@@ -146,12 +154,16 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task DateTimeRoundTripsAsUtc()
     {
+        // Arrange
         var accessor = Resolve<MasterAccessor>();
+
+        // Act / Assert: 初期データの日時は UTC
         var store = await accessor.QueryStoreAsync(TestData.MainStoreId, Token);
 
         Assert.NotNull(store);
         Assert.Equal(DateTimeKind.Utc, store.CreatedAt.Kind);
 
+        // Act / Assert: 書いた日時が刻みまで UTC で戻る
         var entity = new StoreEntity
         {
             Id = Guid.NewGuid(),

@@ -13,6 +13,7 @@ public sealed class RoundingLogicTests
     [InlineData(TaxRounding.Ceiling, 100.0, 100)]
     public void Apply(TaxRounding rounding, double value, int expected)
     {
+        // Act / Assert
         Assert.Equal(expected, RoundingLogic.Apply((decimal)value, rounding));
     }
 
@@ -20,6 +21,7 @@ public sealed class RoundingLogicTests
     [Fact]
     public void ApplyThrowsForUndefinedRounding()
     {
+        // Act / Assert
         Assert.Throws<ArgumentOutOfRangeException>(() => RoundingLogic.Apply(1m, (TaxRounding)99));
     }
 }

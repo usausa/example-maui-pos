@@ -31,8 +31,10 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task SyncMastersReturnsAllThenDelta()
     {
+        // Arrange
         var client = await factory.CreateAdminClientAsync();
 
+        // Act / Assert: 全件
         var all = await client.GetJsonAsync<SyncMastersResponse>($"{ApiRoutes.Sync}/masters", options);
         Assert.NotNull(all.Settings);
         Assert.Equal(2, all.Stores.Count);
@@ -47,6 +49,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(5, all.AdjustmentReasons.Count);
         Assert.False(all.ProductsTruncated);
 
+        // Act / Assert: serverTime 以降の差分は空
         var delta = await client.GetJsonAsync<SyncMastersResponse>($"{ApiRoutes.Sync}/masters?since={all.ServerTime:yyyy-MM-ddTHH:mm:ss.fffZ}", options);
         Assert.Null(delta.Settings);
         Assert.Empty(delta.Products);
@@ -139,11 +142,14 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task ValidationErrorReturnsProblem()
     {
+        // Arrange
         var client = await factory.CreateAdminClientAsync();
 
+        // Act
         using var response = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = string.Empty, Name = string.Empty, SortOrder = 1 }, options);
         var problem = await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
 
+        // Assert
         Assert.NotNull(problem.Errors);
         Assert.NotEmpty(problem.Errors);
     }
