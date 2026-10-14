@@ -26,7 +26,7 @@
                 {
                     <tr>
                         <td class="min-w-260">
-                            <MudAutocomplete T="ProductEntity" @bind-Value="line.Product" SearchFunc="SearchProductsAsync" ToStringFunc="@(x => x is null ? string.Empty : $"{x.Code} {x.Name}")" ResetValueOnEmptyText="true" MinCharacters="1" Margin="Margin.Dense" />
+                            <MudAutocomplete T="ProductEntity" @bind-Value="line.Product" SearchFunc="SearchProductsAsync" ToStringFunc="@(x => x is null ? string.Empty : x.ToDisplayText())" ResetValueOnEmptyText="true" MinCharacters="1" Margin="Margin.Dense" />
                         </td>
                         <td><MudNumericField T="decimal" @bind-Value="line.Quantity" Min="0.01m" Margin="Margin.Dense" /></td>
                         <td><MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => RemoveLine(line)" /></td>

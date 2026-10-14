@@ -22,7 +22,7 @@
                 <MudSelectItem T="Guid?" Value="category.Id">@category.ToIndentedName()</MudSelectItem>
             }
         </MudSelect>
-        <MudTextField Class="min-w-320" @bind-Value="keyword" Label="キーワード (コード / JAN / 名称 / かな / 型番)" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        <MudTextField Class="min-w-320 search-field" @bind-Value="keyword" Label="キーワード (コード / JAN / 名称 / かな / 型番)" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
         <MudSelect Class="min-w-140" T="bool?" @bind-Value="isActive" Label="販売状態" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
             <MudSelectItem T="bool?" Value="null">すべて</MudSelectItem>
             <MudSelectItem T="bool?" Value="true">✅ 販売中</MudSelectItem>

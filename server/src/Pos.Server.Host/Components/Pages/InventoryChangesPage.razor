@@ -29,7 +29,7 @@
 <MudDataGrid @ref="Grid" T="InventoryChangeEntity" ServerData="LoadServerData" SortMode="SortMode.None" Dense="true" Hover="true" Bordered="true" Striped="true" HorizontalScrollbar="true" Class="grid-nowrap">
     <Columns>
         <TemplateColumn Title="日時">
-            <CellTemplate>@context.Item.OccurredAt.ToDateTimeText()</CellTemplate>
+            <CellTemplate>@context.Item.OccurredAt.ToShortDateTimeText()</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="店舗">
             <CellTemplate>@names.Store(context.Item.StoreId)</CellTemplate>

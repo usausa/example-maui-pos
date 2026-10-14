@@ -125,7 +125,7 @@
                     <MudTd>@names.Store(context.StoreId) / @names.Terminal(context.TerminalId)</MudTd>
                     <MudTd>@names.StaffName(context.OpenedByStaffId)</MudTd>
                     <MudTd>@context.BusinessDate.ToDateText()</MudTd>
-                    <MudTd>@context.OpenedAt.ToDateTimeText()</MudTd>
+                    <MudTd Class="no-wrap">@context.OpenedAt.ToShortDateTimeText()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText Class="pa-4 mud-text-secondary">開設中のシフトはありません</MudText>

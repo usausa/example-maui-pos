@@ -19,7 +19,7 @@
                 <MudSelectItem T="Guid?" Value="category.Id">@category.ToIndentedName()</MudSelectItem>
             }
         </MudSelect>
-        <MudTextField Class="min-w-280" @bind-Value="keyword" Label="商品 (コード / JAN / 名称 / かな)" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        <MudTextField Class="min-w-280 search-field" @bind-Value="keyword" Label="商品 (コード / JAN / 名称 / かな)" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
         <MudSwitch T="bool" @bind-Value="negativeOnly" Label="🔴 マイナスのみ" Color="Color.Error" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
     </MudStack>

@@ -11,7 +11,7 @@
 
 <MudPaper Class="pa-2 mb-2">
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-        <MudTextField Class="min-w-320" @bind-Value="keyword" Label="会員番号 / 名前 / かな / 電話" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        <MudTextField Class="min-w-320 search-field" @bind-Value="keyword" Label="会員番号 / 名前 / かな / 電話" Clearable="true" Immediate="true" OnKeyDown="OnSearchKeyDown" Margin="Margin.Dense" Variant="Variant.Outlined" />
         <MudSwitch T="bool" @bind-Value="includeDeleted" Label="削除済みを表示" Color="Color.Primary" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Size="Size.Small" OnClick="SearchAsync">検索</MudButton>
     </MudStack>

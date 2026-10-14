@@ -79,7 +79,7 @@
                             <tbody>
                                 @foreach (var deposit in detail.Deposits)
                                 {
-                                    <tr><td>@deposit.OccurredAt.ToDateTimeText()</td><td><StatusChip Value="@ViewHelper.OrderDepositChip(deposit.Type)" /></td><td>@Names.PaymentMethod(deposit.PaymentMethodId) @deposit.Reference</td><td class="text-right">@deposit.Amount.ToYen()</td><td>@Names.Terminal(deposit.TerminalId) / @Names.StaffName(deposit.StaffId)</td></tr>
+                                    <tr><td>@deposit.OccurredAt.ToShortDateTimeText()</td><td><StatusChip Value="@ViewHelper.OrderDepositChip(deposit.Type)" /></td><td>@Names.PaymentMethod(deposit.PaymentMethodId) @deposit.Reference</td><td class="text-right">@deposit.Amount.ToYen()</td><td>@Names.Terminal(deposit.TerminalId) / @Names.StaffName(deposit.StaffId)</td></tr>
                                 }
                                 <tr><td></td><td></td><td class="mud-text-secondary">@ViewHelper.OrderDepositNetLabel(order.Status)</td><td class="text-right"><strong>@detail.DepositNet.ToYen()</strong></td><td></td></tr>
                             </tbody>

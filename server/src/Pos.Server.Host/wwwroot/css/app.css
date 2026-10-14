@@ -51,10 +51,6 @@ body {
     max-width: 400px;
 }
 
-.settings-card {
-    max-width: 480px;
-}
-
 .progress-card {
     min-width: 320px;
 }
@@ -71,14 +67,6 @@ body {
 
 .search-field {
     max-width: 240px;
-}
-
-.search-field-wide {
-    max-width: 360px;
-}
-
-.selector-field {
-    max-width: 300px;
 }
 
 .wide-card {
@@ -145,6 +133,10 @@ body {
     min-width: 280px;
 }
 
+.min-w-320 {
+    min-width: 320px;
+}
+
 /* テーブルの列幅 */
 .w-100 {
     width: 100px;
@@ -156,14 +148,6 @@ body {
 
 .w-120 {
     width: 120px;
-}
-
-.min-w-320 {
-    min-width: 320px;
-}
-
-.hidden-input {
-    display: none;
 }
 
 /* Error banner */

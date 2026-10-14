@@ -39,7 +39,7 @@ public static class ViewExtensions
 
     public static string ToDateTimeText(this DateTime? utc) => utc is null ? "-" : utc.Value.ToDateTimeText();
 
-    // 一覧の日時 (営業日の列があるので年を省く)
+    // 一覧の日時 (年を省く。何年も前の日時が並ぶ会員と在庫の一覧は ToDateTimeText にする)
     public static string ToShortDateTimeText(this DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime().ToString("MM/dd HH:mm", CultureInfo.InvariantCulture);
 
     public static string ToShortDateTimeText(this DateTime? utc) => utc is null ? "-" : utc.Value.ToShortDateTimeText();

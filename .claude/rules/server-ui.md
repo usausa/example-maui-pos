@@ -18,6 +18,8 @@ paths:
 - 変更の通知 (`ChangeNotificationService`) を購読する画面は、イベントの中で読み込まず、タイマーを掛け直して `InvokeAsync` で読み直し、Dispose で購読を外す
 - razor の表示用の加工は `Application/ViewHelper` と `ViewExtensions` だけに置き、ページで書式 (`:N0`、`ToString("MM/dd")`) を組まない (グラフの軸の書式とラベルは除く)
 - 一覧の日時は年なしの `ToShortDateTimeText()`、詳細は `ToDateTimeText()` にする
+- 例外として、会員と在庫の一覧 (会員一覧の登録日、会員詳細のタブの表、在庫の更新日時) は、何年も前の日時が並ぶので年付きの `ToDateTimeText()` にする
+- 詳細のダイアログの中の表 (受注の前受金、締めのシフト) の日時は、一覧と同じにする
 - CSV や PDF のダウンロード URL はページで組み立てず、`Application/Urls/ExportUrls` で作る
 
 ## ダイアログとフォーム
@@ -36,7 +38,9 @@ paths:
 - 説明の文言は、画面からわからない業務の規則 (役割でできること、登録できる件数、入力の決まり) と、操作の結果 (ログアウトする、取消できなくなる) を伝えるために使う
 - 横スクロールする `MudDataGrid` は `grid-nowrap` と `HorizontalScrollbar="true"` にし、操作列を `StickyRight="true"` にする
 - 名称のように折り返してよい列は `CellClass="cell-wrap"` にし、`min-w-*` で最小の幅を付ける (`grid-nowrap` が表の `width: max-content` を `100%` に戻すので、幅が足りないときだけ折り返す)
-- 絞り込みの入力欄は行の残りいっぱいに伸びるので、期間 (`MudDateRangePicker`) は `filter-range`、文字の検索欄は `search-field`、選択は `filter-select` で上限を付け、他は `min-w-*` にする
+- 絞り込みの入力欄は行の残りいっぱいに伸びるので、期間 (`MudDateRangePicker`) は `filter-range`、単一の日付 (`MudDatePicker`) は `filter-select` で上限を付ける
+- 文字の検索欄 (`MudTextField`) は `min-w-*` と `search-field` を併記する (`min-w-*` が 240px より広いと、幅はその値で止まる)
+- 選択 (`MudSelect`、`StoreSelect`、商品を選ぶ `MudAutocomplete`) は `min-w-*` だけにし、行に合わせて伸ばす (`MudAutocomplete` の `Class` は外側の枠に付かず、上限を付けると隙間ができる)
 - `MudTable` の `FooterContent` は `<tr>` の中に描画されるので `MudTFootRow` を書かず `MudTd` を直接置く (太字は `FooterClass`)
 - 見出しに付ける件数の `MudBadge` は見出しの右に縦中央で並べる (`Origin="Origin.CenterRight"`、`BadgeClass="ml-1"`)。`Overlap` で右上に重ねない (見出しの余白の分だけ行から浮く)
 - `MudChart` の大きさは `Height` で決める (描画領域は 650×400 の比率で高さに合わせて拡大される)

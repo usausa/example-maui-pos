@@ -44,7 +44,7 @@
 <MudDataGrid @ref="Grid" T="TransactionEntity" ServerData="LoadServerData" SortMode="SortMode.Single" Dense="true" Hover="true" Bordered="true" Striped="true" RowClick="OnRowClick" RowClass="cursor-pointer" HorizontalScrollbar="true" Class="grid-nowrap">
     <Columns>
         <PropertyColumn Property="x => x.TransactedAt" Title="日時" InitialDirection="SortDirection.Descending">
-            <CellTemplate>@context.Item.TransactedAt.ToDateTimeText()</CellTemplate>
+            <CellTemplate>@context.Item.TransactedAt.ToShortDateTimeText()</CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.ReceiptNo" Title="レシート番号" />
         <TemplateColumn Title="店舗 / 端末" Sortable="false">
