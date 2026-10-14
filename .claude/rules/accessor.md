@@ -33,8 +33,9 @@ SQL ファイルの書き方とファイル名は sql.md に置く。
 | PRAGMA・スクリプトの実行 | `ExecuteXxx` | `ExecutePragma`、`ExecuteSchema`、`ExecuteScript` |
 
 - Entity はキーの列に `[Key]` を付ける (複合キーはすべての列)
-- キーによる取得と削除は `[SelectSingle]` / `[Delete]` の Builder を使い、SQL ファイルを書かない
+- キーによる取得と削除は `[SelectSingle]` / `[Delete]` の Builder を使い、SQL ファイルを書かない (Entity を持たない表 (商品画像) は SQL ファイルで書く)
 - トランザクションの中で呼ぶメソッドは先頭の引数で `DbTransaction tx` を受け、起動時の処理は `DbConnection con` を受ける
+- 同じ SQL をトランザクションの中と外の両方で使うときは、先頭に `DbTransaction tx` を足した同じ名前の多重定義にして、SQL ファイルを共有する (Builder のメソッドは多重定義にできないので、用途の名前にする)
 - 戻り値の 0 や null が何を意味するか (先に変えられた、見つからない) は、メソッドのコメントに書く
 - DB に保存する列挙型と日付の変換は `DataProfile` に登録する (列挙型は `EnumTextConverter<T>` で文字列にする。新しい列挙型も登録する)
 - 後から増えた列は `SchemaHelper.EnsureColumnAsync` で起動時に足して初期値を補完し、既存の DB を壊さない。列はスキーマの SQL ファイルの `CREATE TABLE` にも書く

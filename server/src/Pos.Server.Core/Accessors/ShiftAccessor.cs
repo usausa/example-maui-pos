@@ -30,9 +30,9 @@ public sealed partial class ShiftAccessor
     [Insert(typeof(ShiftEntity))]
     public partial ValueTask<int> InsertAsync(ShiftEntity entity, CancellationToken cancellationToken);
 
-    // 集計を確定して Closed にする。戻り値 0 = 既に精算済み
-    [Execute]
-    public partial ValueTask<int> UpdateClosedAsync(
+    // 集計を確定して Closed にする。戻り値 null = 既に精算済み
+    [QueryFirst]
+    public partial ValueTask<ShiftEntity?> UpdateClosedAsync(
         DbTransaction tx,
         Guid id,
         DateTime closedAt,
@@ -40,7 +40,17 @@ public sealed partial class ShiftAccessor
         decimal actualCash,
         decimal expectedCash,
         decimal difference,
-        ShiftTotalsView totals,
+        decimal cashSales,
+        decimal cashReturns,
+        decimal paidIn,
+        decimal paidOut,
+        decimal depositCashIn,
+        decimal depositCashOut,
+        int salesCount,
+        int returnCount,
+        int voidCount,
+        decimal salesTotal,
+        decimal returnsTotal,
         string? note,
         DateTime updatedAt,
         CancellationToken cancellationToken);

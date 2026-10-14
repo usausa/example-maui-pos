@@ -66,6 +66,7 @@ public sealed partial class TransactionAccessor
     public partial ValueTask<List<TransactionPaymentEntity>> QueryPaymentListAsync(Guid transactionId, CancellationToken cancellationToken);
 
     [QueryFirst]
+    [SelectSingle(typeof(TransactionDeliveryEntity))]
     public partial ValueTask<TransactionDeliveryEntity?> QueryDeliveryAsync(Guid transactionId, CancellationToken cancellationToken);
 
     // 取消可否 (返品が紐付いていれば HAS_RETURNS)
@@ -112,9 +113,9 @@ public sealed partial class TransactionAccessor
     // Update
     //--------------------------------------------------------------------------------
 
-    // 取消済みにする。戻り値 0 = 既に取消済み
-    [Execute]
-    public partial ValueTask<int> UpdateVoidedAsync(DbTransaction tx, Guid id, DateTime voidedAt, Guid voidedByStaffId, string reason, DateTime updatedAt, CancellationToken cancellationToken);
+    // 取消済みにする。戻り値 null = 既に取消済み
+    [QueryFirst]
+    public partial ValueTask<TransactionEntity?> UpdateVoidedAsync(DbTransaction tx, Guid id, DateTime voidedAt, Guid voidedByStaffId, string reason, DateTime updatedAt, CancellationToken cancellationToken);
 
     // 処理後残高 (ポイント更新後に確定)
     [Execute]

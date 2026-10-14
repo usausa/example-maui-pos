@@ -134,7 +134,7 @@ public sealed partial class TransactionUsecase
 
         await provider.UsingTxAsync(async (_, tx) =>
         {
-            await accessor.UpdateTransactionStatusAsync(tx, transaction.Id, TransactionStatus.Voided, Serialize(transaction));
+            await accessor.UpdateTransactionAsync(tx, transaction.Id, TransactionStatus.Voided, Serialize(transaction));
             await accessor.InsertOutboxAsync(tx, SyncService.CreateEntry(OutboxKind.TransactionVoid, transaction.Id, request, now));
             foreach (var (productId, delta) in deltas)
             {

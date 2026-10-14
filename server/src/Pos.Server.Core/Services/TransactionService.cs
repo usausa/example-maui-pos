@@ -334,9 +334,10 @@ public sealed class TransactionService
                     await masterAccessor.UpdateTerminalLastReceiptSeqAsync(tx, entity.TerminalId, ParseReceiptSeq(entity.ReceiptNo), now, cancellationToken);
 
                     // 受注から会計したら受注を完了にする (検証のあとで状態か前受金が変わっていれば取り消す)
-                    if (sale && (orderId is not null) && (await orderAccessor.UpdateCompletedAsync(tx, orderId.Value, entity.Id, entity.TransactedAt, depositBalance, now, cancellationToken) == 0))
+                    if (sale && (orderId is not null))
                     {
-                        throw new RuleViolationException(ErrorCode.OrderNotReady, RuleReason.OrderNotReady);
+                        detail.Order = await orderAccessor.UpdateCompletedAsync(tx, orderId.Value, entity.Id, entity.TransactedAt, depositBalance, now, cancellationToken) ??
+                            throw new RuleViolationException(ErrorCode.OrderNotReady, RuleReason.OrderNotReady);
                     }
                 }
 
@@ -352,11 +353,6 @@ public sealed class TransactionService
         catch (RuleViolationException ex)
         {
             return TransactionResult.Violated(new RuleError(ex.Code, ex.Reason));
-        }
-
-        if (sale && (orderId is not null) && (entity.Status == TransactionStatus.Completed))
-        {
-            detail.Order = await orderAccessor.QueryAsync(orderId.Value, cancellationToken);
         }
 
         changeNotification.Notify(DataChangeKind.Transaction);
@@ -529,14 +525,13 @@ public sealed class TransactionService
         var lines = await transactionAccessor.QueryLineListAsync(id, cancellationToken);
         var products = (await productAccessor.QueryListByIdsAsync(lines.Select(static x => x.ProductId).Distinct().ToList(), cancellationToken)).ToDictionary(static x => x.Id);
         var sale = entity.Type == TransactionType.Sale;
+        TransactionEntity voided;
         try
         {
-            await provider.UsingTxAsync(async (_, tx) =>
+            voided = await provider.UsingTxAsync(async (_, tx) =>
             {
-                if (await transactionAccessor.UpdateVoidedAsync(tx, id, voidedAt, staffId, reason, now, cancellationToken) == 0)
-                {
+                var updated = await transactionAccessor.UpdateVoidedAsync(tx, id, voidedAt, staffId, reason, now, cancellationToken) ??
                     throw new RuleViolationException(ErrorCode.ValidationError, RuleReason.AlreadyVoided);
-                }
 
                 // 在庫 (逆方向)
                 await ApplyInventoryAsync(tx, entity, lines, products, sale ? 1m : -1m, InventoryChangeType.Void, staffId, voidedAt, now, cancellationToken);
@@ -563,6 +558,7 @@ public sealed class TransactionService
                 }
 
                 await tx.CommitAsync(cancellationToken);
+                return updated;
             }, cancellationToken);
         }
         catch (RuleViolationException ex)
@@ -570,9 +566,8 @@ public sealed class TransactionService
             return TransactionResult.Violated(new RuleError(ex.Code, ex.Reason));
         }
 
-        var voided = await transactionAccessor.QueryAsync(id, cancellationToken);
         changeNotification.Notify(DataChangeKind.Transaction);
-        return TransactionResult.Success(await LoadDetailAsync(voided!, cancellationToken));
+        return TransactionResult.Success(await LoadDetailAsync(voided, cancellationToken));
     }
 
     //--------------------------------------------------------------------------------

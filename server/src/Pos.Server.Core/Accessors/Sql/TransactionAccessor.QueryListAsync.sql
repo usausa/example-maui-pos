@@ -37,7 +37,7 @@ WHERE
             l.TransactionId
         FROM
             TransactionLines l
-            INNER JOIN TransactionLineSerials s ON s.TransactionLineId = l.Id
+            JOIN TransactionLineSerials s ON s.TransactionLineId = l.Id
         WHERE
             s.SerialNumber = /*@ serialNumber */''
     )

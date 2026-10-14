@@ -65,6 +65,7 @@ public sealed partial class DailyClosingAccessor
 
     // 戻り値 0 = 見つからない (解除済み)
     [Execute]
+    [Delete(typeof(DailyClosingEntity))]
     public partial ValueTask<int> DeleteAsync(DbTransaction tx, Guid id, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------

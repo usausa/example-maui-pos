@@ -188,12 +188,34 @@ public sealed class ShiftService
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var totals = await shiftAccessor.QuerySummaryAsync(id, cancellationToken) ?? ShiftTotalsView.Empty;
         var expectedCash = ExpectedCash(shift.OpeningCash, totals);
-        var updated = await provider.UsingTxAsync(async (_, tx) =>
+        var closed = await provider.UsingTxAsync(async (_, tx) =>
         {
             // 読んでから更新するまでに同じシフトの精算が先に通っていたら、金種を足さずに終える
-            if (await shiftAccessor.UpdateClosedAsync(tx, id, parameter.ClosedAt, parameter.ClosedByStaffId, parameter.ActualCash, expectedCash, parameter.ActualCash - expectedCash, totals, parameter.Note, now, cancellationToken) == 0)
+            var entity = await shiftAccessor.UpdateClosedAsync(
+                tx,
+                id,
+                parameter.ClosedAt,
+                parameter.ClosedByStaffId,
+                parameter.ActualCash,
+                expectedCash,
+                parameter.ActualCash - expectedCash,
+                totals.CashSales,
+                totals.CashReturns,
+                totals.PaidIn,
+                totals.PaidOut,
+                totals.DepositCashIn,
+                totals.DepositCashOut,
+                totals.SalesCount,
+                totals.ReturnCount,
+                totals.VoidCount,
+                totals.SalesTotal,
+                totals.ReturnsTotal,
+                parameter.Note,
+                now,
+                cancellationToken);
+            if (entity is null)
             {
-                return false;
+                return null;
             }
 
             foreach (var denomination in parameter.Denominations)
@@ -202,17 +224,17 @@ public sealed class ShiftService
             }
 
             await tx.CommitAsync(cancellationToken);
-            return true;
+            return entity;
         }, cancellationToken);
 
-        var closed = await shiftAccessor.QueryAsync(id, cancellationToken);
-        if (!updated)
+        if (closed is null)
         {
-            return await ClosedResultAsync(closed!, parameter, cancellationToken);
+            var current = await shiftAccessor.QueryAsync(id, cancellationToken);
+            return current is null ? new ShiftResult(ShiftResultStatus.NotFound) : await ClosedResultAsync(current, parameter, cancellationToken);
         }
 
         changeNotification.Notify(DataChangeKind.Shift);
-        return new ShiftResult(ShiftResultStatus.Success, await LoadDetailAsync(closed!, cancellationToken));
+        return new ShiftResult(ShiftResultStatus.Success, await LoadDetailAsync(closed, cancellationToken));
     }
 
     // 精算済み: 実査金額が同じなら再送とみなして Existing、違えば Closed

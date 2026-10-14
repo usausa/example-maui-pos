@@ -7,3 +7,5 @@ SET
 WHERE
     ReceiptId = /*@ receiptId */''
     AND Status = 'Ordered'
+RETURNING
+    *

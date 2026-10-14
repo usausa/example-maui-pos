@@ -17,3 +17,5 @@ WHERE
         WHERE
             d.OrderId = Orders.Id
     ), 0) = CAST(/*@ depositApplied */0 AS NUMERIC)
+RETURNING
+    *

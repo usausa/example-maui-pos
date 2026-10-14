@@ -76,9 +76,9 @@ public sealed partial class OrderAccessor
     [QueryFirst]
     public partial ValueTask<OrderEntity?> UpdateCancelledAsync(Guid id, DateTime cancelledAt, string? cancelReason, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // 会計で完了にする (引き渡し待ちで、前受金の残りが会計で充てた額と同じときだけ)。戻り値 0 = 引き渡し待ちでないか、前受金が変わった
-    [Execute]
-    public partial ValueTask<int> UpdateCompletedAsync(DbTransaction tx, Guid id, Guid transactionId, DateTime completedAt, decimal depositApplied, DateTime updatedAt, CancellationToken cancellationToken);
+    // 会計で完了にする (引き渡し待ちで、前受金の残りが会計で充てた額と同じときだけ)。戻り値 null = 引き渡し待ちでないか、前受金が変わった
+    [QueryFirst]
+    public partial ValueTask<OrderEntity?> UpdateCompletedAsync(DbTransaction tx, Guid id, Guid transactionId, DateTime completedAt, decimal depositApplied, DateTime updatedAt, CancellationToken cancellationToken);
 
     // 会計した取引を取り消したら引き渡し待ちに戻す
     [Execute]

@@ -145,8 +145,8 @@ internal sealed class SampleGenerator
 
         // 入荷の仕入先 (なければサンプル用に登録する)
         var suppliers = await client.GetAsync<SupplierListResponse>("inventory/suppliers").ConfigureAwait(false);
-        supplier = suppliers.Items.FirstOrDefault(static x => x.IsActive)
-            ?? await client.PostAsync<SupplierListResponseItem>("inventory/suppliers", new SupplierCreateRequest { Code = "SAMPLE", Name = "サンプル仕入先" }).ConfigureAwait(false);
+        supplier = suppliers.Items.FirstOrDefault(static x => x.IsActive) ??
+            await client.PostAsync<SupplierListResponseItem>("inventory/suppliers", new SupplierCreateRequest { Code = "SAMPLE", Name = "サンプル仕入先" }).ConfigureAwait(false);
 
         var customerList = await client.GetAsync<CustomerListResponse>("customers?size=100").ConfigureAwait(false);
         customers = customerList.Items.Where(static x => !x.IsDeleted).ToList();

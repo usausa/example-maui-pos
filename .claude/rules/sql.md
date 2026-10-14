@@ -57,5 +57,6 @@ Accessor のメソッド名は accessor.md に置く。
 
 - スキーマは `CREATE TABLE IF NOT EXISTS` で列名・型・NOT NULL を桁揃えし、主キー・一意・外部キーは表の末尾に制約として書く
 - 索引は表の直後に空行なしで `CREATE INDEX IF NOT EXISTS IX_表_列` (一意は `CREATE UNIQUE INDEX IF NOT EXISTS UX_表_列`) と書き、名前には索引の列をすべて入れる
+- 索引の名前を変えたら、新しい名前で作り、スキーマの末尾で古い名前を `DROP INDEX IF EXISTS` で消す (前の版の DB に残る)
 - 端末に差分同期する表は `IsDeleted`、`CreatedAt`、`UpdatedAt`、`Version` と `IX_表_UpdatedAt` を持つ (在庫の `InventoryLevels` は店舗ごとの `UpdatedAt` だけ、1 行の `Settings` は `UpdatedAt` だけで同期する)
 - 初期データは `INSERT INTO` / 表 / (列) / `VALUES` の行に分けて 1 行 1 レコードで書き、日時は `@now`、ID は表の番号を入れた固定値 (`00000000-0000-0000-0001-…`) にする

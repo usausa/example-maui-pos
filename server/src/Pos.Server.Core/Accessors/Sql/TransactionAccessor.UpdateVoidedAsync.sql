@@ -9,3 +9,5 @@ SET
 WHERE
     Id = /*@ id */''
     AND Status = 'Completed'
+RETURNING
+    *

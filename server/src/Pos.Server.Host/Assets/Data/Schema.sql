@@ -312,7 +312,7 @@ CREATE TABLE IF NOT EXISTS Shifts (
     FOREIGN KEY (OpenedByStaffId) REFERENCES Staff (Id),
     FOREIGN KEY (ClosedByStaffId) REFERENCES Staff (Id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_Open ON Shifts (TerminalId) WHERE Status = 'Open';
+CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_TerminalId ON Shifts (TerminalId) WHERE Status = 'Open';
 CREATE INDEX IF NOT EXISTS IX_Shifts_StoreId_BusinessDate ON Shifts (StoreId, BusinessDate);
 
 CREATE TABLE IF NOT EXISTS ShiftDenominations (
@@ -692,21 +692,21 @@ CREATE INDEX IF NOT EXISTS IX_InventoryReceiptLines_ReceiptId ON InventoryReceip
 
 -- 発注 (仕入先への注文)。発注すると明細を写した入荷予定を作り、入荷予定の受領・キャンセルで入荷済み・キャンセルになる
 CREATE TABLE IF NOT EXISTS PurchaseOrders (
-    Id                TEXT     NOT NULL,
-    StoreId           TEXT     NOT NULL,
-    Seq               INTEGER  NOT NULL,
-    PurchaseOrderNo   TEXT     NOT NULL,   -- {店舗コード}-P-{連番:000000}
-    SupplierId        TEXT     NOT NULL,
-    Status            TEXT     NOT NULL,   -- Draft / Ordered / Received / Cancelled
-    ExpectedDate      TEXT,                -- yyyy-MM-dd (希望納期)
-    Note              TEXT,
-    OrderedAt         TEXT,
-    OrderedBy         TEXT,                -- 発注した管理画面のアカウント名 (認証を無効にしているときは NULL)
-    ReceiptId         TEXT,                -- 発注で作った入荷予定
-    CancelledAt       TEXT,
-    CreatedAt         TEXT     NOT NULL,
-    UpdatedAt         TEXT     NOT NULL,
-    Version           INTEGER  NOT NULL,
+    Id               TEXT     NOT NULL,
+    StoreId          TEXT     NOT NULL,
+    Seq              INTEGER  NOT NULL,
+    PurchaseOrderNo  TEXT     NOT NULL,   -- {店舗コード}-P-{連番:000000}
+    SupplierId       TEXT     NOT NULL,
+    Status           TEXT     NOT NULL,   -- Draft / Ordered / Received / Cancelled
+    ExpectedDate     TEXT,                -- yyyy-MM-dd (希望納期)
+    Note             TEXT,
+    OrderedAt        TEXT,
+    OrderedBy        TEXT,                -- 発注した管理画面のアカウント名 (認証を無効にしているときは NULL)
+    ReceiptId        TEXT,                -- 発注で作った入荷予定
+    CancelledAt      TEXT,
+    CreatedAt        TEXT     NOT NULL,
+    UpdatedAt        TEXT     NOT NULL,
+    Version          INTEGER  NOT NULL,
     PRIMARY KEY (Id),
     FOREIGN KEY (StoreId) REFERENCES Stores (Id),
     FOREIGN KEY (SupplierId) REFERENCES Suppliers (Id),
@@ -718,14 +718,14 @@ CREATE INDEX IF NOT EXISTS IX_PurchaseOrders_StoreId_Status ON PurchaseOrders (S
 CREATE INDEX IF NOT EXISTS IX_PurchaseOrders_ReceiptId ON PurchaseOrders (ReceiptId);
 
 CREATE TABLE IF NOT EXISTS PurchaseOrderLines (
-    Id                TEXT     NOT NULL,
-    PurchaseOrderId   TEXT     NOT NULL,
-    LineNo            INTEGER  NOT NULL,   -- 入荷予定の明細と同じ番号
-    ProductId         TEXT     NOT NULL,
-    ProductCode       TEXT     NOT NULL,
-    ProductName       TEXT     NOT NULL,
-    Quantity          NUMERIC  NOT NULL,
-    Cost              NUMERIC,             -- 仕入単価
+    Id               TEXT     NOT NULL,
+    PurchaseOrderId  TEXT     NOT NULL,
+    LineNo           INTEGER  NOT NULL,   -- 入荷予定の明細と同じ番号
+    ProductId        TEXT     NOT NULL,
+    ProductCode      TEXT     NOT NULL,
+    ProductName      TEXT     NOT NULL,
+    Quantity         NUMERIC  NOT NULL,
+    Cost             NUMERIC,             -- 仕入単価
     PRIMARY KEY (Id),
     FOREIGN KEY (PurchaseOrderId) REFERENCES PurchaseOrders (Id),
     FOREIGN KEY (ProductId) REFERENCES Products (Id)
@@ -797,3 +797,6 @@ CREATE TABLE IF NOT EXISTS InventoryChanges (
 );
 CREATE INDEX IF NOT EXISTS IX_InventoryChanges_StoreId_ProductId_OccurredAt ON InventoryChanges (StoreId, ProductId, OccurredAt DESC);
 CREATE INDEX IF NOT EXISTS IX_InventoryChanges_ReferenceId ON InventoryChanges (ReferenceId);
+
+-- 名前を変えた索引の古い名前 (前の版の DB に残ると、同じ索引が 2 つになる)
+DROP INDEX IF EXISTS UX_Shifts_Open;

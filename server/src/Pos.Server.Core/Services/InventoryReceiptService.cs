@@ -139,6 +139,8 @@ public sealed class InventoryReceiptService
         var lines = await receiptAccessor.QueryLineListAsync(id, cancellationToken);
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var occurredAt = receivedAt ?? now;
+        // 入荷予定が未受領の間、発注から作った入荷予定の発注は発注済みなので、受領に合わせて更新した行が返る
+        PurchaseOrderEntity? purchaseOrder = null;
         var received = await provider.UsingTxAsync(async (_, tx) =>
         {
             var updated = await receiptAccessor.UpdateReceivedAsync(tx, id, occurredAt, staffId, now, cancellationToken);
@@ -176,7 +178,7 @@ public sealed class InventoryReceiptService
                 }, cancellationToken);
             }
 
-            await purchaseOrderAccessor.UpdateReceivedByReceiptIdAsync(tx, updated.Id, now, cancellationToken);
+            purchaseOrder = await purchaseOrderAccessor.UpdateReceivedByReceiptIdAsync(tx, updated.Id, now, cancellationToken);
             await tx.CommitAsync(cancellationToken);
             return updated;
         }, cancellationToken);
@@ -191,13 +193,14 @@ public sealed class InventoryReceiptService
             Receipt = received,
             SupplierName = await QuerySupplierNameAsync(received.SupplierId, cancellationToken),
             Lines = lines,
-            PurchaseOrder = await purchaseOrderAccessor.QueryByReceiptIdAsync(received.Id, cancellationToken)
+            PurchaseOrder = purchaseOrder
         });
     }
 
     public async ValueTask<InventoryReceiptResult> CancelAsync(Guid id, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
+        PurchaseOrderEntity? purchaseOrder = null;
         var cancelled = await provider.UsingTxAsync(async (_, tx) =>
         {
             var entity = await receiptAccessor.UpdateCancelledAsync(tx, id, now, now, cancellationToken);
@@ -206,7 +209,7 @@ public sealed class InventoryReceiptService
                 return null;
             }
 
-            await purchaseOrderAccessor.UpdateCancelledByReceiptIdAsync(tx, entity.Id, now, now, cancellationToken);
+            purchaseOrder = await purchaseOrderAccessor.UpdateCancelledByReceiptIdAsync(tx, entity.Id, now, now, cancellationToken);
             await tx.CommitAsync(cancellationToken);
             return entity;
         }, cancellationToken);
@@ -215,7 +218,13 @@ public sealed class InventoryReceiptService
             return await ResolveFailureAsync(id, static x => InventoryMovementLogic.ValidateReceiptCancel(x.Status), cancellationToken);
         }
 
-        return new InventoryReceiptResult(InventoryReceiptResultStatus.Success, await LoadDetailAsync(cancelled, await QuerySupplierNamesAsync(cancellationToken), cancellationToken));
+        return new InventoryReceiptResult(InventoryReceiptResultStatus.Success, new InventoryReceiptDetailView
+        {
+            Receipt = cancelled,
+            SupplierName = await QuerySupplierNameAsync(cancelled.SupplierId, cancellationToken),
+            Lines = await receiptAccessor.QueryLineListAsync(cancelled.Id, cancellationToken),
+            PurchaseOrder = purchaseOrder
+        });
     }
 
     //--------------------------------------------------------------------------------

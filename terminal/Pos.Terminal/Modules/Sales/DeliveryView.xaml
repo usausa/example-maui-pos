@@ -51,9 +51,9 @@
                   ColumnSpacing="8">
                 <DatePicker Grid.Column="0"
                             IsVisible="{Binding HasRequestedDate}"
+                            Date="{Binding RequestedDate}"
                             FontSize="16"
                             BackgroundColor="White"
-                            Date="{Binding RequestedDate}"
                             Format="{x:Static helpers:DateTimeHelper.DateFormat}" />
                 <Button Grid.Column="0"
                         Style="{StaticResource PosSelectButton}"

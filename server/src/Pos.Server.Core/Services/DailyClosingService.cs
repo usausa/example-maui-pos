@@ -73,8 +73,8 @@ public sealed class DailyClosingService
     // 店舗 × 営業日の内容。締め済みは締めた時点の日計と内訳、未締めは取引からの集計 (締める前の確認に使う)
     public async ValueTask<DailyClosingSummaryView> QuerySummaryAsync(Guid storeId, DateOnly businessDate, CancellationToken cancellationToken)
     {
-        var day = (await dailyClosingAccessor.QueryDayListAsync(storeId, null, businessDate, businessDate, DailyClosingSort.BusinessDate, false, 1, 0, cancellationToken)).FirstOrDefault()
-            ?? DailyClosingDayView.Empty(storeId, businessDate);
+        var day = (await dailyClosingAccessor.QueryDayListAsync(storeId, null, businessDate, businessDate, DailyClosingSort.BusinessDate, false, 1, 0, cancellationToken)).FirstOrDefault() ??
+            DailyClosingDayView.Empty(storeId, businessDate);
         return new DailyClosingSummaryView
         {
             Day = day,

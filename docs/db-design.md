@@ -49,7 +49,8 @@
 
 起動時の `CREATE TABLE IF NOT EXISTS` は既存のテーブルに列を足さないので、機能を足すときは既存のテーブルに列を足さず、新しいテーブルで持つ (受注と取引は `Orders.TransactionId`、発注と入荷予定は `PurchaseOrders.ReceiptId` で結ぶ)。  
 列を足すしかないときは `Schema.sql` の `CREATE TABLE` に書いたうえで、起動時に `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確かめて `ALTER TABLE ADD COLUMN`) で既存の DB にも足し、既存の行の値を補う。  
-端末のローカル DB も同じ方法で列を足す。
+端末のローカル DB も同じ方法で列を足す。  
+索引の名前を変えたときは、新しい名前で作ったうえで、スキーマの末尾の `DROP INDEX IF EXISTS` で古い名前を消す (前の版の DB に残ると、同じ索引が 2 つになる)。
 
 | DB | 起動時に足す列 | 既存の行 |
 | --- | --- | --- |
@@ -1107,7 +1108,7 @@ CREATE INDEX IF NOT EXISTS IX_Transactions_OriginalTransactionId ON Transactions
 CREATE INDEX IF NOT EXISTS IX_Transactions_TransactedAt ON Transactions (TransactedAt);
 
 -- 部分ユニークインデックスの例
-CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_Open ON Shifts (TerminalId) WHERE Status = 'Open';
+CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_TerminalId ON Shifts (TerminalId) WHERE Status = 'Open';
 ```
 
 エンティティと Accessor の例 (テーブル名はクラスの `[Name]` で指定する):
@@ -1175,14 +1176,14 @@ SQLite は書き込みが直列化される (単一ライター) が、検証は
 
 ### 5.2 取消 (`POST /transactions/{id}/void`)
 
-`UPDATE Transactions ... WHERE Status = 'Completed'` で `Status = Voided` と取消の列を書き (0 件なら取消済み)、在庫は逆方向の `InventoryChanges (Type = Void)`、ポイントは `PointHistories (Type = Void)` を足す。  
+`UPDATE Transactions ... WHERE Status = 'Completed' RETURNING *` で `Status = Voided` と取消の列を書き (行が返らなければ取消済み)、在庫は逆方向の `InventoryChanges (Type = Void)`、ポイントは `PointHistories (Type = Void)` を足す。  
 元の履歴行は変更しない。  
 販売の取消は同じトランザクションで受注を `Arrived` に戻して `TransactionId` を外し、返品の取消は元明細の `ReturnedQuantity` を戻す。  
 店舗 × 営業日が締め済みのとき、シフトが精算済みのとき、返品のある販売の取消は拒否する。
 
 ### 5.3 精算 (`POST /shifts/{id}/close`)
 
-シフト内の `Completed` 取引と `CashEvents`、現金の `OrderDeposits` から集計列を求め、`Status = 'Open'` を条件にした UPDATE で `Shifts` に確定して `Status = Closed` にし、金種別枚数 (`ShiftDenominations`) と同じトランザクションで書く。  
+シフト内の `Completed` 取引と `CashEvents`、現金の `OrderDeposits` から集計列を求め、`Status = 'Open'` を条件にした UPDATE (`RETURNING *`) で `Shifts` に確定して `Status = Closed` にし、金種別枚数 (`ShiftDenominations`) と同じトランザクションで書く。  
 先に精算が通っていたら金種を足さずに終え、実査金額が同じ再送は精算済みの内容を返す。  
 以降、そのシフトへの取引・入出金・前受金・取消は拒否する。
 
@@ -1232,7 +1233,7 @@ CSV 取込は全行を検証してから、登録と更新を 1 トランザク�
 
 MAUI 側のローカル DB。  
 `Microsoft.Data.Sqlite` + Smart.Data.Accessor (`DataAccessor` + `Services/Sql/*.sql`) で扱い、日時は INTEGER (UTC ticks) + `DateTimeTicksConverter` で保存する ([D-30](decisions.md#d-30-金額は-decimalid-は-guid-v7日時は-utc-にする))。  
-スキーマはアプリに同梱した `Resources/Raw/Schema.sql` を起動時に実行する (列の追加は [§1](#-1-前提))。
+スキーマはアプリに同梱した `Resources/Raw/Schema.sql` を起動時に実行する (列の追加と索引の名前の変更は [§1](#-1-前提))。
 
 | テーブル | 内容 |
 | --- | --- |

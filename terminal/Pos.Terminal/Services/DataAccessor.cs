@@ -161,16 +161,13 @@ public sealed partial class DataAccessor
     [QueryFirst]
     public partial ValueTask<InventoryLevelListResponseItem?> QueryInventoryLevelAsync(Guid storeId, Guid productId);
 
-    // 同期結果の反映 (UPSERT)
+    // 数量を置き換える (同期の結果と棚卸の実数)
     [Execute]
     public partial ValueTask<int> UpsertInventoryLevelAsync(DbTransaction tx, Guid storeId, Guid productId, decimal quantity, DateTime updatedAt);
 
-    // 販売・返品・棚卸の即時反映 (加減算の UPSERT)
+    // 販売・返品・取消・調整の即時反映 (加減算の UPSERT)
     [Execute]
     public partial ValueTask<int> AddInventoryQuantityAsync(DbTransaction tx, Guid storeId, Guid productId, decimal delta, DateTime updatedAt);
-
-    [Execute]
-    public partial ValueTask<int> UpdateInventoryQuantityAsync(DbTransaction tx, Guid storeId, Guid productId, decimal quantity, DateTime updatedAt);
 
     //--------------------------------------------------------------------------------
     // Transactions
@@ -184,7 +181,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<int> UpdateTransactionAsync(Guid id, TransactionStatus status, string payload);
 
     [Execute]
-    public partial ValueTask<int> UpdateTransactionStatusAsync(DbTransaction tx, Guid id, TransactionStatus status, string payload);
+    public partial ValueTask<int> UpdateTransactionAsync(DbTransaction tx, Guid id, TransactionStatus status, string payload);
 
     [QueryFirst]
     [SelectSingle(typeof(LocalTransactionEntity))]
@@ -207,7 +204,7 @@ public sealed partial class DataAccessor
     [Insert(typeof(LocalShiftEntity))]
     public partial ValueTask<int> InsertShiftAsync(DbTransaction tx, LocalShiftEntity entity);
 
-    // サーバにある開設中のシフトの行をそのまま登録する (1 文なのでトランザクションなし。Builder は同名のオーバーロードにできない)
+    // サーバにある開設中のシフトの行をそのまま登録する (1 文なのでトランザクションなし。Builder は同じ名前の多重定義にできない)
     [Execute]
     [Insert(typeof(LocalShiftEntity))]
     public partial ValueTask<int> InsertServerShiftAsync(LocalShiftEntity entity);
@@ -292,6 +289,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<int> UpsertSyncStateAsync(string key, string value);
 
     [Execute]
+    [Delete(typeof(SyncStateEntity))]
     public partial ValueTask<int> DeleteSyncStateAsync(DbConnection con, string key);
 
     //--------------------------------------------------------------------------------

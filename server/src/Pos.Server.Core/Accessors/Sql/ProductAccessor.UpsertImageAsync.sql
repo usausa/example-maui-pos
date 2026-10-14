@@ -1,7 +1,7 @@
 INSERT INTO
     ProductImages (ProductId, Data, UpdatedAt)
 VALUES
-    (/*@ productId */'', /*@ data */'', /*@ updatedAt */'')
+    (/*@ productId */'', /*@ data */NULL, /*@ updatedAt */'')
 ON CONFLICT (ProductId) DO UPDATE SET
     Data = excluded.Data,
     UpdatedAt = excluded.UpdatedAt
