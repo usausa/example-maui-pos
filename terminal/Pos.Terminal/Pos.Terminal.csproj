@@ -118,9 +118,9 @@
     <PackageReference Include="Usa.Smart.Maui" Version="2.33.0" />
     <PackageReference Include="Usa.Smart.Maui.Extensions" Version="2.33.0" />
     <PackageReference Include="Usa.Smart.Mvvm" Version="2.16.0" />
-    <PackageReference Include="Usa.Smart.Navigation" Version="3.15.0" />
-    <PackageReference Include="Usa.Smart.Navigation.Extensions.DependencyInjection" Version="3.15.0" />
-    <PackageReference Include="Usa.Smart.Navigation.Maui" Version="3.15.0" />
+    <PackageReference Include="Usa.Smart.Navigation" Version="3.16.0" />
+    <PackageReference Include="Usa.Smart.Navigation.Extensions.DependencyInjection" Version="3.16.0" />
+    <PackageReference Include="Usa.Smart.Navigation.Maui" Version="3.16.0" />
     <PackageReference Include="Usa.Smart.Reactive" Version="2.15.0" />
     <PackageReference Include="Usa.Smart.Results" Version="2.2.0" />
     <!-- Xamarin.AndroidX.Fragment.Ktx: BarcodeScanning.Native.Maui が古い ktx を参照するため Xamarin.AndroidX.Fragment 1.9.0 に合わせる -->

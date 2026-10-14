@@ -27,8 +27,8 @@
 ## Pos.Contract
 
 - 通信データは `XxxRequest` / `XxxResponse`。名前は `Endpoints` を除いたクラス名 + ハンドラ名 (`HandleXxxAsync` の `Xxx`) にする (`TransactionCreateRequest`、`CustomerPointHistoryResponse`、`ReportSalesSummaryResponse`)
-- 一覧は `ListResponse<XxxResponseItem>` を継承した `XxxResponse` (`List` を付けない) にし、1 件の取得・登録・更新は `XxxResponseItem` を返す
-- 要素や Request の中の子要素 (明細、支払、配送など) は `Item` を重ねず、親の名前 + 要素名にする (`TransactionResponseLine`、`TransactionResponseDelivery`、`TransactionCreateRequestLine`)
+- 一覧は `ListResponse<T>` を継承し、要素は一覧の型の名前 + `Item` にする (`CategoryListResponse` の要素は `CategoryListResponseItem`)。1 件の取得・登録・更新は一覧の要素の型 (`XxxListResponseItem`) を返す
+- 要素や Request の中の子要素 (明細、支払、配送など) は `Item` を重ねず、親の名前 + 要素名にする (`OrderListResponseLine`、`ShiftListResponseDenomination`、`TransactionCreateRequestLine`)
 - 資源ごとに名前空間とフォルダを分ける (`Pos.Contract.Customers` など)。URL が他の資源の下にあっても (`/inventory/suppliers`)、一覧と登録・更新を持つ資源は独自の名前空間・フォルダ・エンドポイントにする
 - Request / Response ごとにファイルを分け、子要素と一覧の要素の型は同じファイルに置く
 - 通信データは `sealed class` と `{ get; set; }` で書き、null にならない参照型は `= default!` にする (record、`required`、JSON の属性は使わない)
