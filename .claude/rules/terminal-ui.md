@@ -76,4 +76,5 @@ paths:
 - 段階の文言を出す `IDialog.Loading` は使わない (MAUI のウインドウの重ね描きなので、カメラのある画面ではカメラの中に描かれて読み取り枠の下になる)
 - オンラインで取る一覧・集計は `CurrentState` に `ViewHelper.LoadingState`、`OfflineState` を入れ、取得中は結果を空の面で隠し、取得できないときは理由を結果の上に重ねる (`EqualsConverter`)
 - 取得のたびに `LoadingState` から始め、`notify: false` で呼ぶ (CommunityToolkit の `StateContainer` は使わない)
+- 詳細の一部をオンラインで取るとき (会員照会の履歴、商品照会の他店在庫) は、取得できなくても見出しを残し、「📡 取得できません」を出す
 - 表示時の浮き上がり (`AnimationOption.EnterAnimation`) は、続けて更新する一覧 (販売の明細、棚卸) には付けない
