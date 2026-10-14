@@ -60,16 +60,13 @@ public static partial class ProductEndpoints
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status409Conflict);
         group.MapDelete("/{id:guid}", HandleDeleteAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("ProductDelete")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapGet("/{id:guid}/image", HandleGetImageAsync)
             .WithName("ProductGetImage")
             .Produces<Stream>(StatusCodes.Status200OK, "image/jpeg", "image/png")
@@ -81,7 +78,6 @@ public static partial class ProductEndpoints
             .Produces<ProductListResponseItem>()
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
             .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
@@ -90,9 +86,7 @@ public static partial class ProductEndpoints
             .WithName("ProductDeleteImage")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapPost("/import", HandleImportAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("ProductImport")

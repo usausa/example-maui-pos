@@ -24,41 +24,43 @@ public static partial class PurchaseOrderEndpoints
         group.MapGet("/", HandleListAsync)
             .WithName("PurchaseOrderList")
             .Produces<PurchaseOrderListResponse>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden);
         group.MapGet("/{id:guid}", HandleGetAsync)
             .WithName("PurchaseOrderGet")
             .Produces<PurchaseOrderListResponseItem>()
+            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapGet("/{id:guid}/pdf", HandlePdfAsync)
             .WithName("PurchaseOrderPdf")
             .Produces<Stream>(StatusCodes.Status200OK, "application/pdf")
+            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapPost("/", HandleCreateAsync)
             .WithName("PurchaseOrderCreate")
-            .Produces<PurchaseOrderListResponseItem>()
             .Produces<PurchaseOrderListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{id:guid}", HandleUpdateAsync)
             .WithName("PurchaseOrderUpdate")
             .Produces<PurchaseOrderListResponseItem>()
             .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPost("/{id:guid}/order", HandleOrderAsync)
             .WithName("PurchaseOrderOrder")
             .Produces<PurchaseOrderListResponseItem>()
+            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPost("/{id:guid}/cancel", HandleCancelAsync)
             .WithName("PurchaseOrderCancel")
             .Produces<PurchaseOrderListResponseItem>()
+            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 

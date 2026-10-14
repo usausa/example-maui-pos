@@ -28,7 +28,6 @@ public static partial class PaymentMethodEndpoints
             .Produces<PaymentMethodListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{id:guid}", HandleUpdateAsync)
@@ -45,9 +44,7 @@ public static partial class PaymentMethodEndpoints
             .WithName("PaymentMethodDelete")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     //--------------------------------------------------------------------------------

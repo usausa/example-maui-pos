@@ -26,7 +26,6 @@ public static partial class OrderEndpoints
             .Produces<OrderListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapGet("/", HandleListAsync)
@@ -57,7 +56,6 @@ public static partial class OrderEndpoints
             .Produces<OrderListResponseItem>()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPost("/{id:guid}/cancel", HandleCancelAsync)
             .WithName("OrderCancel")
@@ -65,7 +63,6 @@ public static partial class OrderEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPost("/{id:guid}/deposit", HandleDepositAsync)
             .WithName("OrderDeposit")
@@ -80,7 +77,6 @@ public static partial class OrderEndpoints
             .WithName("OrderDepositRefund")
             .Produces<OrderListResponseItem>()
             .Produces<OrderListResponseItem>(StatusCodes.Status201Created)
-            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)

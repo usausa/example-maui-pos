@@ -30,17 +30,14 @@ public static partial class InventoryTransferEndpoints
         group.MapPost("/", HandleCreateAsync)
             .RequireAuthorization(Policies.Admin)
             .WithName("InventoryTransferCreate")
-            .Produces<InventoryTransferListResponseItem>()
             .Produces<InventoryTransferListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPost("/{id:guid}/ship", HandleShipAsync)
             .RequireAuthorization(Policies.Admin)
             .WithName("InventoryTransferShip")
             .Produces<InventoryTransferListResponseItem>()
-            .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);

@@ -30,11 +30,9 @@ public static partial class InventoryReceiptEndpoints
         group.MapPost("/", HandleCreateAsync)
             .RequireAuthorization(Policies.Admin)
             .WithName("InventoryReceiptCreate")
-            .Produces<InventoryReceiptListResponseItem>()
             .Produces<InventoryReceiptListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPost("/{id:guid}/cancel", HandleCancelAsync)
             .RequireAuthorization(Policies.Admin)

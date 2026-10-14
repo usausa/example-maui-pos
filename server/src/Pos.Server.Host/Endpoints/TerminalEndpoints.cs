@@ -38,15 +38,13 @@ public static partial class TerminalEndpoints
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status409Conflict);
         group.MapDelete("/{id:guid}", HandleDeleteAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("TerminalDelete")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         // 端末の登録 (管理画面で発行したペアリングコードでトークンを受け取る) と、登録済みの端末からの通信

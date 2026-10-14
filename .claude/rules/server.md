@@ -96,8 +96,10 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - API の経路は `/api` の下に置く (例外処理、HTTP ログ、未認証の応答、流量制限の拒否が `/api` かどうかで分かれる)
 - エンドポイントには `WithName` で操作名を付け、通信データと同じ機能名 + 操作名 (`XxxEndpoints` の `Xxx` + `HandleXxxAsync` の `Xxx`。`CategoryList`) にする
 - エンドポイントは返す応答だけをすべて宣言する (本文は `Produces<T>(状態, 種類)`、本文なしは `Produces(状態)`、Problem Details は `ProducesProblem(状態)`)。401 と 500 はグループが宣言する
-- 入力を検証するエンドポイント (DataAnnotations、`IValidatableObject`) は 400 を `ProducesValidationProblem()` で、`ApiProblems.BadRequest` の 400 は `ProducesProblem(400)` で宣言する (引数の束縛と JSON の読み取りの失敗は個別に宣言しない)
-- 403 は、ポリシーで拒むもの (エンドポイントとグループの `RequireAuthorization`) を本文なしで、`TerminalMismatch` を Problem Details で宣言する。流量制限する入口は 429 も宣言する
+- 同じ状態は 1 回だけ宣言する (OpenAPI の文書には最後の宣言だけが載る)
+- 入力を検証するエンドポイント (DataAnnotations、`IValidatableObject`) は 400 を `ProducesValidationProblem()` で、`ApiProblems.BadRequest` の 400 は `ProducesProblem(400)` で宣言し、両方を返すとき (レポート) は `errors` を省ける `ProducesValidationProblem()` だけにする (引数の束縛と JSON の読み取りの失敗は個別に宣言しない)
+- 403 は、ポリシーで拒むもの (エンドポイントとグループの `RequireAuthorization`) を本文なしで、`TerminalMismatch` を Problem Details で宣言する (両方で拒むときは Problem Details だけにする)
+- 流量制限する入口は 429 も宣言する
 - ハンドラは要求の確認 (`TerminalAccess`、`RequestHelper`) → Request の変換 (`[Mapper]`) → Service → Response の変換だけを持つ (複数の Service の合成は Service に置く)
 - 静的なユーティリティ (`TryParse` など) はエンドポイントのクラスに書かず、`Helpers/` に置く
 - Response への変換は、返す型の名前から機能名を除いた名前に `To` を付ける (`ToListResponseItem`、`ToCashEventListResponseItem`、`ToSummaryResponsePaymentMethod`)

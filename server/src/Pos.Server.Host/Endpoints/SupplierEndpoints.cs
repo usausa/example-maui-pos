@@ -19,10 +19,12 @@ public static partial class SupplierEndpoints
         var group = app.MapApiGroup(ApiRoutes.Suppliers).RequireAuthorization(Policies.Admin);
         group.MapGet("/", HandleListAsync)
             .WithName("SupplierList")
-            .Produces<SupplierListResponse>();
+            .Produces<SupplierListResponse>()
+            .Produces(StatusCodes.Status403Forbidden);
         group.MapGet("/{id:guid}", HandleGetAsync)
             .WithName("SupplierGet")
             .Produces<SupplierListResponseItem>()
+            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapPost("/", HandleCreateAsync)
             .RequireAuthorization(Policies.Administrator)
@@ -38,16 +40,13 @@ public static partial class SupplierEndpoints
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status409Conflict);
         group.MapDelete("/{id:guid}", HandleDeleteAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("SupplierDelete")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     //--------------------------------------------------------------------------------

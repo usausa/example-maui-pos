@@ -32,9 +32,7 @@ public static partial class CategoryEndpoints
             .Produces<CategoryListResponseItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status409Conflict);
         group.MapPut("/{id:guid}", HandleUpdateAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("CategoryUpdate")
@@ -50,7 +48,6 @@ public static partial class CategoryEndpoints
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
@@ -103,7 +100,7 @@ public static partial class CategoryEndpoints
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
             ? TypedResults.Created($"{ApiRoutes.Categories}/{entity.Id}", ToListResponseItem(entity))
-            : ApiProblems.FromStatus(status, invalidTitle: "親部門に自分自身は指定できません");
+            : ApiProblems.DuplicateCode();
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(

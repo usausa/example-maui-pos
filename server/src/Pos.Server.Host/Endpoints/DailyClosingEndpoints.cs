@@ -23,19 +23,22 @@ public static partial class DailyClosingEndpoints
         group.MapPost("/", HandleCloseAsync)
             .WithName("DailyClosingClose")
             .Produces<DailyClosingSummaryResponse>(StatusCodes.Status201Created)
-            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapGet("/", HandleListAsync)
             .WithName("DailyClosingList")
             .Produces<DailyClosingListResponse>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden);
         group.MapGet("/preview", HandlePreviewAsync)
             .WithName("DailyClosingPreview")
-            .Produces<DailyClosingSummaryResponse>();
+            .Produces<DailyClosingSummaryResponse>()
+            .Produces(StatusCodes.Status403Forbidden);
         group.MapGet("/{id:guid}", HandleGetAsync)
             .WithName("DailyClosingGet")
             .Produces<DailyClosingSummaryResponse>()
+            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapDelete("/{id:guid}", HandleReopenAsync)
             .RequireAuthorization(Policies.Administrator)

@@ -43,16 +43,13 @@ public static partial class CustomerEndpoints
             .Produces<CustomerListResponseItem>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status409Conflict);
         group.MapDelete("/{id:guid}", HandleDeleteAsync)
             .RequireAuthorization(Policies.Admin)
             .WithName("CustomerDelete")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapGet("/{id:guid}/points/history", HandlePointHistoryAsync)
             .WithName("CustomerPointHistory")
             .Produces<CustomerPointHistoryResponse>()

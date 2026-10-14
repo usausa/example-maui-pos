@@ -26,8 +26,7 @@ public static partial class SettingsEndpoints
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status409Conflict);
     }
 
     //--------------------------------------------------------------------------------
