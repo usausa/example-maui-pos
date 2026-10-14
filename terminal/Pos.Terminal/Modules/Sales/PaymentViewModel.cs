@@ -57,9 +57,6 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     public partial string PaidText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string RemainingCaption { get; set; } = "残り";
-
-    [ObservableProperty]
     public partial string RemainingText { get; set; } = string.Empty;
 
     public ObservableCollection<PaymentItem> Payments { get; } = [];
@@ -228,7 +225,6 @@ public sealed partial class PaymentViewModel : AppViewModelBase
         // 支払が済んだら「残り」の行にお釣りを出す
         var change = result.ChangeAmount;
         CanConfirm = remaining <= 0;
-        RemainingCaption = CanConfirm ? "お釣り" : "残り";
         RemainingText = ViewHelper.Yen(CanConfirm ? change : remaining);
     }
 

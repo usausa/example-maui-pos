@@ -1,5 +1,7 @@
 namespace Pos.Terminal.Modules.Inventory;
 
+using Pos.Terminal.Models.Inventory;
+
 // 検品中の伝票と数えた数。スキャン画面との行き来で失わないよう、ViewModel の [Scope] プロパティに Scope プラグインが注入する
 public sealed class ReceivingContext
 {

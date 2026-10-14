@@ -7,9 +7,9 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
-    private readonly TransactionUsecase transactions;
-
     private readonly ReceiptService receipt;
+
+    private readonly TransactionUsecase transactions;
 
     private ViewId returnTo = ViewId.Complete;
 
@@ -31,12 +31,12 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
 
     public ReceiptViewModel(
         IDialog dialog,
-        TransactionUsecase transactions,
-        ReceiptService receipt)
+        ReceiptService receipt,
+        TransactionUsecase transactions)
     {
         this.dialog = dialog;
-        this.transactions = transactions;
         this.receipt = receipt;
+        this.transactions = transactions;
     }
 
     public override async Task OnNavigatedToAsync(INavigationContext context)
@@ -96,12 +96,9 @@ public sealed partial class ReceiptViewModel : AppViewModelBase
     // 印刷は Bluetooth ラインプリンタを前提にしていて、まだ作っていない
     protected override async Task OnNotifyFunction3() => await dialog.InformationAsync("印刷は未実装です");
 
-    protected override async Task OnNotifyFunction4()
+    protected override Task OnNotifyFunction4()
     {
         QrVisible = !QrVisible;
-        if (QrVisible)
-        {
-            await dialog.Toast("電子レシート QR (レシート番号)");
-        }
+        return Task.CompletedTask;
     }
 }

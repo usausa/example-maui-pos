@@ -47,7 +47,7 @@ public sealed partial class ShiftCloseViewModel : AppViewModelBase
     public partial string ExpectedCashText { get; set; } = "-";
 
     [ObservableProperty]
-    public partial string ActualCashText { get; set; } = "未入力";
+    public partial string ActualCashText { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string DifferenceText { get; set; } = "-";

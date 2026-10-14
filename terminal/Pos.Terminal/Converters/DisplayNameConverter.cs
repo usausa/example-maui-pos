@@ -1,6 +1,7 @@
 namespace Pos.Terminal.Converters;
 
 using Pos.Terminal.Models.Entity;
+using Pos.Terminal.Models.Inventory;
 
 // 列挙型 → 表示文言 (文言は ViewHelper に集約する)
 public sealed class DisplayNameConverter : IValueConverter

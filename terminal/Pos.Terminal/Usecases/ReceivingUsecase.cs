@@ -1,5 +1,7 @@
 namespace Pos.Terminal.Usecases;
 
+using Pos.Terminal.Models.Inventory;
+
 // 入荷・店舗間移動の受領 (オンライン限定): 自店の受領待ちの伝票を集め、数えた数で受領して在庫の同期を促す
 public sealed class ReceivingUsecase
 {

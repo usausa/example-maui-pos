@@ -28,19 +28,17 @@ public static partial class ElementHelper
         {
             var next = ff.FindNextFocus(viewGroup, focused, forward ? FocusSearchDirection.Forward : FocusSearchDirection.Backward);
 
-            // No more control
+            // 次がないか、一周して元に戻った
             if ((next is null) || next.Equals(start))
             {
                 return false;
             }
 
-            // Focus if enabled
             if (next.Enabled)
             {
                 return next.RequestFocus();
             }
 
-            // Find next
             focused = next;
         }
     }

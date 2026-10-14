@@ -29,7 +29,7 @@
                        behaviors:TouchOption.ClickCommand="{Binding CustomerCommand}"
                        behaviors:TouchOption.Ripple="True"
                        Padding="16,12"
-                       Text="{Binding CustomerText}"
+                       Text="{Binding CustomerText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='👤 会員を選択'}"
                        TextColor="{StaticResource BlueDarken3}" />
                 <Button Grid.Column="1"
                         Style="{StaticResource PosQuantityButton}"

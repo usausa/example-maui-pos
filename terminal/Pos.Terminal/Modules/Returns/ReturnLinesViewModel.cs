@@ -64,7 +64,7 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
     public ObservableCollection<ReturnLineItem> Items { get; } = [];
 
     [ObservableProperty]
-    public partial string ReasonText { get; set; } = "選択してください";
+    public partial string? ReasonText { get; set; }
 
     [ObservableProperty]
     public partial string RefundText { get; set; } = ViewHelper.Yen(0);
@@ -125,7 +125,7 @@ public sealed partial class ReturnLinesViewModel : AppViewModelBase
         HeaderText = $"🧾 {original.ReceiptNo}  {ViewHelper.DateTime(original.TransactedAt)}";
         var quantities = ReturnContext.Lines.ToDictionary(static x => x.Line.Id, static x => x.Quantity);
         Items.Replace(original.Lines.Select(x => new ReturnLineItem(x) { Quantity = quantities.GetValueOrDefault(x.Id) }));
-        ReasonText = ReturnContext.Reason ?? "選択してください";
+        ReasonText = ReturnContext.Reason;
         Refresh();
     }
 

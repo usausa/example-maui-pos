@@ -1,5 +1,7 @@
 namespace Pos.Terminal.Modules.Inventory;
 
+using Pos.Terminal.Models.Inventory;
+
 // 検品の明細 (状態の文言と色は画面側の Converter で付ける)
 public sealed record ReceivingLineItem(
     ReceivingLine Line,

@@ -7,7 +7,7 @@
              xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Inquiry"
              xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
-             xmlns:sales="clr-namespace:Pos.Terminal.Modules.Sales"
+             xmlns:customer="clr-namespace:Pos.Terminal.Models.Customer"
              x:Class="Pos.Terminal.Modules.Inquiry.CustomerInquiryView"
              x:DataType="{x:Type module:CustomerInquiryViewModel}"
              s:BindingContextResolver.Type="{x:Type module:CustomerInquiryViewModel}"
@@ -58,7 +58,7 @@
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="{x:Type sales:CustomerItem}">
+                    <DataTemplate x:DataType="{x:Type customer:CustomerItem}">
                         <Grid Style="{StaticResource PosStripRowGrid}"
                               RowDefinitions="*,Auto">
                             <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->

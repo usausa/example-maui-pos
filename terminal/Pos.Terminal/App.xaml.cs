@@ -17,7 +17,7 @@ public sealed partial class App
         this.log = log;
         this.serviceProvider = serviceProvider;
 
-        // Light theme based application
+        // OS のテーマ (ダークモード) によらずライトテーマにする
         Current!.UserAppTheme = AppTheme.Light;
 
         InitializeComponent();
@@ -34,7 +34,7 @@ public sealed partial class App
     // ReSharper disable once AsyncVoidMethod
     protected override async void OnStart()
     {
-        // Report previous exception
+        // 前回の異常終了を知らせる
         await CrashReport.ShowReport();
 
         // ローカル DB を開けないときは理由を出して終了する (未送信を含む DB を作り直さない)。

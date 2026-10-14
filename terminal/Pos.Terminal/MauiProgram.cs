@@ -148,7 +148,7 @@ public static partial class MauiProgram
 
     private static MauiAppBuilder ConfigureGlobalSettings(this MauiAppBuilder builder)
     {
-        // TODO App center alternative
+        // TODO App Center に代わるクラッシュの収集
 
         // Crash dump
         CrashReport.Start();
@@ -188,7 +188,7 @@ public static partial class MauiProgram
         config.ProgressCircleColor1 = resources.FindResource<Color>("BlueAccent2");
         config.ProgressCircleColor2 = resources.FindResource<Color>("GrayLighten2");
 
-        // Avoiding conflicts with progress
+        // 操作のロックと進捗を重ねて出したときに背景が重なって暗くならないように、どちらも透明にする
         config.LockBackgroundColor = Colors.Transparent;
         config.ProgressBackgroundColor = Colors.Transparent;
     }
@@ -350,10 +350,10 @@ public static partial class MauiProgram
 
         var services = app.Services;
 
-        // Setup provider
+        // XAML からの解決 (ResolveProvider) にサービスを渡す
         ResolveProvider.Default.Provider = services;
 
-        // Start device information
+        // 回線の状態の監視を始める
         services.GetRequiredService<DeviceInformation>().Start();
 
 #if DEBUG
@@ -368,11 +368,10 @@ public static partial class MauiProgram
 #endif
 
 #if DEBUG
-        // Setup navigator
+        // 遷移をデバッグ出力に書く
         var navigator = services.GetRequiredService<INavigator>();
         navigator.Navigated += (_, args) =>
         {
-            // for debug
             System.Diagnostics.Debug.WriteLine($"Navigated: [{args.Context.FromId}]->[{args.Context.ToId}] : stacked=[{navigator.StackedCount}] effect=[{args.Context.Parameter.Effect}]");
         };
 #endif

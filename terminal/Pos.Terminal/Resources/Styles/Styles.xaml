@@ -8,7 +8,8 @@
                     xmlns:converters="clr-namespace:Pos.Terminal.Converters"
                     xmlns:models="clr-namespace:Pos.Terminal.Models"
                     xmlns:entity="clr-namespace:Pos.Terminal.Models.Entity"
-                    xmlns:enums="clr-namespace:Pos.Domain.Enums;assembly=Pos.Domain">
+                    xmlns:enums="clr-namespace:Pos.Domain.Enums;assembly=Pos.Domain"
+                    xmlns:inventory="clr-namespace:Pos.Terminal.Models.Inventory">
 
     <!-- ================================================================================ -->
     <!-- Value -->
@@ -43,8 +44,6 @@
 
     <s:CompareToBoolConverter x:Key="EqualsConverter"
                               Expression="{x:Static s:CompareExpressions.Equal}" />
-
-    <s:ColorToBrushConverter x:Key="ColorToBrushConverter" />
 
     <converters:EmptyTextConverter x:Key="EmptyTextConverter" />
 
@@ -170,7 +169,7 @@
     <s:MapToColorConverter x:Key="ReceivingKindColorConverter"
                            DefaultValue="{StaticResource GreenDarken1}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static models:ReceivingKind.Transfer}"
+            <s:MapToColorEntry Key="{x:Static inventory:ReceivingKind.Transfer}"
                                Value="{StaticResource IndigoDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
@@ -178,11 +177,11 @@
     <s:MapToColorConverter x:Key="ReceivingLineColorConverter"
                            DefaultValue="{StaticResource BlueGrayLighten2}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Match}"
+            <s:MapToColorEntry Key="{x:Static inventory:ReceivingLineState.Match}"
                                Value="{StaticResource GreenDarken1}" />
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Shortage}"
+            <s:MapToColorEntry Key="{x:Static inventory:ReceivingLineState.Shortage}"
                                Value="{StaticResource OrangeDarken1}" />
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Excess}"
+            <s:MapToColorEntry Key="{x:Static inventory:ReceivingLineState.Excess}"
                                Value="{StaticResource RedDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
@@ -190,9 +189,9 @@
     <s:MapToColorConverter x:Key="ReceivingRowColorConverter"
                            DefaultValue="White">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Shortage}"
+            <s:MapToColorEntry Key="{x:Static inventory:ReceivingLineState.Shortage}"
                                Value="{StaticResource OrangeLighten5}" />
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Excess}"
+            <s:MapToColorEntry Key="{x:Static inventory:ReceivingLineState.Excess}"
                                Value="{StaticResource RedLighten5}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
@@ -234,6 +233,12 @@
     <s:BoolToTextConverter x:Key="ShiftButtonTextConverter"
                            TrueValue="🔒 精算"
                            FalseValue="🔓 レジ開設" />
+
+    <!-- 画面固有 (会計。支払が済んだらお釣り) -->
+
+    <s:BoolToTextConverter x:Key="RemainingCaptionConverter"
+                           TrueValue="お釣り"
+                           FalseValue="残り" />
 
     <!-- 画面固有 (棚卸・在庫調整) -->
 

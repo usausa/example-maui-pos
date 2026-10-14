@@ -116,7 +116,7 @@
                                 WidthRequest="160"
                                 Margin="0"
                                 Command="{Binding InputActualCommand}"
-                                Text="{Binding ActualCashText}" />
+                                Text="{Binding ActualCashText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして入力'}" />
                     </Grid>
                     <BoxView Style="{StaticResource PosRowSeparator}" />
                     <Grid Style="{StaticResource PosPanelRowGrid}"

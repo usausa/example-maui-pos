@@ -78,7 +78,7 @@
                     Style="{StaticResource PosSelectButton}"
                     Margin="8,0,4,0"
                     Command="{Binding DiscountCommand}"
-                    Text="{Binding DiscountText}" />
+                    Text="{Binding DiscountText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='なし'}" />
             <Button Grid.Column="2"
                     Style="{StaticResource PosQuantityButton}"
                     Command="{Binding ClearDiscountCommand}"

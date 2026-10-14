@@ -22,7 +22,7 @@ public sealed class PopupActivationPlugin : IPopupPlugin
         depth++;
         if (depth == 1)
         {
-            // Deactivate current view
+            // 最初のポップアップを開くときだけ後ろの画面を止める (重ねて開いても止めたまま)
             target = navigator.CurrentTarget as INavigationLifecycleSupport;
             target?.OnDeactivated();
         }
@@ -33,7 +33,7 @@ public sealed class PopupActivationPlugin : IPopupPlugin
         depth--;
         if (depth == 0)
         {
-            // Activate current view
+            // 最後のポップアップを閉じたら、開いている間に遷移していなければ後ろの画面を戻す
             if ((target is not null) && ReferenceEquals(navigator.CurrentTarget, target))
             {
                 target.OnActivated();

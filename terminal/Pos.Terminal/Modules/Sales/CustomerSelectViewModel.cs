@@ -1,9 +1,7 @@
 namespace Pos.Terminal.Modules.Sales;
 
 using Pos.Contract.Customers;
-
-// 検索結果の会員 (アバターは名前の頭文字と会員番号で決まる色)
-public sealed record CustomerItem(CustomerListResponseItem Customer, string Name, string Code, string Phone, string PointsText);
+using Pos.Terminal.Models.Customer;
 
 // 会員選択: 検索 (オンライン) またはスキャンで取引に会員を紐付ける
 public sealed partial class CustomerSelectViewModel : AppViewModelBase

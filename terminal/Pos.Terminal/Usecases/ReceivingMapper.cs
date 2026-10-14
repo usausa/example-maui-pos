@@ -2,6 +2,7 @@ namespace Pos.Terminal.Usecases;
 
 using Pos.Contract.InventoryReceipts;
 using Pos.Contract.InventoryTransfers;
+using Pos.Terminal.Models.Inventory;
 
 // 入荷・移動の応答 → 受領待ちの伝票、数えた数 → 受領の要求
 public static class ReceivingMapper

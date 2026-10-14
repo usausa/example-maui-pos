@@ -1,7 +1,7 @@
 namespace Pos.Terminal.Modules.Inquiry;
 
 using Pos.Contract.Customers;
-using Pos.Terminal.Modules.Sales;
+using Pos.Terminal.Models.Customer;
 
 // 会員照会: 検索 / スキャンで会員を見つけ、基本情報・ポイント履歴・購入履歴 (オンライン) を見せる
 public sealed partial class CustomerInquiryViewModel : AppViewModelBase

@@ -1,4 +1,4 @@
-namespace Pos.Terminal.Models;
+namespace Pos.Terminal.Models.Inventory;
 
 // 棚卸・在庫調整の 1 件
 public sealed class StockChange

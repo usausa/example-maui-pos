@@ -333,7 +333,7 @@ Extender/                            NavigationFeedbackPlugin (遷移先の画�
                                      PopupActivationPlugin (ポップアップを開いている間は、後ろの画面の操作を受け付けない)
 Log.cs                               [LoggerMessage] の集約
 Diagnostics/                         CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)
-Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、YenConverter、StockSendTextConverter、AvatarColorConverter / InitialConverter (会員のアバターの色と頭文字)。  
+Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、StockSendTextConverter、AvatarColorConverter / InitialConverter (会員のアバターの色と頭文字)。  
                                      色や選択マーク・画面固有の文言は Smart.Maui の BoolToColor / MapToColor / BoolToText を Styles.xaml で構成する
 Markup/                              ViewIdExtension (XAML で画面 ID を `{markup:ViewId Xxx}` と書く)、
                                      AppIcons (ボタンに付ける Material Icons のアイコン。XAML から `{x:Static markup:AppIcons.Xxx}` で使う)
@@ -363,7 +363,8 @@ Models/
   Cart/       SalesCart, CartLine, CartDiscount, CartPayment, CartDelivery
   Entity/     ローカル DB のエンティティ (LocalTransaction / LocalShift / LocalCashEvent / LocalOrderDeposit / Outbox / SyncState / HoldCart。マスタは Pos.Contract の Response をそのまま使う)
   Input/      NumberInputParameter, NumberInputModel
-  SummaryRow.cs (集計・詳細画面の行と節), StockChange.cs, SelectItem.cs, ReceivingDocument.cs (受領待ちの伝票と明細), ReceivingKind.cs, ReceivingLineState.cs
+  Inventory/  ReceivingDocument (受領待ちの伝票と明細), ReceivingKind, ReceivingLineState, StockChange (棚卸・在庫調整の 1 件)
+  SummaryRow.cs (集計・詳細画面の行と節)
 Services/                            単機能の部品
   DataAccessor.cs + Sql/            ローカル SQLite (Smart.Data.Accessor、2-way SQL。DDL は Resources/Raw/Schema.sql。ローカルのエンティティのキーによる取得・削除は [SelectSingle] / [Delete])、DataProfile (型変換)
   DatabaseService.cs                 ローカル DB の初期化 (PRAGMA、テーブル作成、後から増えた列の追加)

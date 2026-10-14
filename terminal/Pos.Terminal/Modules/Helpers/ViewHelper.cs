@@ -1,6 +1,7 @@
 namespace Pos.Terminal.Modules.Helpers;
 
 using Pos.Terminal.Models.Entity;
+using Pos.Terminal.Models.Inventory;
 
 // 画面表示用の書式、列挙型の文言、業務ルールの文言 (XAML からは DisplayNameConverter で使う)
 public static class ViewHelper

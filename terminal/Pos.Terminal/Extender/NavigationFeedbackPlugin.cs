@@ -7,7 +7,7 @@ public sealed class NavigationFeedbackPlugin : PluginBase
 {
     public override void OnNavigatedTo(IPluginContext pluginContext, INavigationContext navigationContext, object view, object? target)
     {
-        // Disable footer button feedback on Android when navigating to a new page to prevent feedback from continuing on the new page
+        // Android で画面を移ったとき、下端のボタンを押した反応が新しい画面で続かないように止める
 #if ANDROID
         if (view is not Element element)
         {
@@ -22,7 +22,7 @@ public sealed class NavigationFeedbackPlugin : PluginBase
 
         Application.Current?.Dispatcher.Dispatch(() =>
         {
-            // ViewGroup jumpDrawablesToCurrentState call propagates to descendants
+            // ViewGroup の JumpDrawablesToCurrentState は子孫にも伝わる
             if (page.Handler?.PlatformView is Android.Views.View platformView)
             {
                 platformView.JumpDrawablesToCurrentState();

@@ -7,6 +7,7 @@
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             xmlns:customer="clr-namespace:Pos.Terminal.Models.Customer"
              xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
              x:Class="Pos.Terminal.Modules.Sales.CustomerSelectView"
              x:DataType="{x:Type module:CustomerSelectViewModel}"
@@ -68,7 +69,7 @@
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="{x:Type module:CustomerItem}">
+                    <DataTemplate x:DataType="{x:Type customer:CustomerItem}">
                         <Grid Style="{StaticResource PosStripRowGrid}"
                               RowDefinitions="*,Auto">
                             <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->

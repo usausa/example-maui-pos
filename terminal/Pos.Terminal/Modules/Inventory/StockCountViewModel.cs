@@ -1,5 +1,6 @@
 namespace Pos.Terminal.Modules.Inventory;
 
+using Pos.Terminal.Models.Inventory;
 using Pos.Terminal.Modules.Dialogs;
 
 // 入力した 1 件 (種別の文言と帯の色は画面側の Converter で付ける)

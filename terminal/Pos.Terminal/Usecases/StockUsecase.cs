@@ -2,6 +2,7 @@ namespace Pos.Terminal.Usecases;
 
 using Pos.Contract.Inventory;
 using Pos.Terminal.Models.Entity;
+using Pos.Terminal.Models.Inventory;
 
 using Smart.Data;
 

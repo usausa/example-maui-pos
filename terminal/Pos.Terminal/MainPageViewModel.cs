@@ -149,7 +149,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
 
         await startup.Completed;
 
-        // Guard for the case where the Activity is recreated while initialization is still in progress
+        // 初期化の途中で Activity が作り直されたときは、ここで止める
         if (destroying)
         {
             return;

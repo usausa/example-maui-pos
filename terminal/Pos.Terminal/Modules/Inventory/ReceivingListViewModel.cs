@@ -1,5 +1,7 @@
 namespace Pos.Terminal.Modules.Inventory;
 
+using Pos.Terminal.Models.Inventory;
+
 // 受領待ちの一覧の行 (種類の文言と色は画面側の Converter で付ける)
 public sealed record ReceivingItem(
     ReceivingDocument Document,
@@ -26,7 +28,7 @@ public sealed partial class ReceivingListViewModel : AppViewModelBase
     public partial string CountText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string Message { get; set; } = EmptyMessage;
+    public partial string Message { get; set; } = string.Empty;
 
     // 取得中 / 取得できない / 結果 (空文字) を切り替える。表示した直後に読むので取得中から始める
     [ObservableProperty]

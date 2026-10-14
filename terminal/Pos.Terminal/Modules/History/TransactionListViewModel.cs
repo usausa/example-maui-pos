@@ -85,7 +85,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
     public partial int UnsentCount { get; set; }
 
     [ObservableProperty]
-    public partial string Message { get; set; } = "取引がありません";
+    public partial string Message { get; set; } = string.Empty;
 
     public ObservableCollection<TransactionItem> Items { get; } = [];
 

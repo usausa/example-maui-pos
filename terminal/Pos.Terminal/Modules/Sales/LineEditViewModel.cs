@@ -134,7 +134,7 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
     {
         discount = value;
         HasDiscount = value is not null;
-        DiscountText = value is null ? "なし" : $"{value.Name} ({ViewHelper.DiscountValue(value.Type, value.Value)})";
+        DiscountText = value is null ? string.Empty : $"{value.Name} ({ViewHelper.DiscountValue(value.Type, value.Value)})";
     }
 
     private async Task InputQuantityAsync()
