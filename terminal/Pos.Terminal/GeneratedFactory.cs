@@ -9,3 +9,4 @@
 [assembly: global::BunnyTail.DependencyInjection.GenerateComponentFactory(typeof(global::MauiComponents.ScreenImplementation))]
 [assembly: global::BunnyTail.DependencyInjection.GenerateComponentFactory(typeof(global::MauiComponents.SpeechService))]
 [assembly: global::BunnyTail.DependencyInjection.GenerateComponentFactory(typeof(global::Pos.Terminal.App))]
+[assembly: global::BunnyTail.DependencyInjection.GenerateComponentFactory(typeof(global::Pos.Terminal.Extender.PopupActivationPlugin))]

@@ -2,8 +2,8 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
-             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
              xmlns:models="clr-namespace:Pos.Terminal.Models"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Setting"
@@ -27,22 +27,22 @@
             <Label Style="{StaticResource PosSectionLabel}"
                    Text="📱 端末" />
             <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                 BackgroundColor="White"
-                                 BindableLayout.ItemsSource="{Binding Info}">
+                                 BindableLayout.ItemsSource="{Binding Info}"
+                                 BackgroundColor="White">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="{x:Type models:SummaryRow}">
                         <Grid Style="{StaticResource PosListRowGrid}"
-                              Padding="16,6"
-                              ColumnDefinitions="Auto,*">
+                              ColumnDefinitions="Auto,*"
+                              Padding="16,6">
                             <Label Grid.Column="0"
                                    Style="{StaticResource PosCaptionLabel}"
-                                   FontSize="15"
-                                   Text="{Binding Label}" />
+                                   Text="{Binding Label}"
+                                   FontSize="15" />
                             <Label Grid.Column="1"
                                    Style="{StaticResource PosListValueLabel}"
+                                   Text="{Binding Value}"
                                    FontSize="15"
-                                   LineBreakMode="TailTruncation"
-                                   Text="{Binding Value}" />
+                                   LineBreakMode="TailTruncation" />
                         </Grid>
                     </DataTemplate>
                 </BindableLayout.ItemTemplate>
@@ -55,8 +55,8 @@
                   ColumnDefinitions="*,Auto">
                 <Label Grid.Column="0"
                        Style="{StaticResource PosCaptionLabel}"
-                       FontSize="15"
-                       Text="{Binding LastSyncText}" />
+                       Text="{Binding LastSyncText}"
+                       FontSize="15" />
                 <Border Grid.Column="1"
                         Style="{StaticResource PosChipBorder}"
                         BackgroundColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}">
@@ -71,8 +71,8 @@
                 <Label Style="{StaticResource PosSectionLabel}"
                        Text="📤 未送信" />
                 <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                     BackgroundColor="White"
-                                     BindableLayout.ItemsSource="{Binding Outbox}">
+                                     BindableLayout.ItemsSource="{Binding Outbox}"
+                                     BackgroundColor="White">
                     <BindableLayout.EmptyView>
                         <Label Style="{StaticResource PosMessageLabel}"
                                Text="未送信はありません" />
@@ -88,54 +88,51 @@
                                          Style="{StaticResource PosStripBoxView}"
                                          Color="{Binding Status, Converter={StaticResource OutboxStatusColorConverter}}" />
 
-                                <effects:SfEffectsView Grid.Row="0" Grid.Column="1"
-                                                       Style="{StaticResource PosRippleView}">
-                                    <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                                    <effects:SfEffectsView.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:SettingViewModel}}, Path=OutboxCommand, x:DataType={x:Type module:SettingViewModel}}"
-                                                              CommandParameter="{Binding .}" />
-                                    </effects:SfEffectsView.GestureRecognizers>
+                                <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                                <VerticalStackLayout Grid.Row="0" Grid.Column="1"
+                                                     Style="{StaticResource PosStripBodyStack}"
+                                                     behaviors:TouchOption.ClickCommand="{Binding Source={RelativeSource AncestorType={x:Type module:SettingViewModel}}, Path=OutboxCommand, x:DataType={x:Type module:SettingViewModel}}"
+                                                     behaviors:TouchOption.ClickCommandParameter="{Binding .}"
+                                                     behaviors:TouchOption.Ripple="True">
                                     <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                                    <VerticalStackLayout Style="{StaticResource PosStripBodyStack}">
-                                        <Grid ColumnDefinitions="*,Auto"
-                                              ColumnSpacing="8">
-                                            <Label Grid.Column="0"
-                                                   Style="{StaticResource PosListNameLabel}"
-                                                   Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}" />
-                                            <controls:StatusChip Grid.Column="1"
-                                                                 ChipColor="{Binding Status, Converter={StaticResource OutboxStatusColorConverter}}"
-                                                                 Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}" />
-                                        </Grid>
-                                        <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                            <Label Style="{StaticResource PosInfoLabel}"
-                                                   Text="{Binding TimeText, StringFormat='🕒 {0}'}" />
-                                            <Label Style="{StaticResource PosInfoLabel}"
-                                                   Text="{Binding Attempts, StringFormat='🔁 試行 {0} 回'}" />
-                                        </FlexLayout>
-                                        <!-- エラーは 1 行で見せ、展開すると全文 -->
-                                        <Label Style="{StaticResource PosDetailLabel}"
-                                               TextColor="{StaticResource RedDarken1}"
-                                               MaxLines="1"
-                                               IsVisible="{Binding Error, Converter={StaticResource NotEmptyConverter}}"
-                                               Text="{Binding Error}">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label"
-                                                             Binding="{Binding IsExpanded}"
-                                                             Value="True">
-                                                    <Setter Property="MaxLines" Value="-1" />
-                                                    <Setter Property="LineBreakMode" Value="WordWrap" />
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
-                                    </VerticalStackLayout>
-                                </effects:SfEffectsView>
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          ColumnSpacing="8">
+                                        <Label Grid.Column="0"
+                                               Style="{StaticResource PosListNameLabel}"
+                                               Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}" />
+                                        <controls:StatusChip Grid.Column="1"
+                                                             Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}"
+                                                             ChipColor="{Binding Status, Converter={StaticResource OutboxStatusColorConverter}}" />
+                                    </Grid>
+                                    <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                        <Label Style="{StaticResource PosInfoLabel}"
+                                               Text="{Binding TimeText, StringFormat='🕒 {0}'}" />
+                                        <Label Style="{StaticResource PosInfoLabel}"
+                                               Text="{Binding Attempts, StringFormat='🔁 試行 {0} 回'}" />
+                                    </FlexLayout>
+                                    <!-- エラーは 1 行で見せ、展開すると全文 -->
+                                    <Label Style="{StaticResource PosDetailLabel}"
+                                           IsVisible="{Binding Error, Converter={StaticResource NotEmptyConverter}}"
+                                           Text="{Binding Error}"
+                                           TextColor="{StaticResource RedDarken1}"
+                                           MaxLines="1">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label"
+                                                         Binding="{Binding IsExpanded}"
+                                                         Value="True">
+                                                <Setter Property="MaxLines" Value="-1" />
+                                                <Setter Property="LineBreakMode" Value="WordWrap" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </VerticalStackLayout>
 
                                 <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
                                 <Button Grid.Row="0" Grid.Column="2"
                                         Style="{StaticResource PosExpandButton}"
-                                        IsVisible="{Binding Error, Converter={StaticResource NotEmptyConverter}}"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type module:SettingViewModel}}, Path=ExpandCommand, x:DataType={x:Type module:SettingViewModel}}"
                                         CommandParameter="{Binding .}"
+                                        IsVisible="{Binding Error, Converter={StaticResource NotEmptyConverter}}"
                                         Text="{Binding IsExpanded, Converter={StaticResource ExpandGlyphConverter}}" />
                                 <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
 
@@ -154,18 +151,18 @@
                   ColumnDefinitions="*,Auto">
                 <Label Grid.Column="0"
                        Style="{StaticResource PosCaptionLabel}"
+                       Text="ログイン後にシフト開設済みなら販売画面を開く"
                        FontSize="15"
                        TextColor="{StaticResource PrimaryTextColor}"
-                       LineBreakMode="WordWrap"
-                       Text="ログイン後にシフト開設済みなら販売画面を開く" />
+                       LineBreakMode="WordWrap" />
                 <Switch Grid.Column="1"
                         IsToggled="{Binding OpenSalesAfterLogin}" />
             </Grid>
             <BoxView Style="{StaticResource PosSubSeparatorBoxView}" />
             <Grid Style="{StaticResource MenuGrid}"
-                  BackgroundColor="White"
+                  ColumnDefinitions="*,*"
                   Padding="16,8"
-                  ColumnDefinitions="*,*">
+                  BackgroundColor="White">
                 <Button Grid.Column="0"
                         Style="{StaticResource PosSelectButton}"
                         Command="{Binding SwitchStaffCommand}"

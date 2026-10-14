@@ -9,8 +9,6 @@ public sealed record ReasonSelectResult(Guid? Id, string Text);
 // 理由の選択 (返品理由・在庫調整理由)。定義済みのタップ、または任意入力
 public sealed partial class ReasonSelectViewModel : AppDialogViewModelBase, IPopupInitialize<ReasonSelectParameter>
 {
-    private readonly IPopupNavigator popupNavigator;
-
     [ObservableProperty]
     public partial string Title { get; set; } = string.Empty;
 
@@ -27,12 +25,10 @@ public sealed partial class ReasonSelectViewModel : AppDialogViewModelBase, IPop
 
     public IObserveCommand CommitCommand { get; }
 
-    public ReasonSelectViewModel(IPopupNavigator popupNavigator)
+    public ReasonSelectViewModel()
     {
-        this.popupNavigator = popupNavigator;
-
-        SelectCommand = MakeAsyncCommand<ReasonItem>(async x => await popupNavigator.CloseAsync(new ReasonSelectResult(x.Id, x.Name)));
-        CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync());
+        SelectCommand = MakeAsyncCommand<ReasonItem>(async x => await CloseAsync(new ReasonSelectResult(x.Id, x.Name)));
+        CloseCommand = MakeAsyncCommand(async () => await CloseAsync());
         CommitCommand = MakeAsyncCommand(CommitAsync);
         // キーボードの Enter でも確定する (キーボードが出ている間はシートの下段ボタンが隠れる)
         Custom = new EntryController(CommitCommand);
@@ -53,6 +49,6 @@ public sealed partial class ReasonSelectViewModel : AppDialogViewModelBase, IPop
             return;
         }
 
-        await popupNavigator.CloseAsync(new ReasonSelectResult(null, Custom.Text.Trim()));
+        await CloseAsync(new ReasonSelectResult(null, Custom.Text.Trim()));
     }
 }

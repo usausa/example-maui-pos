@@ -2,8 +2,8 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
-             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Shift"
              x:Class="Pos.Terminal.Modules.Shift.CashEventView"
              x:DataType="{x:Type module:CashEventViewModel}"
@@ -31,8 +31,8 @@
                         HeightRequest="56"
                         Command="{Binding SelectTypeCommand}"
                         CommandParameter="PaidIn"
-                        ImageSource="{x:Static markup:AppIcons.PaidIn}"
-                        Text="入金">
+                        Text="入金"
+                        ImageSource="{x:Static markup:AppIcons.PaidIn}">
                     <Button.Triggers>
                         <DataTrigger TargetType="Button"
                                      Binding="{Binding Type}"
@@ -48,8 +48,8 @@
                         HeightRequest="56"
                         Command="{Binding SelectTypeCommand}"
                         CommandParameter="PaidOut"
-                        ImageSource="{x:Static markup:AppIcons.PaidOut}"
-                        Text="出金">
+                        Text="出金"
+                        ImageSource="{x:Static markup:AppIcons.PaidOut}">
                     <Button.Triggers>
                         <DataTrigger TargetType="Button"
                                      Binding="{Binding Type}"
@@ -65,8 +65,8 @@
                         HeightRequest="56"
                         Command="{Binding SelectTypeCommand}"
                         CommandParameter="NoSale"
-                        ImageSource="{x:Static markup:AppIcons.NoSale}"
-                        Text="ドロワ開">
+                        Text="ドロワ開"
+                        ImageSource="{x:Static markup:AppIcons.NoSale}">
                     <Button.Triggers>
                         <DataTrigger TargetType="Button"
                                      Binding="{Binding Type}"
@@ -87,8 +87,8 @@
                        Text="💴 金額" />
                 <Button Grid.Column="1"
                         Style="{StaticResource PosFieldValueButton}"
-                        Margin="0"
                         WidthRequest="160"
+                        Margin="0"
                         Command="{Binding InputAmountCommand}"
                         Text="{Binding AmountText}">
                     <Button.Triggers>
@@ -110,8 +110,8 @@
                        Text="📝 理由" />
                 <Button Grid.Column="1"
                         Style="{StaticResource PosFieldValueButton}"
-                        Margin="0"
                         WidthRequest="160"
+                        Margin="0"
                         Command="{Binding SelectReasonCommand}"
                         Text="{Binding ReasonText, Converter={StaticResource EmptyTextConverter}, ConverterParameter='タップして選択'}" />
             </Grid>

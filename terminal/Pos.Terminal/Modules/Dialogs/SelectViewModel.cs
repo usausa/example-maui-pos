@@ -16,10 +16,10 @@ public sealed partial class SelectViewModel : AppDialogViewModelBase, IPopupInit
 
     public IObserveCommand CloseCommand { get; }
 
-    public SelectViewModel(IPopupNavigator popupNavigator)
+    public SelectViewModel()
     {
-        SelectCommand = MakeAsyncCommand<SelectRow>(async x => await popupNavigator.CloseAsync<int?>(x.Index));
-        CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync());
+        SelectCommand = MakeAsyncCommand<SelectRow>(async x => await CloseAsync<int?>(x.Index));
+        CloseCommand = MakeAsyncCommand(async () => await CloseAsync());
     }
 
     public void Initialize(SelectParameter parameter)

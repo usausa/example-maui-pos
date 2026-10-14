@@ -29,18 +29,18 @@
                       RowSpacing="4">
                     <Label Grid.Row="0" Grid.Column="0"
                            Style="{StaticResource PosListNameLabel}"
-                           FontSize="18"
-                           Text="{Binding ReceiptNo}" />
-                    <Label Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                           Text="{Binding ReceiptNo}"
+                           FontSize="18" />
+                    <Label Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
                            Style="{StaticResource PosHeroValueLabel}"
-                           FontSize="28"
                            VerticalOptions="Center"
-                           Text="{Binding TotalText}" />
+                           Text="{Binding TotalText}"
+                           FontSize="28" />
                     <FlexLayout Grid.Row="1" Grid.Column="0"
                                 Style="{StaticResource PosChipFlexLayout}">
                         <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                             ChipColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}"
-                                             Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}">
+                                             Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
+                                             ChipColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}">
                             <controls:StatusChip.Triggers>
                                 <DataTrigger TargetType="controls:StatusChip"
                                              Binding="{Binding IsVoided}"
@@ -51,13 +51,13 @@
                             </controls:StatusChip.Triggers>
                         </controls:StatusChip>
                         <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                             ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}"
-                                             Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}" />
+                                             Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}"
+                                             ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}" />
                     </FlexLayout>
                     <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
                            Style="{StaticResource PosHeroCaptionLabel}"
-                           LineBreakMode="WordWrap"
-                           Text="{Binding HeaderDetail}" />
+                           Text="{Binding HeaderDetail}"
+                           LineBreakMode="WordWrap" />
                 </Grid>
             </Border>
 

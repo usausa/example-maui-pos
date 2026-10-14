@@ -91,10 +91,10 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
         {
             if (await dialog.AskAsync("この明細を削除しますか？", null, "削除"))
             {
-                await popupNavigator.CloseAsync(LineEditResult.Delete);
+                await CloseAsync(LineEditResult.Delete);
             }
         });
-        CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync(LineEditResult.Cancel));
+        CloseCommand = MakeAsyncCommand(async () => await CloseAsync(LineEditResult.Cancel));
         CommitCommand = MakeAsyncCommand(CommitAsync);
         // キーボードの Enter でも確定する (キーボードが出ている間はシートの下段ボタンが隠れる)
         Serial = new EntryController(CommitCommand);
@@ -190,6 +190,6 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
 
         line.Note = Note.Text.TrimToNull();
 
-        await popupNavigator.CloseAsync(LineEditResult.Ok);
+        await CloseAsync(LineEditResult.Ok);
     }
 }

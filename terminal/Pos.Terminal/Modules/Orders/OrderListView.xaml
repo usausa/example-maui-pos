@@ -2,13 +2,12 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
-             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
-             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
-             xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
+             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Orders"
+             xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
              x:Class="Pos.Terminal.Modules.Orders.OrderListView"
              x:DataType="{x:Type module:OrderListViewModel}"
              s:BindingContextResolver.Type="{x:Type module:OrderListViewModel}"
@@ -26,27 +25,27 @@
           RowDefinitions="Auto,Auto,*">
         <!-- 検索 (受注番号 / 宛名 / 電話) -->
         <Grid Grid.Row="0"
-              Padding="8,8,8,0"
               ColumnDefinitions="*,Auto"
+              Padding="8,8,8,0"
               ColumnSpacing="8">
             <Entry Grid.Column="0"
                    Style="{StaticResource PosFieldEntry}"
-                   Margin="0"
                    behaviors:EntryBind.Controller="{Binding Keyword}"
-                   ReturnType="Search"
-                   Placeholder="受注番号 / 宛名 / 電話" />
+                   Margin="0"
+                   Placeholder="受注番号 / 宛名 / 電話"
+                   ReturnType="Search" />
             <Button Grid.Column="1"
                     Style="{StaticResource PosMethodButton}"
                     Margin="0"
                     Command="{Binding SearchCommand}"
-                    ImageSource="{x:Static markup:AppIcons.PosSearch}"
-                    Text="検索" />
+                    Text="検索"
+                    ImageSource="{x:Static markup:AppIcons.PosSearch}" />
         </Grid>
 
         <!-- 絞り込み (状態) と件数 -->
         <Grid Grid.Row="1"
-              Padding="8"
               ColumnDefinitions="*,Auto"
+              Padding="8"
               ColumnSpacing="8">
             <Button Grid.Column="0"
                     Style="{StaticResource PosSelectButton}"
@@ -82,55 +81,52 @@
                                      Style="{StaticResource PosStripBoxView}"
                                      Color="{Binding Status, Converter={StaticResource OrderStatusColorConverter}}" />
 
-                            <effects:SfEffectsView Grid.Row="0" Grid.Column="1"
-                                                   Style="{StaticResource PosRippleView}">
-                                <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                                <effects:SfEffectsView.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:OrderListViewModel}}, Path=SelectCommand, x:DataType={x:Type module:OrderListViewModel}}"
-                                                          CommandParameter="{Binding .}" />
-                                </effects:SfEffectsView.GestureRecognizers>
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <!-- 右端に操作の列がないので右の余白を足す -->
+                            <VerticalStackLayout Grid.Row="0" Grid.Column="1"
+                                                 Style="{StaticResource PosStripBodyStack}"
+                                                 behaviors:TouchOption.ClickCommand="{Binding Source={RelativeSource AncestorType={x:Type module:OrderListViewModel}}, Path=SelectCommand, x:DataType={x:Type module:OrderListViewModel}}"
+                                                 behaviors:TouchOption.ClickCommandParameter="{Binding .}"
+                                                 behaviors:TouchOption.Ripple="True"
+                                                 Padding="12,8,16,8">
                                 <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                                <!-- 右端に操作の列がないので右の余白を足す -->
-                                <VerticalStackLayout Style="{StaticResource PosStripBodyStack}"
-                                                     Padding="12,8,16,8">
-                                    <!-- お客様と金額 -->
-                                    <Grid ColumnDefinitions="*,Auto"
-                                          ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Style="{StaticResource PosListNameLabel}"
-                                               Text="{Binding CustomerName}" />
-                                        <Label Grid.Column="1"
-                                               Style="{StaticResource PosListValueLabel}"
-                                               FontAttributes="Bold"
-                                               Text="{Binding TotalText}" />
-                                    </Grid>
+                                <!-- お客様と金額 -->
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <Label Grid.Column="0"
+                                           Style="{StaticResource PosListNameLabel}"
+                                           Text="{Binding CustomerName}" />
+                                    <Label Grid.Column="1"
+                                           Style="{StaticResource PosListValueLabel}"
+                                           Text="{Binding TotalText}"
+                                           FontAttributes="Bold" />
+                                </Grid>
 
-                                    <!-- 状態・種別・受注番号 -->
-                                    <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                        <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                             ChipColor="{Binding Status, Converter={StaticResource OrderStatusColorConverter}}"
-                                                             Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}" />
-                                        <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                             ChipColor="{Binding Type, Converter={StaticResource OrderTypeColorConverter}}"
-                                                             Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}" />
-                                        <Label Style="{StaticResource PosCodeLabel}"
-                                               Text="{Binding OrderNo}" />
-                                    </FlexLayout>
+                                <!-- 状態・種別・受注番号 -->
+                                <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                         Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}"
+                                                         ChipColor="{Binding Status, Converter={StaticResource OrderStatusColorConverter}}" />
+                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                         Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
+                                                         ChipColor="{Binding Type, Converter={StaticResource OrderTypeColorConverter}}" />
+                                    <Label Style="{StaticResource PosCodeLabel}"
+                                           Text="{Binding OrderNo}" />
+                                </FlexLayout>
 
-                                    <!-- 商品と希望日 -->
-                                    <Grid ColumnDefinitions="*,Auto"
-                                          ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Style="{StaticResource PosCaptionLabel}"
-                                               LineBreakMode="TailTruncation"
-                                               Text="{Binding Summary}" />
-                                        <Label Grid.Column="1"
-                                               Style="{StaticResource PosCaptionLabel}"
-                                               IsVisible="{Binding HasRequestedDate}"
-                                               Text="{Binding RequestedDateText}" />
-                                    </Grid>
-                                </VerticalStackLayout>
-                            </effects:SfEffectsView>
+                                <!-- 商品と希望日 -->
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <Label Grid.Column="0"
+                                           Style="{StaticResource PosCaptionLabel}"
+                                           Text="{Binding Summary}"
+                                           LineBreakMode="TailTruncation" />
+                                    <Label Grid.Column="1"
+                                           Style="{StaticResource PosCaptionLabel}"
+                                           IsVisible="{Binding HasRequestedDate}"
+                                           Text="{Binding RequestedDateText}" />
+                                </Grid>
+                            </VerticalStackLayout>
 
                             <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                      Style="{StaticResource PosRowSeparator}" />

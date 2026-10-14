@@ -2,11 +2,10 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
-             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
              xmlns:fonts="clr-namespace:Fonts"
-             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
              x:Class="Pos.Terminal.Modules.Sales.CustomerSelectView"
              x:DataType="{x:Type module:CustomerSelectViewModel}"
@@ -24,15 +23,15 @@
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,Auto,*">
         <Grid Grid.Row="0"
-              Padding="8"
               ColumnDefinitions="*,Auto,Auto"
+              Padding="8"
               ColumnSpacing="8">
             <Entry Grid.Column="0"
                    Style="{StaticResource PosFieldEntry}"
-                   Margin="0"
                    behaviors:EntryBind.Controller="{Binding Keyword}"
-                   ReturnType="Search"
-                   Placeholder="会員番号 / 電話 / 名前" />
+                   Margin="0"
+                   Placeholder="会員番号 / 電話 / 名前"
+                   ReturnType="Search" />
             <!-- 番号は電卓で入力する (キーボードに依存しない) -->
             <Button Grid.Column="1"
                     Style="{StaticResource PosMethodIconButton}"
@@ -43,8 +42,8 @@
                     Style="{StaticResource PosMethodButton}"
                     Margin="0"
                     Command="{Binding SearchCommand}"
-                    ImageSource="{x:Static markup:AppIcons.PosSearch}"
-                    Text="検索" />
+                    Text="検索"
+                    ImageSource="{x:Static markup:AppIcons.PosSearch}" />
         </Grid>
 
         <Label Grid.Row="1"
@@ -70,40 +69,37 @@
                 <DataTemplate x:DataType="{x:Type module:CustomerItem}">
                     <Grid Style="{StaticResource PosStripRowGrid}"
                           RowDefinitions="*,Auto">
-                        <effects:SfEffectsView Grid.Row="0"
-                                               Style="{StaticResource PosRippleView}">
-                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                            <effects:SfEffectsView.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:CustomerSelectViewModel}}, Path=SelectCommand, x:DataType={x:Type module:CustomerSelectViewModel}}"
-                                                      CommandParameter="{Binding .}" />
-                            </effects:SfEffectsView.GestureRecognizers>
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Grid Grid.Row="0"
+                              Style="{StaticResource PosAvatarRowGrid}"
+                              ColumnDefinitions="Auto,*,Auto"
+                              behaviors:TouchOption.ClickCommand="{Binding Source={RelativeSource AncestorType={x:Type module:CustomerSelectViewModel}}, Path=SelectCommand, x:DataType={x:Type module:CustomerSelectViewModel}}"
+                              behaviors:TouchOption.ClickCommandParameter="{Binding .}"
+                              behaviors:TouchOption.Ripple="True">
                             <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                            <Grid Style="{StaticResource PosAvatarRowGrid}"
-                                  ColumnDefinitions="Auto,*,Auto">
-                                <Border Grid.Column="0"
-                                        Style="{StaticResource PosAvatarBorder}"
-                                        BackgroundColor="{Binding Code, Converter={StaticResource AvatarColorConverter}}">
-                                    <Label Style="{StaticResource PosAvatarLabel}"
-                                           Text="{Binding Name, Converter={StaticResource InitialConverter}}" />
-                                </Border>
-                                <VerticalStackLayout Grid.Column="1"
-                                                     Style="{StaticResource PosAvatarTextStack}">
-                                    <Label Style="{StaticResource PosListNameLabel}"
-                                           Text="{Binding Name}" />
-                                    <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                        <Label Style="{StaticResource PosCodeLabel}"
-                                               Text="{Binding Code}" />
-                                        <Label Style="{StaticResource PosInfoLabel}"
-                                               IsVisible="{Binding Phone, Converter={StaticResource NotEmptyConverter}}"
-                                               Text="{Binding Phone, StringFormat='📞 {0}'}" />
-                                    </FlexLayout>
-                                </VerticalStackLayout>
-                                <Label Grid.Column="2"
-                                       Style="{StaticResource PosListValueLabel}"
-                                       FontAttributes="Bold"
-                                       Text="{Binding PointsText}" />
-                            </Grid>
-                        </effects:SfEffectsView>
+                            <Border Grid.Column="0"
+                                    Style="{StaticResource PosAvatarBorder}"
+                                    BackgroundColor="{Binding Code, Converter={StaticResource AvatarColorConverter}}">
+                                <Label Style="{StaticResource PosAvatarLabel}"
+                                       Text="{Binding Name, Converter={StaticResource InitialConverter}}" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1"
+                                                 Style="{StaticResource PosAvatarTextStack}">
+                                <Label Style="{StaticResource PosListNameLabel}"
+                                       Text="{Binding Name}" />
+                                <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                    <Label Style="{StaticResource PosCodeLabel}"
+                                           Text="{Binding Code}" />
+                                    <Label Style="{StaticResource PosInfoLabel}"
+                                           IsVisible="{Binding Phone, Converter={StaticResource NotEmptyConverter}}"
+                                           Text="{Binding Phone, StringFormat='📞 {0}'}" />
+                                </FlexLayout>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2"
+                                   Style="{StaticResource PosListValueLabel}"
+                                   Text="{Binding PointsText}"
+                                   FontAttributes="Bold" />
+                        </Grid>
                         <BoxView Grid.Row="1"
                                  Style="{StaticResource PosRowSeparator}" />
                     </Grid>

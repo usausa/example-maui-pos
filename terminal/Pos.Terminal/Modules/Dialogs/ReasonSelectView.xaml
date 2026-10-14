@@ -14,8 +14,8 @@
           BackgroundColor="White">
         <Label Grid.Row="0"
                Style="{StaticResource DialogTitleLabel}"
-               FontSize="24"
-               Text="{Binding Title}" />
+               Text="{Binding Title}"
+               FontSize="24" />
 
         <VerticalStackLayout Grid.Row="1"
                              Style="{StaticResource FillVerticalStack}"
@@ -43,8 +43,8 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="その他 (入力)" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   Margin="16,0,16,12"
                    behaviors:EntryBind.Controller="{Binding Custom}"
+                   Margin="16,0,16,12"
                    ReturnType="Done" />
         </VerticalStackLayout>
 
@@ -57,8 +57,8 @@
                     Text="✕" />
             <Button Grid.Column="1"
                     Style="{StaticResource InputConfirmButton}"
-                    IsEnabled="{Binding AllowCustom}"
                     Command="{Binding CommitCommand}"
+                    IsEnabled="{Binding AllowCustom}"
                     Text="✔" />
         </Grid>
     </Grid>

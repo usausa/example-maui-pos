@@ -20,8 +20,6 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
 
     private readonly IDialog dialog;
 
-    private readonly IPopupNavigator popupNavigator;
-
     private readonly PinService pins;
 
     private decimal baseAmount;
@@ -58,7 +56,6 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
         PinService pins)
     {
         this.dialog = dialog;
-        this.popupNavigator = popupNavigator;
         this.pins = pins;
 
         SelectCommand = MakeAsyncCommand<DiscountItem>(SelectAsync);
@@ -72,7 +69,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
                 ReasonText = reason.Text;
             }
         });
-        CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync());
+        CloseCommand = MakeAsyncCommand(async () => await CloseAsync());
         CommitCommand = MakeAsyncCommand(CommitAsync);
     }
 
@@ -99,7 +96,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
             }
         }
 
-        await popupNavigator.CloseAsync(new CartDiscount
+        await CloseAsync(new CartDiscount
         {
             Id = Guid.CreateVersion7(),
             DiscountId = definition.Id,
@@ -130,7 +127,7 @@ public sealed partial class DiscountViewModel : AppDialogViewModelBase, IPopupIn
             return;
         }
 
-        await popupNavigator.CloseAsync(new CartDiscount
+        await CloseAsync(new CartDiscount
         {
             Id = Guid.CreateVersion7(),
             Name = IsAmount ? $"値引 {ViewHelper.Yen(value)}" : $"値引 {value:0.#}%",

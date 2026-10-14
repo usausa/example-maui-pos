@@ -45,8 +45,8 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="メール" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   Keyboard="Email"
-                   behaviors:EntryBind.Controller="{Binding Email}" />
+                   behaviors:EntryBind.Controller="{Binding Email}"
+                   Keyboard="Email" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="郵便番号" />
@@ -68,8 +68,8 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="備考" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   Margin="16,0,16,16"
-                   behaviors:EntryBind.Controller="{Binding Note}" />
+                   behaviors:EntryBind.Controller="{Binding Note}"
+                   Margin="16,0,16,16" />
         </VerticalStackLayout>
     </ScrollView>
 

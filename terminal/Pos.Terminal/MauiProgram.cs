@@ -35,8 +35,6 @@ using Smart.Data.Accessor.Attributes;
 
 using Smart.Mvvm.Resolver;
 
-using Syncfusion.Maui.Toolkit.Hosting;
-
 public static partial class MauiProgram
 {
     private const string ModulesNamespace = "Pos.Terminal.Modules";
@@ -51,7 +49,6 @@ public static partial class MauiProgram
             .ConfigureEssentials(ConfigureEssentials)
             .ConfigureLogging()
             .ConfigureGlobalSettings()
-            .ConfigureSyncfusionToolkit()
             .UseSkiaSharp()
             .UseBarcodeScanning()
             .UseMauiCommunityToolkit(ConfigureMauiCommunityToolkit)
@@ -239,6 +236,7 @@ public static partial class MauiProgram
             c.AutoRegister(DialogSource());
             c.OptionFactory = static (_, id) => CreatePopupOptions(id is DialogId.Select);
         });
+        services.AddComponentsPopupPlugin<PopupActivationPlugin>();
         services.AddComponentsScreen();
         services.AddComponentsLocation();
         services.AddComponentsSpeech();
@@ -250,7 +248,7 @@ public static partial class MauiProgram
         // Navigator
         services.AddNavigator(static (_, config) =>
         {
-            config.UseMauiNavigationProvider();
+            config.UseMauiNavigationProvider(static options => options.RestoreFocus = false);
             config.AddHierarchyEffectPlugin();
             config.AddPlugin<NavigationFeedbackPlugin>();
 #if DEBUG

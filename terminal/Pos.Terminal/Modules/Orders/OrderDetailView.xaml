@@ -29,22 +29,22 @@
                       RowSpacing="4">
                     <Label Grid.Row="0" Grid.Column="0"
                            Style="{StaticResource PosListNameLabel}"
+                           Text="{Binding CustomerName}"
                            FontSize="18"
-                           LineBreakMode="WordWrap"
-                           Text="{Binding CustomerName}" />
-                    <Label Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                           LineBreakMode="WordWrap" />
+                    <Label Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
                            Style="{StaticResource PosHeroValueLabel}"
-                           FontSize="28"
                            VerticalOptions="Center"
-                           Text="{Binding TotalText}" />
+                           Text="{Binding TotalText}"
+                           FontSize="28" />
                     <FlexLayout Grid.Row="1" Grid.Column="0"
                                 Style="{StaticResource PosChipFlexLayout}">
                         <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                             ChipColor="{Binding Status, Converter={StaticResource OrderStatusColorConverter}}"
-                                             Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}" />
+                                             Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}"
+                                             ChipColor="{Binding Status, Converter={StaticResource OrderStatusColorConverter}}" />
                         <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                             ChipColor="{Binding Type, Converter={StaticResource OrderTypeColorConverter}}"
-                                             Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}" />
+                                             Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
+                                             ChipColor="{Binding Type, Converter={StaticResource OrderTypeColorConverter}}" />
                         <Label Style="{StaticResource PosCodeLabel}"
                                Text="{Binding OrderNo}" />
                     </FlexLayout>

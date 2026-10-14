@@ -2,14 +2,13 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                     xmlns:s="http://smart/maui"
-                    xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
                     xmlns:fonts="clr-namespace:Fonts"
                     xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
                     xmlns:controls="clr-namespace:Pos.Terminal.Controls"
                     xmlns:converters="clr-namespace:Pos.Terminal.Converters"
                     xmlns:models="clr-namespace:Pos.Terminal.Models"
-                    xmlns:enums="clr-namespace:Pos.Domain.Enums;assembly=Pos.Domain"
-                    xmlns:entity="clr-namespace:Pos.Terminal.Models.Entity">
+                    xmlns:entity="clr-namespace:Pos.Terminal.Models.Entity"
+                    xmlns:enums="clr-namespace:Pos.Domain.Enums;assembly=Pos.Domain">
 
     <!-- ================================================================================ -->
     <!-- Value -->
@@ -72,33 +71,42 @@
     <s:MapToColorConverter x:Key="TransactionTypeColorConverter"
                            DefaultValue="{StaticResource GrayDefault}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static enums:TransactionType.Sale}" Value="{StaticResource BlueDarken1}" />
-            <s:MapToColorEntry Key="{x:Static enums:TransactionType.Return}" Value="{StaticResource OrangeDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:TransactionType.Sale}"
+                               Value="{StaticResource BlueDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:TransactionType.Return}"
+                               Value="{StaticResource OrangeDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
     <s:MapToColorConverter x:Key="OutboxStatusColorConverter"
                            DefaultValue="{StaticResource GrayDefault}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Pending}" Value="{StaticResource OrangeDarken1}" />
-            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Failed}" Value="{StaticResource RedDarken1}" />
-            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Sent}" Value="{StaticResource GreenDarken1}" />
+            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Pending}"
+                               Value="{StaticResource OrangeDarken1}" />
+            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Failed}"
+                               Value="{StaticResource RedDarken1}" />
+            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Sent}"
+                               Value="{StaticResource GreenDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
     <s:MapToColorConverter x:Key="OrderStatusColorConverter"
                            DefaultValue="{StaticResource GrayDefault}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Ordered}" Value="{StaticResource BlueDarken1}" />
-            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Arrived}" Value="{StaticResource OrangeDarken1}" />
-            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Completed}" Value="{StaticResource GreenDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Ordered}"
+                               Value="{StaticResource BlueDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Arrived}"
+                               Value="{StaticResource OrangeDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Completed}"
+                               Value="{StaticResource GreenDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
     <s:MapToColorConverter x:Key="OrderTypeColorConverter"
                            DefaultValue="{StaticResource IndigoDarken1}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static enums:OrderType.Hold}" Value="{StaticResource TealDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:OrderType.Hold}"
+                               Value="{StaticResource TealDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
@@ -107,7 +115,8 @@
     <s:MapToColorConverter x:Key="TransactionRowColorConverter"
                            DefaultValue="White">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static enums:TransactionType.Return}" Value="{StaticResource OrangeLighten5}" />
+            <s:MapToColorEntry Key="{x:Static enums:TransactionType.Return}"
+                               Value="{StaticResource OrangeLighten5}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
@@ -115,36 +124,44 @@
     <s:MapToColorConverter x:Key="OrderRowColorConverter"
                            DefaultValue="White">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Arrived}" Value="{StaticResource OrangeLighten5}" />
+            <s:MapToColorEntry Key="{x:Static enums:OrderStatus.Arrived}"
+                               Value="{StaticResource OrangeLighten5}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
     <s:MapToColorConverter x:Key="OutboxRowColorConverter"
                            DefaultValue="White">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Failed}" Value="{StaticResource RedLighten5}" />
+            <s:MapToColorEntry Key="{x:Static entity:OutboxStatus.Failed}"
+                               Value="{StaticResource RedLighten5}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
     <s:MapToColorConverter x:Key="StockTypeColorConverter"
                            DefaultValue="{StaticResource BlueGrayLighten2}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}" Value="{StaticResource TealDarken1}" />
-            <s:MapToColorEntry Key="{x:Static enums:InventoryChangeType.Adjustment}" Value="{StaticResource AmberDarken2}" />
+            <s:MapToColorEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}"
+                               Value="{StaticResource TealDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:InventoryChangeType.Adjustment}"
+                               Value="{StaticResource AmberDarken2}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
     <s:MapToTextConverter x:Key="StockTypeTextConverter">
         <s:MapToTextConverter.Entries>
-            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}" Value="棚卸" />
-            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}" Value="調整" />
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}"
+                              Value="棚卸" />
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}"
+                              Value="調整" />
         </s:MapToTextConverter.Entries>
     </s:MapToTextConverter>
 
     <s:MapToTextConverter x:Key="StockTypeIconConverter">
         <s:MapToTextConverter.Entries>
-            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}" Value="{x:Static fonts:MaterialIcons.Assignment}" />
-            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}" Value="{x:Static fonts:MaterialIcons.Build}" />
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}"
+                              Value="{x:Static fonts:MaterialIcons.Assignment}" />
+            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}"
+                              Value="{x:Static fonts:MaterialIcons.Build}" />
         </s:MapToTextConverter.Entries>
     </s:MapToTextConverter>
 
@@ -153,24 +170,30 @@
     <s:MapToColorConverter x:Key="ReceivingKindColorConverter"
                            DefaultValue="{StaticResource GreenDarken1}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static models:ReceivingKind.Transfer}" Value="{StaticResource IndigoDarken1}" />
+            <s:MapToColorEntry Key="{x:Static models:ReceivingKind.Transfer}"
+                               Value="{StaticResource IndigoDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
     <s:MapToColorConverter x:Key="ReceivingLineColorConverter"
                            DefaultValue="{StaticResource BlueGrayLighten2}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Match}" Value="{StaticResource GreenDarken1}" />
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Shortage}" Value="{StaticResource OrangeDarken1}" />
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Excess}" Value="{StaticResource RedDarken1}" />
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Match}"
+                               Value="{StaticResource GreenDarken1}" />
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Shortage}"
+                               Value="{StaticResource OrangeDarken1}" />
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Excess}"
+                               Value="{StaticResource RedDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
     <s:MapToColorConverter x:Key="ReceivingRowColorConverter"
                            DefaultValue="White">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Shortage}" Value="{StaticResource OrangeLighten5}" />
-            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Excess}" Value="{StaticResource RedLighten5}" />
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Shortage}"
+                               Value="{StaticResource OrangeLighten5}" />
+            <s:MapToColorEntry Key="{x:Static models:ReceivingLineState.Excess}"
+                               Value="{StaticResource RedLighten5}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
@@ -189,8 +212,10 @@
     <s:MapToColorConverter x:Key="StaffRoleColorConverter"
                            DefaultValue="{StaticResource BlueGrayLighten1}">
         <s:MapToColorConverter.Entries>
-            <s:MapToColorEntry Key="{x:Static enums:StaffRole.Manager}" Value="{StaticResource BlueDarken1}" />
-            <s:MapToColorEntry Key="{x:Static enums:StaffRole.Admin}" Value="{StaticResource PurpleDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:StaffRole.Manager}"
+                               Value="{StaticResource BlueDarken1}" />
+            <s:MapToColorEntry Key="{x:Static enums:StaffRole.Admin}"
+                               Value="{StaticResource PurpleDarken1}" />
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
@@ -1359,10 +1384,10 @@
         <Setter Property="FontSize" Value="24" />
         <Setter Property="Shadow">
             <Setter.Value>
-                <Shadow Brush="Black"
-                        Offset="0,-2"
-                        Radius="8"
-                        Opacity="0.25" />
+                <Shadow Offset="0,-2"
+                        Brush="Black"
+                        Opacity="0.25"
+                        Radius="8" />
             </Setter.Value>
         </Setter>
     </Style>
@@ -1809,19 +1834,12 @@
         <Setter Property="FontSize" Value="14" />
     </Style>
 
-    <!-- タップできる行の波紋 -->
-
-    <Style x:Key="PosRippleView"
-           TargetType="effects:SfEffectsView">
-        <Setter Property="TouchDownEffects" Value="Ripple" />
-    </Style>
-
     <!-- 見出し付きの集計・詳細 (SummarySection) を見出しと白い面で並べる。表示時に浮き上がらせる -->
 
     <DataTemplate x:Key="PosSectionTemplate"
                   x:DataType="{x:Type models:SummarySection}">
-        <controls:SectionPanel Title="{Binding Title}"
-                               behaviors:AnimationOption.EnterAnimation="FadeUp">
+        <controls:SectionPanel behaviors:AnimationOption.EnterAnimation="FadeUp"
+                               Title="{Binding Title}">
             <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="{x:Type models:SummaryRow}">
@@ -1829,8 +1847,8 @@
                               ColumnDefinitions="*,Auto">
                             <Label Grid.Column="0"
                                    Style="{StaticResource PosPanelRowLabel}"
-                                   LineBreakMode="WordWrap"
-                                   Text="{Binding Label}" />
+                                   Text="{Binding Label}"
+                                   LineBreakMode="WordWrap" />
                             <Label Grid.Column="1"
                                    Style="{StaticResource PosPanelRowValueLabel}"
                                    Text="{Binding Value}" />

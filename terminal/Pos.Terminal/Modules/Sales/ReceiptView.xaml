@@ -22,16 +22,15 @@
         <!-- 電子レシート QR (レシート番号) -->
         <VerticalStackLayout Grid.Row="0"
                              Style="{StaticResource FillVerticalStack}"
-                             BackgroundColor="White"
-                             IsVisible="{Binding QrVisible}">
-            <Image HorizontalOptions="Center"
-                   WidthRequest="200"
-                   HeightRequest="200"
+                             IsVisible="{Binding QrVisible}"
+                             BackgroundColor="White">
+            <Image WidthRequest="200" HeightRequest="200"
                    Margin="8"
+                   HorizontalOptions="Center"
                    Source="{Binding QrImage}" />
             <Label Style="{StaticResource PosCaptionLabel}"
-                   HorizontalTextAlignment="Center"
                    Padding="0,0,0,8"
+                   HorizontalTextAlignment="Center"
                    Text="{Binding ReceiptNo}" />
             <BoxView Style="{StaticResource PosSeparatorBoxView}" />
         </VerticalStackLayout>
@@ -39,9 +38,9 @@
         <!-- プレビュー (画像) -->
         <ScrollView Grid.Row="1">
             <Image Margin="8"
-                   Aspect="AspectFit"
                    HorizontalOptions="Fill"
-                   Source="{Binding ReceiptImage}" />
+                   Source="{Binding ReceiptImage}"
+                   Aspect="AspectFit" />
         </ScrollView>
     </Grid>
 

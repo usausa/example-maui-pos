@@ -15,9 +15,9 @@
           BackgroundColor="White">
         <Label Grid.Row="0"
                Style="{StaticResource DialogTitleLabel}"
+               Text="{Binding Name}"
                FontSize="20"
-               LineBreakMode="TailTruncation"
-               Text="{Binding Name}" />
+               LineBreakMode="TailTruncation" />
 
         <!-- 数量 -->
         <Grid Grid.Row="1"
@@ -29,9 +29,9 @@
                    Text="数量" />
             <Button Grid.Column="1"
                     Style="{StaticResource PosQuantityButton}"
-                    FontFamily=""
                     Command="{Binding DecrementCommand}"
-                    Text="-" />
+                    Text="-"
+                    FontFamily="" />
             <Button Grid.Column="2"
                     Style="{StaticResource PosFieldValueButton}"
                     Margin="4,0"
@@ -39,9 +39,9 @@
                     Text="{Binding QuantityText}" />
             <Button Grid.Column="3"
                     Style="{StaticResource PosQuantityButton}"
-                    FontFamily=""
                     Command="{Binding IncrementCommand}"
-                    Text="+" />
+                    Text="+"
+                    FontFamily="" />
         </Grid>
         <BoxView Grid.Row="1"
                  Style="{StaticResource PosSubSeparatorBoxView}"
@@ -58,8 +58,8 @@
             <Button Grid.Column="1"
                     Style="{StaticResource PosFieldValueButton}"
                     Margin="4,0"
-                    IsEnabled="{Binding CanOverridePrice}"
                     Command="{Binding InputPriceCommand}"
+                    IsEnabled="{Binding CanOverridePrice}"
                     Text="{Binding UnitPriceText}" />
         </Grid>
         <BoxView Grid.Row="2"
@@ -81,11 +81,11 @@
                     Text="{Binding DiscountText}" />
             <Button Grid.Column="2"
                     Style="{StaticResource PosQuantityButton}"
-                    FontFamily=""
-                    BackgroundColor="{StaticResource GrayLighten1}"
-                    IsVisible="{Binding HasDiscount}"
                     Command="{Binding ClearDiscountCommand}"
-                    Text="✕" />
+                    IsVisible="{Binding HasDiscount}"
+                    Text="✕"
+                    FontFamily=""
+                    BackgroundColor="{StaticResource GrayLighten1}" />
         </Grid>
         <BoxView Grid.Row="3"
                  Style="{StaticResource PosSubSeparatorBoxView}"
@@ -102,8 +102,8 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="備考" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   Margin="16,0,16,12"
-                   behaviors:EntryBind.Controller="{Binding Note}" />
+                   behaviors:EntryBind.Controller="{Binding Note}"
+                   Margin="16,0,16,12" />
         </VerticalStackLayout>
 
         <Grid Grid.Row="5"
@@ -111,11 +111,11 @@
               ColumnDefinitions="*,*,*">
             <Button Grid.Column="0"
                     Style="{StaticResource InputDeleteButton}"
-                    BackgroundColor="{StaticResource RedDefault}"
                     Command="{Binding DeleteCommand}"
+                    Text="{x:Static fonts:MaterialIcons.Delete}"
                     FontFamily="{x:Static fonts:MaterialIcons.FontFamily}"
                     FontSize="28"
-                    Text="{x:Static fonts:MaterialIcons.Delete}" />
+                    BackgroundColor="{StaticResource RedDefault}" />
             <Button Grid.Column="1"
                     Style="{StaticResource InputCancelButton}"
                     Command="{Binding CloseCommand}"

@@ -51,8 +51,8 @@
                        Text="💴 釣銭準備金" />
                 <Button Grid.Column="1"
                         Style="{StaticResource PosFieldValueButton}"
-                        Margin="0"
                         WidthRequest="160"
+                        Margin="0"
                         Command="{Binding InputCashCommand}"
                         Text="{Binding OpeningCashText}" />
             </Grid>

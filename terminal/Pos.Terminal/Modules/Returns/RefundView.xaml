@@ -21,9 +21,9 @@
           RowDefinitions="Auto,Auto,*">
         <Grid Grid.Row="0"
               Style="{StaticResource PosValueRowGrid}"
-              Padding="16,8"
               RowDefinitions="Auto,Auto,Auto"
-              ColumnDefinitions="*,Auto">
+              ColumnDefinitions="*,Auto"
+              Padding="16,8">
             <Label Grid.Row="0" Grid.Column="0"
                    Style="{StaticResource PosNameLabel}"
                    Text="返金合計" />
@@ -35,15 +35,15 @@
                    Text="ポイント返還" />
             <Label Grid.Row="1" Grid.Column="1"
                    Style="{StaticResource PosValueLabel}"
-                   FontSize="16"
-                   Text="{Binding PointsText}" />
+                   Text="{Binding PointsText}"
+                   FontSize="16" />
             <Label Grid.Row="2" Grid.Column="0"
                    Style="{StaticResource PosNameLabel}"
                    Text="返金額" />
             <Label Grid.Row="2" Grid.Column="1"
                    Style="{StaticResource PosLargeValueLabel}"
-                   TextColor="{StaticResource RedDefault}"
-                   Text="{Binding RefundText}" />
+                   Text="{Binding RefundText}"
+                   TextColor="{StaticResource RedDefault}" />
         </Grid>
 
         <Label Grid.Row="1"
@@ -52,8 +52,8 @@
 
         <VerticalStackLayout Grid.Row="2"
                              Style="{StaticResource FillVerticalStack}"
-                             BackgroundColor="White"
-                             BindableLayout.ItemsSource="{Binding Methods}">
+                             BindableLayout.ItemsSource="{Binding Methods}"
+                             BackgroundColor="White">
             <BindableLayout.ItemTemplate>
                 <DataTemplate x:DataType="{x:Type module:RefundMethodItem}">
                     <Grid Style="{StaticResource PosListRowGrid}"
@@ -73,8 +73,8 @@
                         <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
                         <Label Grid.Column="0"
                                Style="{StaticResource PosCaptionLabel}"
-                               TextColor="{StaticResource BlueDarken2}"
-                               Text="{Binding IsSelected, Converter={StaticResource SelectedMarkConverter}}" />
+                               Text="{Binding IsSelected, Converter={StaticResource SelectedMarkConverter}}"
+                               TextColor="{StaticResource BlueDarken2}" />
                         <Label Grid.Column="1"
                                Style="{StaticResource PosListNameLabel}"
                                Margin="8,0,0,0"

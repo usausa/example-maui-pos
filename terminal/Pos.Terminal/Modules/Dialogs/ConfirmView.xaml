@@ -13,9 +13,9 @@
           BackgroundColor="White">
         <Label Grid.Row="0"
                Style="{StaticResource DialogTitleLabel}"
-               FontSize="24"
                IsVisible="{Binding HasTitle}"
-               Text="{Binding Title}" />
+               Text="{Binding Title}"
+               FontSize="24" />
 
         <Label Grid.Row="1"
                Style="{StaticResource DialogMessageLabel}"

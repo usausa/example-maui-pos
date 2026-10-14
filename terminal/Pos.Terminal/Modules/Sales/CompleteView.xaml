@@ -28,19 +28,19 @@
                     <VerticalStackLayout Spacing="6">
                         <Label Style="{StaticResource PosHeroCaptionLabel}"
                                HorizontalTextAlignment="Center"
+                               Text="{Binding Message}"
                                FontSize="20"
-                               TextColor="{StaticResource PrimaryTextColor}"
-                               Text="{Binding Message}" />
+                               TextColor="{StaticResource PrimaryTextColor}" />
                         <Label Style="{StaticResource PosHeroCaptionLabel}"
                                HorizontalTextAlignment="Center"
-                               FontSize="18"
-                               Text="{Binding ChangeCaption}" />
+                               Text="{Binding ChangeCaption}"
+                               FontSize="18" />
                         <Label Style="{StaticResource PosHeroValueLabel}"
-                               HorizontalTextAlignment="Center"
-                               FontSize="56"
                                behaviors:LabelOption.CountUpDuration="450"
                                behaviors:LabelOption.CountUpFormat="{}{0:¥#,##0}"
-                               behaviors:LabelOption.CountUpValue="{Binding ChangeValue}" />
+                               behaviors:LabelOption.CountUpValue="{Binding ChangeValue}"
+                               HorizontalTextAlignment="Center"
+                               FontSize="56" />
                     </VerticalStackLayout>
                 </Border>
                 <BoxView Style="{StaticResource PosRowSeparator}"
@@ -66,17 +66,17 @@
             </VerticalStackLayout>
 
             <!-- ポイント (会員のみ) とレシート番号 -->
-            <VerticalStackLayout Padding="16,12"
-                                 Spacing="4"
-                                 behaviors:AnimationOption.EnterAnimation="FadeUp"
-                                 behaviors:AnimationOption.EnterDelay="120">
+            <VerticalStackLayout behaviors:AnimationOption.EnterAnimation="FadeUp"
+                                 behaviors:AnimationOption.EnterDelay="120"
+                                 Padding="16,12"
+                                 Spacing="4">
                 <Label Style="{StaticResource PosCaptionLabel}"
                        HorizontalTextAlignment="Center"
+                       IsVisible="{Binding PointsText, Converter={StaticResource NotEmptyConverter}}"
+                       Text="{Binding PointsText}"
                        FontSize="16"
                        TextColor="{StaticResource BlueDarken2}"
-                       LineBreakMode="WordWrap"
-                       IsVisible="{Binding PointsText, Converter={StaticResource NotEmptyConverter}}"
-                       Text="{Binding PointsText}" />
+                       LineBreakMode="WordWrap" />
                 <Label Style="{StaticResource PosCaptionLabel}"
                        HorizontalTextAlignment="Center"
                        Text="{Binding ReceiptNoText}" />

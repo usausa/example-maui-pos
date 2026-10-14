@@ -30,14 +30,11 @@
 
         <!-- 読み取り枠 (QR は正方形) -->
         <Border Grid.Row="0"
-                HeightRequest="220"
-                WidthRequest="220"
-                HorizontalOptions="Center"
+                WidthRequest="220" HeightRequest="220"
+                HorizontalOptions="Center" VerticalOptions="Center"
                 InputTransparent="True"
                 Stroke="{StaticResource BlueLighten4}"
-                StrokeShape="RoundRectangle 8"
-                StrokeThickness="2"
-                VerticalOptions="Center" />
+                StrokeThickness="2" StrokeShape="RoundRectangle 8" />
 
         <!-- 読めない・登録できないときの知らせ -->
         <Label Grid.Row="1"
@@ -55,8 +52,8 @@
                    Text="サーバ URL" />
             <Entry Style="{StaticResource PosFieldEntry}"
                    behaviors:EntryBind.Controller="{Binding ApiEndPoint}"
-                   Keyboard="Url"
-                   Placeholder="http://server:8080/" />
+                   Placeholder="http://server:8080/"
+                   Keyboard="Url" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="ペアリングコード" />

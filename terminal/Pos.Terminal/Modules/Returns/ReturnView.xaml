@@ -46,8 +46,8 @@
                            Text="{Binding ReceiptNo}" />
                     <Label Grid.Row="0" Grid.Column="1"
                            Style="{StaticResource PosListValueLabel}"
-                           FontSize="20"
-                           Text="{Binding TotalText}" />
+                           Text="{Binding TotalText}"
+                           FontSize="20" />
                     <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                            Style="{StaticResource PosCaptionLabel}"
                            Text="{Binding Detail}" />
@@ -55,19 +55,19 @@
                 <Label Style="{StaticResource PosSectionLabel}"
                        Text="🛒 明細" />
                 <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
-                                     BackgroundColor="White"
-                                     BindableLayout.ItemsSource="{Binding Rows}">
+                                     BindableLayout.ItemsSource="{Binding Rows}"
+                                     BackgroundColor="White">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="{x:Type models:SummaryRow}">
                             <Grid Style="{StaticResource PosListRowGrid}"
-                                  Padding="16,6"
-                                  ColumnDefinitions="*,Auto">
+                                  ColumnDefinitions="*,Auto"
+                                  Padding="16,6">
                                 <Label Grid.Column="0"
                                        Style="{StaticResource PosCaptionLabel}"
+                                       Text="{Binding Label}"
                                        FontSize="15"
                                        TextColor="{StaticResource PrimaryTextColor}"
-                                       LineBreakMode="WordWrap"
-                                       Text="{Binding Label}" />
+                                       LineBreakMode="WordWrap" />
                                 <Label Grid.Column="1"
                                        Style="{StaticResource PosListValueLabel}"
                                        Text="{Binding Value}" />
@@ -80,8 +80,8 @@
 
         <Button Grid.Row="2"
                 Style="{StaticResource PosExecuteButton}"
-                IsVisible="{Binding CanProceed}"
                 Command="{Binding NextCommand}"
+                IsVisible="{Binding CanProceed}"
                 Text="  返品する明細を選ぶ ›" />
     </Grid>
 

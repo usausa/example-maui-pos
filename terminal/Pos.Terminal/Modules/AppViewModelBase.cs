@@ -1,10 +1,6 @@
 namespace Pos.Terminal.Modules;
 
-using System.ComponentModel.DataAnnotations;
-
 using Pos.Terminal.Shell;
-
-using Smart.Mvvm.Resolver;
 
 [ObservableGeneratorOption(Reactive = true, ViewModel = true)]
 public abstract class AppViewModelBase :
@@ -15,10 +11,6 @@ public abstract class AppViewModelBase :
     INotifySupportAsync<ShellEvent>,
     INavigationLifecycleSupport
 {
-    private List<ValidationResult>? validationResults;
-
-    private IAccessor? propertyAccessor;
-
     public INavigator Navigator { get; set; } = default!;
 
     // false の画面 (ホームなど) では戻るをプラットフォームに任せる
@@ -38,25 +30,7 @@ public abstract class AppViewModelBase :
 
     public void Validate(string name)
     {
-        propertyAccessor ??= AccessorProvider.FindAccessor(GetType());
-        if (propertyAccessor is null)
-        {
-            throw new InvalidOperationException($"Accessor is not supported. type=[{GetType()}]");
-        }
-
-        var value = propertyAccessor.GetValue(this, name);
-        var context = new ValidationContext(this, ResolveProvider.Default, null)
-        {
-            MemberName = name
-        };
-        validationResults ??= [];
-
-        if (!Validator.TryValidateProperty(value, context, validationResults))
-        {
-            Errors.AddError(name, validationResults[0].ErrorMessage!);
-        }
-
-        validationResults.Clear();
+        ValidationHelper.Validate(this, name, Errors);
     }
 
     public virtual Task OnNavigatingFromAsync(INavigationContext context) => Task.CompletedTask;

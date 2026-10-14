@@ -24,8 +24,8 @@
         <VerticalStackLayout Style="{StaticResource PosPanelStack}">
             <!-- 未送信警告 -->
             <Border Style="{StaticResource PosNoticeBorder}"
-                    IsVisible="{Binding HasUnsent}"
-                    behaviors:AnimationOption.EnterAnimation="FadeUp">
+                    behaviors:AnimationOption.EnterAnimation="FadeUp"
+                    IsVisible="{Binding HasUnsent}">
                 <Label Style="{StaticResource PosNoticeLabel}"
                        Text="{Binding UnsentText}" />
             </Border>
@@ -66,9 +66,9 @@
             </VerticalStackLayout>
 
             <!-- 現金の内訳と予想現金 -->
-            <controls:SectionPanel Title="💴 現金"
-                                   behaviors:AnimationOption.EnterAnimation="FadeUp"
-                                   behaviors:AnimationOption.EnterDelay="80">
+            <controls:SectionPanel behaviors:AnimationOption.EnterAnimation="FadeUp"
+                                   behaviors:AnimationOption.EnterDelay="80"
+                                   Title="💴 現金">
                 <VerticalStackLayout>
                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding CashRows}">
                         <BindableLayout.ItemTemplate>
@@ -87,12 +87,12 @@
                     </VerticalStackLayout>
                     <BoxView Style="{StaticResource PosRowSeparator}" />
                     <Grid Style="{StaticResource PosPanelRowGrid}"
-                          MinimumHeightRequest="44"
-                          ColumnDefinitions="*,Auto">
+                          ColumnDefinitions="*,Auto"
+                          MinimumHeightRequest="44">
                         <Label Grid.Column="0"
                                Style="{StaticResource PosPanelRowLabel}"
-                               FontAttributes="Bold"
-                               Text="予想現金" />
+                               Text="予想現金"
+                               FontAttributes="Bold" />
                         <Label Grid.Column="1"
                                Style="{StaticResource PosPanelRowStrongLabel}"
                                Text="{Binding ExpectedCashText}" />
@@ -101,35 +101,35 @@
             </controls:SectionPanel>
 
             <!-- 実査と過不足 (一致は緑、過不足は赤) -->
-            <controls:SectionPanel Title="🧮 実査"
-                                   behaviors:AnimationOption.EnterAnimation="FadeUp"
-                                   behaviors:AnimationOption.EnterDelay="120">
+            <controls:SectionPanel behaviors:AnimationOption.EnterAnimation="FadeUp"
+                                   behaviors:AnimationOption.EnterDelay="120"
+                                   Title="🧮 実査">
                 <VerticalStackLayout>
                     <Grid Style="{StaticResource PosPanelRowGrid}"
-                          Padding="0,4"
-                          ColumnDefinitions="*,Auto">
+                          ColumnDefinitions="*,Auto"
+                          Padding="0,4">
                         <Label Grid.Column="0"
                                Style="{StaticResource PosPanelRowLabel}"
                                Text="💴 実査金額" />
                         <Button Grid.Column="1"
                                 Style="{StaticResource PosFieldValueButton}"
-                                Margin="0"
                                 WidthRequest="160"
+                                Margin="0"
                                 Command="{Binding InputActualCommand}"
                                 Text="{Binding ActualCashText}" />
                     </Grid>
                     <BoxView Style="{StaticResource PosRowSeparator}" />
                     <Grid Style="{StaticResource PosPanelRowGrid}"
-                          Padding="0,6"
-                          ColumnDefinitions="*,Auto">
+                          ColumnDefinitions="*,Auto"
+                          Padding="0,6">
                         <Label Grid.Column="0"
                                Style="{StaticResource PosPanelRowLabel}"
-                               FontAttributes="Bold"
-                               Text="過不足" />
+                               Text="過不足"
+                               FontAttributes="Bold" />
                         <Label Grid.Column="1"
                                Style="{StaticResource PosLargeValueLabel}"
-                               FontAttributes="Bold"
-                               Text="{Binding DifferenceText}">
+                               Text="{Binding DifferenceText}"
+                               FontAttributes="Bold">
                             <Label.Triggers>
                                 <DataTrigger TargetType="Label"
                                              Binding="{Binding IsMatched}"

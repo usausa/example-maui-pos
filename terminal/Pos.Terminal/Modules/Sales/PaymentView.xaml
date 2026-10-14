@@ -22,9 +22,9 @@
         <!-- 合計・ポイント・支払済・残り -->
         <Grid Grid.Row="0"
               Style="{StaticResource PosValueRowGrid}"
-              Padding="16,6,16,6"
               RowDefinitions="Auto,Auto,Auto,Auto"
-              ColumnDefinitions="*,Auto">
+              ColumnDefinitions="*,Auto"
+              Padding="16,6,16,6">
             <Label Grid.Row="0" Grid.Column="0"
                    Style="{StaticResource PosNameLabel}"
                    Text="合計" />
@@ -36,22 +36,22 @@
                    Text="ポイント利用" />
             <Label Grid.Row="1" Grid.Column="1"
                    Style="{StaticResource PosSubValueLabel}"
-                   FontSize="14"
-                   Text="{Binding PointsText}" />
+                   Text="{Binding PointsText}"
+                   FontSize="14" />
             <Label Grid.Row="2" Grid.Column="0"
                    Style="{StaticResource PosCaptionLabel}"
                    Text="支払済" />
             <Label Grid.Row="2" Grid.Column="1"
                    Style="{StaticResource PosValueLabel}"
-                   FontSize="16"
-                   Text="{Binding PaidText}" />
+                   Text="{Binding PaidText}"
+                   FontSize="16" />
             <Label Grid.Row="3" Grid.Column="0"
                    Style="{StaticResource PosNameLabel}"
                    Text="{Binding RemainingCaption}" />
             <Label Grid.Row="3" Grid.Column="1"
                    Style="{StaticResource PosLargeValueLabel}"
-                   TextColor="{StaticResource RedDefault}"
-                   Text="{Binding RemainingText}" />
+                   Text="{Binding RemainingText}"
+                   TextColor="{StaticResource RedDefault}" />
         </Grid>
 
         <!-- 支払リスト -->
@@ -62,31 +62,30 @@
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="{x:Type module:PaymentItem}">
                         <Grid Style="{StaticResource PosListRowGrid}"
-                              Padding="16,4"
-                              ColumnDefinitions="Auto,*,Auto,32">
+                              ColumnDefinitions="Auto,*,Auto,32"
+                              Padding="16,4">
                             <Label Grid.Column="0"
                                    Style="{StaticResource PosCaptionLabel}"
-                                   TextColor="{StaticResource GreenDefault}"
-                                   Text="✓" />
+                                   Text="✓"
+                                   TextColor="{StaticResource GreenDefault}" />
                             <Label Grid.Column="1"
                                    Style="{StaticResource PosCaptionLabel}"
                                    Margin="8,0,0,0"
-                                   TextColor="{StaticResource PrimaryTextColor}"
-                                   Text="{Binding Text}" />
+                                   Text="{Binding Text}"
+                                   TextColor="{StaticResource PrimaryTextColor}" />
                             <Label Grid.Column="2"
                                    Style="{StaticResource PosListValueLabel}"
                                    Text="{Binding AmountText}" />
                             <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
                             <Button Grid.Column="3"
                                     Style="{StaticResource PosQuantityButton}"
-                                    FontFamily=""
-                                    WidthRequest="28"
-                                    HeightRequest="28"
-                                    BackgroundColor="{StaticResource GrayLighten1}"
-                                    IsVisible="{Binding Removable}"
+                                    WidthRequest="28" HeightRequest="28"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type module:PaymentViewModel}}, Path=RemovePaymentCommand, x:DataType={x:Type module:PaymentViewModel}}"
                                     CommandParameter="{Binding .}"
-                                    Text="✕" />
+                                    IsVisible="{Binding Removable}"
+                                    Text="✕"
+                                    FontFamily=""
+                                    BackgroundColor="{StaticResource GrayLighten1}" />
                             <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
                         </Grid>
                     </DataTemplate>
@@ -117,8 +116,8 @@
         <!-- 預り金 -->
         <Grid Grid.Row="3"
               Style="{StaticResource PosSectionRowGrid}"
-              Padding="16,4"
-              ColumnDefinitions="*,Auto">
+              ColumnDefinitions="*,Auto"
+              Padding="16,4">
             <Label Grid.Column="0"
                    Style="{StaticResource PosNameLabel}"
                    Text="預り金" />
@@ -132,22 +131,84 @@
               Style="{StaticResource PosKeypadGrid}"
               RowDefinitions="*,*,*,*"
               ColumnDefinitions="*,*,*,1.4*">
-            <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="7" Text="7" />
-            <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="8" Text="8" />
-            <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="9" Text="9" />
-            <Button Grid.Row="0" Grid.Column="3" Style="{StaticResource PosShortcutButton}" Command="{Binding AddAmountCommand}" CommandParameter="10000" Text="¥10,000" />
-            <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="4" Text="4" />
-            <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="5" Text="5" />
-            <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="6" Text="6" />
-            <Button Grid.Row="1" Grid.Column="3" Style="{StaticResource PosShortcutButton}" Command="{Binding AddAmountCommand}" CommandParameter="5000" Text="¥5,000" />
-            <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="1" Text="1" />
-            <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="2" Text="2" />
-            <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="3" Text="3" />
-            <Button Grid.Row="2" Grid.Column="3" Style="{StaticResource PosShortcutButton}" Command="{Binding AddAmountCommand}" CommandParameter="1000" Text="¥1,000" />
-            <Button Grid.Row="3" Grid.Column="0" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="0" Text="0" />
-            <Button Grid.Row="3" Grid.Column="1" Style="{StaticResource PosKeyButton}" Command="{Binding PushCommand}" CommandParameter="00" Text="00" />
-            <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource PosKeyButton}" Command="{Binding PopCommand}" Text="⌫" />
-            <Button Grid.Row="3" Grid.Column="3" Style="{StaticResource PosShortcutButton}" Command="{Binding ExactCommand}" Text="ちょうど" />
+            <Button Grid.Row="0" Grid.Column="0"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="7"
+                    Text="7" />
+            <Button Grid.Row="0" Grid.Column="1"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="8"
+                    Text="8" />
+            <Button Grid.Row="0" Grid.Column="2"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="9"
+                    Text="9" />
+            <Button Grid.Row="0" Grid.Column="3"
+                    Style="{StaticResource PosShortcutButton}"
+                    Command="{Binding AddAmountCommand}"
+                    CommandParameter="10000"
+                    Text="¥10,000" />
+            <Button Grid.Row="1" Grid.Column="0"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="4"
+                    Text="4" />
+            <Button Grid.Row="1" Grid.Column="1"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="5"
+                    Text="5" />
+            <Button Grid.Row="1" Grid.Column="2"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="6"
+                    Text="6" />
+            <Button Grid.Row="1" Grid.Column="3"
+                    Style="{StaticResource PosShortcutButton}"
+                    Command="{Binding AddAmountCommand}"
+                    CommandParameter="5000"
+                    Text="¥5,000" />
+            <Button Grid.Row="2" Grid.Column="0"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="1"
+                    Text="1" />
+            <Button Grid.Row="2" Grid.Column="1"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="2"
+                    Text="2" />
+            <Button Grid.Row="2" Grid.Column="2"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="3"
+                    Text="3" />
+            <Button Grid.Row="2" Grid.Column="3"
+                    Style="{StaticResource PosShortcutButton}"
+                    Command="{Binding AddAmountCommand}"
+                    CommandParameter="1000"
+                    Text="¥1,000" />
+            <Button Grid.Row="3" Grid.Column="0"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="0"
+                    Text="0" />
+            <Button Grid.Row="3" Grid.Column="1"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PushCommand}"
+                    CommandParameter="00"
+                    Text="00" />
+            <Button Grid.Row="3" Grid.Column="2"
+                    Style="{StaticResource PosKeyButton}"
+                    Command="{Binding PopCommand}"
+                    Text="⌫" />
+            <Button Grid.Row="3" Grid.Column="3"
+                    Style="{StaticResource PosShortcutButton}"
+                    Command="{Binding ExactCommand}"
+                    Text="ちょうど" />
         </Grid>
     </Grid>
 

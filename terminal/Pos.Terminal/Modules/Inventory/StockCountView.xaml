@@ -2,9 +2,9 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
-             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
+             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Inventory"
              x:Class="Pos.Terminal.Modules.Inventory.StockCountView"
              x:DataType="{x:Type module:StockCountViewModel}"
@@ -25,8 +25,8 @@
                 Style="{StaticResource PosMethodButton}"
                 Margin="8"
                 Command="{Binding InputCodeCommand}"
-                ImageSource="{x:Static markup:AppIcons.PosDialpad}"
-                Text="JAN / 商品コードを入力" />
+                Text="JAN / 商品コードを入力"
+                ImageSource="{x:Static markup:AppIcons.PosDialpad}" />
 
         <CollectionView Grid.Row="1"
                         Style="{StaticResource PosListCollectionView}"
@@ -43,10 +43,10 @@
                         <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
                         <SwipeView.RightItems>
                             <SwipeItems Mode="Execute">
-                                <SwipeItem Text="削除"
-                                           BackgroundColor="{StaticResource RedDefault}"
-                                           Command="{Binding Source={RelativeSource AncestorType={x:Type module:StockCountViewModel}}, Path=RemoveCommand, x:DataType={x:Type module:StockCountViewModel}}"
-                                           CommandParameter="{Binding .}" />
+                                <SwipeItem Command="{Binding Source={RelativeSource AncestorType={x:Type module:StockCountViewModel}}, Path=RemoveCommand, x:DataType={x:Type module:StockCountViewModel}}"
+                                           CommandParameter="{Binding .}"
+                                           Text="削除"
+                                           BackgroundColor="{StaticResource RedDefault}" />
                             </SwipeItems>
                         </SwipeView.RightItems>
                         <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
@@ -68,14 +68,14 @@
                                            Text="{Binding Name}" />
                                     <Label Grid.Column="1"
                                            Style="{StaticResource PosListValueLabel}"
-                                           FontAttributes="Bold"
-                                           Text="{Binding QuantityText}" />
+                                           Text="{Binding QuantityText}"
+                                           FontAttributes="Bold" />
                                 </Grid>
                                 <FlexLayout Style="{StaticResource PosChipFlexLayout}">
                                     <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                         ChipColor="{Binding Change.Type, Converter={StaticResource StockTypeColorConverter}}"
                                                          Icon="{Binding Change.Type, Converter={StaticResource StockTypeIconConverter}}"
-                                                         Text="{Binding Change.Type, Converter={StaticResource StockTypeTextConverter}}" />
+                                                         Text="{Binding Change.Type, Converter={StaticResource StockTypeTextConverter}}"
+                                                         ChipColor="{Binding Change.Type, Converter={StaticResource StockTypeColorConverter}}" />
                                     <Label Style="{StaticResource PosCodeLabel}"
                                            Text="{Binding Code}" />
                                     <Label Style="{StaticResource PosInfoLabel}"

@@ -48,18 +48,18 @@
                           RowSpacing="4">
                         <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                                Style="{StaticResource PosListNameLabel}"
+                               Text="{Binding Name}"
                                FontSize="20"
-                               LineBreakMode="WordWrap"
-                               Text="{Binding Name}" />
+                               LineBreakMode="WordWrap" />
                         <Label Grid.Row="1" Grid.Column="0"
                                Style="{StaticResource PosCodeLabel}"
                                VerticalOptions="Center"
                                Text="{Binding Code}" />
-                        <Label Grid.Row="1" Grid.Column="1" Grid.RowSpan="2"
+                        <Label Grid.Row="1" Grid.RowSpan="2" Grid.Column="1"
                                Style="{StaticResource PosHeroValueLabel}"
-                               FontSize="30"
                                VerticalOptions="Center"
-                               Text="{Binding PriceText}" />
+                               Text="{Binding PriceText}"
+                               FontSize="30" />
                         <Label Grid.Row="2" Grid.Column="0"
                                Style="{StaticResource PosHeroCaptionLabel}"
                                Text="{Binding PriceDetail}" />
@@ -71,9 +71,9 @@
                                      BindableLayout.ItemTemplate="{StaticResource PosSectionTemplate}" />
 
                 <!-- 他店在庫 (オンライン) -->
-                <controls:SectionPanel Title="🌐 他店在庫"
+                <controls:SectionPanel behaviors:AnimationOption.EnterAnimation="FadeUp"
                                        IsVisible="{Binding HasOtherStores}"
-                                       behaviors:AnimationOption.EnterAnimation="FadeUp">
+                                       Title="🌐 他店在庫">
                     <VerticalStackLayout>
                         <!-- 取得できない・在庫なし -->
                         <Label Style="{StaticResource PosMessageLabel}"
@@ -89,8 +89,8 @@
                                                Text="{Binding Label}" />
                                         <Label Grid.Column="1"
                                                Style="{StaticResource PosPanelRowValueLabel}"
-                                               FontAttributes="Bold"
-                                               Text="{Binding Value}" />
+                                               Text="{Binding Value}"
+                                               FontAttributes="Bold" />
                                     </Grid>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>

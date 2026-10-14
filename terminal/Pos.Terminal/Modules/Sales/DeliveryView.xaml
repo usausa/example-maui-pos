@@ -4,8 +4,8 @@
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
-             xmlns:helpers="clr-namespace:Pos.Terminal.Helpers"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
+             xmlns:helpers="clr-namespace:Pos.Terminal.Helpers"
              x:Class="Pos.Terminal.Modules.Sales.DeliveryView"
              x:DataType="{x:Type module:DeliveryViewModel}"
              s:BindingContextResolver.Type="{x:Type module:DeliveryViewModel}"
@@ -46,24 +46,24 @@
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="希望日" />
-            <Grid Margin="16,0"
-                  ColumnDefinitions="*,Auto"
+            <Grid ColumnDefinitions="*,Auto"
+                  Margin="16,0"
                   ColumnSpacing="8">
                 <DatePicker Grid.Column="0"
-                            Format="{x:Static helpers:DateTimeHelper.DateFormat}"
+                            IsVisible="{Binding HasRequestedDate}"
                             FontSize="16"
                             BackgroundColor="White"
-                            IsVisible="{Binding HasRequestedDate}"
-                            Date="{Binding RequestedDate}" />
+                            Date="{Binding RequestedDate}"
+                            Format="{x:Static helpers:DateTimeHelper.DateFormat}" />
                 <Button Grid.Column="0"
                         Style="{StaticResource PosSelectButton}"
-                        IsVisible="{Binding HasRequestedDate, Converter={StaticResource ReverseConverter}}"
                         Command="{Binding SetDateCommand}"
+                        IsVisible="{Binding HasRequestedDate, Converter={StaticResource ReverseConverter}}"
                         Text="指定なし" />
                 <Button Grid.Column="1"
                         Style="{StaticResource PosSelectButton}"
-                        IsVisible="{Binding HasRequestedDate}"
                         Command="{Binding ClearDateCommand}"
+                        IsVisible="{Binding HasRequestedDate}"
                         Text="✕" />
             </Grid>
 
@@ -78,8 +78,8 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="備考" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   Margin="16,0,16,16"
-                   behaviors:EntryBind.Controller="{Binding Note}" />
+                   behaviors:EntryBind.Controller="{Binding Note}"
+                   Margin="16,0,16,16" />
         </VerticalStackLayout>
     </ScrollView>
 

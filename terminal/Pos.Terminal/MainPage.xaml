@@ -3,21 +3,21 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:navigation="http://smart/navigation"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             xmlns:local="clr-namespace:Pos.Terminal"
-             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:application="clr-namespace:Pos.Terminal"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              x:Class="Pos.Terminal.MainPage"
-             x:DataType="{x:Type local:MainPageViewModel}"
-             s:BindingContextResolver.Type="{x:Type local:MainPageViewModel}"
+             x:DataType="{x:Type application:MainPageViewModel}"
+             s:BindingContextResolver.Type="{x:Type application:MainPageViewModel}"
              SafeAreaEdges="Default">
 
     <ContentPage.Behaviors>
         <s:AppLifecycleBehavior />
         <shell:ShellUpdateBehavior Navigator="{Binding Navigator, Mode=OneTime}" />
-        <toolkit:StatusBarBehavior ApplyOn="OnBehaviorAttachedTo"
-                                   StatusBarColor="{StaticResource BlueDefault}"
-                                   StatusBarStyle="LightContent" />
+        <mct:StatusBarBehavior ApplyOn="OnBehaviorAttachedTo"
+                               StatusBarColor="{StaticResource BlueDefault}"
+                               StatusBarStyle="LightContent" />
     </ContentPage.Behaviors>
 
     <Grid Style="{StaticResource MainGrid}"
@@ -42,9 +42,9 @@
             <!-- 未送信バッジ (要確認があれば赤で脈打つ) -->
             <Border Grid.Column="2"
                     Style="{StaticResource HeaderBadgeBorder}"
-                    BackgroundColor="{Binding HasFailed, Converter={StaticResource FailedBadgeColorConverter}}"
                     behaviors:AnimationOption.Pulse="{Binding HasFailed}"
-                    IsVisible="{Binding BadgeVisible}">
+                    IsVisible="{Binding BadgeVisible}"
+                    BackgroundColor="{Binding HasFailed, Converter={StaticResource FailedBadgeColorConverter}}">
                 <Label Style="{StaticResource HeaderBadgeLabel}"
                        Text="{Binding UnsentCount}" />
             </Border>

@@ -25,8 +25,8 @@
                     behaviors:AnimationOption.EnterAnimation="FadeUp">
                 <VerticalStackLayout Spacing="4">
                     <Label Style="{StaticResource PosListNameLabel}"
-                           FontSize="18"
-                           Text="{Binding HeaderText}" />
+                           Text="{Binding HeaderText}"
+                           FontSize="18" />
                     <Label Style="{StaticResource PosHeroCaptionLabel}"
                            Text="{Binding SourceText}" />
                 </VerticalStackLayout>

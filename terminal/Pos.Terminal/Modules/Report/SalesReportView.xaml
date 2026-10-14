@@ -5,8 +5,8 @@
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
-             xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Report"
+             xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
              x:Class="Pos.Terminal.Modules.Report.SalesReportView"
              x:DataType="{x:Type module:SalesReportViewModel}"
              s:BindingContextResolver.Type="{x:Type module:SalesReportViewModel}"
@@ -24,8 +24,8 @@
           RowDefinitions="Auto,*">
         <!-- 期間・範囲・集計軸 -->
         <Grid Grid.Row="0"
-              Padding="8"
               ColumnDefinitions="*,*,*"
+              Padding="8"
               ColumnSpacing="8">
             <Button Grid.Column="0"
                     Style="{StaticResource PosSelectButton}"
@@ -116,10 +116,10 @@
                     </VerticalStackLayout>
 
                     <!-- 集計軸ごとの内訳 (純売上の割合をバーで) -->
-                    <controls:SectionPanel IsVisible="{Binding HasGroups}"
-                                           behaviors:AnimationOption.EnterAnimation="FadeUp"
-                                           behaviors:AnimationOption.EnterTrigger="{Binding RangeText}"
+                    <controls:SectionPanel behaviors:AnimationOption.EnterAnimation="FadeUp"
                                            behaviors:AnimationOption.EnterDelay="80"
+                                           behaviors:AnimationOption.EnterTrigger="{Binding RangeText}"
+                                           IsVisible="{Binding HasGroups}"
                                            Title="{Binding GroupTitle, StringFormat='📊 {0}'}">
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding GroupRows}">
                             <BindableLayout.EmptyView>
@@ -136,8 +136,8 @@
                                                    Text="{Binding Label}" />
                                             <Label Grid.Column="1"
                                                    Style="{StaticResource PosCaptionLabel}"
-                                                   FontSize="13"
-                                                   Text="{Binding CountText}" />
+                                                   Text="{Binding CountText}"
+                                                   FontSize="13" />
                                             <Label Grid.Column="2"
                                                    Style="{StaticResource PosPanelRowValueLabel}"
                                                    Text="{Binding AmountText}" />

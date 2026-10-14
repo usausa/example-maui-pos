@@ -13,8 +13,8 @@
           MaximumHeightRequest="560">
         <Label Grid.Row="0"
                Style="{StaticResource DialogTitleLabel}"
-               FontSize="24"
-               Text="金種別入力" />
+               Text="金種別入力"
+               FontSize="24" />
 
         <CollectionView Grid.Row="1"
                         Style="{StaticResource PosListCollectionView}"
@@ -22,16 +22,16 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="{x:Type module:DenominationItem}">
                     <Grid Style="{StaticResource PosListRowGrid}"
-                          Padding="12,4"
-                          ColumnDefinitions="72,32,56,32,*">
+                          ColumnDefinitions="72,32,56,32,*"
+                          Padding="12,4">
                         <Label Grid.Column="0"
                                Style="{StaticResource PosListNameLabel}"
                                Text="{Binding Label}" />
                         <Button Grid.Column="1"
                                 Style="{StaticResource PosQuantityButton}"
-                                FontFamily=""
                                 Command="{Binding DecrementCommand}"
-                                Text="-" />
+                                Text="-"
+                                FontFamily="" />
                         <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
                         <Button Grid.Column="2"
                                 Style="{StaticResource PosCountButton}"
@@ -41,9 +41,9 @@
                         <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
                         <Button Grid.Column="3"
                                 Style="{StaticResource PosQuantityButton}"
-                                FontFamily=""
                                 Command="{Binding IncrementCommand}"
-                                Text="+" />
+                                Text="+"
+                                FontFamily="" />
                         <Label Grid.Column="4"
                                Style="{StaticResource PosListValueLabel}"
                                Text="{Binding SubtotalText}" />

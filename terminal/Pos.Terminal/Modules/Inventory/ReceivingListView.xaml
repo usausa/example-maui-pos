@@ -2,12 +2,11 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
-             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
-             xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Inventory"
+             xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
              x:Class="Pos.Terminal.Modules.Inventory.ReceivingListView"
              x:DataType="{x:Type module:ReceivingListViewModel}"
              s:BindingContextResolver.Type="{x:Type module:ReceivingListViewModel}"
@@ -25,8 +24,8 @@
           RowDefinitions="Auto,*">
         <!-- 件数 -->
         <Grid Grid.Row="0"
-              Padding="16,8"
               ColumnDefinitions="*,Auto"
+              Padding="16,8"
               ColumnSpacing="8">
             <Label Grid.Column="1"
                    Style="{StaticResource PosCaptionLabel}"
@@ -58,41 +57,38 @@
                                      Style="{StaticResource PosStripBoxView}"
                                      Color="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}" />
 
-                            <effects:SfEffectsView Grid.Row="0" Grid.Column="1"
-                                                   Style="{StaticResource PosRippleView}">
-                                <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                                <effects:SfEffectsView.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:ReceivingListViewModel}}, Path=SelectCommand, x:DataType={x:Type module:ReceivingListViewModel}}"
-                                                          CommandParameter="{Binding .}" />
-                                </effects:SfEffectsView.GestureRecognizers>
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <!-- 右端に操作の列がないので右の余白を足す -->
+                            <VerticalStackLayout Grid.Row="0" Grid.Column="1"
+                                                 Style="{StaticResource PosStripBodyStack}"
+                                                 behaviors:TouchOption.ClickCommand="{Binding Source={RelativeSource AncestorType={x:Type module:ReceivingListViewModel}}, Path=SelectCommand, x:DataType={x:Type module:ReceivingListViewModel}}"
+                                                 behaviors:TouchOption.ClickCommandParameter="{Binding .}"
+                                                 behaviors:TouchOption.Ripple="True"
+                                                 Padding="12,8,16,8">
                                 <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                                <!-- 右端に操作の列がないので右の余白を足す -->
-                                <VerticalStackLayout Style="{StaticResource PosStripBodyStack}"
-                                                     Padding="12,8,16,8">
-                                    <!-- 仕入先か出荷店と、入荷予定日か出荷日時 -->
-                                    <Grid ColumnDefinitions="*,Auto"
-                                          ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Style="{StaticResource PosListNameLabel}"
-                                               Text="{Binding Source}" />
-                                        <Label Grid.Column="1"
-                                               Style="{StaticResource PosCaptionLabel}"
-                                               Text="{Binding DateText}" />
-                                    </Grid>
+                                <!-- 仕入先か出荷店と、入荷予定日か出荷日時 -->
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <Label Grid.Column="0"
+                                           Style="{StaticResource PosListNameLabel}"
+                                           Text="{Binding Source}" />
+                                    <Label Grid.Column="1"
+                                           Style="{StaticResource PosCaptionLabel}"
+                                           Text="{Binding DateText}" />
+                                </Grid>
 
-                                    <!-- 種類と番号 -->
-                                    <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                        <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                             ChipColor="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}"
-                                                             Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}" />
-                                        <Label Style="{StaticResource PosCodeLabel}"
-                                               Text="{Binding Number}" />
-                                    </FlexLayout>
+                                <!-- 種類と番号 -->
+                                <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                         Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}"
+                                                         ChipColor="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}" />
+                                    <Label Style="{StaticResource PosCodeLabel}"
+                                           Text="{Binding Number}" />
+                                </FlexLayout>
 
-                                    <Label Style="{StaticResource PosCaptionLabel}"
-                                           Text="{Binding Summary}" />
-                                </VerticalStackLayout>
-                            </effects:SfEffectsView>
+                                <Label Style="{StaticResource PosCaptionLabel}"
+                                       Text="{Binding Summary}" />
+                            </VerticalStackLayout>
 
                             <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                      Style="{StaticResource PosRowSeparator}" />

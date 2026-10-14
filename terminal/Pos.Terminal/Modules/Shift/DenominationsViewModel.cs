@@ -80,8 +80,8 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
         this.popupNavigator = popupNavigator;
 
         InputCountCommand = MakeAsyncCommand<DenominationItem>(InputCountAsync);
-        CloseCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync());
-        CommitCommand = MakeAsyncCommand(async () => await popupNavigator.CloseAsync(new DenominationsResult(
+        CloseCommand = MakeAsyncCommand(async () => await CloseAsync());
+        CommitCommand = MakeAsyncCommand(async () => await CloseAsync(new DenominationsResult(
             Items.Where(static x => x.Count > 0).Select(static x => new ShiftCloseRequestDenomination { Denomination = x.Denomination, Count = x.Count }).ToList(),
             Total())));
     }

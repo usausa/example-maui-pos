@@ -28,14 +28,11 @@
 
         <!-- 読み取り枠 -->
         <Border Grid.Row="0"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                WidthRequest="260"
-                HeightRequest="180"
+                WidthRequest="260" HeightRequest="180"
+                HorizontalOptions="Center" VerticalOptions="Center"
+                InputTransparent="True"
                 Stroke="{StaticResource BlueLighten4}"
-                StrokeThickness="2"
-                StrokeShape="RoundRectangle 8"
-                InputTransparent="True" />
+                StrokeThickness="2" StrokeShape="RoundRectangle 8" />
 
         <!-- 読み取り結果 (読めない・見つからないときと、追加した商品) -->
         <Label Grid.Row="1"

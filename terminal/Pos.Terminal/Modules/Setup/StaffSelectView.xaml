@@ -46,8 +46,8 @@
                         <Border Grid.Column="1"
                                 Style="{StaticResource PosChipBorder}"
                                 Margin="0,0,6,0"
-                                BackgroundColor="{StaticResource GrayDarken1}"
-                                IsVisible="{Binding HasPin, Converter={StaticResource ReverseConverter}}">
+                                IsVisible="{Binding HasPin, Converter={StaticResource ReverseConverter}}"
+                                BackgroundColor="{StaticResource GrayDarken1}">
                             <Label Style="{StaticResource PosChipLabel}"
                                    Text="PIN 未設定" />
                         </Border>

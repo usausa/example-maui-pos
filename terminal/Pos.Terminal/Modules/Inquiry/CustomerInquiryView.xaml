@@ -2,13 +2,12 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
-             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
-             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
+             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
+             xmlns:module="clr-namespace:Pos.Terminal.Modules.Inquiry"
              xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
              xmlns:sales="clr-namespace:Pos.Terminal.Modules.Sales"
-             xmlns:module="clr-namespace:Pos.Terminal.Modules.Inquiry"
              x:Class="Pos.Terminal.Modules.Inquiry.CustomerInquiryView"
              x:DataType="{x:Type module:CustomerInquiryViewModel}"
              s:BindingContextResolver.Type="{x:Type module:CustomerInquiryViewModel}"
@@ -25,31 +24,31 @@
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,*">
         <Grid Grid.Row="0"
-              Padding="8"
               ColumnDefinitions="*,Auto"
+              Padding="8"
               ColumnSpacing="8">
             <Entry Grid.Column="0"
                    Style="{StaticResource PosFieldEntry}"
-                   Margin="0"
                    behaviors:EntryBind.Controller="{Binding Keyword}"
-                   ReturnType="Search"
-                   Placeholder="会員番号 / 電話 / 名前" />
+                   Margin="0"
+                   Placeholder="会員番号 / 電話 / 名前"
+                   ReturnType="Search" />
             <Button Grid.Column="1"
                     Style="{StaticResource PosMethodButton}"
                     Margin="0"
                     Command="{Binding SearchCommand}"
-                    ImageSource="{x:Static markup:AppIcons.PosSearch}"
-                    Text="検索" />
+                    Text="検索"
+                    ImageSource="{x:Static markup:AppIcons.PosSearch}" />
         </Grid>
 
         <!-- 結果と詳細。検索中と取得できないときは上に重ねて隠す -->
         <Grid Grid.Row="1">
             <!-- 検索結果 -->
             <CollectionView Style="{StaticResource PosListCollectionView}"
-                            IsVisible="{Binding HasCustomer, Converter={StaticResource ReverseConverter}}"
                             behaviors:AnimationOption.EnterAnimation="FadeUp"
                             behaviors:AnimationOption.EnterTrigger="{Binding Items.Count}"
-                            ItemsSource="{Binding Items}">
+                            ItemsSource="{Binding Items}"
+                            IsVisible="{Binding HasCustomer, Converter={StaticResource ReverseConverter}}">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Style="{StaticResource PosEmptyStack}">
                         <Label Style="{StaticResource PosEmptyIconLabel}"
@@ -62,40 +61,37 @@
                     <DataTemplate x:DataType="{x:Type sales:CustomerItem}">
                         <Grid Style="{StaticResource PosStripRowGrid}"
                               RowDefinitions="*,Auto">
-                            <effects:SfEffectsView Grid.Row="0"
-                                                   Style="{StaticResource PosRippleView}">
-                                <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                                <effects:SfEffectsView.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:CustomerInquiryViewModel}}, Path=SelectCommand, x:DataType={x:Type module:CustomerInquiryViewModel}}"
-                                                          CommandParameter="{Binding .}" />
-                                </effects:SfEffectsView.GestureRecognizers>
+                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                            <Grid Grid.Row="0"
+                                  Style="{StaticResource PosAvatarRowGrid}"
+                                  ColumnDefinitions="Auto,*,Auto"
+                                  behaviors:TouchOption.ClickCommand="{Binding Source={RelativeSource AncestorType={x:Type module:CustomerInquiryViewModel}}, Path=SelectCommand, x:DataType={x:Type module:CustomerInquiryViewModel}}"
+                                  behaviors:TouchOption.ClickCommandParameter="{Binding .}"
+                                  behaviors:TouchOption.Ripple="True">
                                 <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                                <Grid Style="{StaticResource PosAvatarRowGrid}"
-                                      ColumnDefinitions="Auto,*,Auto">
-                                    <Border Grid.Column="0"
-                                            Style="{StaticResource PosAvatarBorder}"
-                                            BackgroundColor="{Binding Code, Converter={StaticResource AvatarColorConverter}}">
-                                        <Label Style="{StaticResource PosAvatarLabel}"
-                                               Text="{Binding Name, Converter={StaticResource InitialConverter}}" />
-                                    </Border>
-                                    <VerticalStackLayout Grid.Column="1"
-                                                         Style="{StaticResource PosAvatarTextStack}">
-                                        <Label Style="{StaticResource PosListNameLabel}"
-                                               Text="{Binding Name}" />
-                                        <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                            <Label Style="{StaticResource PosCodeLabel}"
-                                                   Text="{Binding Code}" />
-                                            <Label Style="{StaticResource PosInfoLabel}"
-                                                   IsVisible="{Binding Phone, Converter={StaticResource NotEmptyConverter}}"
-                                                   Text="{Binding Phone, StringFormat='📞 {0}'}" />
-                                        </FlexLayout>
-                                    </VerticalStackLayout>
-                                    <Label Grid.Column="2"
-                                           Style="{StaticResource PosListValueLabel}"
-                                           FontAttributes="Bold"
-                                           Text="{Binding PointsText}" />
-                                </Grid>
-                            </effects:SfEffectsView>
+                                <Border Grid.Column="0"
+                                        Style="{StaticResource PosAvatarBorder}"
+                                        BackgroundColor="{Binding Code, Converter={StaticResource AvatarColorConverter}}">
+                                    <Label Style="{StaticResource PosAvatarLabel}"
+                                           Text="{Binding Name, Converter={StaticResource InitialConverter}}" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Style="{StaticResource PosAvatarTextStack}">
+                                    <Label Style="{StaticResource PosListNameLabel}"
+                                           Text="{Binding Name}" />
+                                    <FlexLayout Style="{StaticResource PosChipFlexLayout}">
+                                        <Label Style="{StaticResource PosCodeLabel}"
+                                               Text="{Binding Code}" />
+                                        <Label Style="{StaticResource PosInfoLabel}"
+                                               IsVisible="{Binding Phone, Converter={StaticResource NotEmptyConverter}}"
+                                               Text="{Binding Phone, StringFormat='📞 {0}'}" />
+                                    </FlexLayout>
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2"
+                                       Style="{StaticResource PosListValueLabel}"
+                                       Text="{Binding PointsText}"
+                                       FontAttributes="Bold" />
+                            </Grid>
                             <BoxView Grid.Row="1"
                                      Style="{StaticResource PosRowSeparator}" />
                         </Grid>
@@ -113,20 +109,19 @@
                               ColumnSpacing="12">
                             <Border Grid.Column="0"
                                     Style="{StaticResource PosAvatarBorder}"
-                                    WidthRequest="48"
-                                    HeightRequest="48"
-                                    StrokeShape="RoundRectangle 24"
-                                    BackgroundColor="{Binding Code, Converter={StaticResource AvatarColorConverter}}">
+                                    WidthRequest="48" HeightRequest="48"
+                                    BackgroundColor="{Binding Code, Converter={StaticResource AvatarColorConverter}}"
+                                    StrokeShape="RoundRectangle 24">
                                 <Label Style="{StaticResource PosAvatarLabel}"
-                                       FontSize="22"
-                                       Text="{Binding Name, Converter={StaticResource InitialConverter}}" />
+                                       Text="{Binding Name, Converter={StaticResource InitialConverter}}"
+                                       FontSize="22" />
                             </Border>
                             <VerticalStackLayout Grid.Column="1"
                                                  Style="{StaticResource PosAvatarTextStack}">
                                 <Label Style="{StaticResource PosListNameLabel}"
+                                       Text="{Binding Name}"
                                        FontSize="18"
-                                       LineBreakMode="WordWrap"
-                                       Text="{Binding Name}" />
+                                       LineBreakMode="WordWrap" />
                                 <Label Style="{StaticResource PosCodeLabel}"
                                        Text="{Binding Code}" />
                             </VerticalStackLayout>
@@ -136,9 +131,9 @@
                                        HorizontalTextAlignment="End"
                                        Text="ポイント" />
                                 <Label Style="{StaticResource PosHeroValueLabel}"
-                                       FontSize="24"
                                        HorizontalTextAlignment="End"
-                                       Text="{Binding PointsText}" />
+                                       Text="{Binding PointsText}"
+                                       FontSize="24" />
                             </VerticalStackLayout>
                         </Grid>
                     </Border>

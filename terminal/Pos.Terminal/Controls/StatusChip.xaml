@@ -9,12 +9,12 @@
                     BackgroundColor="{TemplateBinding ChipColor}">
                 <HorizontalStackLayout Style="{StaticResource PosChipStack}">
                     <Label Style="{StaticResource PosChipIconLabel}"
-                           TextColor="{TemplateBinding TextColor}"
                            IsVisible="{TemplateBinding Icon, Converter={StaticResource NotEmptyConverter}}"
-                           Text="{TemplateBinding Icon}" />
+                           Text="{TemplateBinding Icon}"
+                           TextColor="{TemplateBinding TextColor}" />
                     <Label Style="{StaticResource PosChipLabel}"
-                           TextColor="{TemplateBinding TextColor}"
-                           Text="{TemplateBinding Text}" />
+                           Text="{TemplateBinding Text}"
+                           TextColor="{TemplateBinding TextColor}" />
                 </HorizontalStackLayout>
             </Border>
         </ControlTemplate>

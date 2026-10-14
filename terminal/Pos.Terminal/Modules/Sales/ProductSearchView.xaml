@@ -2,12 +2,11 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
-             xmlns:effects="http://schemas.syncfusion.com/maui/toolkit"
              xmlns:fonts="clr-namespace:Fonts"
-             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
+             xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
              x:Class="Pos.Terminal.Modules.Sales.ProductSearchView"
              x:DataType="{x:Type module:ProductSearchViewModel}"
@@ -26,15 +25,15 @@
           RowDefinitions="Auto,Auto,*">
         <!-- キーワード -->
         <Grid Grid.Row="0"
-              Padding="8"
               ColumnDefinitions="*,Auto,Auto"
+              Padding="8"
               ColumnSpacing="8">
             <Entry Grid.Column="0"
                    Style="{StaticResource PosFieldEntry}"
-                   Margin="0"
                    behaviors:EntryBind.Controller="{Binding Keyword}"
-                   ReturnType="Search"
-                   Placeholder="名称 / 型番 / コード" />
+                   Margin="0"
+                   Placeholder="名称 / 型番 / コード"
+                   ReturnType="Search" />
             <!-- 番号は電卓で入力する (キーボードに依存しない) -->
             <Button Grid.Column="1"
                     Style="{StaticResource PosMethodIconButton}"
@@ -45,8 +44,8 @@
                     Style="{StaticResource PosMethodButton}"
                     Margin="0"
                     Command="{Binding SearchCommand}"
-                    ImageSource="{x:Static markup:AppIcons.PosSearch}"
-                    Text="検索" />
+                    Text="検索"
+                    ImageSource="{x:Static markup:AppIcons.PosSearch}" />
         </Grid>
 
         <!-- 部門 (2 階層) -->
@@ -128,48 +127,45 @@
                 <DataTemplate x:DataType="{x:Type module:ProductItem}">
                     <Grid Style="{StaticResource PosStripRowGrid}"
                           RowDefinitions="*,Auto">
-                        <effects:SfEffectsView Grid.Row="0"
-                                               Style="{StaticResource PosRippleView}">
-                            <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
-                            <effects:SfEffectsView.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type module:ProductSearchViewModel}}, Path=SelectCommand, x:DataType={x:Type module:ProductSearchViewModel}}"
-                                                      CommandParameter="{Binding .}" />
-                            </effects:SfEffectsView.GestureRecognizers>
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
+                        <Grid Grid.Row="0"
+                              Style="{StaticResource PosListRowGrid}"
+                              RowDefinitions="Auto,Auto"
+                              ColumnDefinitions="Auto,*,Auto"
+                              behaviors:TouchOption.ClickCommand="{Binding Source={RelativeSource AncestorType={x:Type module:ProductSearchViewModel}}, Path=SelectCommand, x:DataType={x:Type module:ProductSearchViewModel}}"
+                              behaviors:TouchOption.ClickCommandParameter="{Binding .}"
+                              behaviors:TouchOption.Ripple="True"
+                              BackgroundColor="Transparent">
                             <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
-                            <Grid Style="{StaticResource PosListRowGrid}"
-                                  BackgroundColor="Transparent"
-                                  RowDefinitions="Auto,Auto"
-                                  ColumnDefinitions="Auto,*,Auto">
-                                <!-- 画像 (ないときは記号。取得できたら上に重ねる) -->
-                                <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
-                                      Style="{StaticResource PosThumbnailGrid}">
-                                    <Label Style="{StaticResource PosThumbnailIconLabel}" />
-                                    <Image Style="{StaticResource PosProductImage}"
-                                           IsVisible="{Binding Image, Converter={StaticResource NotEmptyConverter}}"
-                                           Source="{Binding Image}" />
-                                </Grid>
-                                <Label Grid.Row="0" Grid.Column="1"
-                                       Style="{StaticResource PosListNameLabel}"
-                                       Text="{Binding Name}" />
-                                <Label Grid.Row="0" Grid.Column="2"
-                                       Style="{StaticResource PosListValueLabel}"
-                                       FontAttributes="Bold"
-                                       Text="{Binding PriceText}" />
-                                <FlexLayout Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
-                                            Style="{StaticResource PosChipFlexLayout}">
-                                    <Label Style="{StaticResource PosCodeLabel}"
-                                           Text="{Binding Code}" />
-                                    <Label Style="{StaticResource PosInfoLabel}"
-                                           IsVisible="{Binding Detail, Converter={StaticResource NotEmptyConverter}}"
-                                           Text="{Binding Detail}" />
-                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                         ChipColor="{StaticResource BlueGrayDefault}"
-                                                         IsVisible="{Binding RequiresSerial}"
-                                                         Icon="{x:Static fonts:MaterialIcons.Numbers}"
-                                                         Text="S/N 必須" />
-                                </FlexLayout>
+                            <!-- 画像 (ないときは記号。取得できたら上に重ねる) -->
+                            <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                                  Style="{StaticResource PosThumbnailGrid}">
+                                <Label Style="{StaticResource PosThumbnailIconLabel}" />
+                                <Image Style="{StaticResource PosProductImage}"
+                                       Source="{Binding Image}"
+                                       IsVisible="{Binding Image, Converter={StaticResource NotEmptyConverter}}" />
                             </Grid>
-                        </effects:SfEffectsView>
+                            <Label Grid.Row="0" Grid.Column="1"
+                                   Style="{StaticResource PosListNameLabel}"
+                                   Text="{Binding Name}" />
+                            <Label Grid.Row="0" Grid.Column="2"
+                                   Style="{StaticResource PosListValueLabel}"
+                                   Text="{Binding PriceText}"
+                                   FontAttributes="Bold" />
+                            <FlexLayout Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                        Style="{StaticResource PosChipFlexLayout}">
+                                <Label Style="{StaticResource PosCodeLabel}"
+                                       Text="{Binding Code}" />
+                                <Label Style="{StaticResource PosInfoLabel}"
+                                       IsVisible="{Binding Detail, Converter={StaticResource NotEmptyConverter}}"
+                                       Text="{Binding Detail}" />
+                                <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
+                                                     IsVisible="{Binding RequiresSerial}"
+                                                     Icon="{x:Static fonts:MaterialIcons.Numbers}"
+                                                     Text="S/N 必須"
+                                                     ChipColor="{StaticResource BlueGrayDefault}" />
+                            </FlexLayout>
+                        </Grid>
                         <BoxView Grid.Row="1"
                                  Style="{StaticResource PosRowSeparator}" />
                     </Grid>
