@@ -388,7 +388,8 @@ POS サンプル (サーバ API・DB・管理画面・端末) の機能とアー
 - 回線の状態は、MAUI の Essentials (`IConnectivity`) を使わずに Android の通知から受け取る (Essentials は通知のたびに UI スレッドで状態を問い合わせ直す)。  
   電池の残量と無線 LAN の信号強度は使わないので取らない
 - ボタンのアイコン (Material Icons のグリフ) は、MAUI の画像の読み込み (Glide) を通さずにその場で描く。  
-  レシート画面の画像 (レシートと QR) も SkiaSharp の画像のまま出し、Glide を通さない (Glide を通すと、初回の初期化が UI スレッドを止めて表示が遅れる)
+  レシート画面の画像 (レシートと QR) も SkiaSharp の画像のまま出し、Glide を通さない (Glide を通すと、初回の初期化が UI スレッドを止めて表示が遅れる)。  
+  取得した商品画像は Glide で出す (縮小・向きの補正・キャッシュを使う。初回の初期化で止まるのは Release では目立たない)
 - 表示の色と文言の切り替えは、ViewModel ではなく Converter と Trigger で行う
 
 ### D-29. データは SQLite に置き、SQL ファイルで読み書きする

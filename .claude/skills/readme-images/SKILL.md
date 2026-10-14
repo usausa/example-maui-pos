@@ -8,23 +8,26 @@ description: README の画面と帳票の画像 (docs/images/ の server-*.png�
 画像は `docs/images/` にあり、README の表から参照する。
 管理画面は `server-*.png` (1400x900 で撮って幅 1200)、端末は `terminal-*.png` (1080x2400 で撮って 360x800)、帳票は `report-*.png` (PDF を 1240x1754 で表示して撮り、用紙を切り出して 600x849) で、どれも 256 色の PNG。
 スクリプトはリポジトリのルートで実行する (Windows では `python`、他では `python3`)。撮った元の画像は一時フォルダに置き、リポジトリに入れない。
+スクリプトの `--base` の既定は `http://localhost:8080`。サーバをほかの URL で動かすときだけ `--base <サーバの URL>` を渡す。
 
 ## 準備
 
-- サーバを起動する (`dotnet run --project server/src/Pos.Server.Host`。ポートを変えたときは `--base` に合わせる)
+- サーバをバックグラウンドで起動し (`dotnet run --project server/src/Pos.Server.Host`)、`<サーバの URL>/health` が応答するまで待つ。撮り終えたら止める
 - 画面に中身が出るようにサンプルの取引を作る。ダッシュボードは当日の取引が要るので、撮る直前に当日分を足す
-  - `dotnet run --project server/tools/Pos.Server.SampleData -- --base http://localhost:8080 --days 7`
-  - `dotnet run --project server/tools/Pos.Server.SampleData -- --base http://localhost:8080 --days 1 --seed 3`
+  - `dotnet run --project server/tools/Pos.Server.SampleData -- --days 7`
+  - `dotnet run --project server/tools/Pos.Server.SampleData -- --days 1 --seed 3`
+- サンプルデータは受注を作らない。受注の画像 (`server-orders`、`terminal-orders`、`terminal-order-detail`、`report-order`) には、端末で受注を作って前受金を受け取ったデータが要る (emulator skill の手順で操作する)
 
 ## 管理画面
 
-1. 手順を作る: `python .claude/skills/readme-images/scripts/server_steps.py --out <一時フォルダ> --base http://localhost:8080` (一部だけなら `--only server-orders,server-products`)
-2. 撮る: `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json` (Node.js 22 以降、Chrome が要る。場所は `CHROME_PATH`)
+1. 手順を作る: `python .claude/skills/readme-images/scripts/server_steps.py --out <一時フォルダ>` (一部だけなら `--only server-orders,server-products`)
+2. 撮る: `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json` (Node.js 22 以降、Chrome が要る。場所は `CHROME_PATH`、DevTools のポートは `CDP_PORT` (既定 9334) で変える)
 3. 撮った画像を見て、中身 (件数、ダイアログ、エラーの有無) を確かめる
-4. そろえる: `python .claude/skills/readme-images/scripts/shrink.py server <一時フォルダ>/server-*.png`
+4. そろえる: `python .claude/skills/readme-images/scripts/shrink.py server <一時フォルダ>/server-*.png` (`*` はスクリプトが展開する)
 
-- レジ端末 (`server-terminals`) は、未登録の「本店 レジ 2」にペアリングコードを発行してダイアログを出した状態で撮る (コードは 10 分で切れる)
-- 新しい画面を README に足すときは、`server_steps.py` の `PAGES` と README の表の両方に足す
+- レジ端末 (`server-terminals`) は、登録していない「本店 レジ 2」にペアリングコードを発行し、ダイアログを出した状態で撮る (コードは 10 分で切れる)
+- 「本店 レジ 2」が登録中なら、emulator skill の `admin_steps.py revoke` で登録を解除してから撮る
+- 新しい画面を README に足すときは、`server_steps.py` の `PAGES`、README の表、この SKILL の表に足す
 
 ## 端末
 
@@ -56,7 +59,7 @@ description: README の画面と帳票の画像 (docs/images/ の server-*.png�
 
 管理画面にログインした画面から帳票の PDF を保存し、Chrome の PDF 表示 (操作バーなし、1 ページを画面に合わせる) で撮る。
 
-1. 手順を作る: `python .claude/skills/readme-images/scripts/report_steps.py --out <一時フォルダ> --base http://localhost:8080` (一部だけなら `--only report-order`)
+1. 手順を作る: `python .claude/skills/readme-images/scripts/report_steps.py --out <一時フォルダ>` (一部だけなら `--only report-order`)
 2. 撮る: `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json 1240 1754` (A4 の比)
 3. 撮った画像を見て、対象と中身 (確認のために入れた備考などが写っていないか) を確かめる
 4. そろえる: `python .claude/skills/readme-images/scripts/shrink.py report <一時フォルダ>/report-*.png` (用紙を切り出し、600x849 の枠の中央に置く)
@@ -69,10 +72,11 @@ description: README の画面と帳票の画像 (docs/images/ の server-*.png�
 | `report-daily-sales` | 売上日報 (締め済みの店舗 × 営業日) |
 | `report-receipt` | レシートの控え (直近の販売のうち明細の多いもの) |
 
-- 新しい帳票を README に足すときは、`report_steps.py` の `REPORTS` と README の表の両方に足す
+- 新しい帳票を README に足すときは、`report_steps.py` の `REPORTS`、README の表、この SKILL の表に足す
 
 ## 仕上げ
 
 - 置き換えた画像を開いて、縮小で文字が潰れていないかを確かめる
 - README の説明 (表の下の行) が画面と合っているかを確かめる
-- 撮るために変えたデータ (発行したペアリングコード、足した取引) は開発用の DB に残る。元に戻す必要があれば DB を作り直す
+- 撮るために変えたデータ (発行したペアリングコード、足した取引、端末の登録、開いたシフト) は開発用の DB に残る。端末の登録は解除し、シフトは精算する
+- DB を作り直すときは、サーバを止めて `pos.db` (Host の出力フォルダ) を消し、起動し直す (初期データが入る)

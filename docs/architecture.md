@@ -34,6 +34,7 @@ example-maui-pos/
 │                                    ↑ ルートに 1 セット (MAUI 用の NoWarn NU1608 を含む)
 ├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 全体と共有プロジェクト、他は paths で対象を絞る)
 ├─ .claude/skills/                   AI 向け: 繰り返す手順とスクリプト (verify = 検証、readme-images = README の画像、emulator = エミュレータでの確認)
+├─ .claude/agents/                   AI 向け: 読み取り専用のエージェント (rules-auditor = 規則とコードの照合、doc-auditor = 文書とコードの照合、change-reviewer = 変更のレビュー)
 ├─ docs/                             設計文書、未実装と今後の検討事項 (backlog.md)、README の画像 (images/)、CSV 取込の例 (samples/)
 ├─ shared/                           両ソリューションに含める共有プロジェクト
 │  ├─ Pos.Domain/                    ドメインロジック: 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール検証 (net10.0)

@@ -9,7 +9,7 @@ import json
 import sys
 from pathlib import Path
 
-# (画像の名前, 経路)。README の管理画面の表と同じ順
+# (画像の名前, 経路)。README の管理画面の表の順 (レジ端末はダイアログを開くので、最後に別に撮る)
 PAGES = [
     ('server-dashboard', ''),
     ('server-sales-report', 'reports/sales'),

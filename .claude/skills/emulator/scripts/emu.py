@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # 端末アプリをエミュレータで動かして確かめるための adb の操作 (実機は使わない)
 #
-#   python emu.py devices                    機器の一覧と、使うエミュレータ
+#   python emu.py devices                    機器の一覧と、使うエミュレータ (画面の大きさも確かめる)
+#   python emu.py boot <avd>                 エミュレータを起動して、起動が終わるまで待つ (起動済みなら待つだけ)
+#   python emu.py shutdown                   エミュレータを終了する
 #   python emu.py install [--release]        ビルドしてエミュレータに入れて起動する
 #   python emu.py launch | stop              アプリを起動する / 止める
 #   python emu.py shot <file.png>            画面を撮る (1080x2400)
@@ -12,27 +14,33 @@
 #   python emu.py key <BACK|ENTER|DEL|...> [--repeat N]   キーを送る (入力欄を消すときは DEL を繰り返す)
 #   python emu.py swipe <x1> <y1> <x2> <y2> [ms]
 #   python emu.py airplane <on|off>          機内モード (オフラインの確認)
+#   python emu.py camera <status|grant|revoke>   カメラの許可を見る / 付ける / 取り消す (取り消すと次の起動で聞き直す)
 #   python emu.py screen                     今の画面の遷移 (logcat の Navigated) を出す
 #   python emu.py logcat [--lines N] [--grep 正規表現]
 #   python emu.py pref get <key>             アプリの設定 (shared_prefs) の値を出す
-#   python emu.py pref set <key> <value>     アプリの設定の文字列を書き換える (アプリを止めてから)
+#   python emu.py pref set <key> <value>     アプリの設定の文字列を書き換える (アプリを止めてから。キーがなければ足す)
 #
-# 使う機器は ANDROID_SERIAL (emulator- で始まるものだけ) か、接続中の最初のエミュレータ。adb の場所は ADB で変えられる
+# 使う機器は ANDROID_SERIAL (emulator- で始まるものだけ) か、接続中の最初のエミュレータ。
+# adb の場所は ADB、エミュレータの場所は EMULATOR で変えられる
 import argparse
 import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
 PACKAGE = 'pos.terminal'
+# Settings (IPreferences) が使う既定の設定ファイル
+DEFAULT_PREFERENCES = f'{PACKAGE}_preferences.xml'
 PROJECT = 'terminal/Pos.Terminal/Pos.Terminal.csproj'
 FRAMEWORK = 'net10.0-android'
 
 # 1080x2400 (Pixel 6a 相当) の配置。変わったら撮った画像で確かめる
+SCREEN_SIZE = '1080x2400'
 FUNCTION_KEYS = {1: (135, 2264), 2: (405, 2264), 3: (675, 2264), 4: (945, 2264)}
 KEYPAD = {
     '1': (186, 1754), '2': (540, 1754), '3': (894, 1754),
@@ -59,6 +67,22 @@ def find_adb():
 
 
 ADB = find_adb()
+
+
+def find_emulator():
+    candidates = [os.environ.get('EMULATOR'), shutil.which('emulator')]
+    for home in (os.environ.get('ANDROID_HOME'), os.environ.get('ANDROID_SDK_ROOT')):
+        if home:
+            candidates.append(str(Path(home) / 'emulator' / 'emulator'))
+    # adb と同じ SDK の emulator
+    candidates.append(str(Path(ADB).resolve().parents[1] / 'emulator' / 'emulator'))
+    for candidate in candidates:
+        if not candidate:
+            continue
+        for path in (candidate, candidate + '.exe'):
+            if shutil.which(path) or Path(path).is_file():
+                return path
+    sys.exit('emulator が見つかりません (環境変数 EMULATOR で場所を指定する)')
 
 
 def devices():
@@ -91,9 +115,54 @@ def shell(command, capture=True):
     return output.decode('utf-8', errors='replace') if capture else None
 
 
+def check_screen_size():
+    # 座標 (F キー、電卓) は 1080x2400 の配置なので、違う機器では撮った画像で座標を確かめる
+    output = shell('wm size')
+    sizes = re.findall(r'(\d+x\d+)', output)
+    size = sizes[-1] if sizes else '?'
+    if size == SCREEN_SIZE:
+        print(f'画面: {size}')
+    else:
+        print(f'画面: {size} (座標は {SCREEN_SIZE} の配置。撮った画像で座標を確かめる)')
+
+
 def pause(seconds=1.2):
     # 操作の結果が画面に出るまで待つ
     time.sleep(seconds)
+
+
+#--------------------------------------------------------------------------------
+# Emulator
+#--------------------------------------------------------------------------------
+
+def boot(avd, timeout):
+    running = [serial for serial, _ in devices() if serial.startswith('emulator-')]
+    if not running:
+        emulator = find_emulator()
+        avds = subprocess.run([emulator, '-list-avds'], capture_output=True, text=True, check=False).stdout.split()
+        if avd is None or avd not in avds:
+            sys.exit(f'AVD の名前を渡す: {" / ".join(avds) if avds else "(AVD がない)"}')
+        # このスクリプトが終わっても動き続けるように、切り離して起動する
+        options = {'creationflags': subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == 'nt' else {'start_new_session': True}
+        subprocess.Popen([emulator, '-avd', avd], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **options)
+        print(f'{avd} を起動しています', flush=True)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        ready = [serial for serial, state in devices() if serial.startswith('emulator-') and state == 'device']
+        if ready:
+            completed = subprocess.run([ADB, '-s', ready[0], 'shell', 'getprop', 'sys.boot_completed'], capture_output=True, text=True, check=False).stdout.strip()
+            if completed == '1':
+                print(f'起動しました: {ready[0]}')
+                check_screen_size()
+                return 0
+        time.sleep(3)
+    sys.exit(f'{timeout} 秒で起動が終わりませんでした')
+
+
+def shutdown():
+    serial = emulator_serial()
+    subprocess.run([ADB, '-s', serial, 'emu', 'kill'], check=False)
+    print(f'{serial} を終了しました')
 
 
 #--------------------------------------------------------------------------------
@@ -157,13 +226,42 @@ def logcat(lines, pattern):
             print(line)
 
 
+def camera(action):
+    permission = 'android.permission.CAMERA'
+    if action == 'grant':
+        shell(f'pm grant {PACKAGE} {permission}', capture=False)
+    elif action == 'revoke':
+        # 「今後表示しない」の印も消して、次の起動で許可を聞き直す元の状態に戻す
+        shell(f'pm revoke {PACKAGE} {permission}', capture=False)
+        shell(f'pm clear-permission-flags {PACKAGE} {permission} user-set user-fixed', capture=False)
+    granted = re.search(re.escape(permission) + r': granted=(\w+)', shell(f'dumpsys package {PACKAGE}'))
+    print(f'カメラの許可: {granted.group(1) if granted else "未設定"}')
+
+
 #--------------------------------------------------------------------------------
 # Preferences
 #--------------------------------------------------------------------------------
 
 def preference_files():
-    output = shell(f'run-as {PACKAGE} ls shared_prefs')
+    # 入れ直した直後は shared_prefs がない
+    output = shell(f'run-as {PACKAGE} ls shared_prefs 2>/dev/null || true')
     return [name.strip() for name in output.split() if name.strip().endswith('.xml')]
+
+
+def add_preference(key, value):
+    # キーがない (入れ直した直後) ときは、Settings が使う既定の設定ファイルに足す (ファイルがなければ作る)
+    entry = f'<string name="{key}">{value}</string>'
+    if DEFAULT_PREFERENCES in preference_files():
+        shell(f"run-as {PACKAGE} sed -i 's#</map>#    {entry}\\n</map>#' shared_prefs/{DEFAULT_PREFERENCES}")
+        return
+    temp = Path(tempfile.gettempdir()) / DEFAULT_PREFERENCES
+    temp.write_text(f"<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n    {entry}\n</map>\n", encoding='utf-8', newline='\n')
+    adb('push', str(temp), f'/data/local/tmp/{DEFAULT_PREFERENCES}', capture=True)
+    temp.unlink()
+    shell(f'run-as {PACKAGE} mkdir -p shared_prefs')
+    shell(f'run-as {PACKAGE} cp /data/local/tmp/{DEFAULT_PREFERENCES} shared_prefs/{DEFAULT_PREFERENCES}')
+    shell(f'run-as {PACKAGE} chmod 660 shared_prefs/{DEFAULT_PREFERENCES}')
+    shell(f'rm /data/local/tmp/{DEFAULT_PREFERENCES}')
 
 
 def pref_get(key):
@@ -184,7 +282,11 @@ def pref_set(key, value):
         if f'<string name="{key}">' in content:
             shell(f"run-as {PACKAGE} sed -i 's#<string name=\"{key}\">[^<]*</string>#<string name=\"{key}\">{value}</string>#' shared_prefs/{name}")
             changed += 1
-    print(f'{key} を {changed} ファイルで書き換えました')
+    if changed:
+        print(f'{key} を {changed} ファイルで書き換えました')
+    else:
+        add_preference(key, value)
+        print(f'{key} を {DEFAULT_PREFERENCES} に足しました')
     pref_get(key)
 
 
@@ -193,11 +295,16 @@ def pref_set(key, value):
 #--------------------------------------------------------------------------------
 
 def main():
-    if not sys.stdout.isatty():
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    for stream in (sys.stdout, sys.stderr):
+        if not stream.isatty():
+            stream.reconfigure(encoding='utf-8', errors='replace')
     parser = argparse.ArgumentParser(description='端末アプリをエミュレータで確かめるための adb の操作')
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('devices')
+    p = sub.add_parser('boot')
+    p.add_argument('avd', nargs='?')
+    p.add_argument('--timeout', type=int, default=300)
+    sub.add_parser('shutdown')
     p = sub.add_parser('install')
     p.add_argument('--release', action='store_true')
     sub.add_parser('launch')
@@ -222,6 +329,8 @@ def main():
     p.add_argument('ms', type=int, nargs='?', default=300)
     p = sub.add_parser('airplane')
     p.add_argument('state', choices=['on', 'off'])
+    p = sub.add_parser('camera')
+    p.add_argument('action', choices=['status', 'grant', 'revoke'])
     sub.add_parser('screen')
     p = sub.add_parser('logcat')
     p.add_argument('--lines', type=int, default=200)
@@ -236,6 +345,11 @@ def main():
         for serial, state in devices():
             print(f'{serial}\t{state}\t{"(使わない)" if not serial.startswith("emulator-") else ""}')
         print(f'使うエミュレータ: {emulator_serial()}')
+        check_screen_size()
+    elif args.command == 'boot':
+        return boot(args.avd, args.timeout)
+    elif args.command == 'shutdown':
+        shutdown()
     elif args.command == 'install':
         return install(args.release)
     elif args.command == 'launch':
@@ -263,6 +377,8 @@ def main():
     elif args.command == 'airplane':
         shell(f'cmd connectivity airplane-mode {"enable" if args.state == "on" else "disable"}', capture=False)
         pause(2)
+    elif args.command == 'camera':
+        camera(args.action)
     elif args.command == 'screen':
         logcat(500, r'Navigated:')
     elif args.command == 'logcat':

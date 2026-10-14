@@ -8,6 +8,7 @@
 # 帳票は PDF 表示の画面から用紙を切り出し、A4 の枠 (600x849) の中央に置く (レシートのような細い用紙は左右を灰色で埋める)。
 # 名前はそのまま (server-dashboard.png → docs/images/server-dashboard.png)。Pillow が要る
 import argparse
+import glob
 import sys
 from pathlib import Path
 
@@ -56,7 +57,9 @@ def main():
 
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    for source in args.sources:
+    # PowerShell は * を展開しないので、ここで展開する
+    sources = [path for pattern in args.sources for path in (sorted(glob.glob(pattern)) or [pattern])]
+    for source in sources:
         destination = out / Path(source).name
         size = shrink_report(source, destination) if args.kind == 'report' else shrink(source, destination, WIDTHS[args.kind])
         print(f'{destination} {size[0]}x{size[1]}')
