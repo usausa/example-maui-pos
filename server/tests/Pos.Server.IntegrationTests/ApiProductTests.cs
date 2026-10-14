@@ -47,7 +47,7 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
         Assert.StartsWith($"{imageUrl}?v=", product.ImageUrl, StringComparison.Ordinal);
         Assert.Equal(original.Version + 1, product.Version);
 
-        // Act / Assert: 取得は同じ本文。v が一致すれば長くキャッシュでき、ETag で再検証すると 304
+        // Act / Assert: 取得は同じ本文。v が一致すれば長くキャッシュでき、ETag で再検証すると 304、合わない If-Match は 412
         using var getResponse = await client.GetAsync(new Uri(product.ImageUrl!, UriKind.Relative), Token);
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
         Assert.Equal("image/png", getResponse.Content.Headers.ContentType?.MediaType);
@@ -58,6 +58,10 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
         revalidate.Headers.IfNoneMatch.Add(getResponse.Headers.ETag);
         using var notModified = await client.SendAsync(revalidate, Token);
         Assert.Equal(HttpStatusCode.NotModified, notModified.StatusCode);
+        using var precondition = new HttpRequestMessage(HttpMethod.Get, new Uri(product.ImageUrl!, UriKind.Relative));
+        precondition.Headers.IfMatch.Add(new EntityTagHeaderValue("\"other\""));
+        using var preconditionFailed = await client.SendAsync(precondition, Token);
+        Assert.Equal(HttpStatusCode.PreconditionFailed, preconditionFailed.StatusCode);
 
         // Act / Assert: 同じ画像の再登録は同じ URL (端末に取り直させない)。差分同期で URL が届く
         using var samePutResponse = await PutImageAsync(client, imageUrl, Png, "image/png");

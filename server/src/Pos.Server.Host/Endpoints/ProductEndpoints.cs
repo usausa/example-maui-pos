@@ -76,7 +76,8 @@ public static partial class ProductEndpoints
             .WithName("ProductGetImage")
             .Produces<Stream>(StatusCodes.Status200OK, "image/jpeg", "image/png")
             .Produces(StatusCodes.Status304NotModified)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status412PreconditionFailed);
         group.MapPut("/{id:guid}/image", HandleSaveImageAsync)
             .RequireAuthorization(Policies.Administrator)
             .WithName("ProductSaveImage")

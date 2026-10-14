@@ -313,7 +313,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | DELETE | `/products/{id}` | 管理 (管理者) | 論理削除 |
 | GET | `/products/csv` | 管理 | CSV 出力 (BOM 付き UTF-8、削除済みを除く全件) |
 | POST | `/products/import?dryRun` | 管理 (管理者) | CSV 取込 (本文に CSV、`Content-Type: text/csv`)。後述 |
-| GET | `/products/{id}/image?v=` | 端末 / 管理 | 画像 (JPEG / PNG)。`v` が今の画像と一致すれば `Cache-Control: private, max-age=31536000, immutable`、それ以外は `no-cache`。`ETag` で再検証できる (`304`)。画像がなければ `404` |
+| GET | `/products/{id}/image?v=` | 端末 / 管理 | 画像 (JPEG / PNG)。`v` が今の画像と一致すれば `Cache-Control: private, max-age=31536000, immutable`、それ以外は `no-cache`。`ETag` で再検証できる (`304`。合わない `If-Match` は `412`)。画像がなければ `404` |
 | PUT | `/products/{id}/image` | 管理 (管理者) | 画像の登録・置き換え。本文に画像そのもの (`Content-Type: image/jpeg` / `image/png`、2 MB まで。形式は先頭のバイトでも確かめる)。応答は商品 (`imageUrl` が変わり、`updatedAt` / `version` が進むので端末の差分同期に載る)。Content-Type が違えば `415`、2 MB を超えれば `413`、画像でなければ `422` |
 | DELETE | `/products/{id}/image` | 管理 (管理者) | 画像の削除 (`204`。画像がなければ何もしない) |
 
