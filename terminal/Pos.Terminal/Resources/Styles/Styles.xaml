@@ -19,12 +19,7 @@
 
     <Color x:Key="PrimaryTextColor">#DE000000</Color>
     <Color x:Key="SecondaryTextColor">#99000000</Color>
-    <Color x:Key="DisabledColor">#61000000</Color>
     <Color x:Key="BorderColor">#1F000000</Color>
-
-    <Color x:Key="SelectFocusColor">#FFF9C4</Color>
-
-    <Color x:Key="NoErrorColor">Transparent</Color>
 
     <!-- ================================================================================ -->
     <!-- Converter -->
@@ -434,50 +429,6 @@
     </Style>
 
     <!-- ================================================================================ -->
-    <!-- Sub Menu -->
-    <!-- ================================================================================ -->
-
-    <Style x:Key="SubMenuGrid"
-           TargetType="Grid">
-        <Setter Property="Margin" Value="0" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="HeightRequest" Value="48" />
-        <Setter Property="RowSpacing" Value="0" />
-        <Setter Property="ColumnSpacing" Value="1" />
-    </Style>
-
-    <Style x:Key="SubMenuButton"
-           TargetType="Button">
-        <Setter Property="Margin" Value="0" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="BorderWidth" Value="0" />
-        <Setter Property="CornerRadius" Value="0" />
-        <Setter Property="TextColor" Value="White" />
-        <Setter Property="FontSize" Value="24" />
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource CyanDefault}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource CyanDarken2}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource DisabledColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <!-- ================================================================================ -->
     <!-- Layout -->
     <!-- ================================================================================ -->
 
@@ -506,14 +457,6 @@
         <Setter Property="Padding" Value="0" />
         <Setter Property="Spacing" Value="0" />
         <Setter Property="VerticalOptions" Value="Fill" />
-    </Style>
-
-    <Style x:Key="FillHorizontalStack"
-           TargetType="HorizontalStackLayout">
-        <Setter Property="Margin" Value="0" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="Spacing" Value="0" />
-        <Setter Property="HorizontalOptions" Value="Fill" />
     </Style>
 
     <!-- ================================================================================ -->
@@ -582,252 +525,6 @@
                 </VisualStateGroup>
             </VisualStateGroupList>
         </Setter>
-    </Style>
-
-    <!-- Action -->
-
-    <Style x:Key="ActionButtonBase"
-           TargetType="Button">
-        <Setter Property="Margin" Value="0" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="BorderWidth" Value="0" />
-        <Setter Property="CornerRadius" Value="0" />
-        <Setter Property="TextColor" Value="White" />
-        <Setter Property="FontSize" Value="24" />
-    </Style>
-
-    <Style x:Key="PrimaryButton"
-           TargetType="Button"
-           BasedOn="{StaticResource ActionButtonBase}">
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource BlueDefault}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource DisabledColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <Style x:Key="SecondaryButton"
-           TargetType="Button"
-           BasedOn="{StaticResource ActionButtonBase}">
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource CyanDefault}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource CyanDarken2}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource DisabledColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <Style x:Key="TertiaryButton"
-           TargetType="Button"
-           BasedOn="{StaticResource ActionButtonBase}">
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource TealDefault}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource TealDarken2}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource DisabledColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <Style x:Key="InformationButton"
-           TargetType="Button"
-           BasedOn="{StaticResource ActionButtonBase}">
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource LightBlueDefault}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource LightBlueDarken2}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource DisabledColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <Style x:Key="SuccessButton"
-           TargetType="Button"
-           BasedOn="{StaticResource ActionButtonBase}">
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource GreenDefault}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource GreenDarken2}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource DisabledColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <Style x:Key="WarningButton"
-           TargetType="Button"
-           BasedOn="{StaticResource ActionButtonBase}">
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource OrangeDefault}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource OrangeDarken2}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource DisabledColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <Style x:Key="ErrorButton"
-           TargetType="Button"
-           BasedOn="{StaticResource ActionButtonBase}">
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource RedDefault}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource RedDarken2}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource DisabledColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <!-- Select -->
-
-    <Style x:Key="SelectButtonBase"
-           TargetType="Button">
-        <Setter Property="Margin" Value="0" />
-        <Setter Property="Padding" Value="3" />
-        <Setter Property="BorderWidth" Value="1" />
-        <Setter Property="CornerRadius" Value="0" />
-        <Setter Property="TextColor" Value="Black" />
-        <Setter Property="FontSize" Value="18" />
-        <Setter Property="BorderColor" Value="{StaticResource BorderColor}" />
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="White" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource SelectFocusColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="White" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <Style x:Key="LeftSelectButton"
-           TargetType="Button"
-           BasedOn="{StaticResource SelectButtonBase}">
-        <!-- TODO -->
-    </Style>
-
-    <Style x:Key="CenterSelectButton"
-           TargetType="Button"
-           BasedOn="{StaticResource SelectButtonBase}">
-        <!-- TODO -->
-    </Style>
-
-    <Style x:Key="RightSelectButton"
-           TargetType="Button"
-           BasedOn="{StaticResource SelectButtonBase}">
-        <!-- TODO -->
     </Style>
 
     <!-- ================================================================================ -->
@@ -931,140 +628,6 @@
            Class="LabelError">
         <Setter Property="TextColor" Value="White" />
         <Setter Property="BackgroundColor" Value="{StaticResource RedDefault}" />
-    </Style>
-
-    <!-- Semantic -->
-
-    <Style x:Key="TitleLabel"
-           TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource BlueGrayDarken4}" />
-        <Setter Property="FontSize" Value="36" />
-        <Setter Property="FontAttributes" Value="Bold" />
-    </Style>
-
-    <Style x:Key="HeaderLabel"
-           TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource BlueGrayDarken3}" />
-        <Setter Property="FontSize" Value="28" />
-        <Setter Property="FontAttributes" Value="Bold" />
-    </Style>
-
-    <Style x:Key="GroupLabel"
-           TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource BlueGrayDarken2}" />
-        <Setter Property="FontSize" Value="24" />
-        <Setter Property="FontAttributes" Value="Bold" />
-    </Style>
-
-    <Style x:Key="NameLabel"
-           TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource BlueGrayDarken1}" />
-        <Setter Property="FontSize" Value="18" />
-        <Setter Property="FontAttributes" Value="Bold" />
-    </Style>
-
-    <Style x:Key="ErrorMessageLabel"
-           TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource RedDefault}" />
-        <Setter Property="FontSize" Value="14" />
-    </Style>
-
-    <Style x:Key="ValueLabel"
-           TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource SecondaryTextColor}" />
-        <Setter Property="FontSize" Value="18" />
-    </Style>
-
-    <Style x:Key="ResultLabel"
-           TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource SecondaryTextColor}" />
-        <Setter Property="FontSize" Value="24" />
-    </Style>
-
-    <!-- ================================================================================ -->
-    <!-- Entry -->
-    <!-- ================================================================================ -->
-
-    <Style x:Key="InputEntry"
-           TargetType="Entry">
-        <Setter Property="FontSize" Value="18" />
-        <Setter Property="behaviors:Border.Color" Value="{StaticResource BorderColor}" />
-        <Setter Property="behaviors:Border.Width" Value="1" />
-        <Setter Property="behaviors:EntryOption.HandleEnterKey" Value="True" />
-        <Setter Property="behaviors:EntryOption.DisableShowSoftInputOnFocus" Value="True" />
-        <Setter Property="behaviors:EntryOption.SelectAllOnFocus" Value="True" />
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="White" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Focused">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource SelectFocusColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{StaticResource DisabledColor}" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-
-    <!-- ================================================================================ -->
-    <!-- CollectionView -->
-    <!-- ================================================================================ -->
-
-    <Style x:Key="ItemCollectionView"
-           TargetType="CollectionView">
-        <Setter Property="behaviors:Scroll.DisableOverScroll" Value="True" />
-    </Style>
-
-    <Style x:Key="ItemCollectionGrid"
-           TargetType="Grid">
-        <Setter Property="Margin" Value="0" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="HorizontalOptions" Value="Fill" />
-        <Setter Property="VerticalOptions" Value="Fill" />
-        <Setter Property="HeightRequest" Value="48" />
-        <Setter Property="RowSpacing" Value="0" />
-        <Setter Property="ColumnSpacing" Value="0" />
-    </Style>
-
-    <Style x:Key="ItemCollectionLabel"
-           TargetType="Label">
-        <Setter Property="FontSize" Value="24" />
-        <Setter Property="VerticalOptions" Value="Center" />
-        <Setter Property="LineBreakMode" Value="TailTruncation" />
-    </Style>
-
-    <Style x:Key="ItemCollectionButtonBase"
-           TargetType="Button">
-        <Setter Property="Margin" Value="0" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="BorderWidth" Value="0" />
-        <Setter Property="CornerRadius" Value="3" />
-        <Setter Property="FontSize" Value="24" />
-        <Setter Property="FontFamily" Value="MaterialIcons" />
-    </Style>
-
-    <Style x:Key="ItemCollectionButtonPrimary"
-           TargetType="Button"
-           BasedOn="{StaticResource ItemCollectionButtonBase}">
-        <Setter Property="TextColor" Value="White" />
-        <Setter Property="BackgroundColor" Value="{StaticResource GreenAccent3}" />
-    </Style>
-
-    <Style x:Key="ItemCollectionButtonDanger"
-           TargetType="Button"
-           BasedOn="{StaticResource ItemCollectionButtonBase}">
-        <Setter Property="TextColor" Value="White" />
-        <Setter Property="BackgroundColor" Value="{StaticResource RedAccent3}" />
     </Style>
 
     <!-- ================================================================================ -->
@@ -1239,11 +802,6 @@
 
     <!-- Row -->
 
-    <Style x:Key="PosBackgroundGrid"
-           TargetType="Grid">
-        <Setter Property="BackgroundColor" Value="{StaticResource GrayLighten3}" />
-    </Style>
-
     <Style x:Key="PosValueRowGrid"
            TargetType="Grid">
         <Setter Property="Padding" Value="16,8,0,8" />
@@ -1271,26 +829,10 @@
 
     <!-- Label -->
 
-    <Style x:Key="PosIconLabel"
-           TargetType="Label">
-        <Setter Property="VerticalOptions" Value="Center" />
-        <Setter Property="TextColor" Value="{StaticResource BlueDarken1}" />
-        <Setter Property="FontSize" Value="18" />
-        <Setter Property="FontFamily" Value="MaterialIcons" />
-    </Style>
-
     <Style x:Key="PosNameLabel"
            TargetType="Label">
         <Setter Property="VerticalOptions" Value="End" />
         <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
-        <Setter Property="FontSize" Value="18" />
-        <Setter Property="FontAttributes" Value="Bold" />
-    </Style>
-
-    <Style x:Key="PosSubNameLabel"
-           TargetType="Label">
-        <Setter Property="VerticalOptions" Value="End" />
-        <Setter Property="TextColor" Value="{StaticResource GrayLighten1}" />
         <Setter Property="FontSize" Value="18" />
         <Setter Property="FontAttributes" Value="Bold" />
     </Style>
@@ -1316,54 +858,7 @@
         <Setter Property="FontSize" Value="28" />
     </Style>
 
-    <Style x:Key="PosHugeValueLabel"
-           TargetType="Label">
-        <Setter Property="HorizontalOptions" Value="End" />
-        <Setter Property="TextColor" Value="{StaticResource BlueDarken2}" />
-        <Setter Property="FontSize" Value="36" />
-    </Style>
-
-    <Style x:Key="PosLinkLabel"
-           TargetType="Label">
-        <Setter Property="HorizontalOptions" Value="Center" />
-        <Setter Property="TextColor" Value="{StaticResource GrayDarken1}" />
-        <Setter Property="FontSize" Value="18" />
-    </Style>
-
     <!-- Button -->
-
-    <Style x:Key="PosOptionButtonBase"
-           TargetType="Button">
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="HeightRequest" Value="72" />
-        <Setter Property="CornerRadius" Value="0" />
-        <Setter Property="TextColor" Value="White" />
-        <Setter Property="FontSize" Value="14" />
-    </Style>
-
-    <Style x:Key="PosRedOptionButton"
-           TargetType="Button"
-           BasedOn="{StaticResource PosOptionButtonBase}">
-        <Setter Property="BackgroundColor" Value="{StaticResource RedDefault}" />
-    </Style>
-
-    <Style x:Key="PosOrangeOptionButton"
-           TargetType="Button"
-           BasedOn="{StaticResource PosOptionButtonBase}">
-        <Setter Property="BackgroundColor" Value="{StaticResource OrangeDefault}" />
-    </Style>
-
-    <Style x:Key="PosCyanOptionButton"
-           TargetType="Button"
-           BasedOn="{StaticResource PosOptionButtonBase}">
-        <Setter Property="BackgroundColor" Value="{StaticResource CyanDefault}" />
-    </Style>
-
-    <Style x:Key="PosGreenOptionButton"
-           TargetType="Button"
-           BasedOn="{StaticResource PosOptionButtonBase}">
-        <Setter Property="BackgroundColor" Value="{StaticResource GreenDefault}" />
-    </Style>
 
     <Style x:Key="PosQuantityButton"
            TargetType="Button">
@@ -1976,22 +1471,6 @@
         <Setter Property="FontSize" Value="14" />
         <Setter Property="BorderColor" Value="{StaticResource BorderColor}" />
         <Setter Property="BorderWidth" Value="1" />
-    </Style>
-
-    <Style x:Key="PosSelectedButton"
-           TargetType="Button"
-           BasedOn="{StaticResource PosSelectButton}">
-        <Setter Property="BackgroundColor" Value="{StaticResource BlueDarken2}" />
-        <Setter Property="TextColor" Value="White" />
-    </Style>
-
-    <Style x:Key="PosReceiptLabel"
-           TargetType="Label">
-        <Setter Property="Margin" Value="16" />
-        <Setter Property="FontFamily" Value="Courier New" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
-        <Setter Property="BackgroundColor" Value="White" />
     </Style>
 
 </ResourceDictionary>
