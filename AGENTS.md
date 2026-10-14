@@ -2,7 +2,7 @@
 
 ## コーディングスタイル
 
-- `.editorconfig` (C#) と `terminal/Settings.XamlStyler` (XAML) の規則に従う (これらのファイル自体は変更しない)
+- `.editorconfig` (C#) と `Settings.XamlStyler` (XAML) の規則に従う (これらのファイル自体は変更しない)
 - フィールドに `_` 接頭辞を付けない
 - ビルド警告が出ない状態になるように実装する。警告の抑止は理由のあるものだけにし、抑止する前に確認する
 - テキストファイルの改行は CRLF にする (`.gitattributes` の `eol=crlf`。verify の `--fix` でそろえる)

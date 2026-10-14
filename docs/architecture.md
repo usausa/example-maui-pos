@@ -29,7 +29,7 @@
 
 ```
 example-maui-pos/
-├─ .editorconfig / .gitattributes / .gitignore / Directory.Build.props / Directory.Build.targets
+├─ .editorconfig / .gitattributes / .gitignore / Directory.Build.props / Directory.Build.targets / Settings.XamlStyler
 ├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md (AI 向け: 全体の書き方・検証・進め方) / LICENSE / README.md
 │                                    ↑ ルートに 1 セット (MAUI 用の NoWarn NU1608 を含む)
 ├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 全体と共有プロジェクト、他は paths で対象を絞る)
@@ -54,7 +54,7 @@ example-maui-pos/
 │     └─ Pos.Server.SampleData/      サンプル取引の生成ツール (API 経由、§6)
 └─ terminal/                         端末
    ├─ Pos.Terminal.slnx              端末 + shared/ (Domain / Contract)
-   ├─ Pos.Terminal.sln.DotSettings / Settings.XamlStyler
+   ├─ Pos.Terminal.sln.DotSettings
    └─ Pos.Terminal/                  MAUI (net10.0-android)
 ```
 

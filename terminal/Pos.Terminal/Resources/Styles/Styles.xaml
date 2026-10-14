@@ -6,9 +6,9 @@
                     xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
                     xmlns:controls="clr-namespace:Pos.Terminal.Controls"
                     xmlns:converters="clr-namespace:Pos.Terminal.Converters"
+                    xmlns:enums="clr-namespace:Pos.Domain.Enums;assembly=Pos.Domain"
                     xmlns:models="clr-namespace:Pos.Terminal.Models"
                     xmlns:entity="clr-namespace:Pos.Terminal.Models.Entity"
-                    xmlns:enums="clr-namespace:Pos.Domain.Enums;assembly=Pos.Domain"
                     xmlns:inventory="clr-namespace:Pos.Terminal.Models.Inventory">
 
     <!-- ================================================================================ -->
