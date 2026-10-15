@@ -1,7 +1,7 @@
 namespace Pos.Contract.Shifts;
 
 // 精算 (POST /shifts/{id}/close)
-public sealed class ShiftCloseRequest
+public sealed class ShiftCloseRequest : IValidatableObject
 {
     public DateTime ClosedAt { get; set; }
 
@@ -11,10 +11,20 @@ public sealed class ShiftCloseRequest
     public decimal ActualCash { get; set; }
 
     // 金種別枚数 (任意)
+    [Required]
     public IReadOnlyList<ShiftCloseRequestDenomination> Denominations { get; set; } = [];
 
     [MaxLength(Length.Note)]
     public string? Note { get; set; }
+
+    // 金種はシフトの中で一意 (表の主キー) なので、重複は書く前に拒む
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Denominations.Select(static x => x.Denomination).Distinct().Count() != Denominations.Count)
+        {
+            yield return new ValidationResult("金種が重複しています", [nameof(Denominations)]);
+        }
+    }
 }
 
 public sealed class ShiftCloseRequestDenomination

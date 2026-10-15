@@ -292,11 +292,11 @@ public sealed class PurchaseOrderService
             : new PurchaseOrderResult(PurchaseOrderResultStatus.Violation, Violation: validate(current) ?? new RuleError(ErrorCode.PurchaseOrderStatusInvalid, RuleReason.PurchaseOrderNotOpen));
     }
 
-    // 明細の商品 (ない商品があれば null)
+    // 明細の商品 (ない商品があれば null。管理の入力なので、削除済みの商品も見つからないものとする)
     private async ValueTask<Dictionary<Guid, ProductEntity>?> QueryProductsAsync(IReadOnlyList<PurchaseOrderLineEntity> lines, CancellationToken cancellationToken)
     {
         var products = (await productAccessor.QueryListByIdsAsync(lines.Select(static x => x.ProductId).Distinct(), cancellationToken)).ToDictionary(static x => x.Id);
-        return lines.All(x => products.ContainsKey(x.ProductId)) ? products : null;
+        return lines.All(x => products.GetValueOrDefault(x.ProductId) is { IsDeleted: false }) ? products : null;
     }
 
     // 明細に商品の写しを付け、番号を振り直す

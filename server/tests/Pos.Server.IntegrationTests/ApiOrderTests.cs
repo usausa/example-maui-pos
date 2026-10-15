@@ -54,7 +54,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         using var mismatchResponse = await client.PostJsonAsync(ApiRoutes.Orders, mismatch, options);
         await mismatchResponse.ReadProblemAsync(HttpStatusCode.Conflict, "DUPLICATE_ID_MISMATCH", options);
 
-        // Act / Assert: 変更 (明細を置き換える)。古い版は 409
+        // Act / Assert: 変更 (明細を置き換える)。明細の重複は 400、古い版は 409
         var update = new OrderUpdateRequest
         {
             CustomerId = TestData.Customer1Id,
@@ -68,6 +68,8 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
             ],
             Version = order.Version
         };
+        using var duplicatedResponse = await client.PutJsonAsync($"{ApiRoutes.Orders}/{order.Id}", new OrderUpdateRequest { CustomerId = TestData.Customer1Id, Lines = [update.Lines[0], update.Lines[0]], Version = order.Version }, options);
+        await duplicatedResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         using var updateResponse = await client.PutJsonAsync($"{ApiRoutes.Orders}/{order.Id}", update, options);
         var updated = await updateResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(84000m, updated.Total);
@@ -114,6 +116,26 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         await missingOrderResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "ORDER_NOT_FOUND", options);
     }
 
+    // 端末と担当が見つからない受注は 422 (外部キーの違反の 500 にしない)
+    [Fact]
+    public async Task CreateWithMissingReferenceReturnsUnprocessable()
+    {
+        // Arrange
+        var client = await factory.CreateAdminClientAsync();
+        var noTerminal = CreateOrderRequest(OrderType.Hold, null, "端末なし", null);
+        noTerminal.TerminalId = Guid.NewGuid();
+        var noStaff = CreateOrderRequest(OrderType.Hold, null, "担当なし", null);
+        noStaff.StaffId = Guid.NewGuid();
+
+        // Act
+        using var noTerminalResponse = await client.PostJsonAsync(ApiRoutes.Orders, noTerminal, options);
+        using var noStaffResponse = await client.PostJsonAsync(ApiRoutes.Orders, noStaff, options);
+
+        // Assert
+        await noTerminalResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        await noStaffResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "STAFF_INVALID", options);
+    }
+
     // 取り置きは引き渡し待ちから始まり、受注番号は店舗ごとの連番。入力の誤りは 400 / 422
     [Fact]
     public async Task HoldStartsArrivedAndListFilters()
@@ -131,6 +153,9 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         var unknownProduct = CreateOrderRequest(OrderType.Hold, null, name, null);
         unknownProduct.Lines[0].ProductId = Guid.NewGuid();
         using var unknownProductResponse = await client.PostJsonAsync(ApiRoutes.Orders, unknownProduct, options);
+        var duplicatedLines = CreateOrderRequest(OrderType.Hold, null, name, null);
+        duplicatedLines.Lines = [duplicatedLines.Lines[0], duplicatedLines.Lines[0]];
+        using var duplicatedLinesResponse = await client.PostJsonAsync(ApiRoutes.Orders, duplicatedLines, options);
 
         // Assert
         var hold = await firstResponse.ReadAsAsync<OrderListResponseItem>(HttpStatusCode.Created, options);
@@ -141,6 +166,7 @@ public sealed class ApiOrderTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(int.Parse(hold.OrderNo[^6..], CultureInfo.InvariantCulture) + 1, int.Parse(backOrder.OrderNo[^6..], CultureInfo.InvariantCulture));
         await noNameResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         await unknownProductResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "PRODUCT_NOT_FOUND", options);
+        await duplicatedLinesResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         var byName = await client.GetJsonAsync<OrderListResponse>($"{ApiRoutes.Orders}?keyword={name}", options);
         Assert.Equal(2, byName.Total);
         var arrived = await client.GetJsonAsync<OrderListResponse>($"{ApiRoutes.Orders}?keyword={name}&status=Arrived", options);

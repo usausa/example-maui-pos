@@ -8,21 +8,24 @@ using Pos.Server.Models.Parameters;
 // 会員とポイント (残高は履歴の集計を非正規化したもの。加減算と履歴は同じトランザクションで書く)
 public sealed class CustomerService
 {
+    private readonly TimeProvider timeProvider;
     private readonly IDbProvider provider;
     private readonly IDialect dialect;
+    private readonly MasterAccessor masterAccessor;
     private readonly CustomerAccessor customerAccessor;
-    private readonly TimeProvider timeProvider;
 
     public CustomerService(
+        TimeProvider timeProvider,
         IDbProvider provider,
         IDialect dialect,
-        CustomerAccessor customerAccessor,
-        TimeProvider timeProvider)
+        MasterAccessor masterAccessor,
+        CustomerAccessor customerAccessor)
     {
+        this.timeProvider = timeProvider;
         this.provider = provider;
         this.dialect = dialect;
+        this.masterAccessor = masterAccessor;
         this.customerAccessor = customerAccessor;
-        this.timeProvider = timeProvider;
     }
 
     //--------------------------------------------------------------------------------
@@ -101,16 +104,21 @@ public sealed class CustomerService
         return new PagedResult<PointHistoryEntity>((int)total, page, size, items);
     }
 
-    // 手動調整 (Adjust 履歴を作り、残高を加減算する)。会員がなければ null
-    public async ValueTask<PointHistoryEntity?> AdjustPointsAsync(Guid customerId, int points, string? reason, Guid? staffId, CancellationToken cancellationToken)
+    // 手動調整 (Adjust 履歴を作り、残高を加減算する)。会員がなければ NotFound、担当が見つからなければ (削除済みも) Invalid
+    public async ValueTask<DataWriteResult<PointHistoryEntity>> AdjustPointsAsync(Guid customerId, int points, string? reason, Guid staffId, CancellationToken cancellationToken)
     {
         if (await customerAccessor.QueryAsync(customerId, cancellationToken) is null)
         {
-            return null;
+            return new DataWriteResult<PointHistoryEntity>(DataWriteStatus.NotFound, null);
+        }
+
+        if (await masterAccessor.QueryStaffAsync(staffId, cancellationToken) is not { IsDeleted: false })
+        {
+            return new DataWriteResult<PointHistoryEntity>(DataWriteStatus.Invalid, null);
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        return await provider.UsingTxAsync(async (_, tx) =>
+        var history = await provider.UsingTxAsync(async (_, tx) =>
         {
             var balance = await customerAccessor.AddPointsAsync(tx, customerId, points, now, cancellationToken);
             var entity = new PointHistoryEntity
@@ -129,5 +137,6 @@ public sealed class CustomerService
             await tx.CommitAsync(cancellationToken);
             return entity;
         }, cancellationToken);
+        return new DataWriteResult<PointHistoryEntity>(DataWriteStatus.Success, history);
     }
 }

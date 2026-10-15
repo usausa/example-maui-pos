@@ -71,19 +71,20 @@ C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
 
 | 項目 | 仕様 |
 | --- | --- |
-| 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxListResponseItem`。`id` を送る登録 (取引、シフトの開設、入出金、受注、前受金の受取と返金) は、**同じ `id` が既に存在すれば `200 OK` で既存を返し**、主な項目が既存と違えば `409 Conflict` (`DUPLICATE_ID_MISMATCH`)。棚卸・調整は要素ごとに `Duplicate` を返し ([§3.16](#-316-在庫-inventory))、精算は実査金額が同じ再送を `200` で返す ([§3.13](#-313-レジ開閉現金管理-shifts)) |
+| 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxListResponseItem`。`id` を送る登録 (取引、シフトの開設、入出金、受注、前受金の受取と返金) は、**同じ `id` が既に存在すれば `200 OK` で既存を返し**、主な項目が既存と違えば `409 Conflict` (`DUPLICATE_ID_MISMATCH`)。棚卸・調整は要素ごとに `Duplicate` を返し ([§3.16](#-316-在庫-inventory))、精算は実査金額が同じ再送を `200` で返す ([§3.13](#-313-レジ開閉現金管理-shifts))。同じ `id` の再送が同時に届いても、先に登録した方を既存として返す |
 | 更新 | 管理系は `PUT /resources/{id}` (`XxxUpdateRequest`、全体置換)。本文の `version` で楽観ロック。不一致なら `409 Conflict` (`VERSION_MISMATCH`) |
 | 削除 | 管理系は `DELETE /resources/{id}` で論理削除 (`isDeleted = true`)。取引など履歴は削除しない。削除後も `GET /resources/{id}` は `isDeleted: true` で返し、更新・再削除は `404` |
-| 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422`。本文の JSON や引数の型が読めない要求も `400` (`VALIDATION_ERROR`、[D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする)) |
+| 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422`。本文の JSON や引数の型が読めない要求も `400` (`VALIDATION_ERROR`、[D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする))。1 つの要求の中で重なってはいけない値 (取引の明細・値引・支払の ID と番号、明細のシリアル番号、受注と受領の明細、精算の金種) が重なるときも `400` |
 | 重複 | コード・バーコード等の一意制約違反は `409` (`DUPLICATE_CODE`)。`IDialect.IsDuplicate` で SQLite の一意・主キーの違反だけを判定する (外部キーの違反は重複にしない) |
-| 参照先 | 書き込みが指す参照先がなければ、Service が書く前に確かめて `422` にする (外部キーの違反の `500` にしない)。マスタの店舗・部門・税率は削除済みもないものとする (`VALIDATION_ERROR`)。シフトの開設・入出金・精算は、店舗・端末 (`VALIDATION_ERROR`) と担当 (`STAFF_INVALID`) の行があればよい (端末の記録なので、記録した後の無効・削除では拒まない) |
+| 参照先 | 書き込みが指す参照先がなければ、Service が書く前に確かめて `422` にする (外部キーの違反の `500` にしない)。管理の入力 (マスタの店舗・部門・税率、入荷予定・移動の依頼・発注の商品、出荷とポイントの調整の担当) は、削除済みもないものとする。端末の記録 (取引、シフトの開設・入出金・精算、受注、棚卸・調整、受領) は行があればよい (記録した後の無効・削除では拒まない。取引と前受金の担当・承認者は、[§2.6](#26-認証認可) の業務ルールで有効なスタッフかを確かめる)。受領・出荷の担当が見つからなくても、伝票がない (`404`) ことと状態が合わない (`422`) ことを先に返す |
 
 ### 2.4 エラー応答
 
 RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `errorCode` を追加する。  
 コードは [§5](#-5-エラーコード)。  
 取引の検証で違反が複数あるときは、先頭の違反を `title` / `errorCode` にし、すべての文言を `errors` に入れる。  
-`errors` のキーは、`400` の入力エラーでは項目名、取引の検証では明細 ID (取引全体は `transaction`)、CSV 取込では行番号にする。
+`errors` のキーは、`400` の入力エラーでは項目名、取引の検証では明細 ID (取引全体は `transaction`)、CSV 取込では行番号にする。  
+`title` は日本語にし、入力の誤りの `400` (入力検証と要求の読み取り) は「入力に誤りがあります」、`500` は「サーバーでエラーが発生しました」にする (端末は `title` をそのまま出す)。
 
 ```jsonc
 {
@@ -446,7 +447,7 @@ CSV にない商品は削除しない ([D-19](decisions.md#d-19-商品の-csv-�
 | PUT | `/customers/{id}` | 端末 / 管理 | 更新 |
 | DELETE | `/customers/{id}` | 管理 | 論理削除 |
 | GET | `/customers/{id}/points/history?page&size` | 端末 / 管理 | ポイント履歴 (新しい順、`CustomerPointHistoryResponse`) |
-| POST | `/customers/{id}/points/adjust` | 管理 | 手動調整 `CustomerPointAdjustRequest { points, reason, staffId }`。`Adjust` 履歴を作る |
+| POST | `/customers/{id}/points/adjust` | 管理 | 手動調整 `CustomerPointAdjustRequest { points, reason, staffId }`。`Adjust` 履歴を作る。担当が見つからなければ (削除済みも) `422` `VALIDATION_ERROR` |
 | GET | `/customers/{id}/transactions?page&size` | 端末 / 管理 | 購入履歴 (新しい順) |
 
 ### 🧾 3.12 取引 (Transactions)
@@ -616,7 +617,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| POST | `/transactions` | 端末 | 取引登録 (`TransactionCreateRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `422` 検証エラー |
+| POST | `/transactions` | 端末 | 取引登録 (`TransactionCreateRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `400` 要求の中の重複・販売に付いた元取引 / `422` 検証エラー |
 | GET | `/transactions?storeId&terminalId&staffId&shiftId&customerId&from&to&type&status&serialNumber&sort&desc&page&size` | 端末 / 管理 | 取引検索 (`TransactionListResponse`)。`sort` = `transactedAt` / `receiptNo` / `total` / `businessDate` (既定は `transactedAt` の降順)。`serialNumber` は明細のシリアル番号の完全一致 (端末は全店の取引を探す) |
 | GET | `/transactions/{id}` | 端末 / 管理 | 取引詳細 (`TransactionListResponseItem`) |
 | GET | `/transactions/{id}/receipt/pdf` | 管理 | レシートの控え (再発行) の PDF。項目は端末のレシートと同じ ([D-21](decisions.md#d-21-帳票はサーバが-pdf-にする)) |
@@ -626,6 +627,15 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 #### 業務ルール
 
+**要求と参照先 (販売・返品)**
+
+- 明細・値引・支払の ID、明細番号、支払の連番、明細のシリアル番号が重ならないこと。  
+  販売は元取引 (`originalTransactionId`、`originalLineId`) を持たないこと (`400`)
+- 店舗・会員・支払方法・税率・値引が存在すること (`VALIDATION_ERROR`)。  
+  承認の要らない値引に付けた承認者も存在すること (`APPROVAL_REQUIRED`)。  
+  返品は明細の `productId` も存在すること (`PRODUCT_NOT_FOUND`。販売は下の 3)。  
+  端末の記録なので、削除済みも受け付ける
+
 **販売 (`type = Sale`)**
 
 1. `shiftId` のシフトが存在し、`Open` で、`terminalId` が一致すること (`SHIFT_NOT_FOUND` / `SHIFT_CLOSED` / `SHIFT_TERMINAL_MISMATCH`)
@@ -633,7 +643,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 3. 各明細の `productId` が存在すること (`PRODUCT_NOT_FOUND`)。  
    `isActive = false` はオフライン同期の遅れがあり得るので受理し、警告 (`PRODUCT_INACTIVE`) を付ける
 4. `allowsPriceOverride = false` の商品は `unitPrice = listPrice` であること (`PRICE_OVERRIDE_NOT_ALLOWED`)
-5. [§4](#-4-金額税ポイント計算仕様-共有ライブラリ) で計算できる入力であること (明細が 1 つ以上、明細 ID が重ならない、数量は正、単価は 0 以上、値引の値は 0 以上で率は 1 以下、値引の対象明細がある、値引が値引前の金額を超えない。違えば `VALIDATION_ERROR`)。  
+5. [§4](#-4-金額税ポイント計算仕様-共有ライブラリ) で計算できる入力であること (明細が 1 つ以上、明細 ID が重ならない (登録では先に `400`)、数量は正、単価は 0 以上、値引の値は 0 以上で率は 1 以下、値引の対象明細がある、値引が値引前の金額を超えない。違えば `VALIDATION_ERROR`)。  
    再計算した結果と、送信された計算項目が一致すること (`CALCULATION_MISMATCH`。応答の `expected` にサーバ計算結果)
 6. Σ `payments.amount = total`、`changeAmount = tenderedTotal − total ≥ 0`、釣銭が出るのは `allowsChange` の支払方法のみ (`PAYMENT_MISMATCH`)
 7. `pointsEarned > 0` または `pointsRedeemed > 0` のとき `customerId` が必須 (`CUSTOMER_REQUIRED`)
@@ -841,11 +851,11 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
-| POST | `/orders` | 端末 / 管理 | 登録 (`OrderCreateRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `400` 会員も宛名もない / `422` 商品・会員・店舗が見つからない |
+| POST | `/orders` | 端末 / 管理 | 登録 (`OrderCreateRequest`)。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 / `400` 会員も宛名もない・明細が重複している / `422` 商品・会員・店舗・端末・担当が見つからない (`PRODUCT_NOT_FOUND` / `VALIDATION_ERROR` / `STAFF_INVALID`。端末と担当は行があればよい) |
 | GET | `/orders?storeId&status&open&type&customerId&keyword&from&to&sort&desc&page&size` | 端末 / 管理 | 一覧 (`OrderListResponse`)。`open=true` は未完了だけ、`keyword` は受注番号・宛名・電話の部分一致、`from` / `to` は受注日。`sort` = `orderedAt` / `orderNo` / `requestedDate` |
 | GET | `/orders/{id}` | 端末 / 管理 | 詳細 |
 | GET | `/orders/{id}/pdf` | 管理 | 受注票 (PDF。お客様の控えで、前受金を受け取ったときは預り証を兼ねる。[D-21](decisions.md#d-21-帳票はサーバが-pdf-にする)) |
-| PUT | `/orders/{id}` | 管理 | 変更 (`OrderUpdateRequest`: 会員・宛名・電話・希望日・備考・明細 (全体を置き換える)・`version`)。完了・キャンセル済みは `422` (`ORDER_STATUS_INVALID`)、版の不一致は `409` |
+| PUT | `/orders/{id}` | 管理 | 変更 (`OrderUpdateRequest`: 会員・宛名・電話・希望日・備考・明細 (全体を置き換える)・`version`)。明細が重複していれば `400`、完了・キャンセル済みは `422` (`ORDER_STATUS_INVALID`)、版の不一致は `409` |
 | POST | `/orders/{id}/arrive` | 端末 / 管理 | 入荷 (入荷待ちのときだけ。それ以外は `422` `ORDER_STATUS_INVALID`) |
 | POST | `/orders/{id}/cancel` | 端末 / 管理 | キャンセル `OrderCancelRequest { reason }` (未完了で、前受金がないときだけ。前受金があれば `422` `ORDER_DEPOSIT_INVALID`) |
 | POST | `/orders/{id}/deposit` | 端末 | 前受金の受取 `OrderDepositRequest { id, shiftId, terminalId, staffId, paymentMethodId, amount, reference, occurredAt }` → 受注。`201` 新規 / `200` 同一 `id` 既存 / `409` 同一 `id` で内容相違 |
@@ -899,7 +909,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | --- | --- | --- | --- |
 | GET | `/inventory?storeId&productId&categoryId&negativeOnly&updatedSince&page&size` | 端末 / 管理 | 現在庫一覧 (端末は自店分を差分同期) |
 | GET | `/inventory/{productId}` | 端末 / 管理 | 商品の**全店舗**在庫 (他店在庫照会) `{ productId, levels: [{ storeId, storeName, quantity, updatedAt }] }` |
-| POST | `/inventory/changes` | 端末 / 管理 | 棚卸・調整の一括登録 (`InventoryChangesRequest`、下記) |
+| POST | `/inventory/changes` | 端末 / 管理 | 棚卸・調整の一括登録 (`InventoryChangesRequest`、下記)。店舗・商品・理由・担当が見つからない変動があれば、どれも書かずに `422` |
 | GET | `/inventory/changes?storeId&productId&type&from&to&page&size` | 端末 / 管理 | 変動履歴 (`from` / `to` は UTC の日時で、`to` を含まない) |
 | GET | `/inventory/adjustment-reasons?updatedSince&includeDeleted` | 端末 / 管理 | 調整理由一覧 (破損 / 廃棄 / 万引き / 自家消費 / 棚卸差異 ...) |
 | GET | `/inventory/adjustment-reasons/{id}` | 端末 / 管理 | 調整理由詳細 |
@@ -967,17 +977,17 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | --- | --- | --- | --- |
 | GET | `/inventory/receipts?storeId&supplierId&status&from&to&sort&desc&page&size` | 端末 / 管理 | 入荷一覧 (`InventoryReceiptListResponse`)。`from` / `to` は入荷予定日、`sort` = `createdAt` / `expectedDate` |
 | GET | `/inventory/receipts/{id}` | 端末 / 管理 | 詳細 |
-| POST | `/inventory/receipts` | 管理 | 入荷予定の登録 (`InventoryReceiptCreateRequest`: 店舗・仕入先・納品書番号・入荷予定日・備考・明細 `{ productId, quantity, cost }`)。`201`。店舗・仕入先がなければ `422` `VALIDATION_ERROR`、商品がなければ `422` `PRODUCT_NOT_FOUND` |
-| POST | `/inventory/receipts/{id}/receive` | 端末 / 管理 | 受領 (`InventoryReceiptReceiveRequest { staffId, receivedAt, lines: [{ lineId, quantity }] }`)。入荷予定のときだけ |
+| POST | `/inventory/receipts` | 管理 | 入荷予定の登録 (`InventoryReceiptCreateRequest`: 店舗・仕入先・納品書番号・入荷予定日・備考・明細 `{ productId, quantity, cost }`)。`201`。店舗・仕入先がなければ `422` `VALIDATION_ERROR`、商品がなければ (削除済みも) `422` `PRODUCT_NOT_FOUND` |
+| POST | `/inventory/receipts/{id}/receive` | 端末 / 管理 | 受領 (`InventoryReceiptReceiveRequest { staffId, receivedAt, lines: [{ lineId, quantity }] }`)。入荷予定のときだけ。明細が重複していれば `400`、担当が見つからなければ `422` (`STAFF_INVALID`) |
 | POST | `/inventory/receipts/{id}/cancel` | 管理 | キャンセル (入荷予定のときだけ) |
 | GET | `/inventory/transfers?storeId&fromStoreId&toStoreId&status&open&sort&desc&page&size` | 端末 / 管理 | 移動一覧 (`InventoryTransferListResponse`)。`storeId` は出荷店か入荷店のどちらか、`open=true` は未受領 (出荷待ち・受領待ち) だけ。`sort` = `createdAt` / `transferNo` |
 | GET | `/inventory/transfers/{id}` | 端末 / 管理 | 詳細 |
-| POST | `/inventory/transfers` | 管理 | 依頼 (`InventoryTransferCreateRequest`: 出荷店・入荷店・備考・明細 `{ productId, quantity }`)。`201`。同じ店舗どうしは `400`、店舗がなければ `422` `VALIDATION_ERROR`、商品がなければ `422` `PRODUCT_NOT_FOUND` |
-| POST | `/inventory/transfers/{id}/ship` | 管理 | 出荷 (`InventoryTransferShipRequest { staffId, shippedAt }`)。出荷待ちのときだけ |
-| POST | `/inventory/transfers/{id}/receive` | 端末 / 管理 | 受領 (`InventoryTransferReceiveRequest`、入荷の受領と同じ形)。受領待ちのときだけ |
+| POST | `/inventory/transfers` | 管理 | 依頼 (`InventoryTransferCreateRequest`: 出荷店・入荷店・備考・明細 `{ productId, quantity }`)。`201`。同じ店舗どうしは `400`、店舗がなければ `422` `VALIDATION_ERROR`、商品がなければ (削除済みも) `422` `PRODUCT_NOT_FOUND` |
+| POST | `/inventory/transfers/{id}/ship` | 管理 | 出荷 (`InventoryTransferShipRequest { staffId, shippedAt }`)。出荷待ちのときだけ。担当が見つからなければ (削除済みも) `422` (`STAFF_INVALID`) |
+| POST | `/inventory/transfers/{id}/receive` | 端末 / 管理 | 受領 (`InventoryTransferReceiveRequest`、入荷の受領と同じ形)。受領待ちのときだけ (明細の重複と担当の扱いも入荷の受領と同じ) |
 | POST | `/inventory/transfers/{id}/cancel` | 管理 | キャンセル (出荷待ちのときだけ) |
 
-- 状態に合わない受領・出荷・キャンセルは `422` (`INVENTORY_RECEIPT_STATUS_INVALID` / `INVENTORY_TRANSFER_STATUS_INVALID`)、伝票がなければ `404`
+- 状態に合わない受領・出荷・キャンセルは `422` (`INVENTORY_RECEIPT_STATUS_INVALID` / `INVENTORY_TRANSFER_STATUS_INVALID`)、伝票がなければ `404` (担当が見つからなくても、こちらを先に返す)
 - 受領の `lines` に含めない明細は、予定 (移動は出荷) の数で受け取る。  
   数が `0` の明細は在庫を動かさない
 - 入荷の受領は入荷する店舗に `Receive` (+)、移動の出荷は出荷店に `TransferOut` (−依頼の数)、移動の受領は入荷店に `TransferIn` (+受領した数) を記録する。  
@@ -1012,8 +1022,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 | GET | `/inventory/purchase-orders?storeId&supplierId&status&open&from&to&sort&desc&page&size` | 管理 | 発注一覧 (`PurchaseOrderListResponse`)。`open=true` は未完了 (下書き・発注済み) だけ、`from` / `to` は希望納期、`sort` = `createdAt` / `expectedDate` / `purchaseOrderNo` |
 | GET | `/inventory/purchase-orders/{id}` | 管理 | 詳細 |
 | GET | `/inventory/purchase-orders/{id}/pdf` | 管理 | 発注書 (PDF) |
-| POST | `/inventory/purchase-orders` | 管理 | 登録 (`PurchaseOrderCreateRequest`: 店舗・仕入先・希望納期・備考・明細 `{ productId, quantity, cost }`)。下書きで `201`。店舗・仕入先がなければ `422` `VALIDATION_ERROR`、商品がなければ `422` `PRODUCT_NOT_FOUND` |
-| PUT | `/inventory/purchase-orders/{id}` | 管理 | 変更 (`PurchaseOrderUpdateRequest`: 仕入先・希望納期・備考・明細・`version`)。下書きのときだけで、明細は置き換える |
+| POST | `/inventory/purchase-orders` | 管理 | 登録 (`PurchaseOrderCreateRequest`: 店舗・仕入先・希望納期・備考・明細 `{ productId, quantity, cost }`)。下書きで `201`。店舗・仕入先がなければ `422` `VALIDATION_ERROR`、商品がなければ (削除済みも) `422` `PRODUCT_NOT_FOUND` |
+| PUT | `/inventory/purchase-orders/{id}` | 管理 | 変更 (`PurchaseOrderUpdateRequest`: 仕入先・希望納期・備考・明細・`version`)。下書きのときだけで、明細は置き換える (商品の扱いは登録と同じ) |
 | POST | `/inventory/purchase-orders/{id}/order` | 管理 | 発注 (本文なし)。下書きのときだけ。明細を写した入荷予定を作り、`receiptId` に入れる。仕入先が削除済みなら `422` `VALIDATION_ERROR` |
 | POST | `/inventory/purchase-orders/{id}/cancel` | 管理 | キャンセル。下書きと発注済みのときで、発注済みは入荷予定もキャンセルする |
 
@@ -1164,13 +1174,13 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 
 | HTTP | `errorCode` | 発生箇所 |
 | --- | --- | --- |
-| 400 | `VALIDATION_ERROR` | 入力形式・必須項目 (詳細は `errors`) |
+| 400 | `VALIDATION_ERROR` | 入力形式・必須項目、1 つの要求の中の重複 (明細・値引・支払、シリアル番号、精算の金種など)、販売に付いた元取引 (詳細は `errors`) |
 | 401 | (本文なし) | ログインもトークンもない、トークンが解除済み・不明、端末が無効・削除済み ([§2.6](#26-認証認可)) |
 | 403 | (本文なし) | 役割が足りない (管理者だけの API、端末からの管理だけの API) |
 | 403 | `TERMINAL_MISMATCH` | 端末のトークンと、本文・クエリの店舗・端末が一致しない |
 | 429 | (本文なし) | ログイン・ペアリングの試行回数の上限 |
 | 413 / 415 | `VALIDATION_ERROR` | 本文をそのまま送る API (商品画像・CSV 取込) の大きさ・`Content-Type` |
-| 422 | `VALIDATION_ERROR` | 取引の入力の誤り (明細なし、数量・単価・値引の値、値引の超過など)、取消済みの取引の取消、参照先 (店舗・端末・部門・税率・会員・仕入先) がない、有効な `Points` / `Deposit` の支払方法の 2 件目、部門の親に自身、商品画像の形式、CSV 取込の誤りのある行 (`errors` は行番号ごと) |
+| 422 | `VALIDATION_ERROR` | 取引の入力の誤り (明細なし、数量・単価・値引の値、値引の超過など)、取消済みの取引の取消、参照先 (店舗・端末・部門・税率・会員・仕入先・支払方法・値引・調整理由、ポイントの調整の担当) がない、有効な `Points` / `Deposit` の支払方法の 2 件目、部門の親に自身、商品画像の形式、CSV 取込の誤りのある行 (`errors` は行番号ごと) |
 | 404 | `NOT_FOUND` | 対象なし |
 | 409 | `DUPLICATE_ID_MISMATCH` | 同一 `id` で内容が異なる再送 |
 | 409 | `VERSION_MISMATCH` | 楽観ロック失敗 |
@@ -1186,7 +1196,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 422 | `INVENTORY_RECEIPT_STATUS_INVALID` / `INVENTORY_TRANSFER_STATUS_INVALID` | 入荷・店舗間移動の状態に合わない受領・出荷・キャンセル |
 | 422 | `PURCHASE_ORDER_STATUS_INVALID` | 発注の状態に合わない変更・発注・キャンセル |
 | 422 | `DUPLICATE_RECEIPT_NO` | レシート番号重複 |
-| 422 | `PRODUCT_NOT_FOUND` | 取引・受注・入荷予定・店舗間移動・発注の明細の商品がない |
+| 422 | `PRODUCT_NOT_FOUND` | 取引 (返品を含む)・受注・入荷予定・店舗間移動・発注の明細、棚卸・調整の商品がない (入荷予定・店舗間移動・発注は削除済みも) |
 | 422 | `PRICE_OVERRIDE_NOT_ALLOWED` | 売価変更不可商品の単価相違 |
 | 422 | `CALCULATION_MISMATCH` | 計算項目不一致 (`expected` にサーバ計算) |
 | 422 | `PAYMENT_MISMATCH` | 支払合計・釣銭の不整合、前受金の充当額が受注の前受金と違う、返品のポイント返還額の違いと前受金での返金 |
@@ -1196,8 +1206,8 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 422 | `HAS_RETURNS` | 返品済み取引の取消 |
 | 422 | `IN_USE` | 使用中マスタの削除 |
 | 422 | `PAIRING_CODE_INVALID` | ペアリングコードの不一致・期限切れ・使用済み、無効な端末 |
-| 422 | `STAFF_INVALID` | 担当がその店舗 (または本部) の有効なスタッフでない (取引の登録・取消、前受金の受取・返金)。シフトの開設・入出金・精算の担当が見つからない |
-| 422 | `APPROVAL_REQUIRED` | 承認が必要な値引・レジ係の取消に、店長以上の承認者がない (承認者が無効・役割不足を含む) |
+| 422 | `STAFF_INVALID` | 担当がその店舗 (または本部) の有効なスタッフでない (取引の登録・取消、前受金の受取・返金)。端末の記録 (シフトの開設・入出金・精算、受注、棚卸・調整、受領) の担当が見つからない。出荷の担当が見つからない・削除済み |
+| 422 | `APPROVAL_REQUIRED` | 承認が必要な値引・レジ係の取消に、店長以上の承認者がない (承認者が無効・役割不足を含む)。承認の要らない値引に付けた承認者が見つからない |
 | 500 | (なし) | 想定外の例外 (Problem Details。`errorCode` は付かない) |
 
 警告 (受理するが、登録した `201` の応答の `warnings[]` に含める): `POINT_BALANCE_NEGATIVE` (ポイント残高不足)、`PRODUCT_INACTIVE` (販売停止中の商品)、`DAY_ALREADY_CLOSED` (締め済みの営業日の取引)。

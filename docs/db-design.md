@@ -1162,7 +1162,7 @@ SQLite は書き込みが直列化される (単一ライター) が、検証は
 ### 5.1 取引登録 (`POST /transactions`) は 1 つの DB トランザクション
 
 1. `Transactions.Id` が既にあれば既存を返して終える (種別・端末・シフト・レシート番号・合計・取引日時のどれかが違えば 409)
-2. 検証 (シフト状態、商品、計算一致、返品数量 …)
+2. 検証 (参照先、シフト状態、商品、計算一致、返品数量 …)
 3. 以下を 1 トランザクションで実行
    - `Transactions` + `TransactionLines` + `TransactionLineSerials` + `TransactionDiscounts` + `TransactionTaxSummaries` + `TransactionPayments` + `TransactionDeliveries` を INSERT
    - 取消済み (`Status = Voided`) で届いた取引は、INSERT と締め済みの印だけを行う
@@ -1172,7 +1172,8 @@ SQLite は書き込みが直列化される (単一ライター) が、検証は
    - `Terminals.LastReceiptSeq` を `max(現在値, 今回の連番)` で更新
    - 店舗 × 営業日が締め済みなら `DailyClosings.HasLateTransactions` を立てる
    - 受注から会計した販売なら、引き渡し待ち (`Arrived`) の受注を `Completed` にして `TransactionId` を入れる (状態か前受金の残りが検証のときと変わっていれば、登録全体を戻して `ORDER_NOT_READY`)
-4. コミット
+4. コミット。  
+   同じ `Id` の再送が同時に届いて一意の制約に反したら、読み直して 1 と同じく既存を返す (`Id` がなければレシート番号の重複)
 
 ### 5.2 取消 (`POST /transactions/{id}/void`)
 
@@ -1217,7 +1218,8 @@ CSV 取込は全行を検証してから、登録と更新を 1 トランザク�
 発注の [発注] は、状態を条件にした `UPDATE PurchaseOrders ... WHERE Status = 'Draft'` と入荷予定・明細の INSERT を 1 トランザクションで行う。  
 入荷予定の受領とキャンセルは、同じトランザクションで `ReceiptId` の発注を入荷済み・キャンセルにする。  
 発注済みの発注のキャンセルは、同じトランザクションで入荷予定もキャンセルする (入荷予定が先に受領されていたら、発注のキャンセルも行わない)。  
-棚卸・調整は 1 件ずつ、`InventoryLevels` の UPSERT と `InventoryChanges` の INSERT を 1 トランザクションで行う (棚卸は現在庫との差を `QuantityDelta` にし、同じ Id の再送は登録済みを返す)。
+棚卸・調整は参照先 (店舗・商品・理由・担当) を先にまとめて確かめ、見つからない変動があればどれも書かない。  
+そのうえで 1 件ずつ、`InventoryLevels` の UPSERT と `InventoryChanges` の INSERT を 1 トランザクションで行う (棚卸は現在庫との差を `QuantityDelta` にし、同じ Id の再送は登録済みを返す)。
 
 ### 5.8 集計の考え方
 

@@ -42,6 +42,11 @@ public sealed class OrderCreateRequest : IValidatableObject
         {
             yield return new ValidationResult("会員か宛名を指定してください", [nameof(CustomerName)]);
         }
+
+        if (Lines.Select(static x => x.Id).Distinct().Count() != Lines.Count)
+        {
+            yield return new ValidationResult("明細が重複しています", [nameof(Lines)]);
+        }
     }
 }
 

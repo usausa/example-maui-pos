@@ -93,10 +93,6 @@ public sealed partial class CustomerDetailPage
             return;
         }
 
-        await RunAsync(async () =>
-        {
-            var history = await CustomerService.AdjustPointsAsync(Id, form.Points, form.Reason, form.StaffId, CancellationToken);
-            NotifyResult(history is null ? DataWriteStatus.NotFound : DataWriteStatus.Success, "ポイントを調整しました");
-        }, LoadAsync);
+        await RunAsync(async () => NotifyResult(await CustomerService.AdjustPointsAsync(Id, form.Points, form.Reason, form.StaffId ?? Guid.Empty, CancellationToken), "ポイントを調整しました", invalid: "担当が見つかりません"), LoadAsync);
     }
 }

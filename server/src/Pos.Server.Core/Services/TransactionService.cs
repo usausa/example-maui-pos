@@ -65,6 +65,7 @@ public sealed class TransactionService
 {
     private readonly TimeProvider timeProvider;
     private readonly IDbProvider provider;
+    private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
     private readonly ProductAccessor productAccessor;
     private readonly CustomerAccessor customerAccessor;
@@ -78,6 +79,7 @@ public sealed class TransactionService
     public TransactionService(
         TimeProvider timeProvider,
         IDbProvider provider,
+        IDialect dialect,
         MasterAccessor masterAccessor,
         ProductAccessor productAccessor,
         CustomerAccessor customerAccessor,
@@ -90,6 +92,7 @@ public sealed class TransactionService
     {
         this.timeProvider = timeProvider;
         this.provider = provider;
+        this.dialect = dialect;
         this.masterAccessor = masterAccessor;
         this.productAccessor = productAccessor;
         this.customerAccessor = customerAccessor;
@@ -234,14 +237,13 @@ public sealed class TransactionService
         var existing = await transactionAccessor.QueryAsync(entity.Id, cancellationToken);
         if (existing is not null)
         {
-            return IsSameTransaction(existing, entity)
-                ? TransactionResult.Existing(await LoadDetailAsync(existing, cancellationToken))
-                : TransactionResult.DuplicateMismatch();
+            return await ResentResultAsync(existing, entity, cancellationToken);
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var settings = await QuerySettingsAsync(cancellationToken);
         var paymentMethods = await QueryPaymentMethodsAsync(cancellationToken);
+        var discounts = await QueryDiscountsAsync(cancellationToken);
         var shift = await shiftAccessor.QueryAsync(entity.ShiftId, cancellationToken);
         var receiptNoInUse = await transactionAccessor.QueryByReceiptNoAsync(entity.ReceiptNo, cancellationToken) is not null;
         var products = (await productAccessor.QueryListByIdsAsync(detail.Lines.Select(static x => x.ProductId).Distinct().ToList(), cancellationToken)).ToDictionary(static x => x.Id);
@@ -252,6 +254,10 @@ public sealed class TransactionService
         var order = (orderId is null) || (entity.Type != TransactionType.Sale) ? null : await orderAccessor.QueryAsync(orderId.Value, cancellationToken);
         var depositBalance = order is null ? 0m : OrderDetailView.DepositBalanceOf(order.Status, await orderAccessor.QueryDepositListAsync(order.Id, cancellationToken));
         var staff = await QueryStaffFactAsync(entity.StaffId, cancellationToken);
+        if (await ValidateReferencesAsync(detail, products, paymentMethods, discounts, customer, cancellationToken) is { } violation)
+        {
+            return TransactionResult.Violated(violation);
+        }
 
         TransactionValidation validation;
         if (entity.Type == TransactionType.Return)
@@ -288,7 +294,7 @@ public sealed class TransactionService
                 OrderId = orderId,
                 Order = order is null ? null : new OrderFact { Id = order.Id, StoreId = order.StoreId, Status = order.Status, DepositBalance = depositBalance },
                 Staff = staff,
-                DiscountApprovals = await QueryDiscountApprovalsAsync(detail.Discounts, cancellationToken)
+                DiscountApprovals = await QueryDiscountApprovalsAsync(detail.Discounts, discounts, cancellationToken)
             };
             validation = TransactionLogic.ValidateSale(context, input, claimed);
         }
@@ -353,6 +359,21 @@ public sealed class TransactionService
         catch (RuleViolationException ex)
         {
             return TransactionResult.Violated(new RuleError(ex.Code, ex.Reason));
+        }
+        catch (DbException ex) when (dialect.IsDuplicate(ex))
+        {
+            // 同じ id の再送が同時に届いて先に登録されたなら再送として返す。そうでなければ、レシート番号が先に使われた
+            if (await transactionAccessor.QueryAsync(entity.Id, cancellationToken) is { } resent)
+            {
+                return await ResentResultAsync(resent, entity, cancellationToken);
+            }
+
+            if (await transactionAccessor.QueryByReceiptNoAsync(entity.ReceiptNo, cancellationToken) is not null)
+            {
+                return TransactionResult.Violated(new RuleError(ErrorCode.DuplicateReceiptNo, RuleReason.DuplicateReceiptNo));
+            }
+
+            throw;
         }
 
         changeNotification.Notify(DataChangeKind.Transaction);
@@ -505,17 +526,7 @@ public sealed class TransactionService
             return TransactionResult.NotFound();
         }
 
-        var shift = await shiftAccessor.QueryAsync(entity.ShiftId, cancellationToken);
-        var context = new VoidContext
-        {
-            Transaction = new TransactionFact { Id = entity.Id, StoreId = entity.StoreId, Type = entity.Type, Status = entity.Status, HasReturns = await transactionAccessor.CountReturnsAsync(id, cancellationToken) > 0 },
-            ShiftStatus = shift?.Status,
-            DayClosed = await dailyClosingAccessor.QueryByBusinessDateAsync(entity.StoreId, entity.BusinessDate, cancellationToken) is not null,
-            Staff = await QueryStaffFactAsync(staffId, cancellationToken),
-            ApproverId = approvedByStaffId,
-            Approver = await QueryStaffFactAsync(approvedByStaffId, cancellationToken)
-        };
-        var validation = TransactionLogic.ValidateVoid(context);
+        var validation = TransactionLogic.ValidateVoid(await QueryVoidContextAsync(entity, staffId, approvedByStaffId, cancellationToken));
         if (!validation.IsValid)
         {
             return TransactionResult.Invalid(validation);
@@ -525,45 +536,45 @@ public sealed class TransactionService
         var lines = await transactionAccessor.QueryLineListAsync(id, cancellationToken);
         var products = (await productAccessor.QueryListByIdsAsync(lines.Select(static x => x.ProductId).Distinct().ToList(), cancellationToken)).ToDictionary(static x => x.Id);
         var sale = entity.Type == TransactionType.Sale;
-        TransactionEntity voided;
-        try
+        var voided = await provider.UsingTxAsync(async (_, tx) =>
         {
-            voided = await provider.UsingTxAsync(async (_, tx) =>
+            var updated = await transactionAccessor.UpdateVoidedAsync(tx, id, voidedAt, staffId, reason, now, cancellationToken);
+            if (updated is null)
             {
-                var updated = await transactionAccessor.UpdateVoidedAsync(tx, id, voidedAt, staffId, reason, now, cancellationToken) ??
-                    throw new RuleViolationException(ErrorCode.ValidationError, RuleReason.AlreadyVoided);
+                return null;
+            }
 
-                // 在庫 (逆方向)
-                await ApplyInventoryAsync(tx, entity, lines, products, sale ? 1m : -1m, InventoryChangeType.Void, staffId, voidedAt, now, cancellationToken);
+            // 在庫 (逆方向)
+            await ApplyInventoryAsync(tx, entity, lines, products, sale ? 1m : -1m, InventoryChangeType.Void, staffId, voidedAt, now, cancellationToken);
 
-                // ポイント (付与を取り消し、利用を戻す)
-                var pointsDelta = -entity.PointsEarned + entity.PointsRedeemed;
-                if ((entity.CustomerId is not null) && (pointsDelta != 0))
+            // ポイント (付与を取り消し、利用を戻す)
+            var pointsDelta = -entity.PointsEarned + entity.PointsRedeemed;
+            if ((entity.CustomerId is not null) && (pointsDelta != 0))
+            {
+                await AddPointsAsync(tx, entity.CustomerId.Value, entity.Id, PointHistoryType.Void, pointsDelta, staffId, voidedAt, now, cancellationToken);
+            }
+
+            if (sale)
+            {
+                // 受注から会計した販売の取消は、受注を引き渡し待ちに戻す
+                await orderAccessor.UpdateReopenedAsync(tx, id, now, cancellationToken);
+            }
+            else
+            {
+                // 返品の取消は元明細の返品数量を戻す
+                foreach (var line in lines.Where(static x => x.OriginalLineId is not null))
                 {
-                    await AddPointsAsync(tx, entity.CustomerId.Value, entity.Id, PointHistoryType.Void, pointsDelta, staffId, voidedAt, now, cancellationToken);
+                    await transactionAccessor.AddReturnedQuantityAsync(tx, line.OriginalLineId!.Value, -line.Quantity, cancellationToken);
                 }
+            }
 
-                if (sale)
-                {
-                    // 受注から会計した販売の取消は、受注を引き渡し待ちに戻す
-                    await orderAccessor.UpdateReopenedAsync(tx, id, now, cancellationToken);
-                }
-                else
-                {
-                    // 返品の取消は元明細の返品数量を戻す
-                    foreach (var line in lines.Where(static x => x.OriginalLineId is not null))
-                    {
-                        await transactionAccessor.AddReturnedQuantityAsync(tx, line.OriginalLineId!.Value, -line.Quantity, cancellationToken);
-                    }
-                }
+            await tx.CommitAsync(cancellationToken);
+            return updated;
+        }, cancellationToken);
 
-                await tx.CommitAsync(cancellationToken);
-                return updated;
-            }, cancellationToken);
-        }
-        catch (RuleViolationException ex)
+        if (voided is null)
         {
-            return TransactionResult.Violated(new RuleError(ex.Code, ex.Reason));
+            return await RevalidateVoidAsync(id, staffId, approvedByStaffId, cancellationToken);
         }
 
         changeNotification.Notify(DataChangeKind.Transaction);
@@ -574,11 +585,99 @@ public sealed class TransactionService
     // Helper
     //--------------------------------------------------------------------------------
 
+    // 同じ id の再送: 内容が同じなら Existing、違えば DuplicateMismatch
+    private async ValueTask<TransactionResult> ResentResultAsync(TransactionEntity existing, TransactionEntity entity, CancellationToken cancellationToken) =>
+        IsSameTransaction(existing, entity) ? TransactionResult.Existing(await LoadDetailAsync(existing, cancellationToken)) : TransactionResult.DuplicateMismatch();
+
+    // 業務ルールで確かめない参照先 (店舗、会員、返品の商品、支払方法、税率、値引とその承認者) は書く前に確かめる。端末の記録なので、削除済みも受け付ける
+    private async ValueTask<RuleError?> ValidateReferencesAsync(
+        TransactionDetailView detail,
+        Dictionary<Guid, ProductEntity> products,
+        Dictionary<Guid, PaymentMethodEntity> paymentMethods,
+        Dictionary<Guid, DiscountEntity> discounts,
+        CustomerEntity? customer,
+        CancellationToken cancellationToken)
+    {
+        if (await masterAccessor.QueryStoreAsync(detail.Transaction.StoreId, cancellationToken) is null)
+        {
+            return new RuleError(ErrorCode.ValidationError, RuleReason.StoreNotFound);
+        }
+
+        if ((detail.Transaction.CustomerId is not null) && (customer is null))
+        {
+            return new RuleError(ErrorCode.ValidationError, RuleReason.CustomerNotFound);
+        }
+
+        // 販売の商品は ValidateSale が確かめる
+        if ((detail.Transaction.Type == TransactionType.Return) && (detail.Lines.FirstOrDefault(x => !products.ContainsKey(x.ProductId)) is { } line))
+        {
+            return new RuleError(ErrorCode.ProductNotFound, RuleReason.ProductNotFound, line.Id);
+        }
+
+        if (detail.Payments.Any(x => !paymentMethods.ContainsKey(x.PaymentMethodId)))
+        {
+            return new RuleError(ErrorCode.ValidationError, RuleReason.PaymentMethodNotFound);
+        }
+
+        foreach (var taxRateId in detail.TaxSummaries.Select(static x => x.TaxRateId).Distinct())
+        {
+            if (await masterAccessor.QueryTaxRateAsync(taxRateId, cancellationToken) is null)
+            {
+                return new RuleError(ErrorCode.ValidationError, RuleReason.TaxRateNotFound);
+            }
+        }
+
+        foreach (var discount in detail.Discounts)
+        {
+            var definition = discount.DiscountId is null ? null : discounts.GetValueOrDefault(discount.DiscountId.Value);
+            if ((discount.DiscountId is not null) && (definition is null))
+            {
+                return new RuleError(ErrorCode.ValidationError, RuleReason.DiscountNotFound, discount.LineId);
+            }
+
+            // 承認が要る値引の承認者は ValidateSale が確かめる
+            if ((discount.ApprovedByStaffId is not null) && (definition is not { RequiresApproval: true }) && (await masterAccessor.QueryStaffAsync(discount.ApprovedByStaffId.Value, cancellationToken) is null))
+            {
+                return new RuleError(ErrorCode.ApprovalRequired, RuleReason.ApproverNotFound, discount.LineId);
+            }
+        }
+
+        return null;
+    }
+
+    private async ValueTask<VoidContext> QueryVoidContextAsync(TransactionEntity entity, Guid staffId, Guid? approvedByStaffId, CancellationToken cancellationToken) =>
+        new()
+        {
+            Transaction = new TransactionFact { Id = entity.Id, StoreId = entity.StoreId, Type = entity.Type, Status = entity.Status, HasReturns = await transactionAccessor.CountReturnsAsync(entity.Id, cancellationToken) > 0 },
+            ShiftStatus = (await shiftAccessor.QueryAsync(entity.ShiftId, cancellationToken))?.Status,
+            DayClosed = await dailyClosingAccessor.QueryByBusinessDateAsync(entity.StoreId, entity.BusinessDate, cancellationToken) is not null,
+            Staff = await QueryStaffFactAsync(staffId, cancellationToken),
+            ApproverId = approvedByStaffId,
+            Approver = await QueryStaffFactAsync(approvedByStaffId, cancellationToken)
+        };
+
+    // 取消の更新で行が返らなかった (検証のあとで取消が先に通った): 読み直して違反を返す
+    private async ValueTask<TransactionResult> RevalidateVoidAsync(Guid id, Guid staffId, Guid? approvedByStaffId, CancellationToken cancellationToken)
+    {
+        if (await transactionAccessor.QueryAsync(id, cancellationToken) is not { } current)
+        {
+            return TransactionResult.NotFound();
+        }
+
+        var validation = TransactionLogic.ValidateVoid(await QueryVoidContextAsync(current, staffId, approvedByStaffId, cancellationToken));
+        return validation.IsValid
+            ? TransactionResult.Violated(new RuleError(ErrorCode.ValidationError, RuleReason.AlreadyVoided))
+            : TransactionResult.Invalid(validation);
+    }
+
     private async ValueTask<SettingsEntity> QuerySettingsAsync(CancellationToken cancellationToken) =>
         await masterAccessor.QuerySettingsAsync(cancellationToken) ?? throw new InvalidOperationException("Settings not found.");
 
     private async ValueTask<Dictionary<Guid, PaymentMethodEntity>> QueryPaymentMethodsAsync(CancellationToken cancellationToken) =>
         (await masterAccessor.QueryPaymentMethodListAsync(null, true, cancellationToken)).ToDictionary(static x => x.Id);
+
+    private async ValueTask<Dictionary<Guid, DiscountEntity>> QueryDiscountsAsync(CancellationToken cancellationToken) =>
+        (await masterAccessor.QueryDiscountListAsync(null, true, cancellationToken)).ToDictionary(static x => x.Id);
 
     // 担当・承認者の事実 (null = 指定なし・見つからない。削除済みは無効として扱う)
     private async ValueTask<StaffFact?> QueryStaffFactAsync(Guid? id, CancellationToken cancellationToken)
@@ -593,12 +692,12 @@ public sealed class TransactionService
     }
 
     // 承認が必要な値引 (定義の RequiresApproval) ごとの承認者。任意の値引は承認なし
-    private async ValueTask<List<DiscountApprovalFact>> QueryDiscountApprovalsAsync(IEnumerable<TransactionDiscountEntity> discounts, CancellationToken cancellationToken)
+    private async ValueTask<List<DiscountApprovalFact>> QueryDiscountApprovalsAsync(IEnumerable<TransactionDiscountEntity> discounts, Dictionary<Guid, DiscountEntity> definitions, CancellationToken cancellationToken)
     {
         var approvals = new List<DiscountApprovalFact>();
         foreach (var discount in discounts)
         {
-            if ((discount.DiscountId is null) || (await masterAccessor.QueryDiscountAsync(discount.DiscountId.Value, cancellationToken) is not { RequiresApproval: true }))
+            if ((discount.DiscountId is null) || (definitions.GetValueOrDefault(discount.DiscountId.Value) is not { RequiresApproval: true }))
             {
                 continue;
             }

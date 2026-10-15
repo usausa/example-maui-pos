@@ -128,9 +128,7 @@ public sealed class OrderService
         var existing = await orderAccessor.QueryAsync(order.Id, cancellationToken);
         if (existing is not null)
         {
-            return (existing.StoreId == order.StoreId) && (existing.Type == order.Type) && (existing.CustomerId == order.CustomerId)
-                ? new OrderResult(OrderResultStatus.Existing, await LoadDetailAsync(existing, cancellationToken))
-                : new OrderResult(OrderResultStatus.DuplicateMismatch);
+            return await ResentResultAsync(existing, order, cancellationToken);
         }
 
         var store = await masterAccessor.QueryStoreAsync(order.StoreId, cancellationToken);
@@ -145,6 +143,17 @@ public sealed class OrderService
             return Violated(ErrorCode.ValidationError, RuleReason.CustomerNotFound);
         }
 
+        // 端末と担当は行があればよい (端末の記録)
+        if ((order.TerminalId is not null) && (await masterAccessor.QueryTerminalAsync(order.TerminalId.Value, cancellationToken) is null))
+        {
+            return Violated(ErrorCode.ValidationError, RuleReason.TerminalNotFound);
+        }
+
+        if (await masterAccessor.QueryStaffAsync(order.StaffId, cancellationToken) is null)
+        {
+            return Violated(ErrorCode.StaffInvalid, RuleReason.StaffNotFound);
+        }
+
         if (await ValidateProductsAsync(detail.Lines, cancellationToken) is { } violation)
         {
             return new OrderResult(OrderResultStatus.Violation, Violation: violation);
@@ -154,35 +163,50 @@ public sealed class OrderService
         var orderedAt = order.OrderedAt == default ? now : order.OrderedAt;
         var status = OrderLogic.InitialStatus(order.Type);
         var lines = ToLines(order.Id, detail.Lines);
-        var inserted = await provider.UsingTxAsync(async (_, tx) =>
+        OrderEntity inserted;
+        try
         {
-            var entity = await orderAccessor.InsertAsync(
-                tx,
-                order.Id,
-                order.StoreId,
-                store.Code,
-                order.TerminalId,
-                order.StaffId,
-                order.CustomerId,
-                ResolveName(order.CustomerName, customer),
-                ResolvePhone(order.Phone, customer),
-                order.Type,
-                status,
-                order.RequestedDate,
-                order.Note,
-                lines.Sum(static x => x.Amount),
-                orderedAt,
-                status == OrderStatus.Arrived ? orderedAt : null,
-                now,
-                cancellationToken);
-            foreach (var line in lines)
+            inserted = await provider.UsingTxAsync(async (_, tx) =>
             {
-                await orderAccessor.InsertLineAsync(tx, line, cancellationToken);
+                var entity = await orderAccessor.InsertAsync(
+                    tx,
+                    order.Id,
+                    order.StoreId,
+                    store.Code,
+                    order.TerminalId,
+                    order.StaffId,
+                    order.CustomerId,
+                    ResolveName(order.CustomerName, customer),
+                    ResolvePhone(order.Phone, customer),
+                    order.Type,
+                    status,
+                    order.RequestedDate,
+                    order.Note,
+                    lines.Sum(static x => x.Amount),
+                    orderedAt,
+                    status == OrderStatus.Arrived ? orderedAt : null,
+                    now,
+                    cancellationToken);
+                foreach (var line in lines)
+                {
+                    await orderAccessor.InsertLineAsync(tx, line, cancellationToken);
+                }
+
+                await tx.CommitAsync(cancellationToken);
+                return entity!;
+            }, cancellationToken);
+        }
+        catch (DbException ex) when (dialect.IsDuplicate(ex))
+        {
+            // 同じ id の再送が同時に届き、先に登録された
+            var resent = await orderAccessor.QueryAsync(order.Id, cancellationToken);
+            if (resent is null)
+            {
+                throw;
             }
 
-            await tx.CommitAsync(cancellationToken);
-            return entity!;
-        }, cancellationToken);
+            return await ResentResultAsync(resent, order, cancellationToken);
+        }
 
         changeNotification.Notify(DataChangeKind.Order);
         return new OrderResult(OrderResultStatus.Success, new OrderDetailView { Order = inserted, Lines = lines });
@@ -389,8 +413,14 @@ public sealed class OrderService
         }
         catch (DbException ex) when (dialect.IsDuplicate(ex))
         {
-            // 同じ id の再送が先に通った
-            return await ResolveResentDepositAsync(id, deposit, deposit.Type, cancellationToken) ?? new OrderResult(OrderResultStatus.DuplicateMismatch);
+            // 同じ id の再送が同時に届き、先に登録された
+            var resent = await ResolveResentDepositAsync(id, deposit, deposit.Type, cancellationToken);
+            if (resent is null)
+            {
+                throw;
+            }
+
+            return resent;
         }
 
         if (inserted is not null)
@@ -464,6 +494,12 @@ public sealed class OrderService
 
     private static string? ResolvePhone(string? phone, CustomerEntity? customer) =>
         String.IsNullOrWhiteSpace(phone) ? customer?.Phone : phone.Trim();
+
+    // 同じ id の再送: 店舗・種別・会員が同じなら Existing、違えば DuplicateMismatch
+    private async ValueTask<OrderResult> ResentResultAsync(OrderEntity existing, OrderEntity order, CancellationToken cancellationToken) =>
+        (existing.StoreId == order.StoreId) && (existing.Type == order.Type) && (existing.CustomerId == order.CustomerId)
+            ? new OrderResult(OrderResultStatus.Existing, await LoadDetailAsync(existing, cancellationToken))
+            : new OrderResult(OrderResultStatus.DuplicateMismatch);
 
     private static OrderResult Violated(ErrorCode code, RuleReason reason) =>
         new(OrderResultStatus.Violation, Violation: new RuleError(code, reason));

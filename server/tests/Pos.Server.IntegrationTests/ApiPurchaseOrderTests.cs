@@ -5,6 +5,7 @@ using System.Text.Json;
 
 using Pos.Contract.Inventory;
 using Pos.Contract.InventoryReceipts;
+using Pos.Contract.Products;
 using Pos.Contract.PurchaseOrders;
 using Pos.Server.Host.Endpoints;
 
@@ -127,20 +128,26 @@ public sealed class ApiPurchaseOrderTests : IClassFixture<TestApplicationFactory
         Assert.All(open.Items, static x => Assert.True(x.Status.IsOpen()));
     }
 
-    // 登録の検証 (仕入先・商品がない、明細がない)、発注書 PDF、端末からは使えない (発注は管理画面だけ)
+    // 登録の検証 (仕入先・商品がない、商品が削除済み、明細がない)、発注書 PDF、端末からは使えない (発注は管理画面だけ)
     [Fact]
     public async Task CreateValidatesAndPrintsAndRejectsTerminal()
     {
         // Arrange
         var client = await factory.CreateAdminClientAsync();
+        using var createProductResponse = await client.PostJsonAsync(ApiRoutes.Products, new ProductCreateRequest { Code = $"T{Guid.NewGuid():N}"[..10], Name = "削除済み", CategoryId = TestData.AccessoryCategoryId, Kind = ProductKind.Goods, Price = 100m, TaxRateId = TestData.StandardTaxRateId }, options);
+        var deletedProduct = await createProductResponse.ReadAsAsync<ProductListResponseItem>(HttpStatusCode.Created, options);
+        using var deleteProductResponse = await client.DeleteUrlAsync($"{ApiRoutes.Products}/{deletedProduct.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteProductResponse.StatusCode);
         var draft = await CreateDraftAsync(client);
         var line = new PurchaseOrderCreateRequestLine { ProductId = TestData.SdCardProductId, Quantity = 1m };
 
-        // Act / Assert: 仕入先がなければ 422 VALIDATION_ERROR、商品がなければ 422 PRODUCT_NOT_FOUND、明細がなければ 400
+        // Act / Assert: 仕入先がなければ 422 VALIDATION_ERROR、商品がない・削除済みなら 422 PRODUCT_NOT_FOUND、明細がなければ 400
         using var supplierResponse = await client.PostJsonAsync(ApiRoutes.PurchaseOrders, new PurchaseOrderCreateRequest { StoreId = TestData.MainStoreId, SupplierId = Guid.NewGuid(), Lines = [line] }, options);
         await supplierResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
         using var productResponse = await client.PostJsonAsync(ApiRoutes.PurchaseOrders, new PurchaseOrderCreateRequest { StoreId = TestData.MainStoreId, SupplierId = TestData.SupplierId, Lines = [new PurchaseOrderCreateRequestLine { ProductId = Guid.NewGuid(), Quantity = 1m }] }, options);
         await productResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "PRODUCT_NOT_FOUND", options);
+        using var deletedProductOrderResponse = await client.PostJsonAsync(ApiRoutes.PurchaseOrders, new PurchaseOrderCreateRequest { StoreId = TestData.MainStoreId, SupplierId = TestData.SupplierId, Lines = [new PurchaseOrderCreateRequestLine { ProductId = deletedProduct.Id, Quantity = 1m }] }, options);
+        await deletedProductOrderResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "PRODUCT_NOT_FOUND", options);
         using var emptyResponse = await client.PostJsonAsync(ApiRoutes.PurchaseOrders, new PurchaseOrderCreateRequest { StoreId = TestData.MainStoreId, SupplierId = TestData.SupplierId, Lines = [] }, options);
         await emptyResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
 

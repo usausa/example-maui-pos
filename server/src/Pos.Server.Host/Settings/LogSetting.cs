@@ -11,6 +11,7 @@ public sealed class LogSetting
     public int HttpDumpLimit { get; set; }
 
     [Required]
+    [ValidateObjectMembers]
     public W3CLogSetting W3CLog { get; set; } = default!;
 
     public sealed class W3CLogSetting

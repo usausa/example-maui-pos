@@ -17,13 +17,16 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - 並び順を選べる一覧は `PagedParameter<TSort>` を基底にした `XxxQueryParameter` (`Sort` は資源ごとの列挙型) にする。並び順のない一覧は、絞り込みがあれば `Page` と `Size` を持つ `XxxQueryParameter` にし、親の ID とページだけなら引数で受ける
 - 列挙型 (並び順など) は `Views` や `Parameters` に混ぜず `Models/Enums` に置く
 - 1 つの Service だけが返す結果型 (`XxxResult`) とその状態 (`XxxResultStatus`) は、その Service のファイルの先頭で定義する。複数の Service で使う型 (`DataWriteStatus`、`DataWriteResult<T>`) は独自のファイルにする
-- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`RETURNING` で行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、`DataWriteStatus` / `DataWriteResult<T>` で返す。「読んでから更新」で判定しない
+- 重複 (`IDialect.IsDuplicate`)、楽観ロック (`RETURNING` で行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、マスタは `DataWriteStatus` / `DataWriteResult<T>`、ほかは `XxxResult` で返す。「読んでから更新」で判定しない
 - `IDialect.IsDuplicate` は一意・主キーの違反だけを重複にする (外部キーの違反を `DUPLICATE_CODE` にしない)
+- 冪等な登録は、同時の再送で起きる一意の違反を `IsDuplicate` で受け、読み直して再送の結果 (`Existing`、`DuplicateMismatch`) を返す。読み直しても行がなければ、ほかの一意の制約の違反 (レシート番号、開設中のシフト) を返し、どれでもなければ例外のままにする
 - 書き込みが指す参照先は Service が書く前に確かめ、なければ 422 にする (マスタは `Invalid`、ほかは `RuleError`)。外部キーの違反 (500) に任せない (端末の未送信が要確認にならずに送り直し続ける)
-- 参照先の確かめでは、管理の入力 (マスタ、発注、入荷、移動) は削除済みもないものとし、端末の記録 (シフト、入出金、受注) は行があればよい (記録した後の無効・削除で拒まない)
+- 参照先の確かめでは、管理の入力 (マスタ、発注、入荷、移動、出荷、ポイントの調整) は削除済みもないものとし、端末の記録 (取引、シフト、入出金、受注、在庫の変動、受領) は行があればよい (記録した後の無効・削除で拒まない)。例外として、取引と前受金の担当・承認者は業務ルール (`StaffLogic`) で店舗の有効なスタッフかを確かめる
+- 担当・承認者の行がないときは `StaffNotFound` / `ApproverNotFound` (見つかりません) にし、有効なスタッフでないとき (`StaffNotAllowed` / `ApproverNotAllowed`) と文言を分ける
 - マスタの登録は、Service が `Id` (`Guid.CreateVersion7()`)、`CreatedAt`、`UpdatedAt`、`Version = 1` を補って `ServiceHelper.InsertAsync` で行う。更新は `ServiceHelper.UpdateAsync` を使う
 - LIKE のパターンは Service で作る (`ServiceHelper.ToLikePattern`)
 - 状態の遷移は `UpdateXxxedAsync` で行い、行が返らなければ読み直して NotFound か業務ルール違反 (`XxxLogic.ValidateXxx`) を返す
+- 状態の遷移の参照先 (担当) が見つからなくても、対象がないこと (NotFound) と状態の違反を先に返す
 - 複数の文にまたがる書き込みは、Service の中で `IDbProvider.UsingTxAsync` を使う
 - 業務で使う現在時刻 (`TimeProvider`) を読むのは Service と帳票だけにし、ページとエンドポイントは時計を持たない (計測の経過時間は除く)
 - 「今日」「既定の期間」「通信中とみなす条件」「登録時刻」は業務の規則なので Service が持つ (`ReportService.Today`、`ResolvePeriod`、`TerminalService.IsOnline`、省略された `OccurredAt` の補完)
@@ -72,6 +75,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - アプリの部品 (Core の Service、パスワード、`TerminalAccess`、帳票、設定) は `ConfigureComponents` に System → Data → Service → Report → Setting の順で区切りコメントを付けて Singleton で登録する
 - フレームワークの機能に付く登録と回線ごとの状態 (Scoped) は、その機能の `ConfigureXxx` に書く (Blazor の認証状態は `ConfigureBlazor` で `AddRazorComponents` の後)
 - 設定は `Settings/XxxSetting` (DataAnnotations で制約) を `AddOptions<T>().BindConfiguration().ValidateDataAnnotations().ValidateOnStart()` で登録し、値を Singleton で再登録する。業務コードに `IOptions<T>` を渡さない
+- 入れ子の設定クラスのプロパティには `[ValidateObjectMembers]` を付ける (付けないと中の DataAnnotations が起動時に検証されない)
 - 構成の段階で要る設定 (ログ、認証) は、登録の前に `GetSection().Get<T>()` で読む
 - ログは `Application/Log.cs` の `[LoggerMessage]` に集約する (Info~、Warn~、Error~ の命名、`key=[{value}]` の書式)。文字列補間でログを書かない
 - 計測は BCL の `Meter` と `ActivitySource` (`Application/Telemetry/ApplicationInstrument`) で行い、エクスポータは `ConfigureTelemetry` にだけ書く
@@ -113,12 +117,15 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - 失敗は `ApiProblems` で Problem Details にする (`errorCode` は `ErrorCode`)。`DataWriteStatus` は `FromStatus`、`RuleError` は `FromViolation`、取引の検証は `FromValidation` で写す
 - 新しい失敗は `ErrorCode` と `ApiProblems` のメソッドを足し、ハンドラで `ErrorCode` から Problem Details を組まない (`ErrorCode` を足すときの確かめと文言は common.md)
 - 業務ルール違反の文言は、API・管理画面とも `ApiRuleText` から引く。それ以外の Problem Details の title は `ApiProblems` の既定値かハンドラに書く
+- Problem Details の title は日本語にし、フレームワークが付ける英語の title (入力検証と要求の読み取りの 400、500) は置き換える (端末は title をそのまま出す)
 - 端末が `Id` を決めて送る登録は冪等にする (同じ `Id` の再送は 200 で既存、内容が違えば 409 `DUPLICATE_ID_MISMATCH`、新規は 201 で Location は `ApiRoutes` から)
-- 一括の登録 (在庫の変動) は、件ごとの結果 (`Created`、`Duplicate`) を 200 で返す
+- 一括の登録 (在庫の変動) は、件ごとの結果 (`Created`、`Duplicate`) を 200 で返す。参照先が見つからない要素があれば、どれも書かずに 422 にする
 - 一覧の API は `page` (0 始まり) と `size` (`[Range(1, ApiDefaults.MaxPageSize)]`、既定は `ApiDefaults.PageSize`) を受け、`ListResponse` の形 (`total`、`page`、`size`、`items`) で返す
 - 件数の少ないマスタ (税率、値引、支払方法、理由、仕入先) の一覧はページングせずに全件を返し、部門の一覧は `size` の既定を `ApiDefaults.MaxPageSize` にする
 - API の入力検証は DataAnnotations で統一する (FluentValidation は管理画面のフォームだけに使う)
 - 大小比較 (`from` ≤ `to`) や「どちらか必須」は `[AsParameters]` のクエリ型か Request の `IValidatableObject` で行い、ハンドラの中の `if` にしない
+- 1 つの要求の中で重なってはいけない値 (明細・値引・支払の ID と番号、シリアル番号、精算の金種、受領の明細) は、Request の `IValidatableObject` で 400 にする (一意の制約の違反や辞書の例外の 500 にしない)
+- `IValidatableObject` が読む一覧には `[Required]` を付ける (null は項目の検証で 400 になり、`Validate` は呼ばれない)
 - `[AsParameters]` のクエリ型の引数は `[FromQuery(Name = "camelCase の名前")]` で名前を付ける (付けないと OpenAPI の引数名がプロパティ名になる)
 - 必須の文字列のクエリは `[Required]` を付ける (空の値は束縛を通ってハンドラに届く)
 - 一覧の `sort` は文字列で受けて列挙型に解析し、不正な値は既定の列にする

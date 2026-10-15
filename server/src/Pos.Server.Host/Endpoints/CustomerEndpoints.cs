@@ -61,7 +61,8 @@ public static partial class CustomerEndpoints
             .Produces<CustomerPointHistoryResponseItem>()
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapGet("/{id:guid}/transactions", HandleTransactionsAsync)
             .WithName("CustomerTransactions")
             .Produces<TransactionListResponse>()
@@ -197,8 +198,10 @@ public static partial class CustomerEndpoints
         CustomerPointAdjustRequest request,
         CancellationToken cancellationToken)
     {
-        var history = await service.AdjustPointsAsync(id, request.Points, request.Reason, request.StaffId, cancellationToken);
-        return history is null ? ApiProblems.NotFound() : TypedResults.Ok(ToPointHistoryResponseItem(history));
+        var result = await service.AdjustPointsAsync(id, request.Points, request.Reason, request.StaffId, cancellationToken);
+        return result.Status == DataWriteStatus.Success
+            ? TypedResults.Ok(ToPointHistoryResponseItem(result.Entity!))
+            : ApiProblems.FromStatus(result.Status, invalidTitle: "担当が見つかりません");
     }
 
     // 購入履歴 (新しい順)

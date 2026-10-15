@@ -1,7 +1,7 @@
 namespace Pos.Contract.Transactions;
 
 // 取引登録。「計算」区分の項目は端末が計算し、サーバが再計算して検証する
-public sealed class TransactionCreateRequest
+public sealed class TransactionCreateRequest : IValidatableObject
 {
     // 端末採番
     public Guid Id { get; set; }
@@ -37,8 +37,10 @@ public sealed class TransactionCreateRequest
     [Required]
     public IReadOnlyList<TransactionCreateRequestLine> Lines { get; set; } = default!;
 
+    [Required]
     public IReadOnlyList<TransactionCreateRequestDiscount> Discounts { get; set; } = [];
 
+    [Required]
     public IReadOnlyList<TransactionCreateRequestTaxSummary> TaxSummaries { get; set; } = [];
 
     public decimal Subtotal { get; set; }
@@ -74,6 +76,36 @@ public sealed class TransactionCreateRequest
 
     // 受注から会計したとき (販売だけ)。受注は引き渡し待ちであること。会計で完了になり、取引を取り消すと引き渡し待ちに戻る
     public Guid? OrderId { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        // 明細・値引・支払の ID と番号、明細のシリアル番号は表の一意の制約なので、重複は書く前に拒む
+        if ((Lines.Select(static x => x.Id).Distinct().Count() != Lines.Count) || (Lines.Select(static x => x.LineNo).Distinct().Count() != Lines.Count))
+        {
+            yield return new ValidationResult("明細が重複しています", [nameof(Lines)]);
+        }
+
+        if (Lines.Any(static x => x.SerialNumbers.Distinct().Count() != x.SerialNumbers.Count))
+        {
+            yield return new ValidationResult("シリアル番号が重複しています", [nameof(Lines)]);
+        }
+
+        if (Discounts.Select(static x => x.Id).Distinct().Count() != Discounts.Count)
+        {
+            yield return new ValidationResult("値引が重複しています", [nameof(Discounts)]);
+        }
+
+        if ((Payments.Select(static x => x.Id).Distinct().Count() != Payments.Count) || (Payments.Select(static x => x.SeqNo).Distinct().Count() != Payments.Count))
+        {
+            yield return new ValidationResult("支払が重複しています", [nameof(Payments)]);
+        }
+
+        // 元取引は返品だけが持つ
+        if ((Type == TransactionType.Sale) && ((OriginalTransactionId is not null) || Lines.Any(static x => x.OriginalLineId is not null)))
+        {
+            yield return new ValidationResult("販売に元取引は指定できません", [nameof(OriginalTransactionId)]);
+        }
+    }
 }
 
 public sealed class TransactionCreateRequestLine
@@ -127,6 +159,7 @@ public sealed class TransactionCreateRequestLine
 
     public int PointsEarned { get; set; }
 
+    [Required]
     public IReadOnlyList<string> SerialNumbers { get; set; } = [];
 
     // Return のとき必須。元取引の明細

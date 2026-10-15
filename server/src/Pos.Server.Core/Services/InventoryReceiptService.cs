@@ -92,8 +92,9 @@ public sealed class InventoryReceiptService
             return Violated(ErrorCode.ValidationError, RuleReason.SupplierNotFound);
         }
 
+        // 管理の入力なので、削除済みの商品も見つからないものとする
         var products = (await productAccessor.QueryListByIdsAsync(lines.Select(static x => x.ProductId).Distinct(), cancellationToken)).ToDictionary(static x => x.Id);
-        if (lines.Any(x => !products.ContainsKey(x.ProductId)))
+        if (lines.Any(x => products.GetValueOrDefault(x.ProductId) is not { IsDeleted: false }))
         {
             return Violated(ErrorCode.ProductNotFound, RuleReason.ProductNotFound);
         }
@@ -136,6 +137,12 @@ public sealed class InventoryReceiptService
     // 受領。quantities にない明細は予定の数で受け取る。数が 0 の明細は在庫を動かさない
     public async ValueTask<InventoryReceiptResult> ReceiveAsync(Guid id, Guid? staffId, DateTime? receivedAt, IReadOnlyDictionary<Guid, decimal> quantities, CancellationToken cancellationToken)
     {
+        // 担当は行があればよい (端末の記録)。見つからなくても、入荷がないことと状態が合わないことを先に返す
+        if ((staffId is not null) && (await masterAccessor.QueryStaffAsync(staffId.Value, cancellationToken) is null))
+        {
+            return await ResolveFailureAsync(id, static x => InventoryMovementLogic.ValidateReceiptReceive(x.Status) ?? new RuleError(ErrorCode.StaffInvalid, RuleReason.StaffNotFound), cancellationToken);
+        }
+
         var lines = await receiptAccessor.QueryLineListAsync(id, cancellationToken);
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var occurredAt = receivedAt ?? now;
@@ -234,7 +241,7 @@ public sealed class InventoryReceiptService
     private static InventoryReceiptResult Violated(ErrorCode code, RuleReason reason) =>
         new(InventoryReceiptResultStatus.Violation, Violation: new RuleError(code, reason));
 
-    // 状態を条件にした更新で行が返らなかった理由 (ない、または状態が合わない)
+    // 書けない理由 (ない、validate の違反、どちらでもなければ状態が合わない)
     private async ValueTask<InventoryReceiptResult> ResolveFailureAsync(Guid id, Func<InventoryReceiptEntity, RuleError?> validate, CancellationToken cancellationToken)
     {
         var current = await receiptAccessor.QueryAsync(id, cancellationToken);

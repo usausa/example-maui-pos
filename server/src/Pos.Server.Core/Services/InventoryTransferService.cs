@@ -92,8 +92,9 @@ public sealed class InventoryTransferService
             return Violated(ErrorCode.ValidationError, RuleReason.StoreNotFound);
         }
 
+        // 管理の入力なので、削除済みの商品も見つからないものとする
         var products = (await productAccessor.QueryListByIdsAsync(lines.Select(static x => x.ProductId).Distinct(), cancellationToken)).ToDictionary(static x => x.Id);
-        if (lines.Any(x => !products.ContainsKey(x.ProductId)))
+        if (lines.Any(x => products.GetValueOrDefault(x.ProductId) is not { IsDeleted: false }))
         {
             return Violated(ErrorCode.ProductNotFound, RuleReason.ProductNotFound);
         }
@@ -130,6 +131,12 @@ public sealed class InventoryTransferService
     // 出荷。依頼の数で出荷店の在庫を減らす
     public async ValueTask<InventoryTransferResult> ShipAsync(Guid id, Guid? staffId, DateTime? shippedAt, CancellationToken cancellationToken)
     {
+        // 出荷は管理の入力なので、削除済みの担当も見つからないものとする。見つからなくても、移動がないことと状態が合わないことを先に返す
+        if ((staffId is not null) && (await masterAccessor.QueryStaffAsync(staffId.Value, cancellationToken) is not { IsDeleted: false }))
+        {
+            return await ResolveFailureAsync(id, static x => InventoryMovementLogic.ValidateTransferShip(x.Status) ?? new RuleError(ErrorCode.StaffInvalid, RuleReason.StaffNotFound), cancellationToken);
+        }
+
         var lines = await transferAccessor.QueryLineListAsync(id, cancellationToken);
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var occurredAt = shippedAt ?? now;
@@ -161,6 +168,12 @@ public sealed class InventoryTransferService
     // 受領。quantities にない明細は出荷した数で受け取る。数が 0 の明細は在庫を動かさない (出荷との差は移動の記録に残す)
     public async ValueTask<InventoryTransferResult> ReceiveAsync(Guid id, Guid? staffId, DateTime? receivedAt, IReadOnlyDictionary<Guid, decimal> quantities, CancellationToken cancellationToken)
     {
+        // 担当は行があればよい (端末の記録)。見つからなくても、移動がないことと状態が合わないことを先に返す
+        if ((staffId is not null) && (await masterAccessor.QueryStaffAsync(staffId.Value, cancellationToken) is null))
+        {
+            return await ResolveFailureAsync(id, static x => InventoryMovementLogic.ValidateTransferReceive(x.Status) ?? new RuleError(ErrorCode.StaffInvalid, RuleReason.StaffNotFound), cancellationToken);
+        }
+
         var lines = await transferAccessor.QueryLineListAsync(id, cancellationToken);
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var occurredAt = receivedAt ?? now;
@@ -237,7 +250,7 @@ public sealed class InventoryTransferService
         }, cancellationToken);
     }
 
-    // 状態を条件にした更新で行が返らなかった理由 (ない、または状態が合わない)
+    // 書けない理由 (ない、validate の違反、どちらでもなければ状態が合わない)
     private async ValueTask<InventoryTransferResult> ResolveFailureAsync(Guid id, Func<InventoryTransferEntity, RuleError?> validate, CancellationToken cancellationToken)
     {
         var current = await transferAccessor.QueryAsync(id, cancellationToken);

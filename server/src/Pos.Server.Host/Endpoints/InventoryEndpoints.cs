@@ -26,7 +26,8 @@ public static partial class InventoryEndpoints
             .WithName("InventoryChanges")
             .Produces<InventoryChangesResponse>()
             .ProducesValidationProblem()
-            .ProducesProblem(StatusCodes.Status403Forbidden);
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapGet("/changes", HandleChangeListAsync)
             .WithName("InventoryChangeList")
             .Produces<InventoryChangeListResponse>()
@@ -52,6 +53,15 @@ public static partial class InventoryEndpoints
 
     [Mapper]
     private static partial InventoryChangeParameter ToParameter(InventoryChangesRequestChange change);
+
+    private static InventoryChangesResponseResult ToChangesResponseResult(InventoryChangeResult result) =>
+        new()
+        {
+            Id = result.Change.Id,
+            Status = result.Duplicate ? InventoryChangeResultStatus.Duplicate : InventoryChangeResultStatus.Created,
+            QuantityDelta = result.Change.QuantityDelta,
+            QuantityAfter = result.Change.QuantityAfter
+        };
 
     //--------------------------------------------------------------------------------
     // Level
@@ -111,17 +121,10 @@ public static partial class InventoryEndpoints
             return ApiProblems.TerminalMismatch();
         }
 
-        var results = await service.ApplyChangesAsync(request.Changes.Select(ToParameter).ToList(), cancellationToken);
-        return TypedResults.Ok(new InventoryChangesResponse
-        {
-            Results = results.Select(static x => new InventoryChangesResponseResult
-            {
-                Id = x.Change.Id,
-                Status = x.Duplicate ? InventoryChangeResultStatus.Duplicate : InventoryChangeResultStatus.Created,
-                QuantityDelta = x.Change.QuantityDelta,
-                QuantityAfter = x.Change.QuantityAfter
-            }).ToList()
-        });
+        var result = await service.ApplyChangesAsync(request.Changes.Select(ToParameter).ToList(), cancellationToken);
+        return result.Violation is null
+            ? TypedResults.Ok(new InventoryChangesResponse { Results = result.Results.Select(ToChangesResponseResult).ToList() })
+            : ApiProblems.FromViolation(result.Violation);
     }
 
     // from / to は営業日ではなく UTC 日時 (to は含まない)

@@ -101,7 +101,7 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
         Assert.Empty(request.Lines);
     }
 
-    // 読めない本文 (壊れた JSON・文字列の数値・重複したキー・知らない項目) は 400 (VALIDATION_ERROR)
+    // 読めない本文 (壊れた JSON・文字列の数値・重複したキー・知らない項目) は 400 (VALIDATION_ERROR)。title は日本語
     [Theory]
     [InlineData("{")]
     [InlineData("""{"code":"JSON-1","name":"JSON","sortOrder":"1"}""")]
@@ -117,6 +117,7 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
         using var response = await client.PostAsync(new Uri(ApiRoutes.Categories, UriKind.Relative), content, Token);
 
         // Assert
-        await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        var problem = await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        Assert.Equal("入力に誤りがあります", problem.Title);
     }
 }

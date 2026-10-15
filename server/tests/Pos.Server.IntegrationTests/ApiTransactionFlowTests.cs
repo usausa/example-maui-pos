@@ -2,6 +2,7 @@ namespace Pos.Server;
 
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Pos.Contract.Customers;
 using Pos.Contract.Inventory;
@@ -137,6 +138,13 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         using var excessResponse = await client.PostJsonAsync(ApiRoutes.Transactions, excess, options);
         await excessResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "RETURN_QUANTITY_EXCEEDED", options);
 
+        // Act / Assert: 返品の商品が見つからない (外部キーの違反の 500 にしない)
+        var noProduct = CreateReturnRequest(shiftId, sale.Id, sdCardLine, 1m, "S001-01-000005");
+        TransactionRequests.Apply(noProduct, returnCalculation);
+        noProduct.Lines[0].ProductId = Guid.NewGuid();
+        using var noProductResponse = await client.PostJsonAsync(ApiRoutes.Transactions, noProduct, options);
+        await noProductResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "PRODUCT_NOT_FOUND", options);
+
         // Act / Assert: 取消 (返品済みの販売は不可、返品の取消は在庫・ポイント・返品数量を戻す)
         var voidRequest = new TransactionVoidRequest { StaffId = TestData.ManagerStaffId, Reason = "誤操作", VoidedAt = Now.AddMinutes(30) };
         using var voidSaleResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{sale.Id}/void", voidRequest, options);
@@ -250,9 +258,9 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal("SD-64", Assert.Single(byQuantity.Rows).ProductCode);
     }
 
-    // 店舗・端末・担当が見つからない開設・入出金・精算は 422 (外部キーの違反の 500 にすると、端末の未送信が送り直し続ける)
+    // 店舗・端末・担当が見つからない開設・入出金・精算は 422、精算の金種の重複と null は 400 (外部キーや主キーの違反の 500 にすると、端末の未送信が送り直し続ける)
     [Fact]
-    public async Task ShiftWritesRejectMissingReferences()
+    public async Task ShiftWritesRejectMissingReferencesAndDuplicates()
     {
         // Arrange
         var client = await factory.CreateAdminClientAsync();
@@ -275,6 +283,103 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         await cashEventResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "STAFF_INVALID", options);
         using var closeResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/close", new ShiftCloseRequest { ClosedAt = Now, ClosedByStaffId = missingId, ActualCash = 0m }, options);
         await closeResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "STAFF_INVALID", options);
+
+        // Act / Assert: 精算の金種の重複と null
+        var duplicated = new ShiftCloseRequest
+        {
+            ClosedAt = Now,
+            ClosedByStaffId = TestData.BranchCashierStaffId,
+            ActualCash = 3000m,
+            Denominations = [new ShiftCloseRequestDenomination { Denomination = 1000, Count = 1 }, new ShiftCloseRequestDenomination { Denomination = 1000, Count = 2 }]
+        };
+        using var duplicatedResponse = await client.PostJsonAsync($"{ApiRoutes.Shifts}/{shiftId}/close", duplicated, options);
+        await duplicatedResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var nullResponse = await PostWithNullAsync(client, $"{ApiRoutes.Shifts}/{shiftId}/close", new ShiftCloseRequest { ClosedAt = Now, ClosedByStaffId = TestData.BranchCashierStaffId, ActualCash = 0m }, static x => x["denominations"] = null);
+        await nullResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        Assert.Equal(ShiftStatus.Open, (await client.GetJsonAsync<ShiftListResponseItem>($"{ApiRoutes.Shifts}/{shiftId}", options)).Status);
+    }
+
+    // 販売の参照先 (店舗、会員、支払方法、税率、値引、承認者) が見つからなければ 422、一意の制約になる ID と番号の重複、販売に付いた元取引、null の一覧は 400 で、どれも書かない
+    // (外部キーや一意の制約の違反の 500 にすると、端末の未送信が送り直し続ける)
+    [Fact]
+    public async Task SaleRejectsMissingReferencesAndDuplicates()
+    {
+        // Arrange
+        var client = await factory.CreateAdminClientAsync();
+        var shiftId = Guid.NewGuid();
+        using var openResponse = await client.PostJsonAsync(ApiRoutes.Shifts, new ShiftOpenRequest { Id = shiftId, StoreId = TestData.MainStoreId, TerminalId = TestData.MainTerminal2Id, BusinessDate = BusinessDate, OpenedAt = Now, OpenedByStaffId = TestData.MainCashierStaffId, OpeningCash = 0m }, options);
+        Assert.Equal(HttpStatusCode.Created, openResponse.StatusCode);
+        using var calculateResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/calculate", TransactionRequests.ToCalculateRequest(CreateSaleRequest(shiftId)), options);
+        var calculation = await calculateResponse.ReadAsAsync<TransactionCalculateResponse>(HttpStatusCode.OK, options);
+
+        // Act / Assert: 参照先が見つからない
+        using var noStoreResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.StoreId = Guid.NewGuid()), options);
+        await noStoreResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var noCustomerResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.CustomerId = Guid.NewGuid()), options);
+        await noCustomerResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var noPaymentMethodResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Payments[0].PaymentMethodId = Guid.NewGuid()), options);
+        await noPaymentMethodResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var noTaxRateResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.TaxSummaries[0].TaxRateId = Guid.NewGuid()), options);
+        await noTaxRateResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var noDiscountResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Discounts[0].DiscountId = Guid.NewGuid()), options);
+        await noDiscountResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var noApproverResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Discounts[1].ApprovedByStaffId = Guid.NewGuid()), options);
+        await noApproverResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "APPROVAL_REQUIRED", options);
+
+        // Act / Assert: 明細・値引・支払の ID と番号、シリアル番号の重複、販売に付いた元取引、null の一覧
+        using var lineIdResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Lines[2].Id = x.Lines[1].Id), options);
+        await lineIdResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var lineNoResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Lines[2].LineNo = 2), options);
+        await lineNoResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var serialResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Lines[0].SerialNumbers = ["SN-0001234", "SN-0001234"]), options);
+        await serialResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var discountIdResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Discounts[1].Id = x.Discounts[0].Id), options);
+        await discountIdResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var paymentIdResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Payments[2].Id = x.Payments[1].Id), options);
+        await paymentIdResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var seqNoResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Payments[2].SeqNo = 2), options);
+        await seqNoResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var originalResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.OriginalTransactionId = Guid.NewGuid()), options);
+        await originalResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var originalLineResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Lines[0].OriginalLineId = Guid.NewGuid()), options);
+        await originalLineResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        var valid = CreateTerminal2SaleRequest(shiftId, calculation, static _ => { });
+        using var nullDiscountsResponse = await PostWithNullAsync(client, ApiRoutes.Transactions, valid, static x => x["discounts"] = null);
+        await nullDiscountsResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var nullTaxSummariesResponse = await PostWithNullAsync(client, ApiRoutes.Transactions, valid, static x => x["taxSummaries"] = null);
+        await nullTaxSummariesResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var nullSerialsResponse = await PostWithNullAsync(client, ApiRoutes.Transactions, valid, static x => x["lines"]![0]!["serialNumbers"] = null);
+        await nullSerialsResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+
+        // Act / Assert: どれも書いていない
+        Assert.Equal(0, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Transactions}?shiftId={shiftId}", options)).Total);
+    }
+
+    // 参照先 (店舗、商品、調整理由、担当) が見つからない変動があれば 422 で、一緒に送った変動も書かない (外部キーの違反の 500 にしない)
+    [Fact]
+    public async Task InventoryChangesRejectMissingReferences()
+    {
+        // Arrange
+        var client = await factory.CreateAdminClientAsync();
+        var before = await QuantityAsync(client, TestData.SdCardProductId);
+        var valid = new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = 1m, StaffId = TestData.MainCashierStaffId, OccurredAt = Now };
+        var noStore = new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = Guid.NewGuid(), ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = 1m, StaffId = TestData.MainCashierStaffId, OccurredAt = Now };
+        var noProduct = new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, ProductId = Guid.NewGuid(), Type = InventoryChangeType.Adjustment, Quantity = 1m, StaffId = TestData.MainCashierStaffId, OccurredAt = Now };
+        var noReason = new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = 1m, ReasonId = Guid.NewGuid(), StaffId = TestData.MainCashierStaffId, OccurredAt = Now };
+        var noStaff = new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = 1m, StaffId = Guid.NewGuid(), OccurredAt = Now };
+
+        // Act
+        using var noStoreResponse = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", new InventoryChangesRequest { Changes = [valid, noStore] }, options);
+        using var noProductResponse = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", new InventoryChangesRequest { Changes = [valid, noProduct] }, options);
+        using var noReasonResponse = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", new InventoryChangesRequest { Changes = [valid, noReason] }, options);
+        using var noStaffResponse = await client.PostJsonAsync($"{ApiRoutes.Inventory}/changes", new InventoryChangesRequest { Changes = [valid, noStaff] }, options);
+
+        // Assert
+        await noStoreResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        await noProductResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "PRODUCT_NOT_FOUND", options);
+        await noReasonResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        await noStaffResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "STAFF_INVALID", options);
+        Assert.Equal(before, await QuantityAsync(client, TestData.SdCardProductId));
     }
 
     // 棚卸 (絶対数量) と調整 (増減)、同じ id の再送は Duplicate
@@ -335,6 +440,15 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         await File.WriteAllBytesAsync(Path.Combine("TestResults", $"{name}.pdf"), bytes, Token);
     }
 
+    // 項目を null にして送る (アプリの JSON は null の項目を書かないので、JSON の木を書き換える)
+    private async Task<HttpResponseMessage> PostWithNullAsync<T>(HttpClient client, string url, T request, Action<JsonObject> change)
+    {
+        var json = JsonSerializer.SerializeToNode(request, options)!.AsObject();
+        change(json);
+        using var content = new StringContent(json.ToJsonString(), Encoding.UTF8, "application/json");
+        return await client.PostAsync(new Uri(url, UriKind.Relative), content, Token);
+    }
+
     private async Task<decimal> QuantityAsync(HttpClient client, Guid productId) =>
         (await client.GetJsonAsync<InventoryProductLevelsResponse>($"{ApiRoutes.Inventory}/{productId}", options)).Levels.Single(static x => x.StoreId == TestData.MainStoreId).Quantity;
 
@@ -374,6 +488,17 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
             ],
             Delivery = new TransactionCreateRequestDelivery { RecipientName = "山田 太郎", Address = "東京都千代田区千代田 1-1-1", RequestedDate = new DateOnly(2026, 9, 14), TimeSlot = "14-16" }
         };
+    }
+
+    // 端末 2 の計算済みの販売に、1 か所だけ手を加える
+    private static TransactionCreateRequest CreateTerminal2SaleRequest(Guid shiftId, TransactionCalculateResponse calculation, Action<TransactionCreateRequest> change)
+    {
+        var sale = CreateSaleRequest(shiftId);
+        sale.TerminalId = TestData.MainTerminal2Id;
+        sale.ReceiptNo = "S001-02-000001";
+        TransactionRequests.Apply(sale, calculation);
+        change(sale);
+        return sale;
     }
 
     // 返品: ポイント返還分 (−pointsRedeemed) をポイント、残りを現金で返金する

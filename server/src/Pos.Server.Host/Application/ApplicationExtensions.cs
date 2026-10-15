@@ -215,10 +215,14 @@ public static class ApplicationExtensions
             {
                 context.ProblemDetails.Extensions.TryAdd("traceId", Activity.Current?.Id ?? context.HttpContext.TraceIdentifier);
 
-                // 入力検証 (AddValidation) の 400 にも errorCode を付ける
+                // 入力検証 (AddValidation) の 400 にも errorCode を付け、既定の英語の title を置き換える (端末は title を出す)
                 if (context.ProblemDetails.Status == StatusCodes.Status400BadRequest)
                 {
                     context.ProblemDetails.Extensions.TryAdd("errorCode", ErrorCode.ValidationError.ToCode());
+                    if (context.ProblemDetails is HttpValidationProblemDetails)
+                    {
+                        context.ProblemDetails.Title = "入力に誤りがあります";
+                    }
                 }
             };
         });

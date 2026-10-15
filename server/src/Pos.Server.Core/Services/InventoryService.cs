@@ -1,5 +1,6 @@
 namespace Pos.Server.Services;
 
+using Pos.Domain.Logic;
 using Pos.Server.Accessors;
 using Pos.Server.Models;
 using Pos.Server.Models.Entity;
@@ -9,12 +10,16 @@ using Pos.Server.Models.Views;
 // 棚卸・調整の結果。同じ id の再送は Duplicate (登録済みの内容を返す)
 public sealed record InventoryChangeResult(InventoryChangeEntity Change, bool Duplicate);
 
+// 一括登録の結果。参照先が見つからない変動があれば、どれも書かずに Violation
+public sealed record InventoryChangesResult(IReadOnlyList<InventoryChangeResult> Results, RuleError? Violation = null);
+
 // 在庫。取引による変動は TransactionService が書き、ここでは棚卸・調整と照会を扱う
 public sealed class InventoryService
 {
     private readonly TimeProvider timeProvider;
     private readonly IDbProvider provider;
     private readonly IDialect dialect;
+    private readonly MasterAccessor masterAccessor;
     private readonly ProductAccessor productAccessor;
     private readonly InventoryAccessor inventoryAccessor;
     private readonly ChangeNotificationService changeNotification;
@@ -23,6 +28,7 @@ public sealed class InventoryService
         TimeProvider timeProvider,
         IDbProvider provider,
         IDialect dialect,
+        MasterAccessor masterAccessor,
         ProductAccessor productAccessor,
         InventoryAccessor inventoryAccessor,
         ChangeNotificationService changeNotification)
@@ -30,6 +36,7 @@ public sealed class InventoryService
         this.timeProvider = timeProvider;
         this.provider = provider;
         this.dialect = dialect;
+        this.masterAccessor = masterAccessor;
         this.productAccessor = productAccessor;
         this.inventoryAccessor = inventoryAccessor;
         this.changeNotification = changeNotification;
@@ -72,19 +79,42 @@ public sealed class InventoryService
     //--------------------------------------------------------------------------------
 
     // 棚卸 (絶対数量) と調整 (増減) の一括登録。同じ id は Duplicate として登録済みの結果を返す
-    public async ValueTask<List<InventoryChangeResult>> ApplyChangesAsync(IReadOnlyList<InventoryChangeParameter> changes, CancellationToken cancellationToken)
+    public async ValueTask<InventoryChangesResult> ApplyChangesAsync(IReadOnlyList<InventoryChangeParameter> changes, CancellationToken cancellationToken)
     {
+        if (await ValidateReferencesAsync(changes, cancellationToken) is { } violation)
+        {
+            return new InventoryChangesResult([], violation);
+        }
+
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var results = new List<InventoryChangeResult>(changes.Count);
         foreach (var change in changes)
         {
             var existing = await inventoryAccessor.QueryChangeAsync(change.Id, cancellationToken);
-            results.Add(existing is not null
-                ? new InventoryChangeResult(existing, true)
-                : new InventoryChangeResult(await ApplyChangeAsync(change, now, cancellationToken), false));
+            if (existing is not null)
+            {
+                results.Add(new InventoryChangeResult(existing, true));
+                continue;
+            }
+
+            try
+            {
+                results.Add(new InventoryChangeResult(await ApplyChangeAsync(change, now, cancellationToken), false));
+            }
+            catch (DbException ex) when (dialect.IsDuplicate(ex))
+            {
+                // 同じ id の再送が同時に届き、先に登録された
+                var resent = await inventoryAccessor.QueryChangeAsync(change.Id, cancellationToken);
+                if (resent is null)
+                {
+                    throw;
+                }
+
+                results.Add(new InventoryChangeResult(resent, true));
+            }
         }
 
-        return results;
+        return new InventoryChangesResult(results);
     }
 
     public ValueTask<InventoryChangeEntity> ApplyChangeAsync(InventoryChangeParameter change, CancellationToken cancellationToken) =>
@@ -126,5 +156,41 @@ public sealed class InventoryService
         }, cancellationToken);
         changeNotification.Notify(DataChangeKind.Inventory);
         return applied;
+    }
+
+    // 参照先は書く前に確かめる (1 回の棚卸は同じ店舗・担当が並ぶので、異なる値ごとに読む)。端末の記録なので、削除済みも受け付ける
+    private async ValueTask<RuleError?> ValidateReferencesAsync(IReadOnlyList<InventoryChangeParameter> changes, CancellationToken cancellationToken)
+    {
+        foreach (var storeId in changes.Select(static x => x.StoreId).Distinct())
+        {
+            if (await masterAccessor.QueryStoreAsync(storeId, cancellationToken) is null)
+            {
+                return new RuleError(ErrorCode.ValidationError, RuleReason.StoreNotFound);
+            }
+        }
+
+        var productIds = changes.Select(static x => x.ProductId).Distinct().ToList();
+        if ((await productAccessor.QueryListByIdsAsync(productIds, cancellationToken)).Count != productIds.Count)
+        {
+            return new RuleError(ErrorCode.ProductNotFound, RuleReason.ProductNotFound);
+        }
+
+        foreach (var reasonId in changes.Select(static x => x.ReasonId).OfType<Guid>().Distinct())
+        {
+            if (await masterAccessor.QueryAdjustmentReasonAsync(reasonId, cancellationToken) is null)
+            {
+                return new RuleError(ErrorCode.ValidationError, RuleReason.AdjustmentReasonNotFound);
+            }
+        }
+
+        foreach (var staffId in changes.Select(static x => x.StaffId).OfType<Guid>().Distinct())
+        {
+            if (await masterAccessor.QueryStaffAsync(staffId, cancellationToken) is null)
+            {
+                return new RuleError(ErrorCode.StaffInvalid, RuleReason.StaffNotFound);
+            }
+        }
+
+        return null;
     }
 }

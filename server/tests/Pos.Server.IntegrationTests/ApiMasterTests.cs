@@ -39,8 +39,8 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         Assert.NotNull(all.Settings);
         Assert.Equal(2, all.Stores.Count);
         Assert.Equal(3, all.Terminals.Count);
-        Assert.Equal(4, all.Staff.Count);
-        // 全件同期は削除済みも返す。同じ DB を使う CategoryCrudAndConflicts が登録して論理削除した部門は除いて数える
+        // 全件同期は削除済みも返す。同じ DB を使う CategoryCrudAndConflicts、WriteWithMissingReferenceReturnsUnprocessable、CustomerPointsAdjust が登録して論理削除した部門と担当は除いて数える
+        Assert.Equal(4, all.Staff.Count(x => !x.IsDeleted));
         Assert.Equal(13, all.Categories.Count(x => !x.IsDeleted));
         Assert.Equal(3, all.TaxRates.Count);
         Assert.Equal(33, all.Products.Count);
@@ -191,7 +191,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         Assert.All(page.Items, x => Assert.Contains("カメラ", x.Name, StringComparison.Ordinal));
     }
 
-    // lookup はキーがない・空なら 400 + VALIDATION_ERROR (商品は barcode か code、会員は code)
+    // lookup はキーがない・空なら 400 + VALIDATION_ERROR (商品は barcode か code、会員は code)。入力検証の title は日本語
     [Theory]
     [InlineData(ApiRoutes.Products + "/lookup")]
     [InlineData(ApiRoutes.Products + "/lookup?barcode=&code=")]
@@ -206,7 +206,8 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         using var response = await client.GetAsync(new Uri(path, UriKind.Relative), Token);
 
         // Assert
-        await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        var problem = await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        Assert.Equal("入力に誤りがあります", problem.Title);
     }
 
     // 会社設定の更新は版で守り、古い版での更新は 409
@@ -228,26 +229,41 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         await staleResponse.ReadProblemAsync(HttpStatusCode.Conflict, "VERSION_MISMATCH", options);
     }
 
-    // 会員照会 → 手動調整 → 履歴
+    // 会員照会 → 手動調整 → 履歴。担当が見つからない・削除済みの調整は 422 (管理の入力)
     [Fact]
     public async Task CustomerPointsAdjust()
     {
+        // Arrange
         var client = await factory.CreateAdminClientAsync();
+        using var staffResponse = await client.PostJsonAsync(ApiRoutes.Staff, new StaffCreateRequest { Code = $"T{Guid.NewGuid():N}"[..10], Name = "削除済み", Role = StaffRole.Manager, StoreId = TestData.MainStoreId }, options);
+        var deletedStaff = await staffResponse.ReadAsAsync<StaffListResponseItem>(HttpStatusCode.Created, options);
+        using var deleteStaffResponse = await client.DeleteUrlAsync($"{ApiRoutes.Staff}/{deletedStaff.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteStaffResponse.StatusCode);
 
+        // Act / Assert: 会員照会
         var customer = await client.GetJsonAsync<CustomerListResponseItem>($"{ApiRoutes.Customers}/lookup?code=M0003", options);
         Assert.Equal(500, customer.PointBalance);
 
+        // Act / Assert: 手動調整
         using var adjustResponse = await client.PostJsonAsync($"{ApiRoutes.Customers}/{customer.Id}/points/adjust", new CustomerPointAdjustRequest { Points = 100, Reason = "キャンペーン", StaffId = TestData.ManagerStaffId }, options);
         var adjusted = await adjustResponse.ReadAsAsync<CustomerPointHistoryResponseItem>(HttpStatusCode.OK, options);
         Assert.Equal(PointHistoryType.Adjust, adjusted.Type);
         Assert.Equal(600, adjusted.BalanceAfter);
         Assert.Equal(600, (await client.GetJsonAsync<CustomerListResponseItem>($"{ApiRoutes.Customers}/{customer.Id}", options)).PointBalance);
 
+        // Act / Assert: 担当が見つからない・削除済みの調整は 422 で、残高を変えない
+        using var noStaffResponse = await client.PostJsonAsync($"{ApiRoutes.Customers}/{customer.Id}/points/adjust", new CustomerPointAdjustRequest { Points = 100, Reason = "担当なし" }, options);
+        await noStaffResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+        using var deletedStaffResponse = await client.PostJsonAsync($"{ApiRoutes.Customers}/{customer.Id}/points/adjust", new CustomerPointAdjustRequest { Points = 100, Reason = "削除済みの担当", StaffId = deletedStaff.Id }, options);
+        await deletedStaffResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
+
+        // Act / Assert: 履歴
         var history = await client.GetJsonAsync<CustomerPointHistoryResponse>($"{ApiRoutes.Customers}/{customer.Id}/points/history", options);
         Assert.Equal(2, history.Total);
         Assert.Equal(600, history.Items[0].BalanceAfter);
         Assert.All(history.Items, x => Assert.Equal(PointHistoryType.Adjust, x.Type));
 
+        // Act / Assert: ない会員の照会は 404
         using var missing = await client.GetAsync(new Uri($"{ApiRoutes.Customers}/lookup?code=X9999", UriKind.Relative), Token);
         await missing.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
     }

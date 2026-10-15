@@ -154,9 +154,7 @@ public sealed class ShiftService
         var existing = await shiftAccessor.QueryAsync(entity.Id, cancellationToken);
         if (existing is not null)
         {
-            return (existing.TerminalId == entity.TerminalId) && (existing.BusinessDate == entity.BusinessDate)
-                ? new ShiftResult(ShiftResultStatus.Existing, await LoadDetailAsync(existing, cancellationToken))
-                : new ShiftResult(ShiftResultStatus.DuplicateMismatch);
+            return await ResentResultAsync(existing, entity, cancellationToken);
         }
 
         if (await ValidateOpenAsync(entity, cancellationToken) is { } violation)
@@ -174,7 +172,10 @@ public sealed class ShiftService
         }
         catch (DbException ex) when (dialect.IsDuplicate(ex))
         {
-            return new ShiftResult(ShiftResultStatus.TerminalHasOpenShift);
+            // 同じ id の再送が同時に届いて先に登録されたなら再送として返す。そうでなければ、端末に開設中のシフトがある
+            return await shiftAccessor.QueryAsync(entity.Id, cancellationToken) is { } resent
+                ? await ResentResultAsync(resent, entity, cancellationToken)
+                : new ShiftResult(ShiftResultStatus.TerminalHasOpenShift);
         }
 
         changeNotification.Notify(DataChangeKind.Shift);
@@ -268,9 +269,7 @@ public sealed class ShiftService
         var existing = await shiftAccessor.QueryCashEventAsync(entity.Id, cancellationToken);
         if (existing is not null)
         {
-            return (existing.ShiftId == entity.ShiftId) && (existing.Amount == entity.Amount) && (existing.Type == entity.Type)
-                ? new CashEventResult(CashEventResultStatus.Existing, existing)
-                : new CashEventResult(CashEventResultStatus.DuplicateMismatch);
+            return ResentCashEvent(existing, entity);
         }
 
         var shift = await shiftAccessor.QueryAsync(entity.ShiftId, cancellationToken);
@@ -290,7 +289,22 @@ public sealed class ShiftService
         }
 
         entity.CreatedAt = timeProvider.GetUtcNow().UtcDateTime;
-        await shiftAccessor.InsertCashEventAsync(entity, cancellationToken);
+        try
+        {
+            await shiftAccessor.InsertCashEventAsync(entity, cancellationToken);
+        }
+        catch (DbException ex) when (dialect.IsDuplicate(ex))
+        {
+            // 同じ id の再送が同時に届き、先に登録された
+            var resent = await shiftAccessor.QueryCashEventAsync(entity.Id, cancellationToken);
+            if (resent is null)
+            {
+                throw;
+            }
+
+            return ResentCashEvent(resent, entity);
+        }
+
         changeNotification.Notify(DataChangeKind.Shift);
         return new CashEventResult(CashEventResultStatus.Success, entity);
     }
@@ -312,6 +326,18 @@ public sealed class ShiftService
     // Helper
     //--------------------------------------------------------------------------------
 
+    // 同じ id の再送: 端末と営業日が同じなら Existing、違えば DuplicateMismatch
+    private async ValueTask<ShiftResult> ResentResultAsync(ShiftEntity existing, ShiftEntity entity, CancellationToken cancellationToken) =>
+        (existing.TerminalId == entity.TerminalId) && (existing.BusinessDate == entity.BusinessDate)
+            ? new ShiftResult(ShiftResultStatus.Existing, await LoadDetailAsync(existing, cancellationToken))
+            : new ShiftResult(ShiftResultStatus.DuplicateMismatch);
+
+    // 同じ id の再送: シフト・金額・種別が同じなら Existing、違えば DuplicateMismatch
+    private static CashEventResult ResentCashEvent(CashEventEntity existing, CashEventEntity entity) =>
+        (existing.ShiftId == entity.ShiftId) && (existing.Amount == entity.Amount) && (existing.Type == entity.Type)
+            ? new CashEventResult(CashEventResultStatus.Existing, existing)
+            : new CashEventResult(CashEventResultStatus.DuplicateMismatch);
+
     // 参照先は書く前に確かめる。外部キーの違反 (500) にすると、端末の未送信が要確認にならずに送り直し続ける
     // (別のサーバに登録し直した端末が、前のサーバの担当で送ったときなど)
     private async ValueTask<RuleError?> ValidateOpenAsync(ShiftEntity entity, CancellationToken cancellationToken)
@@ -331,7 +357,7 @@ public sealed class ShiftService
 
     // 端末の記録なので、担当は行があればよい (記録した後で無効・削除になっても受け付ける)
     private async ValueTask<RuleError?> ValidateStaffAsync(Guid staffId, CancellationToken cancellationToken) =>
-        await masterAccessor.QueryStaffAsync(staffId, cancellationToken) is null ? new RuleError(ErrorCode.StaffInvalid, RuleReason.StaffNotAllowed) : null;
+        await masterAccessor.QueryStaffAsync(staffId, cancellationToken) is null ? new RuleError(ErrorCode.StaffInvalid, RuleReason.StaffNotFound) : null;
 
     // Open 中は取引から都度集計し、Closed は確定値 (Shifts の列) を使う
     private async ValueTask<ShiftDetailView> LoadDetailAsync(ShiftEntity entity, CancellationToken cancellationToken)
