@@ -6,6 +6,7 @@
 - フォルダの直下には共通の部品だけを置き、1 つの機能に属するもの (機能のモデル、名称の辞書、絞り込みの状態、URL、帳票) は機能のサブフォルダか専用のフォルダに置く
 - `XxxBuilder` はテキストや画像 (帳票、レシート) の組み立てだけに使う。データの変換は `XxxMapper`、計算は `XxxCalculator` にし、Builder を付けない
 - モデルと列挙型への拡張メソッドは、複数の条件を意味でまとめた判定 (`IsReturnable`) だけにし、対象の型の宣言に続けて同じファイルに書く。単一の値との比較 (`status == TransactionStatus.Voided`) は拡張メソッドにしない
+- 例外として、管理画面の表示用の加工 (書式の `ToXxxText`、列挙型の文言の `ToDisplayName`) は、サーバの `Application/ViewExtensions` に拡張メソッドとしてまとめる
 - 例外として、列挙型を通信の文字列 (UPPER_SNAKE_CASE) にする `ToCode` は `ErrorCodeExtensions` にまとめる
 - `ArgumentNullException.ThrowIfNull` は書かない (CA1062 は無効)
 - 「DTO」という語はコード・名前空間・文書に使わない

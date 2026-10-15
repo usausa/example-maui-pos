@@ -14,7 +14,8 @@ paths:
 - `Pos.Server.UnitTests` は Host の部品を、対象と同じフォルダ構成で置く
 - Blazor の部品は bUnit (`MudBlazorTestBase` を継承) で確かめ、役割は `AddAuthorization().SetAuthorized(...).SetPolicies(...)` で与える。差し替えが要るときは NSubstitute を使う
 - `Pos.Server.IntegrationTests` は `IClassFixture<TestApplicationFactory>` でクラスごとに新しい SQLite DB を使い、Accessor と Service は `factory.Services` から解決する
-- API は `factory.CreateAdminClientAsync()` で作ったクライアントから `ApiTestExtensions` で呼び、経路は `ApiRoutes` で書く
+- API は `factory.CreateAdminClientAsync()` で作ったクライアントから呼び、経路は `ApiRoutes` で書く
+- JSON の本文を送る要求と、成功の JSON を読む要求は `ApiTestExtensions` (`GetJsonAsync`、`PostJsonAsync` など) で呼ぶ。本文のない要求、JSON でない本文 (PDF、CSV、画像、壊れた JSON)、失敗を確かめる GET、ヘッダーの要る要求は `HttpClient` を直接呼ぶ
 - API の結果は、状態コードと Problem Details のエラーコード (`"DUPLICATE_CODE"` のような文字列) で確かめる
 - 端末の要求は `CreateTerminalClientAsync(TestData.XxxTerminalId)`、他のアカウントは `CreateLoginClientAsync` で作る
 - 認証を無効にした動きは `AuthDisabledApplicationFactory` で確かめ、素の `CreateClient()` は匿名の確認だけに使う
