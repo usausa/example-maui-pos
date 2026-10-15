@@ -33,11 +33,11 @@ public sealed partial class InventoryTransferAccessor
     [QueryFirst]
     public partial ValueTask<InventoryTransferEntity?> UpdateShippedAsync(DbTransaction tx, Guid id, DateTime shippedAt, Guid? staffId, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // 受領 (出荷済みのときだけ)
+    // 受領 (出荷済みのときだけ)。行が返らなければ、ない・出荷前・受領済み・キャンセル済み
     [QueryFirst]
     public partial ValueTask<InventoryTransferEntity?> UpdateReceivedAsync(DbTransaction tx, Guid id, DateTime receivedAt, Guid? staffId, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // キャンセル (依頼のときだけ)
+    // キャンセル (依頼のときだけ)。行が返らなければ、ない・出荷済み・キャンセル済み
     [QueryFirst]
     public partial ValueTask<InventoryTransferEntity?> UpdateCancelledAsync(Guid id, DateTime cancelledAt, DateTime updatedAt, CancellationToken cancellationToken);
 

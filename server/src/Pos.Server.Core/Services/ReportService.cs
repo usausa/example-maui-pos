@@ -98,7 +98,7 @@ public sealed class ReportService
     }
 
     public ValueTask<List<ProductSalesView>> QueryProductSalesAsync(Guid? storeId, DateOnly from, DateOnly to, Guid? categoryId, ProductSalesSort sort, int size, CancellationToken cancellationToken) =>
-        reportAccessor.QueryProductSalesAsync(storeId, from, to, categoryId, sort, size, cancellationToken);
+        reportAccessor.QueryProductSalesSummaryAsync(storeId, from, to, categoryId, sort, size, cancellationToken);
 
     // 売上日報 (店舗 × 営業日)。店舗がなければ null
     public async ValueTask<DailySalesReportView?> QueryDailySalesAsync(Guid storeId, DateOnly date, CancellationToken cancellationToken)

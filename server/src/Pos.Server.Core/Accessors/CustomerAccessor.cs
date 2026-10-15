@@ -32,7 +32,7 @@ public sealed partial class CustomerAccessor
     [Insert(typeof(CustomerEntity))]
     public partial ValueTask<int> InsertAsync(CustomerEntity entity, CancellationToken cancellationToken);
 
-    // PointBalance は更新しない (ポイントは AddPointsAsync で加減算する)。Version が一致する行だけ更新し、更新後の行を返す
+    // PointBalance は更新しない (ポイントは AddPointsAsync で加減算する)。Version が一致する行だけ更新し、更新後の行を返す (null = 競合、または見つからないか削除済み)
     [QueryFirst]
     public partial ValueTask<CustomerEntity?> UpdateAsync(
         Guid id,
@@ -49,6 +49,7 @@ public sealed partial class CustomerAccessor
         int version,
         CancellationToken cancellationToken);
 
+    // 論理削除。戻り値 0 = 見つからないか削除済み
     [Execute]
     public partial ValueTask<int> DeleteAsync(Guid id, DateTime updatedAt, CancellationToken cancellationToken);
 

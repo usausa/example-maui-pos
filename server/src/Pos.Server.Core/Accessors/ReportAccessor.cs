@@ -27,5 +27,5 @@ public sealed partial class ReportAccessor
     public partial ValueTask<List<SalesSummaryView>> QuerySalesSummaryByCategoryAsync(Guid? storeId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<ProductSalesView>> QueryProductSalesAsync(Guid? storeId, DateOnly from, DateOnly to, Guid? categoryId, ProductSalesSort sort, int limit, CancellationToken cancellationToken);
+    public partial ValueTask<List<ProductSalesView>> QueryProductSalesSummaryAsync(Guid? storeId, DateOnly from, DateOnly to, Guid? categoryId, ProductSalesSort sort, int limit, CancellationToken cancellationToken);
 }

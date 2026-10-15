@@ -53,7 +53,7 @@ public sealed partial class OrderAccessor
         DateTime now,
         CancellationToken cancellationToken);
 
-    // 連絡先・希望日・備考・合計の変更 (未完了のときだけ)。行が返らなければ、ない・完了済み・版の不一致
+    // 連絡先・希望日・備考・合計の変更 (未完了のときだけ)。行が返らなければ、ない・完了済み・キャンセル済み・版の不一致
     [QueryFirst]
     public partial ValueTask<OrderEntity?> UpdateAsync(
         DbTransaction tx,
@@ -68,11 +68,11 @@ public sealed partial class OrderAccessor
         int version,
         CancellationToken cancellationToken);
 
-    // 入荷 (入荷待ちのときだけ)
+    // 入荷 (入荷待ちのときだけ)。行が返らなければ、ない・入荷待ちでない
     [QueryFirst]
     public partial ValueTask<OrderEntity?> UpdateArrivedAsync(Guid id, DateTime arrivedAt, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // キャンセル (未完了で、前受金がないときだけ)
+    // キャンセル (未完了で、前受金がないときだけ)。行が返らなければ、ない・完了済み・キャンセル済み・前受金がある
     [QueryFirst]
     public partial ValueTask<OrderEntity?> UpdateCancelledAsync(Guid id, DateTime cancelledAt, string? cancelReason, DateTime updatedAt, CancellationToken cancellationToken);
 

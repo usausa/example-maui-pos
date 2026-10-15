@@ -31,7 +31,7 @@ public sealed partial class AccountsPage
     private bool IsSelf(AccountEntity entity) => entity.Id == currentId;
 
     private Task LoadAsync() =>
-        LoadAsync(async () => items = await AccountService.QueryAllAsync(CancellationToken));
+        LoadAsync(async () => items = await AccountService.QueryListAsync(CancellationToken));
 
     private async Task AddAsync()
     {

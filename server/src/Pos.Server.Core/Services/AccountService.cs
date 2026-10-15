@@ -51,8 +51,8 @@ public sealed class AccountService
     public async ValueTask<bool> IsSessionValidAsync(Guid id, int version, CancellationToken cancellationToken) =>
         await accountAccessor.QueryAsync(id, cancellationToken) is { IsActive: true } account && (account.Version == version);
 
-    public ValueTask<List<AccountEntity>> QueryAllAsync(CancellationToken cancellationToken) =>
-        accountAccessor.QueryAllAsync(cancellationToken);
+    public ValueTask<List<AccountEntity>> QueryListAsync(CancellationToken cancellationToken) =>
+        accountAccessor.QueryListAsync(cancellationToken);
 
     public ValueTask<AccountEntity?> QueryAsync(Guid id, CancellationToken cancellationToken) =>
         accountAccessor.QueryAsync(id, cancellationToken);

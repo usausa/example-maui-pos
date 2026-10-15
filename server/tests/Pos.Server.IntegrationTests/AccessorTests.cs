@@ -201,7 +201,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(7272m, Assert.Single(await reports.QuerySalesSummaryByTaxRateAsync(TestData.MainStoreId, businessDate, businessDate, Token)).TaxAmount);
         Assert.Equal(2, (await reports.QuerySalesSummaryByCategoryAsync(TestData.MainStoreId, businessDate, businessDate, Token)).Count);
         Assert.Equal("本店 レジ 2", Assert.Single(await reports.QuerySalesSummaryAsync(null, businessDate, businessDate, SalesSummaryGroupBy.Terminal, Token)).GroupLabel);
-        var products = await reports.QueryProductSalesAsync(null, businessDate, businessDate, null, ProductSalesSort.NetSales, 10, Token);
+        var products = await reports.QueryProductSalesSummaryAsync(null, businessDate, businessDate, null, ProductSalesSort.NetSales, 10, Token);
         Assert.Equal(2, products.Count);
         Assert.Equal("CAM-X100", products[0].ProductCode);
         Assert.Equal(76000m - 60000m, products[0].GrossProfit);

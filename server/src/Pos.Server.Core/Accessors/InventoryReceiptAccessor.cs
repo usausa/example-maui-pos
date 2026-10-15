@@ -25,7 +25,7 @@ public sealed partial class InventoryReceiptAccessor
     [QueryFirst]
     public partial ValueTask<InventoryReceiptEntity?> UpdateReceivedAsync(DbTransaction tx, Guid id, DateTime receivedAt, Guid? staffId, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // キャンセル (入荷予定のときだけ)
+    // キャンセル (入荷予定のときだけ)。行が返らなければ、ない・受領済み・キャンセル済み
     [QueryFirst]
     public partial ValueTask<InventoryReceiptEntity?> UpdateCancelledAsync(DbTransaction tx, Guid id, DateTime cancelledAt, DateTime updatedAt, CancellationToken cancellationToken);
 

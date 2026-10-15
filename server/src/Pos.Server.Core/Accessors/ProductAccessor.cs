@@ -41,7 +41,7 @@ public sealed partial class ProductAccessor
     [Insert(typeof(ProductEntity))]
     public partial ValueTask<int> InsertAsync(DbTransaction tx, ProductEntity entity, CancellationToken cancellationToken);
 
-    // Version が一致する行だけ更新し、更新後の行を返す (null = 競合または削除済み)
+    // Version が一致する行だけ更新し、更新後の行を返す (null = 競合、または見つからないか削除済み)
     [QueryFirst]
     public partial ValueTask<ProductEntity?> UpdateAsync(
         DbTransaction tx,
@@ -68,6 +68,7 @@ public sealed partial class ProductAccessor
         int version,
         CancellationToken cancellationToken);
 
+    // 論理削除。戻り値 0 = 見つからないか削除済み
     [Execute]
     public partial ValueTask<int> DeleteAsync(Guid id, DateTime updatedAt, CancellationToken cancellationToken);
 

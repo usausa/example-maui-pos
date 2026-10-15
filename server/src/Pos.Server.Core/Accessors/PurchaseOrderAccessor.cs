@@ -46,18 +46,19 @@ public sealed partial class PurchaseOrderAccessor
         int version,
         CancellationToken cancellationToken);
 
-    // 発注 (下書きのときだけ)。作った入荷予定を持つ
+    // 発注 (下書きのときだけ)。作った入荷予定を持つ。行が返らなければ、ない・下書きでない
     [QueryFirst]
     public partial ValueTask<PurchaseOrderEntity?> UpdateOrderedAsync(DbTransaction tx, Guid id, DateTime orderedAt, string? orderedBy, Guid receiptId, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // キャンセル (下書きか発注済みのときだけ)
+    // キャンセル (下書きか発注済みのときだけ)。行が返らなければ、ない・入荷済み・キャンセル済み
     [QueryFirst]
     public partial ValueTask<PurchaseOrderEntity?> UpdateCancelledAsync(DbTransaction tx, Guid id, DateTime cancelledAt, DateTime updatedAt, CancellationToken cancellationToken);
 
-    // 入荷予定の受領とキャンセルに合わせる (発注済みのときだけ)。戻り値 null = 発注から作っていない入荷予定
+    // 入荷予定の受領に合わせる (発注済みのときだけ)。戻り値 null = 発注から作っていない入荷予定
     [QueryFirst]
     public partial ValueTask<PurchaseOrderEntity?> UpdateReceivedByReceiptIdAsync(DbTransaction tx, Guid receiptId, DateTime updatedAt, CancellationToken cancellationToken);
 
+    // 入荷予定のキャンセルに合わせる (発注済みのときだけ)。戻り値 null = 発注から作っていない入荷予定
     [QueryFirst]
     public partial ValueTask<PurchaseOrderEntity?> UpdateCancelledByReceiptIdAsync(DbTransaction tx, Guid receiptId, DateTime cancelledAt, DateTime updatedAt, CancellationToken cancellationToken);
 

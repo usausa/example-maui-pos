@@ -11,7 +11,7 @@ public sealed partial class AccountAccessor
 
     // ログイン ID 順
     [Query]
-    public partial ValueTask<List<AccountEntity>> QueryAllAsync(CancellationToken cancellationToken);
+    public partial ValueTask<List<AccountEntity>> QueryListAsync(CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(AccountEntity))]
@@ -24,9 +24,11 @@ public sealed partial class AccountAccessor
     [Insert(typeof(AccountEntity))]
     public partial ValueTask<int> InsertAsync(AccountEntity entity, CancellationToken cancellationToken);
 
+    // Version が一致する行だけ更新し、更新後の行を返す (null = 競合または見つからない)
     [QueryFirst]
     public partial ValueTask<AccountEntity?> UpdateAsync(Guid id, AccountRole role, bool isActive, DateTime updatedAt, int version, CancellationToken cancellationToken);
 
+    // Version が一致する行だけ更新し、更新後の行を返す (null = 競合または見つからない)
     [QueryFirst]
     public partial ValueTask<AccountEntity?> UpdatePasswordAsync(Guid id, byte[] password, DateTime updatedAt, int version, CancellationToken cancellationToken);
 
@@ -34,6 +36,7 @@ public sealed partial class AccountAccessor
     [Execute]
     public partial ValueTask<int> UpdateLastLoginAsync(Guid id, DateTime lastLoginAt, CancellationToken cancellationToken);
 
+    // 戻り値 0 = 見つからない
     [Execute]
     [Delete(typeof(AccountEntity))]
     public partial ValueTask<int> DeleteAsync(Guid id, CancellationToken cancellationToken);

@@ -3,7 +3,7 @@ namespace Pos.Server.Accessors;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Views;
 
-// 会社設定と各マスタ。更新は Version が一致する行だけ (楽観ロック) で更新後の行を返す (null = 競合または削除済み)、削除は論理削除。
+// 会社設定と各マスタ。更新は Version が一致する行だけ (楽観ロック) で更新後の行を返す (null = 競合、または見つからないか削除済み)、削除は論理削除 (戻り値 0 = 見つからないか削除済み)。
 // 更新の引数は列ごとに渡す (Entity のプロパティ参照では型変換が効かないため)
 [DataAccessor]
 [ExecuteConfig(typeof(DataProfile))]

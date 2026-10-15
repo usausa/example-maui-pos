@@ -1,6 +1,6 @@
 SELECT
-    strftime('%H', datetime(t.TransactedAt, /*@ timeZoneOffset */'+9 hours')) AS GroupKey,
-    strftime('%H', datetime(t.TransactedAt, /*@ timeZoneOffset */'+9 hours')) || ':00' AS GroupLabel,
+    strftime('%H', datetime(t.TransactedAt, /*@ timeZoneOffset */'')) AS GroupKey,
+    strftime('%H', datetime(t.TransactedAt, /*@ timeZoneOffset */'')) || ':00' AS GroupLabel,
     SUM(CASE WHEN t.Type = 'Sale' THEN 1 ELSE 0 END) AS TransactionCount,
     SUM(CASE WHEN t.Type = 'Return' THEN 1 ELSE 0 END) AS ReturnCount,
     COUNT(DISTINCT t.CustomerId) AS CustomerCount,

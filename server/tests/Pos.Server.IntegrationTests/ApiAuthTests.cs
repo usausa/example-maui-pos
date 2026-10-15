@@ -101,7 +101,7 @@ public sealed class ApiAuthTests : IClassFixture<TestApplicationFactory>
         await accounts.InsertAsync(name, "operator-password", AccountRole.Operator, Token);
         var client = await factory.CreateLoginClientAsync(name, "operator-password");
         using var before = await client.GetAsync(new Uri(ApiRoutes.Stores, UriKind.Relative), Token);
-        var account = (await accounts.QueryAllAsync(Token)).Single(x => x.Name == name);
+        var account = (await accounts.QueryListAsync(Token)).Single(x => x.Name == name);
 
         // Act
         await accounts.UpdateAsync(account.Id, account.Role, false, account.Version, Guid.Empty, Token);
