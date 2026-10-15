@@ -1,6 +1,7 @@
 ---
 paths:
   - "**/*.sql"
+  - "server/src/Pos.Server.Core/Accessors/SqlHelper.cs"
 ---
 # SQL の書き方
 

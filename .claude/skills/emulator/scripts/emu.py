@@ -9,7 +9,7 @@
 #   python emu.py shot <file.png>            画面を撮る (1080x2400)
 #   python emu.py tap <x> <y>                撮った画像の座標をタップする
 #   python emu.py fkey <1-4>                 画面下端の F キーを押す
-#   python emu.py keypad <digits> [--ok]     電卓のシートに数字を打つ (A = AC、C = 1 字消す)
+#   python emu.py keypad [digits] [--ok]     電卓のシートに数字を打つ (A = AC、C = 1 字消す。--ok だけで確定)
 #   python emu.py text <ascii>               文字を入力する (英数字と記号だけ)
 #   python emu.py key <BACK|ENTER|DEL|...> [--repeat N]   キーを送る (入力欄を消すときは DEL を繰り返す)
 #   python emu.py swipe <x1> <y1> <x2> <y2> [ms]
@@ -18,7 +18,7 @@
 #   python emu.py screen                     今の画面の遷移 (logcat の Navigated) を出す
 #   python emu.py logcat [--lines N] [--grep 正規表現]
 #   python emu.py pref get <key>             アプリの設定 (shared_prefs) の値を出す
-#   python emu.py pref set <key> <value>     アプリの設定の文字列を書き換える (アプリを止めてから。キーがなければ足す)
+#   python emu.py pref set <key> <value>     アプリの設定の文字列を書き換える (動いているアプリは止めてから書き換える。キーがなければ足す)
 #
 # 使う機器は ANDROID_SERIAL (emulator- で始まるものだけ) か、接続中の最初のエミュレータ。
 # adb の場所は ADB、エミュレータの場所は EMULATOR で変えられる
@@ -333,7 +333,7 @@ def main():
     p = sub.add_parser('fkey')
     p.add_argument('number', type=int, choices=[1, 2, 3, 4])
     p = sub.add_parser('keypad')
-    p.add_argument('digits')
+    p.add_argument('digits', nargs='?', default='')
     p.add_argument('--ok', action='store_true')
     p = sub.add_parser('text')
     p.add_argument('value')

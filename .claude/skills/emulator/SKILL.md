@@ -7,7 +7,7 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 
 操作はリポジトリのルートで `python .claude/skills/emulator/scripts/emu.py <コマンド>` を使う (Windows では `python`、他では `python3`)。
 スクリプトはエミュレータ (`emulator-` で始まる機器) だけを選び、実機が接続されていても使わない。
-`adb` や `dotnet build -t:Run` を直接使うときも、必ず `-s emulator-xxxx` / `-p:AdbTarget=-s emulator-xxxx` でエミュレータを指定する。
+`adb` や `dotnet build -t:Run` を直接使うときも、必ずエミュレータを指定する (`adb` は `-s emulator-xxxx`、`dotnet build -t:Run` は `"-p:AdbTarget=-s emulator-xxxx"`)。
 `adb` と `emulator` が PATH にないときは、環境変数 `ADB` と `EMULATOR` で場所を渡す (emu.py は Android SDK の既定の場所も探す)。
 使う機器は環境変数 `ANDROID_SERIAL` (`emulator-` で始まるものだけ) でも選べる。
 
@@ -40,8 +40,9 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 - 遷移を見る: `emu.py screen` で logcat の `Navigated:` を出す (最後の行が今の画面。Debug だけ)
 - 押す: `emu.py tap <x> <y>`。座標は撮った画像 (1080x2400) の画素で、縮小して表示された画像から読むときは倍率を戻す
 - F キー: `emu.py fkey <1-4>` (画面下端の 4 つ)
-- 電卓のシート: `emu.py keypad <数字>` (`A` = AC、`C` = 1 字消す)、`--ok` で確定
-- 電卓は数字の間を待たないので、シートが開いてから押し、`--ok` の前に撮って確かめる
+- 電卓のシート: `emu.py keypad <数字>` (`A` = AC、`C` = 1 字消す)、`--ok` で確定 (確定だけは `emu.py keypad --ok`)
+- 電卓は数字の間を待たないので、シートが開いたのを撮って確かめてから押す
+- 入れた値を確かめるときは、`--ok` を付けずに押して撮り、確定だけを送る
 - 処理中と遷移中のタップは捨てられるので、押した後は撮って結果を確かめてから次へ進む
 - 文字: `emu.py text <ASCII>` (空白と日本語は送れない)
 - キー: `emu.py key BACK`、`ENTER`、`DEL` など (`--repeat N` で繰り返す)
@@ -55,15 +56,19 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 ## Release で確かめる
 
 - `emu.py install --release` は、入っているアプリのデータを消して入れ直す
-- データを残すときは、`dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net10.0-android -c Release` の後、`adb -s emulator-xxxx install -r terminal/Pos.Terminal/bin/Release/net10.0-android/pos.terminal-Signed.apk` で上書きする
+- データを残すときは、Release でビルドしてから上書きで入れる
+  - `dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net10.0-android -c Release`
+  - `adb -s emulator-xxxx install -r terminal/Pos.Terminal/bin/Release/net10.0-android/pos.terminal-Signed.apk`
 - エミュレータの空きが足りずに入らないときは、`adb -s emulator-xxxx uninstall pos.terminal` してから入れ、登録し直す
 - Release では `emu.py screen` (Navigated のログ) と `emu.py pref` (run-as) が使えないので、遷移は撮った画像で確かめる
-- 時間を測るときは、一時的に `Android.Util.Log.Info("POSDBG", ...)` を入れ、操作の前に `adb -s emulator-xxxx shell log -t POSDBG <印>` で印を付けて、logcat の時刻を比べる (測り終えたら外す)
+- 時間を測るときは、一時的に `Android.Util.Log.Info("POSDBG", ...)` を入れる (測り終えたら外す)
+  - 操作の前に `adb -s emulator-xxxx shell log -t POSDBG <印>` で印を付ける
+  - logcat で印とログの時刻を比べる
 
 ## 後片付け
 
 - `emu.py stop` でアプリを止める
-- 変えた設定を控えた値に戻す (`emu.py pref set ApiEndPoint <元の値>`。アプリを止めてから書き換える。キーがなければ足す)
+- 変えた設定を控えた値に戻す (`emu.py pref set ApiEndPoint <元の値>`。`pref set` は動いているアプリを止めてから書き換え、キーがなければ足す)
 - 確かめるために登録した端末は、端末の [登録の解除] (手元のトークンを消すだけ) に加えて、サーバ側の登録も解除する
   - `python .claude/skills/emulator/scripts/admin_steps.py revoke --out <一時フォルダ> --base <サーバの URL>`
   - `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json` の出力が `"revoked: …"` か `"not registered: …"` なら済み

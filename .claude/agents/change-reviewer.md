@@ -13,7 +13,7 @@ Bash は `git status`、`git diff`、`git log`、`git show` の読み取りに�
 1. `git status --short` と `git diff` で変更を集め、新しいファイルは Read で読む。範囲の指定があれば、その範囲だけを見る
 2. AGENTS.md、.claude/rules/common.md と、変わったファイルが `paths` に当たる規則ファイルを読む
 3. 変更の各行を規則に照らし、周りのコード (同じフォルダの似たクラス) の書き方とも比べる
-4. 規則と skills の変更は .claude/rules/docs.md の「規則」、文書の変更は「文書」にも照らす
+4. 規則、skills、agents の変更は .claude/rules/docs.md の「規則」、文書の変更は「文書」にも照らす
 
 ## 報告すること
 

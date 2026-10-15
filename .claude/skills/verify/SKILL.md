@@ -1,6 +1,6 @@
 ---
 name: verify
-description: 作業の単位の検証 (サーバ・端末の Release ビルドの警告 0、端末の Debug ビルド、3 つのテストプロジェクト、両ソリューションの InspectCode の指摘 0、変更したファイルの改行コード、文書の改行) を 1 回で行う。コードや文書を変えたあと、作業を閉じる前やコミットの前に使う。
+description: 作業の単位の検証 (サーバの Release と端末の Release・Debug のビルドの警告 0、3 つのテストプロジェクト、両ソリューションの InspectCode の指摘 0、変更したファイルの改行コード、文書の改行) を 1 回で行う。コードや文書を変えたあと、作業を閉じる前やコミットの前に使う。
 ---
 
 # 検証
@@ -18,7 +18,8 @@ python .claude/skills/verify/scripts/verify.py
 - `terminal`: `terminal/Pos.Terminal.slnx` の Release と Debug のビルド (作り直し)、InspectCode
 - `files`: 変更したファイル (git の未コミット分) の改行コード (CRLF) と、`docs/*.md`・README の改行 (1 行 1 文、「。」の後に 2 スペース)
 - InspectCode は実行ごとに新しいキャッシュで解析し、終わったらキャッシュを消す (古い解析結果を返さないように)
-- `--fix` で改行コードと文書の改行を直す。`--all-docs` で変更のない文書も確かめる
+- `--fix` で改行コードと文書の改行を直す
+- `--all-docs` で変更のない文書も確かめる
 - `--no-inspect` は途中の確認用。作業の単位の検証では InspectCode を省かない
 - ログは `--out` のフォルダ (既定は一時フォルダの `pos-verify`) に残る。NG のときはログを読んで直す
 

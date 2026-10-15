@@ -7,11 +7,13 @@ description: README の画面と帳票の画像 (docs/images/ の server-*.png�
 
 画像は `docs/images/` にあり、README の表から参照する。
 管理画面は `server-*.png` (1400x900 で撮って幅 1200)、端末は `terminal-*.png` (1080x2400 で撮って 360x800)、帳票は `report-*.png` (PDF を 1240x1754 で表示して撮り、用紙を切り出して 600x849) で、どれも 256 色の PNG。
-スクリプトはリポジトリのルートで実行する (Windows では `python`、他では `python3`)。撮った元の画像は一時フォルダに置き、リポジトリに入れない。
-スクリプトの `--base` の既定は `http://localhost:8080`。サーバをほかの URL で動かすときだけ `--base <サーバの URL>` を渡す。
+スクリプトはリポジトリのルートで実行する (Windows では `python`、他では `python3`)。
+撮った元の画像は一時フォルダに置き、リポジトリに入れない。
+スクリプトとサンプルデータのツールの `--base` の既定は `http://localhost:8080`。サーバをほかの URL で動かすときだけ `--base <サーバの URL>` を渡す。
 
 ## 準備
 
+- 大きさをそろえる `shrink.py` は Python の Pillow が要る (入っていなければ、入れる前に利用者に確かめる)
 - サーバをバックグラウンドで起動し (`dotnet run --project server/src/Pos.Server.Host`)、`<サーバの URL>/health` が応答するまで待つ。撮り終えたら止める
 - 画面に中身が出るようにサンプルの取引を作る。ダッシュボードは当日の取引が要るので、撮る直前に当日分を足す
   - `dotnet run --project server/tools/Pos.Server.SampleData -- --days 7`
@@ -27,7 +29,7 @@ description: README の画面と帳票の画像 (docs/images/ の server-*.png�
 
 - レジ端末 (`server-terminals`) は、登録していない「本店 レジ 2」にペアリングコードを発行し、ダイアログを出した状態で撮る (コードは 10 分で切れる)
 - 「本店 レジ 2」が登録中なら、emulator skill の `admin_steps.py revoke` で登録を解除してから撮る
-- 新しい画面を README に足すときは、`server_steps.py` の `PAGES`、README の表、この SKILL の表に足す
+- 新しい画面を README に足すときは、`server_steps.py` の `PAGES` と README の表に足す
 
 ## 端末
 
@@ -54,6 +56,8 @@ description: README の画面と帳票の画像 (docs/images/ の server-*.png�
 | `terminal-line-edit` | 明細の編集 (販売の明細をタップして開いたシート) |
 | `terminal-sales-menu` | 販売の操作 (販売の [⋯] で開いたシート) |
 | `terminal-pin` | PIN の入力 (スタッフ選択で担当を選び、2 桁入れた電卓のシート) |
+
+- 新しい画面を README に足すときは、README の表とこの SKILL の表に足す
 
 ## 帳票
 
