@@ -33,7 +33,7 @@
                         <div class="d-flex align-center flex-grow-1 gap-2">
                             <MudText Typo="Typo.body2" Class="flex-grow-1">
                                 <span class="mud-text-secondary">@item.Value.Code</span> @item.Value.Name
-                                <span class="mud-text-secondary ml-2">(@ProductCount(item.Value.Id) 商品)</span>
+                                <span class="mud-text-secondary ml-2">(@ProductCount(item.Value.Id).ToCountText() 商品)</span>
                             </MudText>
                             <AuthorizeView Policy="@Policies.Administrator" Context="auth">
                                 @if (item.Value.ParentId is null)

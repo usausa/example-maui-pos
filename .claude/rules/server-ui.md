@@ -18,6 +18,8 @@ paths:
 - `LoadAsync`、`LoadGridAsync`、`RunAsync` は受けた例外をバナーに出してログに記録するので、ページで重ねて記録しない
 - 変更の通知 (`ChangeNotificationService`) を購読する画面は、イベントの中で読み込まず、タイマーを掛け直して `InvokeAsync` で読み直し、Dispose で購読を外す
 - razor の表示用の加工は `Application/ViewHelper` と `ViewExtensions` だけに置き、ページで書式 (`:N0`、`ToString("MM/dd")`) を組まない (グラフの軸の書式とラベルは除く)
+- 金額は `ToYen()` (3 桁区切り、単位なし) にし、表の列は見出しで金額とわかるようにする。ダッシュボードと売上集計の金額のカードだけ「¥」を前に付ける (金種と、% と並ぶ値引の額は「円」を後ろに付ける)
+- 件数・人数・枚数は `ToCountText()` (3 桁区切り) にする (タブとバッジの数は除く)
 - 一覧の日時は年なしの `ToShortDateTimeText()`、詳細は `ToDateTimeText()` にする
 - 例外として、会員と在庫の一覧 (会員一覧の登録日、会員詳細のタブの表、在庫の更新日時) は、何年も前の日時が並ぶので年付きの `ToDateTimeText()` にする
 - 詳細のダイアログの中の表 (受注の前受金、締めのシフト) の日時は、一覧と同じにする

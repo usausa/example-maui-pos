@@ -51,7 +51,7 @@
             <CellTemplate>@context.Item.Shift.ClosedAt.ToShortDateTimeText()</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="売上" Sortable="false" CellClass="text-right">
-            <CellTemplate>@context.Item.Totals.SalesTotal.ToYen() (@context.Item.Totals.SalesCount 件)</CellTemplate>
+            <CellTemplate>@context.Item.Totals.SalesTotal.ToYen() (@context.Item.Totals.SalesCount.ToCountText() 件)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="予想現金" Sortable="false" CellClass="text-right">
             <CellTemplate>@context.Item.ExpectedCash.ToYen()</CellTemplate>

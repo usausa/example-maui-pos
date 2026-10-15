@@ -30,7 +30,7 @@
             }
             else if (day.OpenShiftCount > 0)
             {
-                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">未精算のシフトが @day.OpenShiftCount 件あります</MudAlert>
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">未精算のシフトが @day.OpenShiftCount.ToCountText() 件あります</MudAlert>
             }
             else
             {
@@ -41,8 +41,8 @@
                     <MudText Typo="Typo.subtitle2">📈 日計</MudText>
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
-                            <tr><td class="mud-text-secondary w-120">販売 / 返品 / 取消</td><td class="text-right">@day.SalesCount / @day.ReturnCount / @day.VoidCount 件</td></tr>
-                            <tr><td class="mud-text-secondary">客数 (会員)</td><td class="text-right">@day.CustomerCount 人</td></tr>
+                            <tr><td class="mud-text-secondary w-120">販売 / 返品 / 取消</td><td class="text-right">@day.SalesCount.ToCountText() / @day.ReturnCount.ToCountText() / @day.VoidCount.ToCountText() 件</td></tr>
+                            <tr><td class="mud-text-secondary">客数 (会員)</td><td class="text-right">@day.CustomerCount.ToCountText() 人</td></tr>
                             <tr><td class="mud-text-secondary">売上 / 返品</td><td class="text-right">@day.SalesTotal.ToYen() / -@day.ReturnsTotal.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">純売上</td><td class="text-right"><strong>@day.NetSales.ToYen()</strong></td></tr>
                             <tr><td class="mud-text-secondary">値引 / 税</td><td class="text-right">@day.DiscountTotal.ToYen() / @day.TaxTotal.ToYen()</td></tr>
@@ -54,7 +54,7 @@
                     <MudText Typo="Typo.subtitle2">🔒 締め</MudText>
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
-                            <tr><td class="mud-text-secondary w-120">シフト</td><td class="text-right">@day.ShiftCount 件 (未精算 @day.OpenShiftCount 件)</td></tr>
+                            <tr><td class="mud-text-secondary w-120">シフト</td><td class="text-right">@day.ShiftCount.ToCountText() 件 (未精算 @day.OpenShiftCount.ToCountText() 件)</td></tr>
                             <tr><td class="mud-text-secondary">締め日時</td><td>@day.ClosedAt.ToDateTimeText()</td></tr>
                             <tr><td class="mud-text-secondary">締めた人</td><td>@(day.ClosedBy ?? "-")</td></tr>
                         </tbody>
@@ -66,7 +66,7 @@
                         <tbody>
                             @foreach (var item in summary.ByPaymentMethod)
                             {
-                                <tr><td>@item.Name</td><td class="text-right">@item.SalesAmount.ToYen() (@item.SalesCount)</td><td class="text-right mud-text-secondary">返金 @item.ReturnAmount.ToYen()</td></tr>
+                                <tr><td>@item.Name</td><td class="text-right">@item.SalesAmount.ToYen() (@item.SalesCount.ToCountText())</td><td class="text-right mud-text-secondary">返金 @item.ReturnAmount.ToYen()</td></tr>
                             }
                             @if (summary.ByPaymentMethod.Count == 0)
                             {

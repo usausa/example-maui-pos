@@ -37,7 +37,7 @@
         <TemplateColumn Title="シフト" Sortable="false">
             <CellTemplate>
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <span>@context.Item.ShiftCount 件</span>
+                    <span>@context.Item.ShiftCount.ToCountText() 件</span>
                     @if (context.Item.OpenShiftCount > 0)
                     {
                         <StatusChip Value="@ViewHelper.OpenShiftChip(context.Item.OpenShiftCount)" />
@@ -46,7 +46,7 @@
             </CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="販売 / 返品 / 取消" Sortable="false" CellClass="text-right">
-            <CellTemplate>@context.Item.SalesCount / @context.Item.ReturnCount / @context.Item.VoidCount 件</CellTemplate>
+            <CellTemplate>@context.Item.SalesCount.ToCountText() / @context.Item.ReturnCount.ToCountText() / @context.Item.VoidCount.ToCountText() 件</CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.NetSales" Title="純売上" CellClass="text-right">
             <CellTemplate>@context.Item.NetSales.ToYen()</CellTemplate>

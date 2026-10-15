@@ -29,7 +29,7 @@
                 <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Info" />
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">本日客数</MudText>
             </div>
-            <MudText Typo="Typo.h6">@todaySummary.TransactionCount 件</MudText>
+            <MudText Typo="Typo.h6">@todaySummary.TransactionCount.ToCountText() 件</MudText>
             <MudText Typo="Typo.caption" Class="mud-text-secondary">客単価 ¥@AveragePerCustomer.ToYen()</MudText>
         </MudPaper>
     </MudItem>
@@ -40,7 +40,7 @@
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">本日返品</MudText>
             </div>
             <MudText Typo="Typo.h6" Color="@(todaySummary.ReturnCount > 0 ? Color.Warning : Color.Default)">¥@todaySummary.ReturnsTotal.ToYen()</MudText>
-            <MudText Typo="Typo.caption" Class="mud-text-secondary">@todaySummary.ReturnCount 件</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@todaySummary.ReturnCount.ToCountText() 件</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
@@ -49,8 +49,8 @@
                 <MudIcon Icon="@Icons.Material.Filled.Warning" Color="@(WarningCount > 0 ? Color.Error : Color.Default)" />
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">要確認</MudText>
             </div>
-            <MudText Typo="Typo.h6" Color="@(WarningCount > 0 ? Color.Error : Color.Default)">@WarningCount 件</MudText>
-            <MudText Typo="Typo.caption" Class="mud-text-secondary">在庫 @NegativeInventoryCount / ポイント @negativeCustomers.Count / 未締め @UnclosedDayCount</MudText>
+            <MudText Typo="Typo.h6" Color="@(WarningCount > 0 ? Color.Error : Color.Default)">@WarningCount.ToCountText() 件</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">在庫 @NegativeInventoryCount.ToCountText() / ポイント @negativeCustomers.Count.ToCountText() / 未締め @UnclosedDayCount.ToCountText()</MudText>
         </MudPaper>
     </MudItem>
 </MudGrid>
@@ -70,9 +70,9 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.GroupLabel</MudTd>
-                    <MudTd Class="text-right">@context.TransactionCount</MudTd>
-                    <MudTd Class="text-right">¥@context.NetSales.ToYen()</MudTd>
-                    <MudTd Class="text-right">¥@context.ReturnsTotal.ToYen()</MudTd>
+                    <MudTd Class="text-right">@context.TransactionCount.ToCountText()</MudTd>
+                    <MudTd Class="text-right">@context.NetSales.ToYen()</MudTd>
+                    <MudTd Class="text-right">@context.ReturnsTotal.ToYen()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText Class="pa-4 mud-text-secondary">本日の売上はまだありません</MudText>
@@ -85,7 +85,7 @@
                     <MudBadge Content="arrivedOrderCount" Color="Color.Warning" Origin="Origin.CenterRight" BadgeClass="ml-1" Visible="arrivedOrderCount > 0">
                         <MudText Typo="Typo.subtitle1" Class="pa-2">📋 引き渡し待ちの受注</MudText>
                     </MudBadge>
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">入荷待ち @orderedCount 件</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">入荷待ち @orderedCount.ToCountText() 件</MudText>
                     <MudSpacer />
                     <MudButton Size="Size.Small" Href="orders" Variant="Variant.Text">一覧へ</MudButton>
                 </ToolBarContent>
@@ -152,14 +152,14 @@
                     <MudTd>@names.Store(context.StoreId)</MudTd>
                     <MudTd>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <span>@context.ShiftCount 件</span>
+                            <span>@context.ShiftCount.ToCountText() 件</span>
                             @if (context.OpenShiftCount > 0)
                             {
                                 <StatusChip Value="@ViewHelper.OpenShiftChip(context.OpenShiftCount)" />
                             }
                         </MudStack>
                     </MudTd>
-                    <MudTd Class="text-right">¥@context.NetSales.ToYen()</MudTd>
+                    <MudTd Class="text-right">@context.NetSales.ToYen()</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText Class="pa-4 mud-text-secondary">✅ 前日までの営業日はすべて締め済みです</MudText>
@@ -191,7 +191,7 @@
                     <MudBadge Content="OpenTransferCount" Color="Color.Warning" Origin="Origin.CenterRight" BadgeClass="ml-1" Visible="OpenTransferCount > 0">
                         <MudText Typo="Typo.subtitle1" Class="pa-2">🚚 未受領の移動</MudText>
                     </MudBadge>
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">出荷待ち @requestedTransferCount 件 / 受領待ち @shippedTransferCount 件</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">出荷待ち @requestedTransferCount.ToCountText() 件 / 受領待ち @shippedTransferCount.ToCountText() 件</MudText>
                     <MudSpacer />
                     <MudButton Size="Size.Small" Href="inventory/transfers" Variant="Variant.Text">一覧へ</MudButton>
                 </ToolBarContent>

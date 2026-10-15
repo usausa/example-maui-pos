@@ -36,7 +36,7 @@
                     <MudText Typo="Typo.subtitle2">📈 件数・売上</MudText>
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
-                            <tr><td class="mud-text-secondary w-120">販売 / 返品 / 取消</td><td class="text-right">@summary.Shift.Totals.SalesCount / @summary.Shift.Totals.ReturnCount / @summary.Shift.Totals.VoidCount 件</td></tr>
+                            <tr><td class="mud-text-secondary w-120">販売 / 返品 / 取消</td><td class="text-right">@summary.Shift.Totals.SalesCount.ToCountText() / @summary.Shift.Totals.ReturnCount.ToCountText() / @summary.Shift.Totals.VoidCount.ToCountText() 件</td></tr>
                             <tr><td class="mud-text-secondary">売上 / 返品</td><td class="text-right">@summary.Shift.Totals.SalesTotal.ToYen() / -@summary.Shift.Totals.ReturnsTotal.ToYen()</td></tr>
                             <tr><td class="mud-text-secondary">ポイント</td><td class="text-right">付与 @summary.Points.Earned.ToPointText() / 利用 @summary.Points.Redeemed.ToPointText()</td></tr>
                             <tr><td class="mud-text-secondary">備考</td><td>@summary.Shift.Shift.Note</td></tr>
@@ -49,7 +49,7 @@
                         <tbody>
                             @foreach (var item in summary.ByPaymentMethod)
                             {
-                                <tr><td>@item.Name</td><td class="text-right">@item.SalesAmount.ToYen() (@item.SalesCount)</td><td class="text-right mud-text-secondary">返金 @item.ReturnAmount.ToYen()</td></tr>
+                                <tr><td>@item.Name</td><td class="text-right">@item.SalesAmount.ToYen() (@item.SalesCount.ToCountText())</td><td class="text-right mud-text-secondary">返金 @item.ReturnAmount.ToYen()</td></tr>
                             }
                         </tbody>
                     </MudSimpleTable>
@@ -97,7 +97,7 @@
                         <tbody>
                             @foreach (var item in summary.Shift.Denominations)
                             {
-                                <tr><td>@item.Denomination.ToYen() 円</td><td class="text-right">@item.Count 枚</td><td class="text-right">@((item.Denomination * item.Count).ToYen())</td></tr>
+                                <tr><td>@item.Denomination.ToYen() 円</td><td class="text-right">@item.Count.ToCountText() 枚</td><td class="text-right">@((item.Denomination * item.Count).ToYen())</td></tr>
                             }
                             @if (summary.Shift.Denominations.Count == 0)
                             {

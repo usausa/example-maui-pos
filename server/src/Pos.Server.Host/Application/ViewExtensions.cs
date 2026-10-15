@@ -20,8 +20,13 @@ public static class ViewExtensions
 
     public static string ToQuantityText(this decimal? value) => value is null ? "-" : value.Value.ToQuantityText();
 
-    // ポイント数・件数 (3 桁区切り)
+    // ポイント数 (3 桁区切り)
     public static string ToPointText(this int value) => value.ToString("N0", CultureInfo.InvariantCulture);
+
+    // 件数・人数・枚数 (3 桁区切り)
+    public static string ToCountText(this int value) => value.ToString("N0", CultureInfo.InvariantCulture);
+
+    public static string ToCountText(this long value) => value.ToString("N0", CultureInfo.InvariantCulture);
 
     public static string ToTerminalNoText(this int value) => value.ToString("00", CultureInfo.InvariantCulture);
 

@@ -31,19 +31,19 @@
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">💴 純売上</MudText>
-                <MudText Typo="Typo.h6">@total.NetSales.ToYen() 円</MudText>
+                <MudText Typo="Typo.h6">¥@total.NetSales.ToYen()</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">🧾 販売 / 返品件数</MudText>
-                <MudText Typo="Typo.h6">@total.TransactionCount / @total.ReturnCount 件</MudText>
+                <MudText Typo="Typo.h6">@total.TransactionCount.ToCountText() / @total.ReturnCount.ToCountText() 件</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">🏷️ 値引</MudText>
-                <MudText Typo="Typo.h6">@total.DiscountTotal.ToYen() 円</MudText>
+                <MudText Typo="Typo.h6">¥@total.DiscountTotal.ToYen()</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
@@ -75,9 +75,9 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.GroupLabel</MudTd>
-        <MudTd Class="text-right">@context.TransactionCount</MudTd>
-        <MudTd Class="text-right">@context.ReturnCount</MudTd>
-        <MudTd Class="text-right">@context.CustomerCount</MudTd>
+        <MudTd Class="text-right">@context.TransactionCount.ToCountText()</MudTd>
+        <MudTd Class="text-right">@context.ReturnCount.ToCountText()</MudTd>
+        <MudTd Class="text-right">@context.CustomerCount.ToCountText()</MudTd>
         <MudTd Class="text-right">@context.SalesTotal.ToYen()</MudTd>
         <MudTd Class="text-right">@context.ReturnsTotal.ToYen()</MudTd>
         <MudTd Class="text-right"><strong>@context.NetSales.ToYen()</strong></MudTd>
@@ -89,9 +89,9 @@
         @if (rows.Count > 0)
         {
             <MudTd>合計</MudTd>
-            <MudTd Class="text-right">@total.TransactionCount</MudTd>
-            <MudTd Class="text-right">@total.ReturnCount</MudTd>
-            <MudTd Class="text-right">@total.CustomerCount</MudTd>
+            <MudTd Class="text-right">@total.TransactionCount.ToCountText()</MudTd>
+            <MudTd Class="text-right">@total.ReturnCount.ToCountText()</MudTd>
+            <MudTd Class="text-right">@total.CustomerCount.ToCountText()</MudTd>
             <MudTd Class="text-right">@total.SalesTotal.ToYen()</MudTd>
             <MudTd Class="text-right">@total.ReturnsTotal.ToYen()</MudTd>
             <MudTd Class="text-right">@total.NetSales.ToYen()</MudTd>

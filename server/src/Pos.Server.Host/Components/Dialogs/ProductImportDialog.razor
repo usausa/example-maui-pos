@@ -29,13 +29,13 @@
             {
                 <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="1">
                     <StatusChip Value="@ViewHelper.ImportActionChip(ImportAction.Insert)" />
-                    <MudText Typo="Typo.body2" Class="mr-2">@preview.InsertCount 件</MudText>
+                    <MudText Typo="Typo.body2" Class="mr-2">@preview.InsertCount.ToCountText() 件</MudText>
                     <StatusChip Value="@ViewHelper.ImportActionChip(ImportAction.Update)" />
-                    <MudText Typo="Typo.body2" Class="mr-2">@preview.UpdateCount 件</MudText>
+                    <MudText Typo="Typo.body2" Class="mr-2">@preview.UpdateCount.ToCountText() 件</MudText>
                     <StatusChip Value="@ViewHelper.ImportActionChip(ImportAction.Unchanged)" />
-                    <MudText Typo="Typo.body2" Class="mr-2">@preview.UnchangedCount 件</MudText>
+                    <MudText Typo="Typo.body2" Class="mr-2">@preview.UnchangedCount.ToCountText() 件</MudText>
                     <StatusChip Value="@ViewHelper.ImportActionChip(ImportAction.Error)" />
-                    <MudText Typo="Typo.body2" Class="mr-2">@preview.ErrorCount 件</MudText>
+                    <MudText Typo="Typo.body2" Class="mr-2">@preview.ErrorCount.ToCountText() 件</MudText>
                     <MudSpacer />
                     <MudSwitch T="bool" @bind-Value="showUnchanged" Label="変更のない行も表示" Color="Color.Primary" />
                 </MudStack>
