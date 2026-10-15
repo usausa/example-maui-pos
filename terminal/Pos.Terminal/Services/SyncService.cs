@@ -408,7 +408,7 @@ public sealed class SyncService : IDisposable
         try
         {
             var sent = 0;
-            var items = await accessor.QueryOutboxListAsync(null, 100);
+            var items = await accessor.QueryOutboxListAsync(100);
             foreach (var item in items)
             {
                 if (item.Status == OutboxStatus.Failed)
@@ -477,7 +477,7 @@ public sealed class SyncService : IDisposable
         await gate.WaitAsync();
         try
         {
-            var items = await accessor.QueryOutboxListAsync(null, Int32.MaxValue);
+            var items = await accessor.QueryOutboxListAsync(Int32.MaxValue);
             await provider.UsingTxAsync(async (_, tx) =>
             {
                 foreach (var item in items)

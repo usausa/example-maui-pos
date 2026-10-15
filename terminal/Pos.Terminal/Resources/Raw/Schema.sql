@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS Transactions (
 );
 CREATE INDEX IF NOT EXISTS IX_Transactions_ShiftId_TransactedAt ON Transactions (ShiftId, TransactedAt);
 CREATE INDEX IF NOT EXISTS IX_Transactions_ReceiptNo ON Transactions (ReceiptNo);
+CREATE INDEX IF NOT EXISTS IX_Transactions_OriginalTransactionId ON Transactions (OriginalTransactionId);
 
 CREATE TABLE IF NOT EXISTS Shifts (
     Id               TEXT     NOT NULL,

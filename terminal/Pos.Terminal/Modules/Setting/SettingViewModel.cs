@@ -127,7 +127,7 @@ public sealed partial class SettingViewModel : AppViewModelBase
 
     private async Task LoadOutboxAsync()
     {
-        Outbox.Replace((await accessor.QueryOutboxListAsync(null, 200)).Select(static x => new OutboxItem
+        Outbox.Replace((await accessor.QueryOutboxListAsync(200)).Select(static x => new OutboxItem
         {
             Entity = x,
             Status = x.Status,

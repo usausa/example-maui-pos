@@ -87,9 +87,13 @@ public sealed partial class TransactionUsecase
     public async ValueTask<OutboxStatus> QuerySyncStatusAsync(Guid transactionId) =>
         (await QueryOutboxStatusAsync()).GetValueOrDefault(transactionId, OutboxStatus.Sent);
 
+    // 返品のある販売はサーバが取消を拒むので、端末で記録した返品と、サーバから取った明細の返品済みの数量で判定する
+    public async ValueTask<bool> HasReturnsAsync(TransactionListResponseItem transaction) =>
+        transaction.Lines.Any(static x => x.ReturnedQuantity > 0) || (await accessor.CountReturnsAsync(transaction.Id) > 0);
+
     // 未送信 (Pending / Failed) の取引。要確認が 1 つでもあれば Failed
     private async ValueTask<Dictionary<Guid, OutboxStatus>> QueryOutboxStatusAsync() =>
-        (await accessor.QueryOutboxListAsync(null, 1000))
+        (await accessor.QueryOutboxListAsync(1000))
             .Where(static x => x.Kind is OutboxKind.Transaction or OutboxKind.TransactionVoid)
             .GroupBy(static x => x.TargetId)
             .ToDictionary(static g => g.Key, static g => g.Any(static x => x.Status == OutboxStatus.Failed) ? OutboxStatus.Failed : OutboxStatus.Pending);

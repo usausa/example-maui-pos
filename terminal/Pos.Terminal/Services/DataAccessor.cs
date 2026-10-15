@@ -193,6 +193,10 @@ public sealed partial class DataAccessor
     [Query]
     public partial ValueTask<List<LocalTransactionEntity>> QueryTransactionListAsync(Guid? shiftId, DateOnly? businessDate, TransactionType? type, int limit);
 
+    // 取消の可否 (取消していない返品が紐付いていれば取り消せない)
+    [ExecuteScalar]
+    public partial ValueTask<long> CountReturnsAsync(Guid originalTransactionId);
+
     [Execute]
     public partial ValueTask<int> DeleteTransactionsBeforeAsync(DateOnly businessDate);
 
@@ -257,9 +261,9 @@ public sealed partial class DataAccessor
     [SelectSingle(typeof(OutboxEntity))]
     public partial ValueTask<OutboxEntity?> QueryOutboxAsync(Guid id);
 
-    // status 指定なしは未送信 (Pending / Failed) を発生順に
+    // 未送信 (Pending / Failed) を発生順に
     [Query]
-    public partial ValueTask<List<OutboxEntity>> QueryOutboxListAsync(OutboxStatus? status, int limit);
+    public partial ValueTask<List<OutboxEntity>> QueryOutboxListAsync(int limit);
 
     [ExecuteScalar]
     public partial ValueTask<long> CountOutboxAsync(OutboxStatus status);

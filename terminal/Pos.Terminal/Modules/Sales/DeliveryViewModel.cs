@@ -39,15 +39,15 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string TimeSlotText { get; set; } = TimeSlots[0];
 
+    public IObserveCommand InputPhoneCommand { get; }
+
+    public IObserveCommand InputPostalCodeCommand { get; }
+
     public IObserveCommand SetDateCommand { get; }
 
     public IObserveCommand ClearDateCommand { get; }
 
     public IObserveCommand SelectTimeSlotCommand { get; }
-
-    public IObserveCommand InputPhoneCommand { get; }
-
-    public IObserveCommand InputPostalCodeCommand { get; }
 
     public DeliveryViewModel(
         IDialog dialog,

@@ -281,6 +281,13 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
 
         if (!result.IsSuccess)
         {
+            // 404 は NetworkService が知らせない (他で削除された会員)。削除された会員を照会に残さない
+            if (result.IsNotFound)
+            {
+                await dialog.InformationAsync("会員が見つかりません");
+                await ReturnAsync(null);
+            }
+
             return;
         }
 

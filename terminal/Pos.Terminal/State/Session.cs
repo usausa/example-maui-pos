@@ -2,7 +2,7 @@ namespace Pos.Terminal.State;
 
 using Pos.Terminal.Models.Entity;
 
-// 使用者に紐付く状態: 会社設定・店舗・端末・選択中スタッフ・開設中シフト・未送信件数
+// 使用者に紐付く状態: 会社設定・店舗・端末・選択中スタッフ・シフト・未送信件数
 #pragma warning disable CA1724
 public sealed partial class Session : ObservableObject
 {
@@ -18,6 +18,7 @@ public sealed partial class Session : ObservableObject
     [ObservableProperty(NotifyAlso = [nameof(HeaderText)])]
     public partial StaffListResponseItem? Staff { get; set; }
 
+    // 精算の直後は閉じたシフトが入り、セッションを読み直すまで残る (開設中かは IsShiftOpen で見る)
     [ObservableProperty(NotifyAlso = [nameof(IsShiftOpen)])]
     public partial LocalShiftEntity? CurrentShift { get; set; }
 

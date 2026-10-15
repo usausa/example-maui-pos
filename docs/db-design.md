@@ -1243,7 +1243,7 @@ MAUI 側のローカル DB。
 | `InventoryLevels` | 自店分のみ (`updatedSince` で差分取り込み。販売・返品・取消・棚卸・調整ではローカルでも増減させる) |
 | `Shifts` / `CashEvents` | 端末で開設したシフトと入出金 (精算の予想現金の計算に使う)。サーバに開設中のシフトが残っていれば (入れ直したときなど)、写して引き継ぐ |
 | `OrderDeposits` | サーバが受け付けた前受金の受取・返金のうち、今のシフトの分の写し (精算の予想現金の計算に使う)。受取・返金の応答と受注を読んだときに、まだ写していない記録を足す (写し済みは変えない)。前受金はオンライン限定なので Outbox には入れない |
-| `Transactions` | 検索用の列 (種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引) + `Payload` (`TransactionListResponseItem` の JSON。送信後はサーバの応答で置き換える)。取引履歴・再印字・返品の元取引参照に使う |
+| `Transactions` | 検索用の列 (種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引) + `Payload` (`TransactionListResponseItem` の JSON。送信後はサーバの応答で置き換える)。取引履歴・再印字・返品の元取引参照と、取消の可否 (紐付く返品の件数) に使う |
 | `Outbox` | `Id` (guid)、`Kind` (ShiftOpen / Transaction / TransactionVoid / CashEvent / ShiftClose / InventoryChanges)、`TargetId` (取引 ID やシフト ID)、`Payload` (JSON、`XxxRequest` をそのまま直列化)、`CreatedAt`、`Status` (Pending / Sent / Failed)、`Attempts`、`LastError`、`SentAt`。Sent は 7 日で削除 |
 | `SyncState` | `Key` / `Value` (最終 `ServerTime`、在庫の同期時刻、レシート番号の連番)。端末設定 (サーバ URL・店舗 ID・端末 ID・登録日時) は `IPreferences` (`Settings`)、端末のトークンは `SecureStorage` (`CredentialService`) に置く |
 | `HoldCarts` | 会計途中の保留 (端末ローカルのみ、T-17)。`Summary` / `Total` と `Payload` (`SalesCart` の JSON) |

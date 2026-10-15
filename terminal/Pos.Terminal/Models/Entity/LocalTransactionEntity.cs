@@ -2,7 +2,7 @@ namespace Pos.Terminal.Models.Entity;
 
 using Smart.Data.Accessor.Attributes;
 
-// 端末で発生した取引 (履歴・再印字・返品の元取引参照)。Payload は TransactionListResponseItem の JSON (送信後はサーバの応答で置き換える)
+// 端末で発生した取引 (履歴・再印字・返品の元取引参照・取消の可否)。Payload は TransactionListResponseItem の JSON (送信後はサーバの応答で置き換える)
 [Name("Transactions")]
 public sealed class LocalTransactionEntity
 {

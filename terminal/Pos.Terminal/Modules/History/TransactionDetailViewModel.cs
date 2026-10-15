@@ -5,7 +5,7 @@ using Pos.Domain.Logic;
 using Pos.Terminal.Models.Entity;
 using Pos.Terminal.Modules.Dialogs;
 
-// 取引詳細: 明細・支払・ポイント・配送。取消は同一シフト内のみ、返品は完了した販売のみ
+// 取引詳細: 明細・支払・ポイント・配送。取消は開設中の同一シフト内の返品のない取引のみ、返品は完了した販売のみ
 public sealed partial class TransactionDetailViewModel : AppViewModelBase
 {
     private static readonly ReasonItem[] VoidReasons =
@@ -168,8 +168,8 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
 
         Sections.Replace(sections);
 
-        // 取消は同一シフト内の完了取引、返品は完了した販売
-        CanVoid = !voided && (session.CurrentShift?.Id == transaction.ShiftId);
+        // 取消は開設中の同一シフト内の返品のない完了取引、返品は完了した販売
+        CanVoid = !voided && session.IsShiftOpen && (session.CurrentShift?.Id == transaction.ShiftId) && !await transactions.HasReturnsAsync(transaction);
         CanReturn = session.IsShiftOpen && transaction.IsReturnable();
     }
 
