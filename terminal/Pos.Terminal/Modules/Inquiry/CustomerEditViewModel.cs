@@ -46,18 +46,18 @@ public sealed class CustomerDraft
     }
 }
 
-// 会員登録・編集 (オンライン限定)。保存後は呼び出し元へ会員を渡す (販売からならカートにも紐付ける)
+// 会員登録・編集 (オンライン限定): 保存後は呼び出し元へ会員を渡す (販売からならカートにも紐付ける)
 public sealed partial class CustomerEditViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
 
     private readonly IPopupNavigator popupNavigator;
 
+    private readonly NetworkService network;
+
     private CustomerListResponseItem? original;
 
     private ViewId returnTo = ViewId.CustomerInquiry;
-
-    private readonly NetworkService network;
 
     // 販売からの登録のときにカートの状態を保持する (照会からのときは使わない)
     [Scope]

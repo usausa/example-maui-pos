@@ -6,9 +6,9 @@ using Smart.Maui.Interactivity;
 
 public static class ShellProperty
 {
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Shell
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     public static readonly BindableProperty TitleProperty = BindableProperty.CreateAttached(
         "Title",
@@ -188,9 +188,9 @@ public static class ShellProperty
         }
     }
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // BusyOverlay
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     public static readonly BindableProperty BusyOverlayProperty = BindableProperty.CreateAttached(
         "BusyOverlay",

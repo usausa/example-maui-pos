@@ -2,7 +2,7 @@ namespace Pos.Terminal.Modules.Dialogs;
 
 public sealed record ConfirmParameter(string Message, string? Title, string Ok, string Cancel);
 
-// 確認のダイアログ (シート)。IDialog.ConfirmAsync から SheetDialog 経由で開き、確定なら true を返す
+// 確認: IDialog.ConfirmAsync から SheetDialog が開くシート (確定なら true を返す)
 public sealed partial class ConfirmViewModel : AppDialogViewModelBase, IPopupInitialize<ConfirmParameter>
 {
     [ObservableProperty]
@@ -20,14 +20,14 @@ public sealed partial class ConfirmViewModel : AppDialogViewModelBase, IPopupIni
     [ObservableProperty]
     public partial string CancelText { get; set; } = "キャンセル";
 
-    public IObserveCommand OkCommand { get; }
+    public IObserveCommand CloseCommand { get; }
 
-    public IObserveCommand CancelCommand { get; }
+    public IObserveCommand CommitCommand { get; }
 
     public ConfirmViewModel()
     {
-        OkCommand = MakeAsyncCommand(async () => await CloseAsync(true));
-        CancelCommand = MakeAsyncCommand(async () => await CloseAsync(false));
+        CloseCommand = MakeAsyncCommand(async () => await CloseAsync());
+        CommitCommand = MakeAsyncCommand(async () => await CloseAsync(true));
     }
 
     public void Initialize(ConfirmParameter parameter)

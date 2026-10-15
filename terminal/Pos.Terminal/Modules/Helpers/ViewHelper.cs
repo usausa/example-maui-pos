@@ -1,5 +1,6 @@
 namespace Pos.Terminal.Modules.Helpers;
 
+using Pos.Terminal.Models.Cart;
 using Pos.Terminal.Models.Entity;
 using Pos.Terminal.Models.Inventory;
 
@@ -36,6 +37,9 @@ public static class ViewHelper
     public static string LineSummary(string? firstProductName, int count) =>
         firstProductName is null ? string.Empty : $"{firstProductName}{(count > 1 ? $" 他 {count - 1} 点" : string.Empty)}";
 
+    public static string LineSummary(SalesCart cart) =>
+        LineSummary(cart.Lines.Count == 0 ? null : cart.Lines[0].Product.Name, cart.Lines.Count);
+
     public static string Name(TransactionType value) => value switch
     {
         TransactionType.Sale => "販売",
@@ -47,6 +51,29 @@ public static class ViewHelper
     {
         TransactionStatus.Completed => "完了",
         TransactionStatus.Voided => "取消",
+        _ => value.ToString()
+    };
+
+    // 取消の印 (取引の種別のチップを Trigger で取消に替える)
+    public static string VoidedText => Name(TransactionStatus.Voided);
+
+    public static string Name(ProductKind value) => value switch
+    {
+        ProductKind.Goods => "商品",
+        ProductKind.Service => "サービス",
+        _ => value.ToString()
+    };
+
+    public static string Name(InventoryChangeType value) => value switch
+    {
+        InventoryChangeType.Sale => "販売",
+        InventoryChangeType.Return => "返品",
+        InventoryChangeType.Void => "取消",
+        InventoryChangeType.PhysicalCount => "棚卸",
+        InventoryChangeType.Adjustment => "調整",
+        InventoryChangeType.Receive => "入荷",
+        InventoryChangeType.TransferOut => "移動出荷",
+        InventoryChangeType.TransferIn => "移動受領",
         _ => value.ToString()
     };
 

@@ -40,24 +40,18 @@ public sealed class DenominationItem : NotificationObject
 
     public string SubtotalText => ViewHelper.Yen((decimal)Denomination * count);
 
-    public ICommand IncrementCommand { get; }
-
-    public ICommand DecrementCommand { get; }
-
     public DenominationItem(int denomination, int count, Action changed)
     {
         this.changed = changed;
         this.count = count;
         Denomination = denomination;
         Label = ViewHelper.Yen(denomination);
-        IncrementCommand = new DelegateCommand(() => Count++);
-        DecrementCommand = new DelegateCommand(() => Count = Math.Max(0, Count - 1));
     }
 }
 
 public sealed record DenominationsResult(IReadOnlyList<ShiftCloseRequestDenomination> Denominations, decimal Total);
 
-// 金種別入力 (精算)。枚数から実査金額を求める
+// 金種別入力 (精算): 枚数から実査金額を求める
 public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPopupInitialize<IReadOnlyList<ShiftCloseRequestDenomination>>
 {
     private static readonly int[] Denominations = [10000, 5000, 2000, 1000, 500, 100, 50, 10, 5, 1];
@@ -69,16 +63,22 @@ public sealed partial class DenominationsViewModel : AppDialogViewModelBase, IPo
     [ObservableProperty]
     public partial string TotalText { get; set; } = ViewHelper.Yen(0);
 
+    public IObserveCommand DecrementCommand { get; }
+
+    public IObserveCommand IncrementCommand { get; }
+
+    public IObserveCommand InputCountCommand { get; }
+
     public IObserveCommand CloseCommand { get; }
 
     public IObserveCommand CommitCommand { get; }
-
-    public IObserveCommand InputCountCommand { get; }
 
     public DenominationsViewModel(IPopupNavigator popupNavigator)
     {
         this.popupNavigator = popupNavigator;
 
+        DecrementCommand = MakeDelegateCommand<DenominationItem>(static x => x.Count = Math.Max(0, x.Count - 1));
+        IncrementCommand = MakeDelegateCommand<DenominationItem>(static x => x.Count++);
         InputCountCommand = MakeAsyncCommand<DenominationItem>(InputCountAsync);
         CloseCommand = MakeAsyncCommand(async () => await CloseAsync());
         CommitCommand = MakeAsyncCommand(async () => await CloseAsync(new DenominationsResult(

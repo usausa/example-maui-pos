@@ -12,6 +12,8 @@ public sealed class DisplayNameConverter : IValueConverter
             null => null,
             TransactionType x => ViewHelper.Name(x),
             TransactionStatus x => ViewHelper.Name(x),
+            ProductKind x => ViewHelper.Name(x),
+            InventoryChangeType x => ViewHelper.Name(x),
             ShiftStatus x => ViewHelper.Name(x),
             CashEventType x => ViewHelper.Name(x),
             OrderDepositType x => ViewHelper.Name(x),

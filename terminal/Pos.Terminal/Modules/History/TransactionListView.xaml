@@ -153,7 +153,7 @@
                                                          Binding="{Binding IsVoided}"
                                                          Value="True">
                                                 <Setter Property="ChipColor" Value="{StaticResource RedDarken1}" />
-                                                <Setter Property="Text" Value="取消" />
+                                                <Setter Property="Text" Value="{x:Static helpers:ViewHelper.VoidedText}" />
                                             </DataTrigger>
                                         </controls:StatusChip.Triggers>
                                     </controls:StatusChip>

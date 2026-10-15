@@ -2,7 +2,7 @@ namespace Pos.Terminal.Modules.Dialogs;
 
 public sealed record MessageParameter(string Message, string? Title, string Ok);
 
-// 情報のダイアログ (シート)。IDialog.InformationAsync から SheetDialog 経由で開く
+// 情報: IDialog.InformationAsync から SheetDialog が開くシート
 public sealed partial class MessageViewModel : AppDialogViewModelBase, IPopupInitialize<MessageParameter>
 {
     [ObservableProperty]

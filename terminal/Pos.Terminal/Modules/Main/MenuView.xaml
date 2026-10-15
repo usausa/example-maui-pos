@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
              xmlns:markup="clr-namespace:Pos.Terminal.Markup"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Main"
              x:Class="Pos.Terminal.Modules.Main.MenuView"
@@ -17,12 +18,9 @@
         <Grid Grid.Row="0"
               Style="{StaticResource PosListRowGrid}"
               ColumnDefinitions="Auto,*">
-            <Border Grid.Column="0"
-                    Style="{StaticResource PosChipBorder}"
-                    BackgroundColor="{Binding IsShiftOpen, Converter={StaticResource ShiftOpenColorConverter}}">
-                <Label Style="{StaticResource PosChipLabel}"
-                       Text="{Binding IsShiftOpen, Converter={StaticResource ShiftStateTextConverter}}" />
-            </Border>
+            <controls:StatusChip Grid.Column="0"
+                                 Text="{Binding IsShiftOpen, Converter={StaticResource ShiftStateTextConverter}}"
+                                 ChipColor="{Binding IsShiftOpen, Converter={StaticResource ShiftOpenColorConverter}}" />
             <Label Grid.Column="1"
                    Style="{StaticResource PosCaptionLabel}"
                    Text="{Binding ShiftDetail}" />

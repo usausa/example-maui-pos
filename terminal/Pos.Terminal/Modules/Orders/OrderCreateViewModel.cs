@@ -95,7 +95,7 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
         CustomerName.Text = customer?.Name;
         PhoneText = customer?.Phone;
         CustomerText = customer is null ? "会員なし (宛名が必要です)" : $"👤 {customer.Name}  {customer.Code}";
-        CartText = $"{cart.Summary}  {ViewHelper.Yen(cart.Lines.Sum(static x => OrderLogic.LineAmount(x.UnitPrice, x.Quantity)))}";
+        CartText = $"{ViewHelper.LineSummary(cart)}  {ViewHelper.Yen(cart.Lines.Sum(static x => OrderLogic.LineAmount(x.UnitPrice, x.Quantity)))}";
         return Task.CompletedTask;
     }
 

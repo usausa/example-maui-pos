@@ -140,7 +140,7 @@ public sealed partial class SalesViewModel : AppViewModelBase
     private async Task EditLineAsync(CartLineItem item)
     {
         var discounts = (await accessor.QueryDiscountListAsync()).Where(static x => x.Scope == DiscountScope.Line).ToList();
-        var result = await popupNavigator.PopupAsync<LineEditParameter, LineEditResult>(DialogId.LineEdit, new LineEditParameter(item.Line, discounts));
+        var result = await popupNavigator.PopupAsync<LineEditParameter, LineEditResult?>(DialogId.LineEdit, new LineEditParameter(item.Line, discounts));
         if (result == LineEditResult.Delete)
         {
             SalesContext.Cart.Lines.Remove(item.Line);

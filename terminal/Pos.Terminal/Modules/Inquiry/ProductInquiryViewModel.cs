@@ -37,7 +37,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
 
     public ObservableCollection<SummarySection> Sections { get; } = [];
 
-    // 他店在庫 (F4 で取得した後に見出しと面を出す。取得できない・在庫なしは案内文で示す)
+    // 他店在庫 (F4 で取得した後に見出しと面を出す。取得できない・在庫なしは文言で示す)
     [ObservableProperty]
     public partial bool HasOtherStores { get; set; }
 
@@ -106,7 +106,7 @@ public sealed partial class ProductInquiryViewModel : AppViewModelBase
             [
                 new SummaryRow("部門", category?.Name ?? "-"),
                 new SummaryRow("ブランド / 型番", $"{value.Brand} {value.ModelNo}".Trim()),
-                new SummaryRow("種別", value.Kind == ProductKind.Service ? "サービス" : "商品"),
+                new SummaryRow("種別", ViewHelper.Name(value.Kind)),
                 new SummaryRow("シリアル", value.RequiresSerial ? "必須" : "不要"),
                 new SummaryRow("状態", value.IsActive && !value.IsDeleted ? "販売中" : "取扱終了")
             ])

@@ -27,21 +27,23 @@
                         <Label Grid.Column="0"
                                Style="{StaticResource PosListNameLabel}"
                                Text="{Binding Label}" />
+                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
                         <Button Grid.Column="1"
                                 Style="{StaticResource PosQuantityButton}"
-                                Command="{Binding DecrementCommand}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type module:DenominationsViewModel}}, Path=DecrementCommand, x:DataType={x:Type module:DenominationsViewModel}}"
+                                CommandParameter="{Binding .}"
                                 Text="-" />
-                        <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
                         <Button Grid.Column="2"
                                 Style="{StaticResource PosCountButton}"
                                 Command="{Binding Source={RelativeSource AncestorType={x:Type module:DenominationsViewModel}}, Path=InputCountCommand, x:DataType={x:Type module:DenominationsViewModel}}"
                                 CommandParameter="{Binding .}"
                                 Text="{Binding CountText}" />
-                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
                         <Button Grid.Column="3"
                                 Style="{StaticResource PosQuantityButton}"
-                                Command="{Binding IncrementCommand}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type module:DenominationsViewModel}}, Path=IncrementCommand, x:DataType={x:Type module:DenominationsViewModel}}"
+                                CommandParameter="{Binding .}"
                                 Text="+" />
+                        <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
                         <Label Grid.Column="4"
                                Style="{StaticResource PosListValueLabel}"
                                Text="{Binding SubtotalText}" />

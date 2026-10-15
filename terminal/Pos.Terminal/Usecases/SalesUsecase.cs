@@ -66,7 +66,7 @@ public sealed class SalesUsecase
         {
             Id = Guid.CreateVersion7(),
             CreatedAt = DateTime.UtcNow,
-            Summary = cart.Summary,
+            Summary = ViewHelper.LineSummary(cart),
             Total = Calculate(cart, []).Total,
             Payload = JsonSerializer.Serialize(cart, HttpService.JsonOptions)
         });

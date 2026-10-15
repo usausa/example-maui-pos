@@ -2,7 +2,9 @@ namespace Pos.Terminal.Behaviors;
 
 public static partial class Scroll
 {
-    // ------------------------------------------------------------------ DisableOverScroll
+    //--------------------------------------------------------------------------------
+    // DisableOverScroll
+    //--------------------------------------------------------------------------------
 
     public static readonly BindableProperty DisableOverScrollProperty = BindableProperty.CreateAttached(
         "DisableOverScroll",

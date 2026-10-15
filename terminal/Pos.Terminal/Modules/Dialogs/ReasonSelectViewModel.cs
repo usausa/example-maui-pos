@@ -6,7 +6,7 @@ public sealed record ReasonSelectParameter(string Title, IReadOnlyList<ReasonIte
 
 public sealed record ReasonSelectResult(Guid? Id, string Text);
 
-// 理由の選択 (返品理由・在庫調整理由)。定義済みのタップ、または任意入力
+// 理由の選択: 定型の理由のタップか任意の入力で理由を返す (取消、返品、値引、入出金、在庫の調整、受注のキャンセル)
 public sealed partial class ReasonSelectViewModel : AppDialogViewModelBase, IPopupInitialize<ReasonSelectParameter>
 {
     [ObservableProperty]

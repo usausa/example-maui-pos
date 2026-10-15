@@ -11,8 +11,7 @@ public sealed record ReceivingLineItem(
     string CountText,
     string Detail);
 
-// 検品 (オンライン限定): スキャン・コード入力・行のタップで明細を選んで届いた数を入れ、受領する。
-// 数えていない明細は予定 (移動は出荷) の数で受け取る
+// 検品 (オンライン限定): スキャン・コード入力・行のタップで明細を選び、届いた数を入れて受領する
 public sealed partial class ReceivingCheckViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
@@ -169,6 +168,7 @@ public sealed partial class ReceivingCheckViewModel : AppViewModelBase
     protected override Task OnNotifyFunction2() =>
         Navigator.ForwardAsync(ViewId.Scan, Parameters.Make().WithScan(ScanMode.ProductOnce, ViewId.ReceivingCheck));
 
+    // 受領 (数えていない明細は予定 (移動は出荷) の数で受け取る)
     protected override async Task OnNotifyFunction4()
     {
         if (ReceivingContext.Document is not { } document)

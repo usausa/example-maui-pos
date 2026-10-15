@@ -21,7 +21,7 @@ public sealed partial class StockCountViewModel : AppViewModelBase
     [Scope]
     public StockContext StockContext { get; set; } = default!;
 
-    // 表題・案内文・送信ボタンの文言は画面側の Converter で切り替える
+    // 表題は画面側の Converter で切り替える
     [ObservableProperty]
     public partial bool IsAdjustment { get; set; }
 

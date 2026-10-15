@@ -18,7 +18,7 @@ public sealed record ReportTotals(
 }
 
 // 集計軸ごとの行。Ratio は純売上に占める割合 (0〜1)
-public sealed record ReportGroupRow(string Label, string CountText, string AmountText, double Ratio);
+public sealed record ReportGroupItem(string Label, string CountText, string AmountText, double Ratio);
 
 // 売上照会: サーバの売上集計 (オンライン限定)。期間・範囲 (自端末 / 自店 / 全店)・集計軸を切り替える
 public sealed partial class SalesReportViewModel : AppViewModelBase
@@ -81,7 +81,7 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string GroupTitle { get; set; } = string.Empty;
 
-    public ObservableCollection<ReportGroupRow> GroupRows { get; } = [];
+    public ObservableCollection<ReportGroupItem> GroupItems { get; } = [];
 
     public IObserveCommand PeriodCommand { get; }
 
@@ -194,15 +194,15 @@ public sealed partial class SalesReportViewModel : AppViewModelBase
         {
             GroupTitle = Groups[group].Name;
             var sum = summary.Rows.Sum(static x => Math.Max(0m, x.NetSales));
-            GroupRows.Replace(summary.Rows.Select(x =>
+            GroupItems.Replace(summary.Rows.Select(x =>
             {
                 var ratio = sum > 0m ? Math.Max(0m, x.NetSales) / sum : 0m;
-                return new ReportGroupRow(x.Label, $"{x.TransactionCount} 件  {ViewHelper.Percent(Math.Round(ratio, 3))}", ViewHelper.Yen(x.NetSales), (double)ratio);
+                return new ReportGroupItem(x.Label, $"{x.TransactionCount} 件  {ViewHelper.Percent(Math.Round(ratio, 3))}", ViewHelper.Yen(x.NetSales), (double)ratio);
             }));
         }
         else
         {
-            GroupRows.Clear();
+            GroupItems.Clear();
         }
 
         CurrentState = string.Empty;

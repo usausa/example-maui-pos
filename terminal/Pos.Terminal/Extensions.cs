@@ -53,9 +53,6 @@ public static class Extensions
     public static ValueTask<bool> AskAsync(this IDialog dialog, string message, string? title = null, string ok = "OK") =>
         dialog.ConfirmAsync(message, title, ok, "キャンセル");
 
-    public static ValueTask<PromptResult> InputAsync(this IDialog dialog, string title, string? defaultValue = null, string? placeHolder = null, PromptParameter? parameter = null) =>
-        dialog.PromptAsync(defaultValue, null, title, "OK", "キャンセル", placeHolder, parameter);
-
     //--------------------------------------------------------------------------------
     // Navigation
     //--------------------------------------------------------------------------------

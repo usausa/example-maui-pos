@@ -141,15 +141,6 @@
         </s:MapToColorConverter.Entries>
     </s:MapToColorConverter>
 
-    <s:MapToTextConverter x:Key="StockTypeTextConverter">
-        <s:MapToTextConverter.Entries>
-            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}"
-                              Value="棚卸" />
-            <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.Adjustment}"
-                              Value="調整" />
-        </s:MapToTextConverter.Entries>
-    </s:MapToTextConverter>
-
     <s:MapToTextConverter x:Key="StockTypeIconConverter">
         <s:MapToTextConverter.Entries>
             <s:MapToTextEntry Key="{x:Static enums:InventoryChangeType.PhysicalCount}"
@@ -956,7 +947,7 @@
         <Setter Property="FontSize" Value="16" />
     </Style>
 
-    <!-- 空の状態 (一覧やスキャン待ち): 絵文字 + 案内文を中央に -->
+    <!-- 空の状態 (一覧やスキャン待ち): 絵文字と文言を中央に -->
     <Style x:Key="PosEmptyStack"
            TargetType="VerticalStackLayout">
         <Setter Property="Padding" Value="24" />

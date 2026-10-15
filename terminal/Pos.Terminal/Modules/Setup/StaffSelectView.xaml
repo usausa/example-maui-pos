@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
+             xmlns:controls="clr-namespace:Pos.Terminal.Controls"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Setup"
              x:Class="Pos.Terminal.Modules.Setup.StaffSelectView"
              x:DataType="{x:Type module:StaffSelectViewModel}"
@@ -47,20 +48,14 @@
                         <Label Grid.Column="0"
                                Style="{StaticResource PosListNameLabel}"
                                Text="{Binding Name}" />
-                        <Border Grid.Column="1"
-                                Style="{StaticResource PosChipBorder}"
-                                Margin="0,0,6,0"
-                                IsVisible="{Binding HasPin, Converter={StaticResource ReverseConverter}}"
-                                BackgroundColor="{StaticResource GrayDarken1}">
-                            <Label Style="{StaticResource PosChipLabel}"
-                                   Text="PIN 未設定" />
-                        </Border>
-                        <Border Grid.Column="2"
-                                Style="{StaticResource PosChipBorder}"
-                                BackgroundColor="{Binding Role, Converter={StaticResource StaffRoleColorConverter}}">
-                            <Label Style="{StaticResource PosChipLabel}"
-                                   Text="{Binding Role, Converter={StaticResource DisplayNameConverter}}" />
-                        </Border>
+                        <controls:StatusChip Grid.Column="1"
+                                             Margin="0,0,6,0"
+                                             IsVisible="{Binding HasPin, Converter={StaticResource ReverseConverter}}"
+                                             Text="PIN 未設定"
+                                             ChipColor="{StaticResource GrayDarken1}" />
+                        <controls:StatusChip Grid.Column="2"
+                                             Text="{Binding Role, Converter={StaticResource DisplayNameConverter}}"
+                                             ChipColor="{Binding Role, Converter={StaticResource StaffRoleColorConverter}}" />
                     </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

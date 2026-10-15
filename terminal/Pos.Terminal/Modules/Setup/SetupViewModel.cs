@@ -4,8 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using BarcodeScanning;
 
-// 初期設定: 上のカメラで印刷した設定 QR (サーバ URL) を読み、管理画面で発行したペアリングコードを電卓で入れると、SetupUsecase で登録・初回同期する。
-// QR がなければ URL を入れる。登録済みの端末 (設定・同期からの登録し直し) は、確かめてから登録し、登録せずに設定・同期へ戻れる
+// 初期設定: 設定 QR かサーバ URL と、ペアリングコードで端末を登録し、初回同期する (登録し直しは確かめてから行い、登録せずに戻れる)
 public sealed partial class SetupViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;

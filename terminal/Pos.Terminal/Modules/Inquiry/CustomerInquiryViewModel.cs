@@ -1,6 +1,7 @@
 namespace Pos.Terminal.Modules.Inquiry;
 
 using Pos.Contract.Customers;
+using Pos.Contract.Transactions;
 using Pos.Terminal.Models.Customer;
 
 // 会員照会: 検索 / スキャンで会員を見つけ、基本情報・ポイント履歴・購入履歴 (オンライン) を見せる
@@ -135,8 +136,20 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
             ])
         ]);
 
-        var points = await network.ExecuteAsync(h => h.GetCustomerPointHistoryAsync(value.Id), notify: false);
-        var transactions = await network.ExecuteAsync(h => h.GetCustomerTransactionsAsync(value.Id), notify: false);
+        // 2 つの履歴は 1 回の実行で取り、通信中の表示を 1 回にする (続けて出し入れすると描画が止まることがある)
+        var histories = await network.ExecuteAsync(async h =>
+        {
+            var points = await h.GetCustomerPointHistoryAsync(value.Id);
+            if (!points.IsSuccess)
+            {
+                return Failed(points);
+            }
+
+            var transactions = await h.GetCustomerTransactionsAsync(value.Id);
+            return transactions.IsSuccess
+                ? new ApiResult<(CustomerPointHistoryResponse Points, TransactionListResponse Transactions)>(ApiStatus.Success, HttpStatusCode.OK, (points.Content!, transactions.Content!), null, null)
+                : Failed(transactions);
+        }, notify: false);
 
         // 取得の間に戻るや別の会員の選択で替わったら、前の会員の履歴は出さない
         if (customer != value)
@@ -145,19 +158,22 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         }
 
         // 取得できない履歴も見出しを残し、取得できないことを示す
-        Sections.Add(new SummarySection("🎁 ポイント履歴", points.IsSuccess
-            ? points.Content!.Items
+        Sections.Add(new SummarySection("🎁 ポイント履歴", histories.IsSuccess
+            ? histories.Content.Points.Items
                 .Select(static x => new SummaryRow($"{ViewHelper.DateTime(x.OccurredAt)}  {ViewHelper.Name(x.Type)}", $"{x.Points:+#,##0;-#,##0;0}  (残 {x.BalanceAfter:#,##0})"))
                 .DefaultIfEmpty(new SummaryRow("履歴なし", string.Empty))
                 .ToList()
             : [UnavailableRow]));
-        Sections.Add(new SummarySection("🧾 購入履歴", transactions.IsSuccess
-            ? transactions.Content!.Items
-                .Select(static x => new SummaryRow($"{ViewHelper.DateTime(x.TransactedAt)}  {(x.Status == TransactionStatus.Voided ? "取消" : ViewHelper.Name(x.Type))}\n{x.ReceiptNo}", ViewHelper.Yen(x.Total)))
+        Sections.Add(new SummarySection("🧾 購入履歴", histories.IsSuccess
+            ? histories.Content.Transactions.Items
+                .Select(static x => new SummaryRow($"{ViewHelper.DateTime(x.TransactedAt)}  {(x.Status == TransactionStatus.Voided ? ViewHelper.Name(x.Status) : ViewHelper.Name(x.Type))}\n{x.ReceiptNo}", ViewHelper.Yen(x.Total)))
                 .DefaultIfEmpty(new SummaryRow("履歴なし", string.Empty))
                 .ToList()
             : [UnavailableRow]));
     }
+
+    private static ApiResult<(CustomerPointHistoryResponse Points, TransactionListResponse Transactions)> Failed<T>(ApiResult<T> result) =>
+        new(result.Status, result.StatusCode, default, result.Problem, result.Exception);
 
     protected override Task OnNotifyBackAsync()
     {

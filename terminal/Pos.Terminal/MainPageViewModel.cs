@@ -3,6 +3,7 @@ namespace Pos.Terminal;
 using Pos.Terminal.Modules;
 using Pos.Terminal.Shell;
 
+// 画面の枠: 表題、店舗・端末と担当、未送信の数、F キーを出し、登録が解除されたら初期設定へ戻す
 [ObservableGeneratorOption(Reactive = true, ViewModel = true)]
 public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellControl, IAppLifecycle
 {
@@ -110,7 +111,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
             .ObserveOnCurrentContext()
             .Subscribe(_ => HandleUnauthorized()));
 
-        // Screen lock detection
+        // 画面が点いたら同期を促す
         Disposables.Add(screen.StateChangedAsObservable().ObserveOnCurrentContext().Subscribe(x =>
         {
             log.DebugScreenStateChanged(x.ScreenOn);

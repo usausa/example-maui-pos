@@ -5,6 +5,7 @@
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:controls="clr-namespace:Pos.Terminal.Controls"
+             xmlns:helpers="clr-namespace:Pos.Terminal.Modules.Helpers"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.History"
              x:Class="Pos.Terminal.Modules.History.TransactionDetailView"
              x:DataType="{x:Type module:TransactionDetailViewModel}"
@@ -46,7 +47,7 @@
                                              Binding="{Binding IsVoided}"
                                              Value="True">
                                     <Setter Property="ChipColor" Value="{StaticResource RedDarken1}" />
-                                    <Setter Property="Text" Value="取消" />
+                                    <Setter Property="Text" Value="{x:Static helpers:ViewHelper.VoidedText}" />
                                 </DataTrigger>
                             </controls:StatusChip.Triggers>
                         </controls:StatusChip>

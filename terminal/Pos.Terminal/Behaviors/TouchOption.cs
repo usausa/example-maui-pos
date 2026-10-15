@@ -4,7 +4,9 @@ public static partial class TouchOption
 {
     public static partial void UseCustomMapper(BehaviorOptions options);
 
-    // ------------------------------------------------------------------ Ripple
+    //--------------------------------------------------------------------------------
+    // Ripple
+    //--------------------------------------------------------------------------------
 
     // 押したときの波紋 (要素を増やさずにビューの前景に描く)
     public static readonly BindableProperty RippleProperty = BindableProperty.CreateAttached(
@@ -17,7 +19,9 @@ public static partial class TouchOption
 
     public static void SetRipple(BindableObject bindable, bool value) => bindable.SetValue(RippleProperty, value);
 
-    // ------------------------------------------------------------------ RippleColor
+    //--------------------------------------------------------------------------------
+    // RippleColor
+    //--------------------------------------------------------------------------------
 
     // 波紋の色 (既定は #1C1B1F の 18%)
     public static readonly BindableProperty RippleColorProperty = BindableProperty.CreateAttached(
@@ -30,7 +34,9 @@ public static partial class TouchOption
 
     public static void SetRippleColor(BindableObject bindable, Color value) => bindable.SetValue(RippleColorProperty, value);
 
-    // ------------------------------------------------------------------ ClickCommand
+    //--------------------------------------------------------------------------------
+    // ClickCommand
+    //--------------------------------------------------------------------------------
 
     // 押して離したときに実行する (要素を増やさずに標準のクリックで受ける)
     public static readonly BindableProperty ClickCommandProperty = BindableProperty.CreateAttached(

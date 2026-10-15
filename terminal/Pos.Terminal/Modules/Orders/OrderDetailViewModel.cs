@@ -5,8 +5,7 @@ using Pos.Domain.Logic;
 using Pos.Terminal.Modules.Dialogs;
 using Pos.Terminal.Modules.Sales;
 
-// 受注詳細 (オンライン限定): 連絡先・明細・前受金・経過。入荷待ちは [入荷]、未完了は [操作] (前受金の受取・返金、キャンセル)、
-// 引き渡し待ちは [会計へ] (明細と前受金をカートに入れて販売へ)
+// 受注詳細 (オンライン限定): 連絡先・明細・前受金・経過を出し、入荷、前受金の受取・返金、キャンセル、会計へ進む (明細と前受金をカートに入れる)
 public sealed partial class OrderDetailViewModel : AppViewModelBase
 {
     private enum OrderAction
@@ -260,7 +259,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     {
         if (!session.CanTransact)
         {
-            await dialog.InformationAsync("レジを開設してください");
+            await dialog.InformationAsync("レジが開設されていません");
             return;
         }
 
@@ -320,7 +319,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     {
         if (!session.CanTransact)
         {
-            await dialog.InformationAsync("レジを開設してください");
+            await dialog.InformationAsync("レジが開設されていません");
             return;
         }
 
@@ -342,7 +341,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     {
         if ((target.DepositAmount > 0) && !session.CanTransact)
         {
-            await dialog.InformationAsync("レジを開設してください");
+            await dialog.InformationAsync("レジが開設されていません");
             return;
         }
 
@@ -387,7 +386,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
 
         if (!session.CanTransact)
         {
-            await dialog.InformationAsync("レジを開設してください");
+            await dialog.InformationAsync("レジが開設されていません");
             return;
         }
 

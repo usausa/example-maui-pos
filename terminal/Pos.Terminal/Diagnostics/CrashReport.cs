@@ -79,7 +79,7 @@ public static partial class CrashReport
         }
         catch
         {
-            // Ignore
+            // 記録できなくても終了の処理を妨げない
         }
 #pragma warning restore CA1031
     }

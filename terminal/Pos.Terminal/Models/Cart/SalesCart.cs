@@ -62,6 +62,4 @@ public sealed class SalesCart
         Lines.Add(line);
         return line;
     }
-
-    public string Summary => Lines.Count == 0 ? string.Empty : $"{Lines[0].Product.Name}{(Lines.Count > 1 ? $" 他 {Lines.Count - 1} 点" : string.Empty)}";
 }

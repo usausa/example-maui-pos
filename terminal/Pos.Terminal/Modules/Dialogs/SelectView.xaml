@@ -22,7 +22,7 @@
             <VerticalStackLayout Style="{StaticResource FillVerticalStack}"
                                  BindableLayout.ItemsSource="{Binding Items}">
                 <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="{x:Type module:SelectRow}">
+                    <DataTemplate x:DataType="{x:Type module:SelectItem}">
                         <Grid Style="{StaticResource PosListRowGrid}"
                               ColumnDefinitions="*,Auto"
                               Padding="16,14">

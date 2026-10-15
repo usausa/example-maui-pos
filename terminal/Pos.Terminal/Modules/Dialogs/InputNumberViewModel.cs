@@ -1,5 +1,6 @@
 namespace Pos.Terminal.Modules.Dialogs;
 
+// 電卓: 数値・番号を入力して返す (桁数と伏せ字は引数で受ける)
 public sealed partial class InputNumberViewModel : AppDialogViewModelBase, IPopupInitialize<NumberInputParameter>
 {
     [ObservableProperty]

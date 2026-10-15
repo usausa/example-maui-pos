@@ -58,9 +58,9 @@ public static partial class MauiProgram
             .UseCustomView()
             .BuildApplication();
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Debug
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     private static MauiAppBuilder ConfigureDebug(this MauiAppBuilder builder)
     {
@@ -83,9 +83,9 @@ public static partial class MauiProgram
         return builder;
     }
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Logging
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     private static MauiAppBuilder ConfigureLogging(this MauiAppBuilder builder)
     {
@@ -111,9 +111,9 @@ public static partial class MauiProgram
         return builder;
     }
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Application
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     // ReSharper disable UnusedParameter.Local
     private static void ConfigureLifecycleEvents(ILifecycleBuilder effects)
@@ -148,8 +148,6 @@ public static partial class MauiProgram
 
     private static MauiAppBuilder ConfigureGlobalSettings(this MauiAppBuilder builder)
     {
-        // TODO App Center に代わるクラッシュの収集
-
         // Crash dump
         CrashReport.Start();
 
@@ -172,9 +170,9 @@ public static partial class MauiProgram
         return builder;
     }
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Design
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     private static void ConfigureFonts(IFontCollection fonts)
     {
@@ -201,9 +199,9 @@ public static partial class MauiProgram
         Shape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(16, 16, 0, 0), StrokeThickness = 0 }
     };
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Components
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     private static MauiAppBuilder UseGeneratedServiceProvider(this MauiAppBuilder builder)
     {
@@ -312,9 +310,9 @@ public static partial class MauiProgram
         services.AddTransient<CustomerDraft>();
     }
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Network
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     private static void SetupHttpClient(IServiceProvider provider, HttpClient client)
     {
@@ -332,17 +330,17 @@ public static partial class MauiProgram
             ConnectTimeout = TimeSpan.FromSeconds(5)
         };
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Data
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     // ReSharper disable once UnusedMethodReturnValue.Local
     [DataAccessorRegistration]
     private static partial IServiceCollection AddDataAccessors(this IServiceCollection services);
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Build
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     private static MauiApp BuildApplication(this MauiAppBuilder builder)
     {
@@ -386,9 +384,9 @@ public static partial class MauiProgram
         return app;
     }
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // View & ViewModel
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     // ReSharper disable UnusedMethodReturnValue.Local
     [ComponentRegistration(Lifetime.Transient, "View$", Namespace = ModulesNamespace)]
@@ -398,9 +396,9 @@ public static partial class MauiProgram
     private static partial IServiceCollection AddViewModels(this IServiceCollection services);
     // ReSharper restore UnusedMethodReturnValue.Local
 
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     // Navigation
-    // ------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     [ViewSource]
     public static partial IEnumerable<KeyValuePair<ViewId, Type>> ViewSource();

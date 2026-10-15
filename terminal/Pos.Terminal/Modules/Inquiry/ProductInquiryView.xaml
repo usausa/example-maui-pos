@@ -21,7 +21,7 @@
              shell:ShellProperty.Function4Enabled="{Binding HasProduct}">
 
     <Grid Style="{StaticResource PosPageGrid}">
-        <!-- スキャン・検索の前 (案内) -->
+        <!-- 商品を出す前と、見つからないとき -->
         <VerticalStackLayout Style="{StaticResource PosEmptyStack}"
                              IsVisible="{Binding HasProduct, Converter={StaticResource ReverseConverter}}">
             <Label Style="{StaticResource PosEmptyIconLabel}"

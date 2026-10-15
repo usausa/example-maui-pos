@@ -60,13 +60,13 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
     private readonly IPopupNavigator popupNavigator;
 
-    private ViewId returnTo = ViewId.Sales;
-
     private readonly DataAccessor accessor;
 
     private readonly ProductImageService imageService;
 
     private readonly SalesUsecase sales;
+
+    private ViewId returnTo = ViewId.Sales;
 
     private IReadOnlyList<CategoryListResponseItem> categories = [];
 

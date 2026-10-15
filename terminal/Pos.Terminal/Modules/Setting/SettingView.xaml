@@ -57,12 +57,9 @@
                        Style="{StaticResource PosCaptionLabel}"
                        Text="{Binding LastSyncText}"
                        FontSize="15" />
-                <Border Grid.Column="1"
-                        Style="{StaticResource PosChipBorder}"
-                        BackgroundColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}">
-                    <Label Style="{StaticResource PosChipLabel}"
-                           Text="{Binding UnsentText}" />
-                </Border>
+                <controls:StatusChip Grid.Column="1"
+                                     Text="{Binding UnsentText}"
+                                     ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}" />
             </Grid>
 
             <!-- 未送信一覧 -->

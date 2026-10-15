@@ -121,13 +121,13 @@
                                            behaviors:AnimationOption.EnterTrigger="{Binding RangeText}"
                                            IsVisible="{Binding HasGroups}"
                                            Title="{Binding GroupTitle, StringFormat='📊 {0}'}">
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding GroupRows}">
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding GroupItems}">
                             <BindableLayout.EmptyView>
                                 <Label Style="{StaticResource PosMessageLabel}"
                                        Text="データがありません" />
                             </BindableLayout.EmptyView>
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="{x:Type module:ReportGroupRow}">
+                                <DataTemplate x:DataType="{x:Type module:ReportGroupItem}">
                                     <VerticalStackLayout>
                                         <Grid Style="{StaticResource PosPanelRowGrid}"
                                               ColumnDefinitions="*,Auto,Auto">

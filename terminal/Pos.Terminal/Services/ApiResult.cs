@@ -52,8 +52,8 @@ public sealed class ApiResult<T>
             ApiStatus.Success => string.Empty,
             ApiStatus.HttpError when StatusCode == HttpStatusCode.Unauthorized => "端末の登録が無効です",
             ApiStatus.HttpError when StatusCode == HttpStatusCode.TooManyRequests => "試行が多すぎます",
-            ApiStatus.HttpError => Problem?.Title ?? $"サーバーエラー ({(int)StatusCode})",
-            ApiStatus.Unavailable => "サーバーに接続できません",
+            ApiStatus.HttpError => Problem?.Title ?? $"サーバエラー ({(int)StatusCode})",
+            ApiStatus.Unavailable => "サーバに接続できません",
             ApiStatus.Canceled => "中断しました",
             _ => "不明なエラーです"
         };

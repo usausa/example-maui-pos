@@ -8,8 +8,7 @@ public sealed record MethodItem(PaymentMethodListResponseItem Method, string Nam
 // Removable = false は受注の前受金 (全額を充てるので外せない)
 public sealed record PaymentItem(CartPayment Payment, string Text, string AmountText, bool Removable);
 
-// 会計: 埋め込みテンキーで預り金を入れ、支払方法ボタンで支払を積む。確定は SalesUsecase で登録して会計完了へ。
-// 受注の前受金は、画面に入るときにオンラインなら読み直したうえで先頭の支払にする (合計を超えるときは会計できないので、受注の詳細で返してもらう)
+// 会計: 預り金と支払方法で支払を積み、確定で SalesUsecase に登録して会計完了へ進む (受注の前受金は先頭の支払にする)
 public sealed partial class PaymentViewModel : AppViewModelBase
 {
     private readonly IDialog dialog;
@@ -36,7 +35,7 @@ public sealed partial class PaymentViewModel : AppViewModelBase
     [Scope]
     public SalesContext SalesContext { get; set; } = default!;
 
-    public NumberInputModel Input { get; } = new() { MaxLength = 8 };
+    public NumberInputModel Input { get; } = new() { MaxLength = Length.AmountDigits };
 
     [ObservableProperty]
     public partial string Title { get; set; } = "会計";
