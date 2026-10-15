@@ -250,7 +250,7 @@ RFC 9457 Problem Details (`AddProblemDetails`。`traceId` 拡張付き) に `err
 | Method | Path | 用途 | 概要 |
 | --- | --- | --- | --- |
 | GET | `/categories?updatedSince&includeDeleted&sort&desc&page&size` | 端末 / 管理 | 部門一覧 (階層は `parentId` で組み立てる)。`sort` = `sortOrder` / `code` / `name` / `updatedAt`、`size` は既定 1000 |
-| GET | `/categories/{id}` | 管理 | 部門詳細 |
+| GET | `/categories/{id}` | 端末 / 管理 | 部門詳細 |
 | POST | `/categories` | 管理 (管理者) | 登録 (見つからない親部門を指定すると `422` `VALIDATION_ERROR`) |
 | PUT | `/categories/{id}` | 管理 (管理者) | 更新 (親部門に自身か、見つからない部門を指定すると `422` `VALIDATION_ERROR`) |
 | DELETE | `/categories/{id}` | 管理 (管理者) | 論理削除 (所属商品か子部門があれば `422` `IN_USE`) |

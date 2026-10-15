@@ -78,20 +78,14 @@ public static partial class PurchaseOrderEndpoints
     private static partial PurchaseOrderLineEntity ToEntity(PurchaseOrderUpdateRequestLine request);
 
     [Mapper]
+    [MapCollection(nameof(PurchaseOrderUpdateParameter.Lines), Mapper = nameof(ToEntity))]
+    private static partial PurchaseOrderUpdateParameter ToParameter(PurchaseOrderUpdateRequest request);
+
+    [Mapper]
     private static partial PurchaseOrderListResponseItem ToListResponseItemCore(PurchaseOrderEntity entity);
 
     [Mapper]
     private static partial PurchaseOrderListResponseLine ToListResponseLine(PurchaseOrderLineEntity entity);
-
-    private static PurchaseOrderUpdateParameter ToParameter(PurchaseOrderUpdateRequest request) =>
-        new()
-        {
-            SupplierId = request.SupplierId,
-            ExpectedDate = request.ExpectedDate,
-            Note = request.Note,
-            Lines = request.Lines.Select(ToEntity).ToList(),
-            Version = request.Version
-        };
 
     private static PurchaseOrderListResponseItem ToListResponseItem(PurchaseOrderDetailView detail)
     {

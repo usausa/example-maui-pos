@@ -137,7 +137,6 @@ Services/                            業務の手順 (サブジェクトごと):
   RuleViolationException.cs          DB トランザクション内の業務ルール違反
   ServiceHelper.cs                   重複 (IDialect.IsDuplicate) と楽観ロック (更新後の行が返らない) の判定、LIKE のエスケープ
 Infrastructure/Data/                 EnumTextConverter<T> (列挙型 ↔ TEXT)、DateOnlyTextConverter、DateTimeTextConverter (UTC)
-Infrastructure/Json/                 JsonDateTimeConverter (yyyy-MM-ddTHH:mm:ss.fffZ。Host の JSON 設定で使う)
 Infrastructure/Imaging/              ImageContentType (画像の形式を先頭のバイトで判定する)
 Infrastructure/Security/             IPasswordProvider / DefaultPasswordProvider (PBKDF2 のソルト + ハッシュ)
 ServiceCollectionExtensions.cs      AddCoreServices (BunnyTail.ServiceRegistration で Services/ の XxxService を Singleton 登録)
@@ -176,7 +175,7 @@ Endpoints/                           静的クラス + MapApiGroup (計測フィ
 Helpers/EnumHelper.cs                クエリ文字列や並び順ラベルの列挙値 (大文字小文字を区別せず、数値や未定義の値は受け付けない)
 Helpers/RequestHelper.cs             本文をそのまま受ける API (商品画像・CSV 取込) の Content-Type の確認と、上限付きの読み取り
 Infrastructure/                      アプリに依存しない部品: Csv (CsvExport、CsvImport: UTF-8 / Shift_JIS の判別と見出しでの読み取り)、Logging (ErrorBoundaryLogger、CallbackEnricher: IHttpContextAccessor から読んだ接続元アドレスを全ログ行に付ける)、
-                                     ExceptionHandling (GlobalExceptionHandler)、Filters (RequestMetricsEndpointFilter: API の要求数と長時間実行の警告)、Reports (EmbeddedFontResolver: 同梱 IPAex ゴシック)
+                                     ExceptionHandling (GlobalExceptionHandler)、Filters (RequestMetricsEndpointFilter: API の要求数と長時間実行の警告)、Json (JsonDateTimeConverter: yyyy-MM-ddTHH:mm:ss.fffZ)、Reports (EmbeddedFontResolver: 同梱 IPAex ゴシック)
 Models/Forms/                        管理画面のフォーム + FluentValidation (FormValidator<T> を基底に XxxForm / XxxFormValidator。マスタ 10 種 + Customer / StaffPin / InventoryChange / PointAdjust / Order /
                                      PurchaseOrder / InventoryReceipt / InventoryTransfer / InventoryMovement (出荷・受領の確認) / Account / AccountPassword)。
                                      Entity ↔ Form の変換 ([Mapper]。Guid? / DateOnly の変換は [MapUsing]) はフォームが持つ。
@@ -304,7 +303,7 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
 - 列挙型は `Pos.Domain` のものをそのまま使う。  
   エラーコード定数は持たず、`Pos.Domain` の `ErrorCode.ToCode()` / `WarningCode.ToCode()` と端末の `ProblemResponse.ErrorCode` (文字列) で突き合わせる
 - 日付は `DateOnly`、日時は `DateTime` (UTC)。  
-  `JsonDateTimeConverter` (`yyyy-MM-ddTHH:mm:ss.fffZ`) と Problem Details の型 (`ProblemResponse`) は契約ではないので使う側がそれぞれ持つ (サーバは `Pos.Server.Core` の `Infrastructure/Json`、端末は `Helpers/Json` / `Services`、`Pos.Server.SampleData` と `Pos.Server.IntegrationTests` も持つ)。  
+  `JsonDateTimeConverter` (`yyyy-MM-ddTHH:mm:ss.fffZ`) と Problem Details の型 (`ProblemResponse`) は契約ではないので使う側がそれぞれ持つ (サーバは `Pos.Server.Host` の `Infrastructure/Json`、端末は `Helpers/Json` / `Services`、`Pos.Server.SampleData` も持ち、`Pos.Server.IntegrationTests` は `ProblemResponse` だけを持つ)。  
   サーバは `ConfigureHttpJsonOptions`、端末は `HttpService.JsonOptions` で同じ設定を登録し、形式は `Pos.Server.IntegrationTests` の `JsonContractTests` で固定
 - `ImageUrl` の CA1056 と、公開型を internal にする CA1515 は `Pos.Contract` の `GlobalSuppressions.cs` で抑止している ([D-41](decisions.md#d-41-警告は-0-にし抑止は理由のあるものだけにする))
 

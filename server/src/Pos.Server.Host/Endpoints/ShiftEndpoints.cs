@@ -86,13 +86,11 @@ public static partial class ShiftEndpoints
     private static partial CashEventEntity ToEntity(ShiftCashEventRequest request);
 
     [Mapper]
-    [MapUsing(nameof(ShiftCloseParameter.Denominations), nameof(ToDenominations))]
+    [MapCollection(nameof(ShiftCloseParameter.Denominations), Mapper = nameof(ToEntity))]
     private static partial ShiftCloseParameter ToParameter(ShiftCloseRequest request);
 
     [Mapper]
     private static partial ShiftDenominationEntity ToEntity(ShiftCloseRequestDenomination request);
-
-    private static List<ShiftDenominationEntity> ToDenominations(ShiftCloseRequest request) => request.Denominations.Select(ToEntity).ToList();
 
     [Mapper]
     private static partial ShiftListResponseItem ToListResponseItemCore(ShiftEntity entity);

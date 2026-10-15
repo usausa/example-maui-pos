@@ -1,4 +1,4 @@
-namespace Pos.Server.Infrastructure.Json;
+namespace Pos.Server.Host.Infrastructure.Json;
 
 using System.Text.Json;
 using System.Text.Json.Serialization;

@@ -39,9 +39,9 @@ using Pos.Server.Host.Application.Telemetry;
 using Pos.Server.Host.Components;
 using Pos.Server.Host.Endpoints;
 using Pos.Server.Host.Infrastructure.ExceptionHandling;
+using Pos.Server.Host.Infrastructure.Json;
 using Pos.Server.Host.Infrastructure.Logging;
 using Pos.Server.Host.Reports;
-using Pos.Server.Infrastructure.Json;
 using Pos.Server.Infrastructure.Security;
 using Pos.Server.Services;
 

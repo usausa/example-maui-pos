@@ -97,10 +97,8 @@ public static partial class OrderEndpoints
     private static partial OrderLineEntity ToEntity(OrderUpdateRequestLine request);
 
     [Mapper]
-    [MapUsing(nameof(OrderUpdateParameter.Lines), nameof(ToLines))]
+    [MapCollection(nameof(OrderUpdateParameter.Lines), Mapper = nameof(ToEntity))]
     private static partial OrderUpdateParameter ToParameter(OrderUpdateRequest request);
-
-    private static List<OrderLineEntity> ToLines(OrderUpdateRequest request) => request.Lines.Select(ToEntity).ToList();
 
     private static OrderDetailView ToDetail(OrderCreateRequest request) =>
         new()

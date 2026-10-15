@@ -22,10 +22,8 @@ public static partial class CategoryEndpoints
             .Produces<CategoryListResponse>()
             .ProducesValidationProblem();
         group.MapGet("/{id:guid}", HandleGetAsync)
-            .RequireAuthorization(Policies.Admin)
             .WithName("CategoryGet")
             .Produces<CategoryListResponseItem>()
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapPost("/", HandleCreateAsync)
             .RequireAuthorization(Policies.Administrator)
