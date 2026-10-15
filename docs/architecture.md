@@ -34,7 +34,7 @@ example-maui-pos/
 │                                    ↑ ルートに 1 セット (MAUI 用の NoWarn NU1608 を含む)
 ├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 全体と共有プロジェクト、他は paths で対象を絞る)
 ├─ .claude/skills/                   AI 向け: 繰り返す手順とスクリプト (verify = 検証、readme-images = README の画像、emulator = エミュレータでの確認)
-├─ .claude/agents/                   AI 向け: 読み取り専用のエージェント (rules-auditor = 規則とコードの照合、doc-auditor = 文書とコードの照合、change-reviewer = 変更のレビュー)
+├─ .claude/agents/                   AI 向け: 読み取り専用のエージェント (rules-auditor = 規則・skills・agents とコードの照合、doc-auditor = 文書とコードの照合、change-reviewer = 変更のレビュー)
 ├─ docs/                             設計文書、未実装と今後の検討事項 (backlog.md)、README の画像 (images/)、CSV 取込の例 (samples/)
 ├─ shared/                           両ソリューションに含める共有プロジェクト
 │  ├─ Pos.Domain/                    ドメインロジック: 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール検証 (net10.0)
@@ -48,7 +48,7 @@ example-maui-pos/
 │  │  ├─ Pos.Server.Core/            Accessors (SQL) / Models (Entity / Views / Parameters) / Services
 │  │  └─ Pos.Server.Host/            Minimal API + Blazor (MudBlazor) ホスト
 │  ├─ tests/
-│  │  ├─ Pos.Server.UnitTests/       bUnit (NavMenu / StatusChip / Login)、フォーム変換と CSV 取込の読み取りの単体テスト
+│  │  ├─ Pos.Server.UnitTests/       bUnit (PageComponentBase / NavMenu / Login / TerminalPairingDialog など)、フォーム変換と CSV 取込の読み取りの単体テスト
 │  │  └─ Pos.Server.IntegrationTests/ WebApplicationFactory による API・Accessor・起動処理 (スキーマと初期データ)・変更の通知・計測のテスト (SQLite 一時ファイル)
 │  └─ tools/
 │     └─ Pos.Server.SampleData/      サンプル取引の生成ツール (API 経由、§6)
@@ -176,7 +176,7 @@ Helpers/EnumHelper.cs                クエリ文字列や並び順ラベルの�
 Helpers/RequestHelper.cs             本文をそのまま受ける API (商品画像・CSV 取込) の Content-Type の確認と、上限付きの読み取り
 Infrastructure/                      アプリに依存しない部品: Csv (CsvExport、CsvImport: UTF-8 / Shift_JIS の判別と見出しでの読み取り)、Logging (ErrorBoundaryLogger、CallbackEnricher: IHttpContextAccessor から読んだ接続元アドレスを全ログ行に付ける)、
                                      ExceptionHandling (GlobalExceptionHandler)、Filters (RequestMetricsEndpointFilter: API の要求数と長時間実行の警告)、Json (JsonDateTimeConverter: yyyy-MM-ddTHH:mm:ss.fffZ)、Reports (EmbeddedFontResolver: 同梱 IPAex ゴシック)
-Models/Forms/                        管理画面のフォーム + FluentValidation (FormValidator<T> を基底に XxxForm / XxxFormValidator。マスタ 10 種 + Customer / StaffPin / InventoryChange / PointAdjust / Order /
+Models/Forms/                        管理画面のフォーム + FluentValidation (FormValidator<T> を基底に XxxForm / XxxFormValidator。会社設定を除く各マスタ (商品を含む) + Customer / StaffPin / InventoryChange / PointAdjust / Order /
                                      PurchaseOrder / InventoryReceipt / InventoryTransfer / InventoryMovement (出荷・受領の確認) / Account / AccountPassword)。
                                      Entity ↔ Form の変換 ([Mapper]。Guid? / DateOnly の変換は [MapUsing]) はフォームが持つ。
                                      1 つのページだけで使うフォーム (SettingsForm) はそのページの内部クラス。文字列の長さは Pos.Domain.Length の定数
@@ -194,7 +194,7 @@ Components/
           PaymentMethodsPage (S-56), CustomersPage (S-60), CustomerDetailPage (S-61), StoresPage (S-70), TerminalsPage (S-71), TerminalSetupQrPage (S-73), StaffPage (S-72), SettingsPage (S-80),
           AccountsPage (S-92), Login (S-02), AccessDenied, Error, NotFound。ページは .razor + .razor.cs。_Imports.razor で全ページに [Authorize] (ログイン・エラー・404 は AllowAnonymous)
   Controls/ (ErrorBanner, StoreSelect (店舗セレクタ), StatusChip (ViewHelper の文言 + 色))
-  Dialogs/ (EditDialogBase<TForm>, DialogServiceExtensions (情報・確認), AppMessageBox, XxxEditDialog (マスタ 10 種 + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31), DailyClosingDialog (S-90),
+  Dialogs/ (EditDialogBase<TForm>, DialogServiceExtensions (情報・確認), AppMessageBox, XxxEditDialog (会社設定を除く各マスタ + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31), DailyClosingDialog (S-90),
             OrderDialog (S-91), OrderEditDialog, ProductImportDialog (S-52), ProductInventoryDialog (S-41), InventoryChangeDialog (S-43), PurchaseOrderDialog (S-48), PurchaseOrderEditDialog, InventoryReceiptDialog (S-45), InventoryReceiptEditDialog,
             InventoryTransferDialog (S-46), InventoryTransferEditDialog, InventoryMovementDialog (出荷・受領の確認), PointAdjustDialog (S-62), TerminalPairingDialog (S-71),
             StaffPinDialog (S-72), AccountEditDialog / AccountPasswordDialog (S-92))
@@ -425,22 +425,22 @@ Platforms/Android/ MainActivity (pos.terminal.MainActivity。オーバースク�
 支払方法「前受金」は、それより前に作った DB にも起動時に足す。  
 すべて日本語のサンプル。
 
-| データ | 件数 | 内容 |
-| --- | --- | --- |
-| 会社設定 | 1 | 税端数 `Floor`、ポイント基準 `TaxIncluded`、営業日切替 `05:00` |
-| 店舗 | 2 | `S001` 本店、`S002` 支店 (他店在庫照会のため 2 店舗) |
-| レジ端末 | 3 | 本店 01 / 02、支店 01 |
-| スタッフ | 4 | 本部管理者 (Admin、所属なし)、店長 (Manager、本店)、レジ担当 × 2 (Cashier、本店と支店)。PIN は A001 = 0000、M001 = 1111、C001 = 2222、C002 = 3333 |
-| 管理画面のアカウント | 1 | アカウントが 1 件もなければ設定 (`Auth:InitialName` / `InitialPassword`、既定 `admin` / `admin`) の管理者を作る (初期データの SQL ではなく起動処理) |
-| 税率 | 3 | 標準 10% / 軽減 8% / 非課税 |
-| 支払方法 | 7 | 現金 (釣銭あり) / クレジット (参照要) / QR / 電子マネー / 商品券 / ポイント / 前受金 (受注の前受金を会計で充てる) |
-| 部門 | 大分類 4 + 中分類 9 | 家電 (テレビ・レコーダー、冷蔵庫・洗濯機、生活家電)、カメラ (デジタルカメラ、レンズ、アクセサリ)、ホームセンター (工具、園芸、日用品)、サービス (中分類なし) |
-| 商品 | 33 | 大分類ごとに 10 件 (JAN・型番・メーカー・還元率 10% / 5% / 1%・シリアル要フラグを織り交ぜる) + サービス 3 件 (配送料・延長保証・設置工事、`allowsPriceOverride`) |
-| 値引 | 3 | 社員割引 10% (取引)、展示品 5% (明細、承認要)、端数値引 (定額、明細) |
-| 在庫調整理由 | 5 | 破損 / 廃棄 / 万引き / 自家消費 / 棚卸差異 |
-| 仕入先 | 3 | カメラ・家電の卸と日用品の商社 |
-| 会員 | 5 | ポイント残高あり (0 / 少額 / 多額)、住所あり (配送先の複写用) |
-| 在庫 | 物品 30 件 × 2 店舗 | 固定値 (0 / 少量 / 多量を混ぜる。他店在庫の表示確認用。サービスは在庫を持たない) |
+| データ | 内容 |
+| --- | --- |
+| 会社設定 | 税端数 `Floor`、ポイント基準 `TaxIncluded`、営業日切替 `05:00` |
+| 店舗 | `S001` 本店、`S002` 支店 (他店在庫照会を確かめられるように店舗を分ける) |
+| レジ端末 | 本店 レジ 1、本店 レジ 2、支店 レジ 1 |
+| スタッフ | 本部管理者 (Admin、所属なし)、店長 (Manager、本店)、レジ担当 (Cashier、本店と支店)。PIN は A001 = 0000、M001 = 1111、C001 = 2222、C002 = 3333 |
+| 管理画面のアカウント | アカウントが 1 件もなければ設定 (`Auth:InitialName` / `InitialPassword`、既定 `admin` / `admin`) の管理者を作る (初期データの SQL ではなく起動処理) |
+| 税率 | 標準 10% / 軽減 8% / 非課税 |
+| 支払方法 | 現金 (釣銭あり) / クレジット (参照要) / QR / 電子マネー / 商品券 / ポイント / 前受金 (受注の前受金を会計で充てる) |
+| 部門 | 大分類 (中分類): 家電 (テレビ・レコーダー、冷蔵庫・洗濯機、生活家電)、カメラ (デジタルカメラ、レンズ、アクセサリ)、ホームセンター (工具、園芸、日用品)、サービス (中分類なし) |
+| 商品 | 物品は家電・カメラ・ホームセンターの中分類に置き、全体で JAN・型番・メーカー・還元率 10% / 5% / 1%・シリアル要フラグを織り交ぜる。サービスは配送料・延長保証・設置工事 (`allowsPriceOverride`) |
+| 値引 | 社員割引 10% (取引)、展示品 5% (明細、承認要)、端数値引 (定額、明細) |
+| 在庫調整理由 | 破損 / 廃棄 / 万引き / 自家消費 / 棚卸差異 |
+| 仕入先 | カメラ・家電の卸と日用品の商社 |
+| 会員 | ポイント残高あり (0 / 少額 / 多額)、住所あり (配送先の複写用) |
+| 在庫 | 各店舗の物品ごとの固定値 (0 / 少量 / 多量を混ぜる。他店在庫の表示確認用。サービスは在庫を持たない) |
 
 取引・シフトのサンプルは起動時には投入しない (端末から作る)。  
 レポート確認用には `server/tools/Pos.Server.SampleData` で直近数日分を生成できる ([D-42](decisions.md#d-42-サンプルの取引は-api-を呼ぶツールで作る))。

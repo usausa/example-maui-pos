@@ -50,11 +50,11 @@
 起動時の `CREATE TABLE IF NOT EXISTS` は既存のテーブルに列を足さないので、機能を足すときは既存のテーブルに列を足さず、新しいテーブルで持つ (受注と取引は `Orders.TransactionId`、発注と入荷予定は `PurchaseOrders.ReceiptId` で結ぶ)。  
 列を足すしかないときは `Schema.sql` の `CREATE TABLE` に書いたうえで、起動時に `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確かめて `ALTER TABLE ADD COLUMN`) で既存の DB にも足し、既存の行の値を補う。  
 端末のローカル DB も同じ方法で列を足す。  
-索引の名前を変えたときは、新しい名前で作ったうえで、スキーマの末尾の `DROP INDEX IF EXISTS` で古い名前を消す (前の版の DB に残ると、同じ索引が 2 つになる)。
+スキーマの末尾の `DROP INDEX IF EXISTS` は、名前を変えた索引の古い名前を前の版の DB から消す (残ると同じ索引が 2 つになる)。
 
 | DB | 起動時に足す列 | 既存の行 |
 | --- | --- | --- |
-| サーバ | `PaymentMethods.ShortName` | 列を足したときに、初期データのコード (`CASH` など 6 件) の行へ初期データと同じボタン名を入れ、`UpdatedAt` / `Version` を進める (端末は差分同期で受け取る) |
+| サーバ | `PaymentMethods.ShortName` | 列を足したときに、初期データのコード (前受金を除く `CASH` など) の行へ初期データと同じボタン名を入れ、`UpdatedAt` / `Version` を進める (端末は差分同期で受け取る) |
 | サーバ | `Shifts.DepositCashIn` / `DepositCashOut` | `DEFAULT 0` (前受金より前に精算したシフトは 0) |
 | 端末 | `PaymentMethods.ShortName` | 空のまま (ボタンは `Name` を出し、同期で行が届くと入る) |
 | 端末 | `Staff.PinHash` | `SyncState` の `ServerTime` を消し、次のマスタ同期を全件にする (PIN は全員分が要る) |
