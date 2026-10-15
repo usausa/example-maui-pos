@@ -11,7 +11,9 @@ public sealed class TransactionCalculateRequest
     [Required]
     public IReadOnlyList<TransactionCreateRequestLine> Lines { get; set; } = default!;
 
+    [Required]
     public IReadOnlyList<TransactionCreateRequestDiscount> Discounts { get; set; } = [];
 
+    [Required]
     public IReadOnlyList<TransactionCreateRequestPayment> Payments { get; set; } = [];
 }

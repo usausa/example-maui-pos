@@ -301,7 +301,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(ShiftStatus.Open, (await client.GetJsonAsync<ShiftListResponseItem>($"{ApiRoutes.Shifts}/{shiftId}", options)).Status);
     }
 
-    // 販売の参照先 (店舗、会員、支払方法、税率、値引、承認者) が見つからなければ 422、一意の制約になる ID と番号の重複、販売に付いた元取引、null の一覧は 400 で、どれも書かない
+    // 販売の参照先 (店舗、会員、支払方法、税率、値引、承認者) が見つからなければ 422、一意の制約になる ID と番号の重複、販売に付いた元取引、null の一覧 (登録と計算) は 400 で、どれも書かない
     // (外部キーや一意の制約の違反の 500 にすると、端末の未送信が送り直し続ける)
     [Fact]
     public async Task SaleRejectsMissingReferencesAndDuplicates()
@@ -352,6 +352,10 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         await nullTaxSummariesResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         using var nullSerialsResponse = await PostWithNullAsync(client, ApiRoutes.Transactions, valid, static x => x["lines"]![0]!["serialNumbers"] = null);
         await nullSerialsResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var nullCalculateDiscountsResponse = await PostWithNullAsync(client, $"{ApiRoutes.Transactions}/calculate", TransactionRequests.ToCalculateRequest(valid), static x => x["discounts"] = null);
+        await nullCalculateDiscountsResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var nullCalculatePaymentsResponse = await PostWithNullAsync(client, $"{ApiRoutes.Transactions}/calculate", TransactionRequests.ToCalculateRequest(valid), static x => x["payments"] = null);
+        await nullCalculatePaymentsResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
 
         // Act / Assert: どれも書いていない
         Assert.Equal(0, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Transactions}?shiftId={shiftId}", options)).Total);
