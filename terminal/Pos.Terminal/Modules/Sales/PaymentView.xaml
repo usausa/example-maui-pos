@@ -66,8 +66,7 @@
                               Padding="16,4">
                             <Label Grid.Column="0"
                                    Style="{StaticResource PosCaptionLabel}"
-                                   Text="✓"
-                                   TextColor="{StaticResource GreenDefault}" />
+                                   Text="✅" />
                             <Label Grid.Column="1"
                                    Style="{StaticResource PosCaptionLabel}"
                                    Margin="8,0,0,0"
@@ -84,7 +83,6 @@
                                     CommandParameter="{Binding .}"
                                     IsVisible="{Binding Removable}"
                                     Text="✕"
-                                    FontFamily=""
                                     BackgroundColor="{StaticResource GrayLighten1}" />
                             <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
                         </Grid>

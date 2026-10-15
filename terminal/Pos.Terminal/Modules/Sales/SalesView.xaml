@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:s="http://smart/maui"
+             xmlns:fonts="clr-namespace:Fonts"
              xmlns:shell="clr-namespace:Pos.Terminal.Shell"
              xmlns:behaviors="clr-namespace:Pos.Terminal.Behaviors"
              xmlns:module="clr-namespace:Pos.Terminal.Modules.Sales"
@@ -37,7 +38,6 @@
                         Command="{Binding ClearCustomerCommand}"
                         IsVisible="{Binding HasCustomer}"
                         Text="✕"
-                        FontFamily=""
                         BackgroundColor="{StaticResource GrayLighten1}" />
             </Grid>
             <Label Style="{StaticResource PosCaptionLabel}"
@@ -134,11 +134,9 @@
                    HorizontalTextAlignment="End"
                    Text="{Binding TaxText}" />
             <Button Grid.Row="0" Grid.RowSpan="2" Grid.Column="2"
-                    Style="{StaticResource PosSelectButton}"
-                    WidthRequest="48" HeightRequest="48"
+                    Style="{StaticResource PosSelectIconButton}"
                     Command="{Binding MoreCommand}"
-                    Text="⋯"
-                    FontSize="22" />
+                    Text="{x:Static fonts:MaterialIcons.More_horiz}" />
         </Grid>
     </Grid>
 

@@ -67,10 +67,16 @@ paths:
 - 画面は灰色の背景の見出しと幅いっぱいの白い面で組む (`SectionPanel`、`PosSectionTemplate`)。角丸のカードを並べる作りにせず、角丸はチップ・アバター・ボタン・シートだけに使う
 - 主な金額は白い帯 (`PosHeroBorder`)、件数や金額の集計は罫線の表 (`PosStatGrid`) にする
 - 状態のある一覧は左端の帯と行の背景で状態を示し、区切り線で並べる。状態の文言はチップ (`StatusChip`) で示す
-- ボタンとチップのアイコンは Material Icons のグリフにする。チップは `StatusChip.Icon`、濃い背景のボタンは白い `FontImageSource` で付ける
-- 選ぶと背景が濃くなるボタンは、選ばれていないときは濃い色のグリフにし、選んだら Trigger でアイコンも白 (`XxxSelected`) にする
+- チップのアイコンは `StatusChip.Icon`、色付きのボタンの文言に添えるアイコンは白い `FontImageSource` で付ける
 - ボタンの `FontImageSource` は `Markup/AppIcons` の静的フィールドに足し、XAML から `{x:Static markup:AppIcons.Xxx}` で使う (`Styles.xaml` や画面の `Resources` に置かない)
-- アイコンだけの丸いボタン (`PosMethodIconButton`) は、`Text` にグリフを置く
+- 選ぶと背景が濃くなるボタンは、選ばれていないときは濃い色のグリフにし、選んだら Trigger でアイコンも白 (`XxxSelected`) にする
+- アイコンだけのボタン (`PosMethodIconButton`、`PosSelectIconButton`、`PosExpandButton`、シートの `InputDeleteButton`) は、`Text` にグリフを置き、フォントはスタイルで付ける
+- 例外として、シートの下段の ✕、✔ と、テンキーの ⌫、塗りつぶしの小さな丸ボタン (`PosQuantityButton`) の `+`、`-`、✕ は、Material Icons にせず U+FE0F を付けない文字にする
+- 値や行を外す ✕ は、灰色の小さな丸ボタン (`PosQuantityButton` を `GrayLighten1` にしたもの) にする
+- 画面を移ったり操作を始めたりする白いボタン (ホームのキーの `MenuButton`、設定の操作) は、文言の前に色付きの絵文字を付ける (値を選ぶ白いボタンには付けない)
+- カメラの画面 (スキャン、初期設定) の帯の知らせは、追加できたときを白い文字の ✓、ほかのとき (見つからない、設定 QR でない、カメラの権限がない、登録できない) を ✕ で始める
+- 例外として、トーストの記号は色付きの絵文字にする (OS が描くので、背景は Android の版とテーマで明るくも暗くもなる)
+- 例外として、選択肢のすべてに付ける印 (返金方法の `SelectedMarkConverter` の ◉、○) は、ラジオボタンの代わりなので文字にする (選んだ行だけに付ける印は ✅)
 - 一覧やスキャン待ちの空の状態は `PosEmptyStack` の絵文字にし、文言は該当がない・取得できないときだけ添える
 - 処理中の表示は IDialog のインジケータだけにする (通信は `NetworkService` が出し、通信以外の時間のかかる処理と同期は `IDialog.Indicator()`)。画面に「読み込んでいます」のような文言や `ActivityIndicator` を置かない
 - 段階の文言を出す `IDialog.Loading` は使わない (MAUI のウインドウの重ね描きなので、カメラのある画面ではカメラの中に描かれて読み取り枠の下になる)

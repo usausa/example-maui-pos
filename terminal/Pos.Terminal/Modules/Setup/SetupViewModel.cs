@@ -92,7 +92,7 @@ public sealed partial class SetupViewModel : AppViewModelBase
         }
         else
         {
-            Message = "カメラの権限がありません";
+            Message = "✕ カメラの権限がありません";
         }
     }
 
@@ -125,7 +125,7 @@ public sealed partial class SetupViewModel : AppViewModelBase
         // 設定 QR でなければ、入力中の欄は変えずに知らせるだけにする
         if (!TryGetEndPoint(new SettingParser(value).GetString(nameof(Settings.ApiEndPoint)), out var endPoint))
         {
-            Message = "設定 QR ではありません";
+            Message = "✕ 設定 QR ではありません";
             return;
         }
 
@@ -198,7 +198,7 @@ public sealed partial class SetupViewModel : AppViewModelBase
             var paired = await setup.PairAsync(endPoint, code);
             if (paired is null)
             {
-                Message = "登録できませんでした";
+                Message = "✕ 登録できませんでした";
                 return;
             }
 

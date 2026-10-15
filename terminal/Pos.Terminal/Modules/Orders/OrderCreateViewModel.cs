@@ -25,7 +25,7 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
     public SalesContext SalesContext { get; set; } = default!;
 
     [ObservableProperty]
-    public partial string TypeText { get; set; } = Types[0].Label;
+    public partial string TypeText { get; set; } = ViewHelper.Name(Types[0].Type);
 
     public EntryController CustomerName { get; } = new();
 
@@ -72,7 +72,7 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
             if (index >= 0)
             {
                 typeIndex = index;
-                TypeText = Types[index].Label;
+                TypeText = ViewHelper.Name(Types[index].Type);
             }
         });
         InputPhoneCommand = MakeAsyncCommand(async () => PhoneText = await popupNavigator.InputPhoneAsync(PhoneText) ?? PhoneText);

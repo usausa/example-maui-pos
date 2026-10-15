@@ -38,7 +38,7 @@
                             <Label Grid.Column="1"
                                    Style="{StaticResource PosListValueLabel}"
                                    IsVisible="{Binding IsSelected}"
-                                   Text="✓" />
+                                   Text="✅" />
                         </Grid>
                     </DataTemplate>
                 </BindableLayout.ItemTemplate>

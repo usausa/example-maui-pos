@@ -760,6 +760,8 @@
     <Style x:Key="InputDeleteButton"
            TargetType="Button"
            BasedOn="{StaticResource FunctionButtonBase}">
+        <Setter Property="FontFamily" Value="{x:Static fonts:MaterialIcons.FontFamily}" />
+        <Setter Property="FontSize" Value="28" />
         <Setter Property="VisualStateManager.VisualStateGroups">
             <VisualStateGroupList>
                 <VisualStateGroup x:Name="CommonStates">
@@ -869,7 +871,6 @@
         <Setter Property="VerticalOptions" Value="Center" />
         <Setter Property="BackgroundColor" Value="{StaticResource BlueDefault}" />
         <Setter Property="TextColor" Value="White" />
-        <Setter Property="FontFamily" Value="MaterialIcons" />
         <Setter Property="FontSize" Value="18" />
     </Style>
 
@@ -1271,7 +1272,7 @@
 
     <Style x:Key="PosThumbnailIconLabel"
            TargetType="Label">
-        <Setter Property="FontFamily" Value="MaterialIcons" />
+        <Setter Property="FontFamily" Value="{x:Static fonts:MaterialIcons.FontFamily}" />
         <Setter Property="FontSize" Value="22" />
         <Setter Property="TextColor" Value="{StaticResource GrayLighten1}" />
         <Setter Property="HorizontalOptions" Value="Center" />
@@ -1471,6 +1472,17 @@
         <Setter Property="FontSize" Value="14" />
         <Setter Property="BorderColor" Value="{StaticResource BorderColor}" />
         <Setter Property="BorderWidth" Value="1" />
+    </Style>
+
+    <!-- アイコンだけの白いボタン (販売の操作) -->
+    <Style x:Key="PosSelectIconButton"
+           TargetType="Button"
+           BasedOn="{StaticResource PosSelectButton}">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="WidthRequest" Value="48" />
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="FontFamily" Value="{x:Static fonts:MaterialIcons.FontFamily}" />
+        <Setter Property="FontSize" Value="22" />
     </Style>
 
 </ResourceDictionary>

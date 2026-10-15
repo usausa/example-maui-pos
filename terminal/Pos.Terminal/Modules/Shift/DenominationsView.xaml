@@ -30,8 +30,7 @@
                         <Button Grid.Column="1"
                                 Style="{StaticResource PosQuantityButton}"
                                 Command="{Binding DecrementCommand}"
-                                Text="-"
-                                FontFamily="" />
+                                Text="-" />
                         <!-- ReSharper disable Xaml.BindingWithContextNotResolved -->
                         <Button Grid.Column="2"
                                 Style="{StaticResource PosCountButton}"
@@ -42,8 +41,7 @@
                         <Button Grid.Column="3"
                                 Style="{StaticResource PosQuantityButton}"
                                 Command="{Binding IncrementCommand}"
-                                Text="+"
-                                FontFamily="" />
+                                Text="+" />
                         <Label Grid.Column="4"
                                Style="{StaticResource PosListValueLabel}"
                                Text="{Binding SubtotalText}" />

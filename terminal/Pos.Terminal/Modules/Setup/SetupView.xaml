@@ -36,7 +36,7 @@
                 Stroke="{StaticResource BlueLighten4}"
                 StrokeThickness="2" StrokeShape="RoundRectangle 8" />
 
-        <!-- 読めない・登録できないときの知らせ -->
+        <!-- 知らせ (カメラの権限がない、設定 QR でない、登録できない) -->
         <Label Grid.Row="1"
                Style="{StaticResource PosMessageLabel}"
                IsVisible="{Binding Message, Converter={StaticResource NotEmptyConverter}}"

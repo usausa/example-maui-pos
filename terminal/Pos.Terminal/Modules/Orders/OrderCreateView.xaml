@@ -69,10 +69,11 @@
                         IsVisible="{Binding HasRequestedDate, Converter={StaticResource ReverseConverter}}"
                         Text="指定なし" />
                 <Button Grid.Column="1"
-                        Style="{StaticResource PosSelectButton}"
+                        Style="{StaticResource PosQuantityButton}"
                         Command="{Binding ClearDateCommand}"
                         IsVisible="{Binding HasRequestedDate}"
-                        Text="✕" />
+                        Text="✕"
+                        BackgroundColor="{StaticResource GrayLighten1}" />
             </Grid>
 
             <Label Style="{StaticResource PosFieldLabel}"

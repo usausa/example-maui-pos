@@ -79,8 +79,7 @@
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type module:ReturnLinesViewModel}}, Path=DecrementCommand, x:DataType={x:Type module:ReturnLinesViewModel}}"
                                     CommandParameter="{Binding .}"
                                     IsEnabled="{Binding IsReturnable}"
-                                    Text="-"
-                                    FontFamily="" />
+                                    Text="-" />
                             <Button Grid.Row="1" Grid.Column="2"
                                     Style="{StaticResource PosFieldValueButton}"
                                     HeightRequest="36"
@@ -95,8 +94,7 @@
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type module:ReturnLinesViewModel}}, Path=IncrementCommand, x:DataType={x:Type module:ReturnLinesViewModel}}"
                                     CommandParameter="{Binding .}"
                                     IsEnabled="{Binding IsReturnable}"
-                                    Text="+"
-                                    FontFamily="" />
+                                    Text="+" />
                             <!-- ReSharper restore Xaml.BindingWithContextNotResolved -->
                         </Grid>
 

@@ -101,7 +101,7 @@ public sealed partial class ScanViewModel : AppViewModelBase
         }
         else
         {
-            Message = "カメラの権限がありません";
+            Message = "✕ カメラの権限がありません";
         }
     }
 
@@ -157,19 +157,19 @@ public sealed partial class ScanViewModel : AppViewModelBase
         var product = await accessor.QueryProductByBarcodeAsync(value) ?? await accessor.QueryProductByCodeAsync(value);
         if (product is null)
         {
-            Message = $"❌ 商品が見つかりません: {value}";
+            Message = $"✕ 商品が見つかりません: {value}";
             return;
         }
 
         if (!product.IsActive || product.IsDeleted)
         {
-            Message = $"❌ 取扱終了: {product.Name}";
+            Message = $"✕ 取扱終了: {product.Name}";
             return;
         }
 
         if (!taxRates.TryGetValue(product.TaxRateId, out var taxRate))
         {
-            Message = "❌ マスタを同期してください";
+            Message = "✕ マスタを同期してください";
             return;
         }
 

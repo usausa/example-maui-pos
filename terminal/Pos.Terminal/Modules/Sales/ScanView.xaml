@@ -34,7 +34,7 @@
                 Stroke="{StaticResource BlueLighten4}"
                 StrokeThickness="2" StrokeShape="RoundRectangle 8" />
 
-        <!-- 読み取り結果 (読めない・見つからないときと、追加した商品) -->
+        <!-- 知らせ (カメラの権限がない、追加した商品、追加できない理由) -->
         <Label Grid.Row="1"
                Style="{StaticResource PosMessageLabel}"
                IsVisible="{Binding Message, Converter={StaticResource NotEmptyConverter}}"

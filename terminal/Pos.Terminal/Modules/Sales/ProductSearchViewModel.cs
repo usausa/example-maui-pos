@@ -240,7 +240,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
         }
 
         var line = SalesContext.Cart.Add(item.Product, taxRate);
-        await dialog.Toast($"✓ {item.Product.Name} を追加 (×{ViewHelper.Quantity(line.Quantity)})  {ViewHelper.Yen(sales.Calculate(SalesContext.Cart, []).Total)}");
+        await dialog.Toast($"✅ {item.Product.Name} を追加 (×{ViewHelper.Quantity(line.Quantity)})  {ViewHelper.Yen(sales.Calculate(SalesContext.Cart, []).Total)}");
     }
 
     protected override Task OnNotifyBackAsync() => Navigator.ForwardAsync(returnTo);
