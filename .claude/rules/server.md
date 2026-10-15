@@ -28,6 +28,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - マスタの登録は、Service が `Id` (`Guid.CreateVersion7()`)、`CreatedAt`、`UpdatedAt`、`Version = 1` を補って `ServiceHelper.InsertAsync` で行う。更新は `ServiceHelper.UpdateAsync` を使う (1 行の会社設定の更新は手で書く)
 - LIKE のパターンは Service で作る (`ServiceHelper.ToLikePattern`)
 - 状態の遷移は `UpdateXxxedAsync` で行い、行が返らなければ読み直して NotFound か業務ルール違反 (`XxxLogic.ValidateXxx`) を返す
+- キーで 1 行を指す状態の遷移の `[Execute]` は戻り値 (更新した件数) を判定し、0 件 (先に別の要求が状態を変えた) なら続きの書き込みをしない
 - 状態の遷移の参照先 (担当) が見つからなくても、対象がないこと (NotFound) と状態の違反を先に返す
 - 複数の文にまたがる書き込みは、Service の中で `IDbProvider.UsingTxAsync` を使う
 - 業務で使う現在時刻 (`TimeProvider`) を読むのは Service と帳票だけにし、ページとエンドポイントは時計を持たない (計測の経過時間は除く)

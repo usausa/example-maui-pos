@@ -163,8 +163,10 @@ WHERE
 ORDER BY
 /*% if (desc) { */
     /*# sort */BusinessDate DESC,
+    BusinessDate DESC,
 /*% } else { */
     /*# sort */BusinessDate,
+    BusinessDate,
 /*% } */
     st.Code
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

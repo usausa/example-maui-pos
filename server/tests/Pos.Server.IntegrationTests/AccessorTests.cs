@@ -69,6 +69,23 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Contains(await accessor.QueryStoreListAsync(null, true, StoreSort.Code, false, 100, 0, Token), x => (x.Id == id) && x.IsDeleted);
     }
 
+    // 在庫の差分同期は updatedSince より後の行だけを UpdatedAt の順に返す
+    [Fact]
+    public async Task InventoryLevelDeltaSync()
+    {
+        // Arrange
+        var accessor = Resolve<InventoryAccessor>();
+
+        // Act
+        var all = await accessor.QueryLevelListAsync(null, null, null, false, DateTime.UnixEpoch, 1000, 0, Token);
+        var none = await accessor.QueryLevelListAsync(null, null, null, false, DateTime.UtcNow.AddDays(1), 1000, 0, Token);
+
+        // Assert
+        Assert.NotEmpty(all);
+        Assert.True(all.Zip(all.Skip(1)).All(static x => x.First.UpdatedAt <= x.Second.UpdatedAt));
+        Assert.Empty(none);
+    }
+
     // 商品の一覧はキーワード・部門・有効で絞り込め (部門の件数は一覧と合う)、ID の一覧でも引ける
     [Fact]
     public async Task ProductListFilters()

@@ -20,13 +20,12 @@ WHERE
 /*% if (updatedSince != null) { */
     AND i.UpdatedAt > /*@ updatedSince */''
 /*% } */
-/*% if (updatedSince != null) { */
 ORDER BY
+/*% if (updatedSince != null) { */
     i.UpdatedAt,
     i.StoreId,
     i.ProductId
 /*% } else { */
-ORDER BY
     p.Code,
     i.StoreId
 /*% } */

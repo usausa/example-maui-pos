@@ -40,6 +40,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 - `NetworkService` は 401 を知らせない。同期のように `NetworkService` を通さない失敗を画面で知らせるときは、401 (`ApiResult.IsUnauthorized`) を除く
 - 409 と 422 は `ApiResult.Message` (Problem Details の title) をそのまま出す
 - 取引・シフト・入出金・在庫の変動は、Usecase がローカル DB と Outbox (`SyncService.CreateEntry`) を 1 つのトランザクションで書き、`UpdateCountsAsync()` と `Trigger()` で送信を促す
+- ローカル DB の 1 文だけの書き込みにはトランザクションを使わない
 - Outbox の種類を足すときは `OutboxKind`、`SyncService.SendAsync`、`SyncService.Reassign`、`ViewHelper.Name(OutboxKind)`、`DisplayNameConverter` を揃える
 - 端末の設定は `State/Settings` (IPreferences、キーは `nameof`) に置き、トークンは `CredentialService` 経由で `ISecureStorage` に置いて `ApiContext` に写す
 - ViewModel は `IPreferences` と `ISecureStorage` を直接使わず、`Settings` と `CredentialService` を使う
