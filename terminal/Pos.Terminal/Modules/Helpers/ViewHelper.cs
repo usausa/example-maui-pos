@@ -234,13 +234,4 @@ public static class ViewHelper
         RuleReason.StaffNotAllowed => "担当がこの店舗の有効なスタッフではありません",
         _ => reason.ToString()
     };
-
-    public static string Warning(WarningCode code) => code switch
-    {
-        WarningCode.PointBalanceNegative => "ポイント残高が不足しています",
-        WarningCode.ProductInactive => "販売停止中の商品です",
-        WarningCode.InventoryNegative => "在庫がマイナスになります",
-        WarningCode.DayAlreadyClosed => "締め済みの営業日の取引です",
-        _ => code.ToString()
-    };
 }

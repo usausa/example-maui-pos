@@ -5,16 +5,16 @@ using Pos.Contract.Transactions;
 // 取引からレシートと電子レシート QR の画像を組み立てる。共有するときだけ PNG にする
 public sealed class ReceiptService
 {
-    private readonly DataAccessor accessor;
-
     private readonly Session session;
 
+    private readonly DataAccessor accessor;
+
     public ReceiptService(
-        DataAccessor accessor,
-        Session session)
+        Session session,
+        DataAccessor accessor)
     {
-        this.accessor = accessor;
         this.session = session;
+        this.accessor = accessor;
     }
 
     public async ValueTask<SKImage> BuildAsync(TransactionListResponseItem transaction)

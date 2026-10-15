@@ -29,21 +29,21 @@ public sealed class SyncService : IDisposable
 
     private readonly ILogger<SyncService> log;
 
-    private readonly IAppInfo appInfo;
-
     private readonly IDbProvider provider;
 
-    private readonly DataAccessor accessor;
-
-    private readonly HttpService httpService;
-
-    private readonly ApiContext apiContext;
+    private readonly IAppInfo appInfo;
 
     private readonly Settings settings;
 
     private readonly Session session;
 
     private readonly DeviceState deviceState;
+
+    private readonly DataAccessor accessor;
+
+    private readonly HttpService httpService;
+
+    private readonly ApiContext apiContext;
 
     private readonly SemaphoreSlim gate = new(1, 1);
 
@@ -61,24 +61,24 @@ public sealed class SyncService : IDisposable
 
     public SyncService(
         ILogger<SyncService> log,
-        IAppInfo appInfo,
         IDbProvider provider,
-        DataAccessor accessor,
-        HttpService httpService,
-        ApiContext apiContext,
+        IAppInfo appInfo,
         Settings settings,
         Session session,
-        DeviceState deviceState)
+        DeviceState deviceState,
+        DataAccessor accessor,
+        HttpService httpService,
+        ApiContext apiContext)
     {
         this.log = log;
-        this.appInfo = appInfo;
         this.provider = provider;
-        this.accessor = accessor;
-        this.httpService = httpService;
-        this.apiContext = apiContext;
+        this.appInfo = appInfo;
         this.settings = settings;
         this.session = session;
         this.deviceState = deviceState;
+        this.accessor = accessor;
+        this.httpService = httpService;
+        this.apiContext = apiContext;
     }
 
     public void Dispose()

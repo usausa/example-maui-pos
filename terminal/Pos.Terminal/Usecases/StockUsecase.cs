@@ -11,21 +11,21 @@ public sealed class StockUsecase
 {
     private readonly IDbProvider provider;
 
-    private readonly DataAccessor accessor;
-
     private readonly Session session;
+
+    private readonly DataAccessor accessor;
 
     private readonly SyncService sync;
 
     public StockUsecase(
         IDbProvider provider,
-        DataAccessor accessor,
         Session session,
+        DataAccessor accessor,
         SyncService sync)
     {
         this.provider = provider;
-        this.accessor = accessor;
         this.session = session;
+        this.accessor = accessor;
         this.sync = sync;
     }
 

@@ -10,22 +10,22 @@ using Pos.Terminal.Models.Entity;
 // 販売: 計算 (Pos.Domain の SalesLogic、サーバと同じ)、会計の確定、保留
 public sealed class SalesUsecase
 {
-    private readonly DataAccessor accessor;
-
     private readonly Session session;
+
+    private readonly DataAccessor accessor;
 
     private readonly SyncService sync;
 
     private readonly TransactionUsecase transaction;
 
     public SalesUsecase(
-        DataAccessor accessor,
         Session session,
+        DataAccessor accessor,
         SyncService sync,
         TransactionUsecase transaction)
     {
-        this.accessor = accessor;
         this.session = session;
+        this.accessor = accessor;
         this.sync = sync;
         this.transaction = transaction;
     }

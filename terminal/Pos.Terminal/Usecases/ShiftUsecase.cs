@@ -14,9 +14,9 @@ public sealed partial class ShiftUsecase
 {
     private readonly IDbProvider provider;
 
-    private readonly DataAccessor accessor;
-
     private readonly Session session;
+
+    private readonly DataAccessor accessor;
 
     private readonly NetworkService network;
 
@@ -24,14 +24,14 @@ public sealed partial class ShiftUsecase
 
     public ShiftUsecase(
         IDbProvider provider,
-        DataAccessor accessor,
         Session session,
+        DataAccessor accessor,
         NetworkService network,
         SyncService sync)
     {
         this.provider = provider;
-        this.accessor = accessor;
         this.session = session;
+        this.accessor = accessor;
         this.network = network;
         this.sync = sync;
     }

@@ -11,7 +11,7 @@
 - `ArgumentNullException.ThrowIfNull` は書かない (CA1062 は無効)
 - 「DTO」という語はコード・名前空間・文書に使わない
 - 文字列の長さと入力の桁数は `Length` に定数を宣言して使い、数値を直接書かない (Request の `MaxLength`、フォームの `MaximumLength`、電卓の桁数)。`Range` の境界と `MinLength(1)` は数値でよい
-- 業務のコードを足したら、確かめと文言を同時に足す (既定の分岐があるので、漏れてもビルドは通る)。`ErrorCode` は `ErrorCodeTests`、`WarningCode` は `ErrorCodeTests` とサーバの `ApiRuleText` と端末の `ViewHelper`、`RuleReason` は `ApiRuleText` と `ViewHelper` に足す
+- 業務のコードを足したら、確かめと文言を同時に足す (既定の分岐があるので、漏れてもビルドは通る)。`ErrorCode` は `ErrorCodeTests`、`WarningCode` は `ErrorCodeTests` とサーバの `ApiRuleText` (端末は警告を出さない)、`RuleReason` は `ApiRuleText` と `ViewHelper` に足す
 - UI の文言は日本語だけにする (ローカライズ資源は持たない)
 - 画面の文言 (端末・管理画面の表示、シート、トースト、入力の検証) は「。」が要らない短い句にし、文を重ねず、最後に「。」を付けない (帳票は対象外)
 - 確認は「〜しますか？」にし、取り消しにくい影響を短い句で 1 行だけ添える
