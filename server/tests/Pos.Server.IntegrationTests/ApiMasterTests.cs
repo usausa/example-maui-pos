@@ -147,9 +147,9 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
 
         // Act
         using var response = await client.PostJsonAsync(ApiRoutes.Categories, new CategoryCreateRequest { Code = string.Empty, Name = string.Empty, SortOrder = 1 }, options);
-        var problem = await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
 
         // Assert
+        var problem = await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         Assert.NotNull(problem.Errors);
         Assert.NotEmpty(problem.Errors);
     }

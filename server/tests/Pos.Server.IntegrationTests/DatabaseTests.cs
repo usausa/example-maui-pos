@@ -140,12 +140,10 @@ public sealed class DatabaseTests : IClassFixture<TestApplicationFactory>
         var store = await accessor.QueryStoreAsync(TestData.MainStoreId, Token);
         Assert.NotNull(store);
         var now = DateTime.UtcNow;
-
-        // Act
         var duplicate = await Assert.ThrowsAnyAsync<DbException>(async () => await accessor.InsertStoreAsync(new StoreEntity { Id = Guid.NewGuid(), Code = store.Code, Name = "重複", TimeZone = "Asia/Tokyo", IsActive = true, CreatedAt = now, UpdatedAt = now, Version = 1 }, Token));
         var missing = await Assert.ThrowsAnyAsync<DbException>(async () => await accessor.InsertTerminalAsync(new TerminalEntity { Id = Guid.NewGuid(), StoreId = Guid.NewGuid(), TerminalNo = 99, Name = "店舗なし", IsActive = true, CreatedAt = now, UpdatedAt = now, Version = 1 }, Token));
 
-        // Assert
+        // Act / Assert
         Assert.True(dialect.IsDuplicate(duplicate));
         Assert.False(dialect.IsDuplicate(missing));
     }

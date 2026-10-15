@@ -38,5 +38,5 @@ internal static class TestData
 
     public static readonly Guid SupplierId = Id(12, 1);
 
-    private static Guid Id(int kind, int number) => new($"00000000-0000-0000-{kind:x4}-{number:x12}");
+    private static Guid Id(int table, int number) => new($"00000000-0000-0000-{table:x4}-{number:x12}");
 }

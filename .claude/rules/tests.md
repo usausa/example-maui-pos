@@ -2,22 +2,40 @@
 paths:
   - "shared/Pos.Domain.Tests/**"
   - "server/tests/**"
+  - "server/src/Pos.Server.Host/Assets/Data/InitialData.sql"
 ---
 # テスト
 
 - xunit v3 にする
 - キャンセルはクラスに `private static CancellationToken Token => TestContext.Current.CancellationToken;` を置いて渡す
-- テストは実行順に依存させない (実行順は環境によって変わる)。同じフィクスチャ (DB) を使うテストが登録・削除した行を、件数の検証に含めない
-- テスト名はアンダースコアなしの PascalCase (`SyncMastersReturnsAllThenDelta`) にし、目的はメソッドの上に日本語のコメントで書く
-- 本文は `// Arrange`、`// Act`、`// Assert` で区切る。準備がなければ `// Arrange` を省き、段階を追うシナリオは `// Act / Assert: 確かめること` を重ねる (既存のテストは触ったときに揃える)
+- テストは実行順に依存させない (実行順は環境によって変わる)
+- 同じフィクスチャ (DB) を使うテストが登録・削除した行を、件数の検証に含めない
+- テスト名はアンダースコアなしの PascalCase (`SyncMastersReturnsAllThenDelta`) にする
+- テストの目的は、メソッドの上に日本語のコメントで書く
+- 本文は `// Arrange`、`// Act`、`// Assert` で区切り、準備がなければ `// Arrange` を省く
+- 段階を追うシナリオは `// Act / Assert: 確かめること` を重ね、段階の間に `// Arrange` を挟まない (準備と変更前の値の記録は、最初の `// Arrange` か段階の中に書く)
+- 段階のないテストで、対象の呼び出しをすべて Assert の式の中に書くとき (複数行でもよい) は、説明のない `// Act / Assert` にする
+- `// Act` と `// Assert` を分けるテストでは、状態コードを確かめる応答の読み取り (`ReadAsAsync`、`ReadProblemAsync`) を `// Assert` に置く (要求と一体の `GetJsonAsync` は `// Act` でよい)
+- 例外として、続きの前提 (書き込みの成否、次の要求や呼び出しに使う値) は、準備と `// Act` の途中で確かめてよい
 - `Pos.Domain.Tests` は UI、DB、HTTP に依存しない純粋なロジックを検証する
 - `Pos.Server.UnitTests` は Host の部品を、対象と同じフォルダ構成で置く
-- Blazor の部品は bUnit (`MudBlazorTestBase` を継承) で確かめ、役割は `AddAuthorization().SetAuthorized(...).SetPolicies(...)` で与える。差し替えが要るときは NSubstitute を使う
-- `Pos.Server.IntegrationTests` は `IClassFixture<TestApplicationFactory>` でクラスごとに新しい SQLite DB を使い、Accessor と Service は `factory.Services` から解決する
-- API は `factory.CreateAdminClientAsync()` で作ったクライアントから呼び、経路は `ApiRoutes` で書く
-- JSON の本文を送る要求と、成功の JSON を読む要求は `ApiTestExtensions` (`GetJsonAsync`、`PostJsonAsync` など) で呼ぶ。本文のない要求、JSON でない本文 (PDF、CSV、画像、壊れた JSON)、失敗を確かめる GET、ヘッダーの要る要求は `HttpClient` を直接呼ぶ
+- Blazor の部品は bUnit (`MudBlazorTestBase` を継承) で確かめる
+- bUnit で利用者の役割を与えるときは `AddAuthorization().SetAuthorized(...).SetPolicies(...)` を使う (ポリシーを持たない利用者は `SetPolicies` を省く)
+- 部品が使うサービスの差し替えが要るときは NSubstitute を使う
+- `Pos.Server.IntegrationTests` は `IClassFixture<TestApplicationFactory>` でクラスごとに新しい SQLite DB を使う
+- 統合テストの Accessor と Service は `factory.Services` から解決する
+- API は管理者のクライアント (`factory.CreateAdminClientAsync()`) から呼ぶ (端末が記録する登録も)。端末のトークンで確かめるとき (端末だけの API、端末の照合と失効、端末に拒まれる管理だけの API、端末の操作の承認など) は `CreateTerminalClientAsync(TestData.XxxTerminalId)`、他のアカウントは `CreateLoginClientAsync` で作ったクライアントから呼ぶ
+- 素の `CreateClient()` はログインの要らない要求 (OpenAPI、ヘルスチェック、ペアリング、匿名の確認など) に使い、転送を確かめる要求 (ログイン、ログイン画面への転送) は `AllowAutoRedirect = false` の `CreateClient(options)` で作る
+- 認証を無効にした動きは `AuthDisabledApplicationFactory` で確かめる
+- API の経路は `ApiRoutes` で書く
+- API は `ApiTestExtensions` で呼ぶ (JSON を送る POST は `PostJsonAsync`、PUT は `PutJsonAsync`、成功の JSON を読む GET は `GetJsonAsync`、DELETE は `DeleteUrlAsync`)
+- 例外として、本文のない POST、JSON でない本文 (PDF、CSV、画像)、手で組んだ JSON (壊れた JSON、null を入れた JSON など)、失敗や状態コードだけを確かめる GET、ヘッダーの要る要求は `HttpClient` を直接呼ぶ
 - API の結果は、状態コードと Problem Details のエラーコード (`"DUPLICATE_CODE"` のような文字列) で確かめる
-- 端末の要求は `CreateTerminalClientAsync(TestData.XxxTerminalId)`、他のアカウントは `CreateLoginClientAsync` で作る
-- 認証を無効にした動きは `AuthDisabledApplicationFactory` で確かめ、素の `CreateClient()` は匿名の確認だけに使う
-- 統合テストで固定 ID が要るときは、初期データ (`InitialData.sql`) の値に合わせた定数を `TestData` に `Id(種別, 番号)` で定義する (製品コードには持たない)
-- テストで作る行のコードは `Guid` から作り、他のテストと重複させない (`$"T{Guid.NewGuid():N}"[..10]`)
+- 本文のない応答 (204、401、ポリシーの 403、画像の 304 と 412、ない API の 404 など) は、Problem Details を読まずに状態コードで確かめる
+- 統合テストで固定 ID が要るときは、初期データ (`InitialData.sql`) の値に合わせた定数を `TestData` に `Id(表の番号, 番号)` で定義する (製品コードには持たない)
+- 初期データを変えたら、`TestData` と、件数や値を確かめるテスト (`DatabaseTests`、`ApiMasterTests` の同期の件数など) を合わせる
+- テストで作る行の一意の列 (コード、アカウントの名前) と、作った行をキーワードで絞り込む語は `Guid` から作り、他のテストと重複させない (`$"T{Guid.NewGuid():N}"[..10]` のように、長さは列の上限に収める)
+- 登録する取引に載せる番号 (レシート番号、シリアル番号) は、クラスの中で重ならない値にする (拒まれて書き込まれない要求は同じ値でよい)
+- 同じクラスでシフトを開設するテストは端末を分ける (拒まれる開設は除く。日次締めのテストは店舗と営業日も分ける)
+- API で登録する取引 (`TransactionCreateRequest`) は `TransactionRequests` で組む (計算 API の結果を写す。計算の前に拒まれる要求は除く)
+- PDF は `application/pdf` と先頭の `%PDF` を確かめ、`TestResults` に保存する
