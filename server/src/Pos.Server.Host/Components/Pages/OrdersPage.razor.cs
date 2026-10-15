@@ -79,7 +79,7 @@ public sealed partial class OrdersPage
     // Grid
     //--------------------------------------------------------------------------------
 
-    private async Task<GridData<OrderDetailView>> LoadServerData(GridState<OrderDetailView> state, CancellationToken cancellationToken)
+    private Task<GridData<OrderDetailView>> LoadServerData(GridState<OrderDetailView> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new OrderQueryParameter
@@ -96,8 +96,7 @@ public sealed partial class OrdersPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await OrderService.QueryPageAsync(parameter, cancellationToken);
-        return new GridData<OrderDetailView> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => OrderService.QueryPageAsync(parameter, cancellationToken));
     }
 
     private static OrderStatus? ToStatus(StatusFilter filter) => filter switch

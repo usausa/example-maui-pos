@@ -373,5 +373,5 @@ F1〜F4 はシェル下部のファンクションキー。
 | 編集ダイアログ | 新規と編集で同じダイアログ (`{Xxx}EditDialog` + `{Xxx}Form` + FluentValidation)。保存は `Version` で楽観ロックし、競合 (`DataWriteStatus.VersionMismatch`) なら Snackbar で「他で更新されています」と知らせて再読み込みを促す |
 | 削除 | `DialogService.ShowConfirm` → 論理削除。一覧に「削除済みを表示」トグル。使用中 (`DataWriteStatus.InUse`) は Snackbar で知らせる |
 | 店舗フィルタ | 売上・取引・精算・在庫の各一覧は店舗セレクタを持つ (「全店舗」可)。選択はページ間で共有するスコープドサービスに保持 |
-| エラー表示 | 読み込みの失敗はページ上部のバナー (`ErrorBanner`)、書き込みの失敗はバナーと Snackbar、書き込みの結果 (重複・競合・使用中・不正) は Snackbar、フィールドエラーは `MudForm` の検証表示に出す |
+| エラー表示 | ページの読み込みの失敗 (一覧の表を含む) はページ上部のバナー (`ErrorBanner`)、ページの書き込みの失敗はバナーと Snackbar、書き込みの結果 (重複・競合・使用中・不正) は Snackbar、フィールドエラーは `MudForm` の検証表示に出す。ダイアログの読み込み・書き込みの失敗と、ページで処理できない例外は `ErrorBoundary` が受け、「エラーが発生しました」と [再試行] を出す。例外はどれもサーバのログに記録する |
 | 出力 | 売上集計・商品別売上・商品は CSV ダウンロード (`/api/v1/.../csv`)。帳票 (売上日報・精算レポート・レシートの控え・受注票・発注書) は PDF (`/api/v1/.../pdf`、OysterReport、[D-21](decisions.md#d-21-帳票はサーバが-pdf-にする))。どちらも `MudButton Href` で開く |

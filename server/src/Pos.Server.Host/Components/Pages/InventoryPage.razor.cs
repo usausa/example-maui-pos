@@ -47,7 +47,7 @@ public sealed partial class InventoryPage
     // Grid
     //--------------------------------------------------------------------------------
 
-    private async Task<GridData<InventoryLevelDetailView>> LoadServerData(GridState<InventoryLevelDetailView> state, CancellationToken cancellationToken)
+    private Task<GridData<InventoryLevelDetailView>> LoadServerData(GridState<InventoryLevelDetailView> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new InventoryLevelDetailQueryParameter
@@ -61,8 +61,7 @@ public sealed partial class InventoryPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await InventoryService.QueryLevelDetailPageAsync(parameter, cancellationToken);
-        return new GridData<InventoryLevelDetailView> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => InventoryService.QueryLevelDetailPageAsync(parameter, cancellationToken));
     }
 
     private Task SearchAsync() => Grid.ReloadServerData();

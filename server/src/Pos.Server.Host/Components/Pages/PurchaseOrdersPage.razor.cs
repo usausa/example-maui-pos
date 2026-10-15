@@ -81,7 +81,7 @@ public sealed partial class PurchaseOrdersPage
     // Grid
     //--------------------------------------------------------------------------------
 
-    private async Task<GridData<PurchaseOrderDetailView>> LoadServerData(GridState<PurchaseOrderDetailView> state, CancellationToken cancellationToken)
+    private Task<GridData<PurchaseOrderDetailView>> LoadServerData(GridState<PurchaseOrderDetailView> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new PurchaseOrderQueryParameter
@@ -97,8 +97,7 @@ public sealed partial class PurchaseOrdersPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await PurchaseOrderService.QueryPageAsync(parameter, cancellationToken);
-        return new GridData<PurchaseOrderDetailView> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => PurchaseOrderService.QueryPageAsync(parameter, cancellationToken));
     }
 
     private static PurchaseOrderStatus? ToStatus(StatusFilter filter) => filter switch

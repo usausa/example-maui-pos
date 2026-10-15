@@ -26,7 +26,7 @@ public sealed partial class CustomersPage
     [Inject]
     public required NavigationManager Navigation { get; set; }
 
-    private async Task<GridData<CustomerEntity>> LoadServerData(GridState<CustomerEntity> state, CancellationToken cancellationToken)
+    private Task<GridData<CustomerEntity>> LoadServerData(GridState<CustomerEntity> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new CustomerQueryParameter
@@ -38,8 +38,7 @@ public sealed partial class CustomersPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await CustomerService.QueryPageAsync(parameter, cancellationToken);
-        return new GridData<CustomerEntity> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => CustomerService.QueryPageAsync(parameter, cancellationToken));
     }
 
     private Task SearchAsync() => Grid.ReloadServerData();

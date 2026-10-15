@@ -56,7 +56,7 @@ public sealed partial class ProductsPage
     // Grid
     //--------------------------------------------------------------------------------
 
-    private async Task<GridData<ProductEntity>> LoadServerData(GridState<ProductEntity> state, CancellationToken cancellationToken)
+    private Task<GridData<ProductEntity>> LoadServerData(GridState<ProductEntity> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new ProductQueryParameter
@@ -70,8 +70,7 @@ public sealed partial class ProductsPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await ProductService.QueryPageAsync(parameter, cancellationToken);
-        return new GridData<ProductEntity> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => ProductService.QueryPageAsync(parameter, cancellationToken));
     }
 
     private Task SearchAsync() => Grid.ReloadServerData();

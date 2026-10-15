@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
 using Pos.Server.Host.Components.Dialogs;
+using Pos.Server.Models;
 using Pos.Server.Services;
 
 // ページの基底: 読み込み・実行の状態、エラー表示、書き込み結果の通知、確認ダイアログ、編集ダイアログの呼び出し
@@ -14,6 +15,12 @@ public abstract class PageComponentBase : AppComponentBase
     protected const int ListLimit = 1000;
 
     private CancellationTokenSource? cancellation;
+
+    // 表の読み込みが最後に出した失敗 (表が通ったら、バナーがまだこの内容のときだけ消す)
+    private string? gridError;
+
+    [Inject]
+    public required ILogger<PageComponentBase> Logger { get; set; }
 
     [Inject]
     public required ISnackbar Snackbar { get; set; }
@@ -44,7 +51,7 @@ public abstract class PageComponentBase : AppComponentBase
         base.Dispose(disposing);
     }
 
-    // 読み込み。失敗はバナーに出す
+    // 読み込み。失敗はバナーに出して記録する
     protected async Task LoadAsync(Func<Task> load)
     {
         IsLoading = true;
@@ -55,6 +62,7 @@ public abstract class PageComponentBase : AppComponentBase
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            Logger.ErrorPageOperation(ex);
             ErrorMessage = ex.Message;
         }
         finally
@@ -63,7 +71,33 @@ public abstract class PageComponentBase : AppComponentBase
         }
     }
 
-    // 書き込み。失敗はバナーに出し、終わったら再読み込みする
+    // 表 (MudDataGrid の ServerData) の読み込み。失敗はバナーに出して記録し、空の表にする。
+    // 通ったら表が出した失敗だけを消す (ほかの読み込みの失敗は残す)。表から呼ばれるので、バナーを変えたらページを描き直す
+    protected async Task<GridData<T>> LoadGridAsync<T>(Func<ValueTask<PagedResult<T>>> load)
+    {
+        try
+        {
+            var result = await load();
+            if ((gridError is not null) && String.Equals(ErrorMessage, gridError, StringComparison.Ordinal))
+            {
+                ErrorMessage = null;
+                StateHasChanged();
+            }
+
+            gridError = null;
+            return new GridData<T> { TotalItems = result.Total, Items = result.Items };
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.ErrorPageOperation(ex);
+            gridError = ex.Message;
+            ErrorMessage = ex.Message;
+            StateHasChanged();
+            return new GridData<T> { Items = [] };
+        }
+    }
+
+    // 書き込み。失敗はバナーに出して記録し、終わったら再読み込みする
     protected async Task RunAsync(Func<Task> operation, Func<Task>? reload = null)
     {
         IsRunning = true;
@@ -78,6 +112,7 @@ public abstract class PageComponentBase : AppComponentBase
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            Logger.ErrorPageOperation(ex);
             ErrorMessage = ex.Message;
             Snackbar.AddError(ex.Message);
         }

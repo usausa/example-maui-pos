@@ -67,7 +67,7 @@ public sealed partial class InventoryReceiptsPage
     // Grid
     //--------------------------------------------------------------------------------
 
-    private async Task<GridData<InventoryReceiptDetailView>> LoadServerData(GridState<InventoryReceiptDetailView> state, CancellationToken cancellationToken)
+    private Task<GridData<InventoryReceiptDetailView>> LoadServerData(GridState<InventoryReceiptDetailView> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new InventoryReceiptQueryParameter
@@ -82,8 +82,7 @@ public sealed partial class InventoryReceiptsPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await InventoryReceiptService.QueryPageAsync(parameter, cancellationToken);
-        return new GridData<InventoryReceiptDetailView> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => InventoryReceiptService.QueryPageAsync(parameter, cancellationToken));
     }
 
     private static DateOnly? ToDateOnly(DateTime? value) => value is null ? null : DateOnly.FromDateTime(value.Value);

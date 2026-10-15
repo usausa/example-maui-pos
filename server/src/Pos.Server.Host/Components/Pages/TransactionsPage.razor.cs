@@ -9,6 +9,7 @@ using Pos.Server.Host.Application.Lookup;
 using Pos.Server.Host.Application.State;
 using Pos.Server.Host.Components.Dialogs;
 using Pos.Server.Host.Helpers;
+using Pos.Server.Models;
 using Pos.Server.Models.Entity;
 using Pos.Server.Models.Parameters;
 using Pos.Server.Services;
@@ -73,13 +74,16 @@ public sealed partial class TransactionsPage
     // Grid
     //--------------------------------------------------------------------------------
 
-    private async Task<GridData<TransactionEntity>> LoadServerData(GridState<TransactionEntity> state, CancellationToken cancellationToken)
+    private Task<GridData<TransactionEntity>> LoadServerData(GridState<TransactionEntity> state, CancellationToken cancellationToken) =>
+        LoadGridAsync(() => QueryTransactionsAsync(state, cancellationToken));
+
+    private async ValueTask<PagedResult<TransactionEntity>> QueryTransactionsAsync(GridState<TransactionEntity> state, CancellationToken cancellationToken)
     {
         // レシート番号は完全一致で 1 件
         if (!String.IsNullOrWhiteSpace(receiptNo))
         {
             var entity = await TransactionService.QueryByReceiptNoAsync(receiptNo.Trim(), cancellationToken);
-            return new GridData<TransactionEntity> { TotalItems = entity is null ? 0 : 1, Items = entity is null ? [] : [entity] };
+            return new PagedResult<TransactionEntity>(entity is null ? 0 : 1, 0, state.PageSize, entity is null ? [] : [entity]);
         }
 
         var sort = state.SortDefinitions.FirstOrDefault();
@@ -98,8 +102,7 @@ public sealed partial class TransactionsPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await TransactionService.QueryPageAsync(parameter, cancellationToken);
-        return new GridData<TransactionEntity> { TotalItems = result.Total, Items = result.Items };
+        return await TransactionService.QueryPageAsync(parameter, cancellationToken);
     }
 
     private static DateOnly? ToDateOnly(DateTime? value) => value is null ? null : DateOnly.FromDateTime(value.Value);

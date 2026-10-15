@@ -14,7 +14,8 @@ paths:
 - ページは既定でログインが要る (`Pages/_Imports.razor` の `[Authorize]`)。管理者だけの画面は `[Authorize(Policy = Policies.Administrator)]` を付ける
 - 管理者だけの操作のボタンは `<AuthorizeView Policy="@Policies.Administrator">` で囲み (行の中は `Context="auth"`)、同じ操作の API のポリシーと揃える
 - ページはログイン中のアカウントを `[CascadingParameter] Task<AuthenticationState>` から読む
-- 対話型のページは `PageComponentBase` を継承する。読み込みは `LoadAsync`、書き込みは `RunAsync(操作, 再読み込み)`、結果の知らせは `NotifyResult` を使い、Service には `CancellationToken` を渡す
+- 対話型のページは `PageComponentBase` を継承する。読み込みは `LoadAsync`、表 (`MudDataGrid` の `ServerData`) は `LoadGridAsync`、書き込みは `RunAsync(操作, 再読み込み)`、結果の知らせは `NotifyResult` を使い、Service には `CancellationToken` (表は `ServerData` が渡すもの) を渡す
+- `LoadAsync`、`LoadGridAsync`、`RunAsync` は受けた例外をバナーに出してログに記録するので、ページで重ねて記録しない
 - 変更の通知 (`ChangeNotificationService`) を購読する画面は、イベントの中で読み込まず、タイマーを掛け直して `InvokeAsync` で読み直し、Dispose で購読を外す
 - razor の表示用の加工は `Application/ViewHelper` と `ViewExtensions` だけに置き、ページで書式 (`:N0`、`ToString("MM/dd")`) を組まない (グラフの軸の書式とラベルは除く)
 - 一覧の日時は年なしの `ToShortDateTimeText()`、詳細は `ToDateTimeText()` にする
@@ -27,6 +28,8 @@ paths:
 - 編集のダイアログ (`XxxEditDialog`) は `EditDialogBase<TForm>` を継承し、`Models/Forms/` の `XxxForm` を編集する
 - フォームの検証は `XxxFormValidator` (FluentValidation) に書き、Entity との変換はフォームの `ToForm` と `ToEntity` に書く
 - 詳細のダイアログから操作 (編集、取消など) を始めるときは、ダイアログが `XxxDialogAction` を返して閉じ、操作はページが行う
+- `MudDialogProvider` は `MainLayout` の `ErrorBoundary` の中にだけ置く (ダイアログの読み込みの例外も `ErrorBoundary` が受け、回線の未処理例外にしない)
+- エラー表示の間は `MudDialogProvider` がないので、`ErrorBoundary` の外の部品 (AppBar、NavMenu) からダイアログを開かない
 
 ## 見た目
 

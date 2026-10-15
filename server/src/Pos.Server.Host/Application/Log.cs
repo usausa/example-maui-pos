@@ -31,4 +31,7 @@ internal static partial class Log
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception.")]
     public static partial void ErrorUnhandledException(this ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Page operation failed.")]
+    public static partial void ErrorPageOperation(this ILogger logger, Exception ex);
 }

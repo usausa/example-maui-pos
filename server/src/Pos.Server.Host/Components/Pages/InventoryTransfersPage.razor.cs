@@ -69,7 +69,7 @@ public sealed partial class InventoryTransfersPage
     // Grid
     //--------------------------------------------------------------------------------
 
-    private async Task<GridData<InventoryTransferDetailView>> LoadServerData(GridState<InventoryTransferDetailView> state, CancellationToken cancellationToken)
+    private Task<GridData<InventoryTransferDetailView>> LoadServerData(GridState<InventoryTransferDetailView> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new InventoryTransferQueryParameter
@@ -82,8 +82,7 @@ public sealed partial class InventoryTransfersPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await InventoryTransferService.QueryPageAsync(parameter, cancellationToken);
-        return new GridData<InventoryTransferDetailView> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => InventoryTransferService.QueryPageAsync(parameter, cancellationToken));
     }
 
     private static InventoryTransferStatus? ToStatus(StatusFilter filter) => filter switch

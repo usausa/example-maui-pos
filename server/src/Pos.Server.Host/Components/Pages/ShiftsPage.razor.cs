@@ -52,7 +52,7 @@ public sealed partial class ShiftsPage
     //--------------------------------------------------------------------------------
 
     // Open 中は取引から都度集計し、Closed は確定値
-    private async Task<GridData<ShiftDetailView>> LoadServerData(GridState<ShiftDetailView> state, CancellationToken cancellationToken)
+    private Task<GridData<ShiftDetailView>> LoadServerData(GridState<ShiftDetailView> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new ShiftQueryParameter
@@ -67,8 +67,7 @@ public sealed partial class ShiftsPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await ShiftService.QueryDetailPageAsync(parameter, cancellationToken);
-        return new GridData<ShiftDetailView> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => ShiftService.QueryDetailPageAsync(parameter, cancellationToken));
     }
 
     private static DateOnly? ToDateOnly(DateTime? value) => value is null ? null : DateOnly.FromDateTime(value.Value);

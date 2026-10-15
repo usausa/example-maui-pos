@@ -69,7 +69,7 @@ public sealed partial class InventoryChangesPage
 
     private string ReasonName(Guid? id) => (id is not null) && reasons.TryGetValue(id.Value, out var name) ? name : string.Empty;
 
-    private async Task<GridData<InventoryChangeEntity>> LoadServerData(GridState<InventoryChangeEntity> state, CancellationToken cancellationToken)
+    private Task<GridData<InventoryChangeEntity>> LoadServerData(GridState<InventoryChangeEntity> state, CancellationToken cancellationToken)
     {
         // 期間は UTC 日時 (to は翌日 0 時未満)
         var parameter = new InventoryChangeQueryParameter
@@ -82,8 +82,7 @@ public sealed partial class InventoryChangesPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await InventoryService.QueryChangePageAsync(parameter, cancellationToken);
-        return new GridData<InventoryChangeEntity> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => InventoryService.QueryChangePageAsync(parameter, cancellationToken));
     }
 
     private Task SearchAsync() => Grid.ReloadServerData();

@@ -73,7 +73,7 @@ public sealed partial class DailyClosingsPage
     //--------------------------------------------------------------------------------
 
     // 締め済みは締めた時点の日計、未締めは取引からの集計
-    private async Task<GridData<DailyClosingDayView>> LoadServerData(GridState<DailyClosingDayView> state, CancellationToken cancellationToken)
+    private Task<GridData<DailyClosingDayView>> LoadServerData(GridState<DailyClosingDayView> state, CancellationToken cancellationToken)
     {
         var sort = state.SortDefinitions.FirstOrDefault();
         var parameter = new DailyClosingQueryParameter
@@ -87,8 +87,7 @@ public sealed partial class DailyClosingsPage
             Page = state.Page,
             Size = state.PageSize
         };
-        var result = await DailyClosingService.QueryDayPageAsync(parameter, cancellationToken);
-        return new GridData<DailyClosingDayView> { TotalItems = result.Total, Items = result.Items };
+        return LoadGridAsync(() => DailyClosingService.QueryDayPageAsync(parameter, cancellationToken));
     }
 
     private static DateOnly? ToDateOnly(DateTime? value) => value is null ? null : DateOnly.FromDateTime(value.Value);

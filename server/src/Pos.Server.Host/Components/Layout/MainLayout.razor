@@ -2,7 +2,6 @@
 
 <MudThemeProvider Theme="Styles.Theme" />
 <MudPopoverProvider />
-<MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
@@ -36,6 +35,8 @@
         <div class="pa-2">
             <ErrorBoundary @ref="errorBoundary">
                 <ChildContent>
+                    @* ダイアログの例外もここで受ける (外に置くと回線の未処理例外になる) *@
+                    <MudDialogProvider />
                     @Body
                 </ChildContent>
                 <ErrorContent>
