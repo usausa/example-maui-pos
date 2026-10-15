@@ -15,8 +15,10 @@ ORDER BY
     UpdatedAt,
     Id
 /*% } else if (desc) { */
-    /*# sort */SortOrder DESC
+    /*# sort */SortOrder DESC,
+    Code DESC
 /*% } else { */
-    /*# sort */SortOrder
+    /*# sort */SortOrder,
+    Code
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

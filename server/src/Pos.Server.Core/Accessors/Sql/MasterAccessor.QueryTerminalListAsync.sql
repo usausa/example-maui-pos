@@ -18,8 +18,10 @@ ORDER BY
     UpdatedAt,
     Id
 /*% } else if (desc) { */
-    /*# sort */TerminalNo DESC
+    /*# sort */TerminalNo DESC,
+    Id DESC
 /*% } else { */
-    /*# sort */TerminalNo
+    /*# sort */TerminalNo,
+    Id
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

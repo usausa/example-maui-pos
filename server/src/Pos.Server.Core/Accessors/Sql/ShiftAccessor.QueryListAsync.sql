@@ -21,8 +21,10 @@ WHERE
 /*% } */
 ORDER BY
 /*% if (desc) { */
-    /*# sort */OpenedAt DESC
+    /*# sort */OpenedAt DESC,
+    Id DESC
 /*% } else { */
-    /*# sort */OpenedAt
+    /*# sort */OpenedAt,
+    Id
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

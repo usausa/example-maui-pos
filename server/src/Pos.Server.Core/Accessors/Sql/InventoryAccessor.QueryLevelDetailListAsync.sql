@@ -34,8 +34,12 @@ WHERE
 /*% } */
 ORDER BY
 /*% if (desc) { */
-    /*# sort */ProductCode DESC
+    /*# sort */ProductCode DESC,
+    ProductCode DESC,
+    i.StoreId DESC
 /*% } else { */
-    /*# sort */ProductCode
+    /*# sort */ProductCode,
+    ProductCode,
+    i.StoreId
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0

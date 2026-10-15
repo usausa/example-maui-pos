@@ -44,8 +44,10 @@ WHERE
 /*% } */
 ORDER BY
 /*% if (desc) { */
-    /*# sort */TransactedAt DESC
+    /*# sort */TransactedAt DESC,
+    ReceiptNo DESC
 /*% } else { */
-    /*# sort */TransactedAt
+    /*# sort */TransactedAt,
+    ReceiptNo
 /*% } */
 LIMIT /*@ limit */20 OFFSET /*@ offset */0
