@@ -6,7 +6,7 @@ using Pos.Terminal.Models.Inventory;
 // 画面表示用の書式、列挙型の文言、業務ルールの文言 (XAML からは DisplayNameConverter で使う)
 public static class ViewHelper
 {
-    // オンラインで取る一覧・集計の CurrentState (結果を見せるときは空文字)
+    // オンラインで取る一覧・集計・詳細の CurrentState (結果を見せるときは空文字)
     public const string LoadingState = "Loading";
 
     public const string OfflineState = "Offline";

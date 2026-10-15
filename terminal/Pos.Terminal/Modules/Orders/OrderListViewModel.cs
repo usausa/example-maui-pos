@@ -90,6 +90,7 @@ public sealed partial class OrderListViewModel : AppViewModelBase
         if (!result.IsSuccess)
         {
             Message = "取得できません";
+            CountText = string.Empty;
             CurrentState = ViewHelper.OfflineState;
             return;
         }

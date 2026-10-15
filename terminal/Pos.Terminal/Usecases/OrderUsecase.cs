@@ -24,10 +24,10 @@ public sealed class OrderUsecase
         this.network = network;
     }
 
-    // 受注を読む。今のシフトで受け取った・返した前受金は、通信が途中で切れて写せなかった分もここで写す
+    // 受注を読む (取れないときは画面が理由を出す)。今のシフトで受け取った・返した前受金は、通信が途中で切れて写せなかった分もここで写す
     public async ValueTask<ApiResult<OrderListResponseItem>> LoadAsync(Guid id)
     {
-        var result = await network.ExecuteAsync(h => h.GetOrderAsync(id), notifyNotFound: true);
+        var result = await network.ExecuteAsync(h => h.GetOrderAsync(id), notify: false);
         await SaveShiftDepositsAsync(result);
         return result;
     }
@@ -116,6 +116,26 @@ public sealed class OrderUsecase
         }
 
         return (cart, null);
+    }
+
+    // キャンセル。前受金があれば先に全額を返し、返せなければキャンセルしない。前受金があるときはシフトが開設中のときだけ呼ぶ。
+    // 返した後のキャンセルが通らなかったときは、返した後の受注を Refunded で返す (画面に返金を見せる)
+    public async ValueTask<(ApiResult<OrderListResponseItem> Result, OrderListResponseItem? Refunded)> CancelAsync(OrderListResponseItem order, string reason)
+    {
+        OrderListResponseItem? refunded = null;
+        if (order.DepositAmount > 0)
+        {
+            var refund = await RefundDepositAsync(order);
+            if (refund is not { IsSuccess: true, Content: not null })
+            {
+                return (refund, null);
+            }
+
+            refunded = refund.Content;
+        }
+
+        var result = await network.ExecuteAsync(h => h.PostOrderCancelAsync(order.Id, new OrderCancelRequest { Reason = reason }));
+        return (result, refunded);
     }
 
     //--------------------------------------------------------------------------------

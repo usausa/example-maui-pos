@@ -92,7 +92,8 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
         transaction = await transactions.FindAsync(transactionId);
         if (transaction is null)
         {
-            await dialog.InformationAsync("取引が見つかりません");
+            // 端末になく、サーバからも取れない (他の端末の取引をオフラインで開いた、通信の失敗)
+            await dialog.InformationAsync("取引を取得できません");
             await Navigator.ForwardAsync(ViewId.TransactionList);
             return;
         }

@@ -341,7 +341,9 @@ internal sealed class SampleGenerator
 
             if (product.RequiresSerial)
             {
-                serials[lineId] = Enumerable.Range(0, (int)quantity).Select(_ => $"SN-{random.Next(100000, 999999)}").ToList();
+                // 1 つの明細の中では番号を重ねない (サーバが受け付けない)
+                var first = random.Next(100000, 999999 - (int)quantity);
+                serials[lineId] = Enumerable.Range(0, (int)quantity).Select(offset => $"SN-{first + offset}").ToList();
             }
 
             // 明細値引 (定義済み。承認が必要なものは店長を承認者に)

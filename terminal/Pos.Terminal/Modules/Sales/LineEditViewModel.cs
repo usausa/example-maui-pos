@@ -174,6 +174,14 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
             return;
         }
 
+        // 同じ番号は 1 つの明細に重ねられない (サーバも受け付けない)
+        if (serials.Distinct(StringComparer.Ordinal).Count() != serials.Length)
+        {
+            await dialog.InformationAsync("シリアル番号が重複しています");
+            Serial.Focus();
+            return;
+        }
+
         line.Quantity = quantity;
         line.UnitPrice = unitPrice;
         line.Discounts.Clear();

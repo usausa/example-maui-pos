@@ -87,6 +87,10 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string Message { get; set; } = string.Empty;
 
+    // シリアル番号の検索 (オンライン) の取得中 / 取得できない / 結果 (空文字)。端末の履歴は結果のまま
+    [ObservableProperty]
+    public partial string CurrentState { get; set; } = string.Empty;
+
     public ObservableCollection<TransactionItem> Items { get; } = [];
 
     public EntryController Serial { get; }
@@ -181,6 +185,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         Items.Replace(list.Select(x => ToItem(x.Detail, x.SyncStatus, staff, methods)));
         Message = "取引がありません";
         UpdateCounts($"{Items.Count} 件");
+        CurrentState = string.Empty;
     }
 
     // シリアル番号 (完全一致) で全店の取引を探す (オンライン限定。送信済みの取引だけ)。空で検索すると端末の履歴に戻る
@@ -193,9 +198,14 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
             return;
         }
 
-        var result = await network.ExecuteAsync(h => h.GetTransactionsBySerialAsync(serial));
+        CurrentState = ViewHelper.LoadingState;
+        var result = await network.ExecuteAsync(h => h.GetTransactionsBySerialAsync(serial), notify: false);
         if (!result.IsSuccess)
         {
+            Items.Clear();
+            UpdateCounts(string.Empty);
+            Message = "取得できません";
+            CurrentState = ViewHelper.OfflineState;
             return;
         }
 
@@ -204,6 +214,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         Items.Replace(list.Select(x => ToItem(x, OutboxStatus.Sent, staff, methods)));
         Message = $"シリアル番号 {serial} の取引はありません";
         UpdateCounts($"シリアル {Items.Count} 件");
+        CurrentState = string.Empty;
     }
 
     // 担当 (数人) と支払方法の名前はまとめて引く

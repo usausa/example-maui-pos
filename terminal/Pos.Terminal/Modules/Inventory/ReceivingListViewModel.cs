@@ -57,6 +57,7 @@ public sealed partial class ReceivingListViewModel : AppViewModelBase
         if (documents is null)
         {
             Message = "取得できません";
+            CountText = string.Empty;
             CurrentState = ViewHelper.OfflineState;
             return;
         }

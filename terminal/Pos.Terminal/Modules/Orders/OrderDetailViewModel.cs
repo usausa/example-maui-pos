@@ -76,6 +76,10 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
     [ObservableProperty]
     public partial bool CanCheckout { get; set; }
 
+    // 取得中 / 取得できない / 結果 (空文字) を切り替える。表示した直後に読むので取得中から始める
+    [ObservableProperty]
+    public partial string CurrentState { get; set; } = ViewHelper.LoadingState;
+
     public OrderDetailViewModel(
         IDialog dialog,
         IPopupNavigator popupNavigator,
@@ -105,12 +109,29 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
 
     private async Task LoadAsync()
     {
+        CurrentState = ViewHelper.LoadingState;
         paymentMethods = await orders.QueryPaymentMethodsAsync();
         var result = await orders.LoadAsync(orderId);
-        if (result is { IsSuccess: true, Content: not null })
+        if (result.IsNotFound)
         {
-            Update(result.Content);
+            await dialog.InformationAsync("受注が見つかりません");
+            await Navigator.ForwardAsync(ViewId.OrderList);
+            return;
         }
+
+        if (result is not { IsSuccess: true, Content: not null })
+        {
+            // 前に読んだ受注に操作しないように止める
+            order = null;
+            CanArrive = false;
+            CanOperate = false;
+            CanCheckout = false;
+            CurrentState = ViewHelper.OfflineState;
+            return;
+        }
+
+        Update(result.Content);
+        CurrentState = string.Empty;
     }
 
     private void Update(OrderListResponseItem value)
@@ -225,11 +246,7 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
                 break;
 
             case OrderAction.RefundDeposit:
-                if (await RefundDepositAsync(order, false))
-                {
-                    await dialog.Toast("前受金を返しました");
-                }
-
+                await RefundDepositAsync(order);
                 break;
 
             case OrderAction.Cancel:
@@ -298,60 +315,61 @@ public sealed partial class OrderDetailViewModel : AppViewModelBase
         }
     }
 
-    // 前受金の返金 (全額を受け取った方法で)。キャンセルの前に返すときは、キャンセルまでを確かめる。返したら true
-    private async Task<bool> RefundDepositAsync(OrderListResponseItem target, bool beforeCancel)
+    // 前受金の返金 (全額を受け取った方法で)
+    private async Task RefundDepositAsync(OrderListResponseItem target)
     {
         if (!session.CanTransact)
         {
             await dialog.InformationAsync("レジを開設してください");
-            return false;
+            return;
         }
 
-        var refund = $"前受金 {ViewHelper.Yen(target.DepositAmount)} を{DepositMethodName(target)}で返";
-        var confirmed = beforeCancel
-            ? await dialog.AskAsync($"{refund}して、{target.OrderNo} をキャンセルしますか？", "キャンセル", "返金してキャンセル")
-            : await dialog.AskAsync($"{refund}しますか？", "前受金の返金", "返金");
-        if (!confirmed)
+        if (!await dialog.AskAsync($"前受金 {ViewHelper.Yen(target.DepositAmount)} を{DepositMethodName(target)}で返しますか？", "前受金の返金", "返金"))
         {
-            return false;
+            return;
         }
 
         var result = await orders.RefundDepositAsync(target);
-        if (result is not { IsSuccess: true, Content: not null })
+        if (result is { IsSuccess: true, Content: not null })
         {
-            return false;
+            Update(result.Content);
+            await dialog.Toast("前受金を返しました");
         }
-
-        Update(result.Content);
-        return true;
     }
 
-    // キャンセル: 前受金があれば返してからキャンセルする
+    // キャンセル: 前受金があれば返してからキャンセルする (返すにはレジの開設が要る)
     private async Task CancelAsync(OrderListResponseItem target)
     {
+        if ((target.DepositAmount > 0) && !session.CanTransact)
+        {
+            await dialog.InformationAsync("レジを開設してください");
+            return;
+        }
+
         var reason = await popupNavigator.PopupAsync<ReasonSelectParameter, ReasonSelectResult?>(DialogId.ReasonSelect, new ReasonSelectParameter("キャンセルの理由", CancelReasons, true));
         if (reason is null)
         {
             return;
         }
 
-        if (target.DepositAmount > 0)
-        {
-            if (!await RefundDepositAsync(target, true))
-            {
-                return;
-            }
-        }
-        else if (!await dialog.AskAsync($"{target.OrderNo} をキャンセルしますか？", "キャンセル", "キャンセル"))
+        var confirmed = target.DepositAmount > 0
+            ? await dialog.AskAsync($"前受金 {ViewHelper.Yen(target.DepositAmount)} を{DepositMethodName(target)}で返して、{target.OrderNo} をキャンセルしますか？", "キャンセル", "返金してキャンセル")
+            : await dialog.AskAsync($"{target.OrderNo} をキャンセルしますか？", "キャンセル", "キャンセル");
+        if (!confirmed)
         {
             return;
         }
 
-        var result = await network.ExecuteAsync(h => h.PostOrderCancelAsync(target.Id, new OrderCancelRequest { Reason = reason.Text }));
+        var (result, refunded) = await orders.CancelAsync(target, reason.Text);
         if (result is { IsSuccess: true, Content: not null })
         {
             Update(result.Content);
             await dialog.Toast("キャンセルしました");
+        }
+        else if (refunded is not null)
+        {
+            // 返金だけが通った (キャンセルの失敗は知らせ済み)
+            Update(refunded);
         }
     }
 
