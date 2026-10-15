@@ -138,22 +138,7 @@ public sealed partial class DailyClosingsPage
         {
             // 締めた人はログイン中のアカウント (認証を無効にしてログインしていなければ記録しない)
             var closedBy = AuthClaims.AccountOf((await AuthenticationState).User)?.Name;
-            var result = await DailyClosingService.CloseAsync(day.StoreId, day.BusinessDate, closedBy, CancellationToken);
-            switch (result.Status)
-            {
-                case DailyClosingResultStatus.Success:
-                    Snackbar.AddSuccess($"{names.Store(day.StoreId)} {day.BusinessDate.ToDateText()} を締めました");
-                    break;
-                case DailyClosingResultStatus.NoShift:
-                    Snackbar.AddWarning("この営業日のシフトがありません");
-                    break;
-                case DailyClosingResultStatus.ShiftStillOpen:
-                    Snackbar.AddWarning("未精算のシフトがあります");
-                    break;
-                default:
-                    Snackbar.AddWarning("既に締め済みです");
-                    break;
-            }
+            Notify(await DailyClosingService.CloseAsync(day.StoreId, day.BusinessDate, closedBy, CancellationToken), $"{names.Store(day.StoreId)} {day.BusinessDate.ToDateText()} を締めました");
         }, SearchAsync);
 
     // 締めの解除は管理者だけ (ダイアログのボタンを管理者だけに出す)
@@ -175,5 +160,24 @@ public sealed partial class DailyClosingsPage
                 Snackbar.AddError("対象が存在しません");
             }
         }, SearchAsync);
+    }
+
+    private void Notify(DailyClosingResult result, string success)
+    {
+        switch (result.Status)
+        {
+            case DailyClosingResultStatus.Success:
+                Snackbar.AddSuccess(success);
+                break;
+            case DailyClosingResultStatus.NoShift:
+                Snackbar.AddWarning("この営業日のシフトがありません");
+                break;
+            case DailyClosingResultStatus.ShiftStillOpen:
+                Snackbar.AddWarning("未精算のシフトがあります");
+                break;
+            default:
+                Snackbar.AddWarning("既に締め済みです");
+                break;
+        }
     }
 }

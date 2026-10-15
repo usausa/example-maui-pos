@@ -10,7 +10,7 @@ using Pos.Server.Services;
 // 商品別全店在庫
 public sealed partial class ProductInventoryDialog
 {
-    private IReadOnlyList<ProductInventoryLevelView> levels = [];
+    private IReadOnlyList<ProductInventoryLevelView>? levels;
 
     [Parameter]
     public Guid ProductId { get; set; }

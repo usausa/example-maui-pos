@@ -109,7 +109,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
         <MudText Typo="Typo.subtitle2">📄 売上日報 PDF</MudText>
         <StoreSelect @bind-Value="reportStoreId" AllowAll="false" />
-        <MudDatePicker @bind-Date="reportDate" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Class="filter-select" />
+        <MudDatePicker @bind-Date="reportDate" Label="営業日" DateFormat="yyyy/MM/dd" Margin="Margin.Dense" Variant="Variant.Outlined" Class="filter-date" />
         <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Href="@DailyPdfUrl" Target="_blank" Disabled="@(reportStoreId is null || reportDate is null)">売上日報を開く</MudButton>
     </MudStack>
 </MudPaper>

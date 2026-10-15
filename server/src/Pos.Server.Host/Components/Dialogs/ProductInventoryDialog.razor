@@ -4,26 +4,33 @@
         <MudText Typo="Typo.body2" Class="mud-text-secondary">@ProductName</MudText>
     </TitleContent>
     <DialogContent>
-        <MudSimpleTable Dense="true" Bordered="true" Striped="true" Elevation="0">
-            <thead>
-                <tr><th>店舗</th><th class="text-right">数量</th><th>状態</th><th>更新日時</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var level in levels)
-                {
-                    <tr>
-                        <td>@level.StoreName</td>
-                        <td class="text-right">@level.Quantity.ToQuantityText()</td>
-                        <td><StatusChip Value="@ViewHelper.QuantityChip(level.Quantity)" /></td>
-                        <td>@level.UpdatedAt.ToDateTimeText()</td>
-                    </tr>
-                }
-                @if (levels.Count == 0)
-                {
-                    <tr><td colspan="4" class="mud-text-secondary">在庫がありません</td></tr>
-                }
-            </tbody>
-        </MudSimpleTable>
+        @if (levels is null)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Bordered="true" Striped="true" Elevation="0">
+                <thead>
+                    <tr><th>店舗</th><th class="text-right">数量</th><th>状態</th><th>更新日時</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var level in levels)
+                    {
+                        <tr>
+                            <td>@level.StoreName</td>
+                            <td class="text-right">@level.Quantity.ToQuantityText()</td>
+                            <td><StatusChip Value="@ViewHelper.QuantityChip(level.Quantity)" /></td>
+                            <td>@level.UpdatedAt.ToDateTimeText()</td>
+                        </tr>
+                    }
+                    @if (levels.Count == 0)
+                    {
+                        <tr><td colspan="4" class="mud-text-secondary">在庫がありません</td></tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton StartIcon="@Icons.Material.Filled.History" Href="@($"inventory/changes?productId={ProductId}")" OnClick="() => MudDialog.Close()">変動履歴</MudButton>

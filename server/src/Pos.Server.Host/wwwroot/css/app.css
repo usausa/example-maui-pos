@@ -51,7 +51,8 @@ body {
     max-width: 400px;
 }
 
-.filter-select {
+/* 単一の日付 (MudDatePicker) */
+.filter-date {
     max-width: 160px;
 }
 

@@ -29,7 +29,7 @@
                                     @order.CustomerName
                                     @if (order.CustomerId is not null)
                                     {
-                                        <MudLink Href="@($"customers/{order.CustomerId}")" Typo="Typo.body2" Class="ml-2">会員を表示</MudLink>
+                                        <MudLink Href="@($"customers/{order.CustomerId}")" Typo="Typo.body2" Class="ml-2" OnClick="() => MudDialog.Close()">会員を表示</MudLink>
                                     }
                                 </td>
                             </tr>
