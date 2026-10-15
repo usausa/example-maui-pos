@@ -30,9 +30,6 @@ public static class ViewExtensions
 
     public static string ToTerminalNoText(this int value) => value.ToString("00", CultureInfo.InvariantCulture);
 
-    // 進捗 (0〜1 を %)
-    public static string ToProgressText(this double ratio) => (ratio * 100).ToString("F0", CultureInfo.InvariantCulture) + "%";
-
     public static string ToPercentText(this decimal rate) => (rate * 100).ToString("0.#", CultureInfo.InvariantCulture) + "%";
 
     public static string ToDateText(this DateOnly value) => value.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture);
@@ -49,16 +46,14 @@ public static class ViewExtensions
 
     public static string ToShortDateTimeText(this DateTime? utc) => utc is null ? "-" : utc.Value.ToShortDateTimeText();
 
-    public static string ToTimeText(this DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
-
-    public static string ToTimeText(this DateTime? utc) => utc is null ? "-" : utc.Value.ToTimeText();
+    // 締めの営業日と違うときだけ出す営業日 (日をまたいだシフト)
+    public static string ToBusinessDateText(this DateOnly businessDate, DateOnly closingDate) =>
+        businessDate == closingDate ? string.Empty : $"営業日 {businessDate.ToDateText()}";
 
     // 符号付き (ポイントの増減など)
     public static string ToDeltaText(this int value) => value.ToString("+#,##0;-#,##0;0", CultureInfo.InvariantCulture);
 
     public static string ToDeltaText(this decimal value) => value.ToString("+#,##0.##;-#,##0.##;0", CultureInfo.InvariantCulture);
-
-    public static string ToYesNo(this bool value) => value ? "○" : "-";
 
     public static string ToTaxIncludedText(this bool taxIncluded) => taxIncluded ? "内税" : "外税";
 
@@ -67,6 +62,23 @@ public static class ViewExtensions
     {
         return groupBy == SalesSummaryGroupBy.TaxRate ? $"{row.TaxableAmount.ToYen()} / {row.TaxAmount.ToYen()}" : row.TaxTotal.ToYen();
     }
+
+    // 値引の値 (率は %、定額は円)
+    public static string ToValueText(this DiscountEntity discount) =>
+        discount.Type == DiscountType.Percent ? discount.Value.ToPercentText() : discount.Value.ToYen() + " 円";
+
+    // 販売価格 (外税のときだけ注記)
+    public static string ToPriceText(this ProductEntity product) =>
+        product.Price.ToYen() + (product.TaxIncluded ? string.Empty : " (外税)");
+
+    // 取引のポイント (付与・利用と、会員がいれば取引後の残高)
+    public static string ToPointSummary(this TransactionEntity transaction) =>
+        $"付与 {transaction.PointsEarned.ToPointText()} / 利用 {transaction.PointsRedeemed.ToPointText()}" +
+        (transaction.PointsBalanceAfter is null ? string.Empty : $" / 残高 {transaction.PointsBalanceAfter.Value.ToPointText()}");
+
+    // 元取引から見た返品 (取消済みは注記)
+    public static string ToReturnText(this TransactionEntity transaction) =>
+        $"返品 {transaction.ReceiptNo}" + (transaction.Status == TransactionStatus.Voided ? " (取消)" : string.Empty);
 
     // コードと名称
     public static string ToDisplayText(this ProductEntity product)
@@ -110,27 +122,6 @@ public static class ViewExtensions
     //--------------------------------------------------------------------------------
     // Name
     //--------------------------------------------------------------------------------
-
-    public static string ToDisplayName(this TransactionType value) => value switch
-    {
-        TransactionType.Sale => "販売",
-        TransactionType.Return => "返品",
-        _ => value.ToString()
-    };
-
-    public static string ToDisplayName(this TransactionStatus value) => value switch
-    {
-        TransactionStatus.Completed => "完了",
-        TransactionStatus.Voided => "取消",
-        _ => value.ToString()
-    };
-
-    public static string ToDisplayName(this ShiftStatus value) => value switch
-    {
-        ShiftStatus.Open => "開設中",
-        ShiftStatus.Closed => "精算済み",
-        _ => value.ToString()
-    };
 
     public static string ToDisplayName(this ProductKind value) => value switch
     {
@@ -210,38 +201,6 @@ public static class ViewExtensions
     {
         OrderDepositType.Receive => "受取",
         OrderDepositType.Refund => "返金",
-        _ => value.ToString()
-    };
-
-    public static string ToDisplayName(this CashEventType value) => value switch
-    {
-        CashEventType.PaidIn => "入金",
-        CashEventType.PaidOut => "出金",
-        CashEventType.NoSale => "ドロワ開",
-        _ => value.ToString()
-    };
-
-    public static string ToDisplayName(this InventoryChangeType value) => value switch
-    {
-        InventoryChangeType.Sale => "販売",
-        InventoryChangeType.Return => "返品",
-        InventoryChangeType.Void => "取消",
-        InventoryChangeType.PhysicalCount => "棚卸",
-        InventoryChangeType.Adjustment => "調整",
-        InventoryChangeType.Receive => "入荷",
-        InventoryChangeType.TransferOut => "移動出荷",
-        InventoryChangeType.TransferIn => "移動受領",
-        _ => value.ToString()
-    };
-
-    public static string ToDisplayName(this PointHistoryType value) => value switch
-    {
-        PointHistoryType.Earn => "付与",
-        PointHistoryType.Redeem => "利用",
-        PointHistoryType.Refund => "返還",
-        PointHistoryType.Revoke => "付与取消",
-        PointHistoryType.Void => "取消",
-        PointHistoryType.Adjust => "調整",
         _ => value.ToString()
     };
 

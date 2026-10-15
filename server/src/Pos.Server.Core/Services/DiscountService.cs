@@ -6,18 +6,18 @@ using Pos.Server.Models.Entity;
 // 値引 (少数なのでページングなし)
 public sealed class DiscountService
 {
+    private readonly TimeProvider timeProvider;
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
-    private readonly TimeProvider timeProvider;
 
     public DiscountService(
+        TimeProvider timeProvider,
         IDialect dialect,
-        MasterAccessor masterAccessor,
-        TimeProvider timeProvider)
+        MasterAccessor masterAccessor)
     {
+        this.timeProvider = timeProvider;
         this.dialect = dialect;
         this.masterAccessor = masterAccessor;
-        this.timeProvider = timeProvider;
     }
 
     public ValueTask<List<DiscountEntity>> QueryListAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken) =>

@@ -6,18 +6,18 @@ using Pos.Server.Models.Entity;
 // 在庫調整理由 (少数なのでページングなし)
 public sealed class AdjustmentReasonService
 {
+    private readonly TimeProvider timeProvider;
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
-    private readonly TimeProvider timeProvider;
 
     public AdjustmentReasonService(
+        TimeProvider timeProvider,
         IDialect dialect,
-        MasterAccessor masterAccessor,
-        TimeProvider timeProvider)
+        MasterAccessor masterAccessor)
     {
+        this.timeProvider = timeProvider;
         this.dialect = dialect;
         this.masterAccessor = masterAccessor;
-        this.timeProvider = timeProvider;
     }
 
     public ValueTask<List<AdjustmentReasonEntity>> QueryListAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken) =>

@@ -173,6 +173,17 @@ public sealed class TransactionService
         return new PagedResult<TransactionDetailView>(page.Total, page.Page, page.Size, items);
     }
 
+    // 会員の購入履歴 (新しい順)。会員がなければ null
+    public async ValueTask<PagedResult<TransactionDetailView>?> QueryCustomerDetailPageAsync(Guid customerId, int page, int size, CancellationToken cancellationToken)
+    {
+        if (await customerAccessor.QueryAsync(customerId, cancellationToken) is null)
+        {
+            return null;
+        }
+
+        return await QueryDetailPageAsync(new TransactionQueryParameter { CustomerId = customerId, Desc = true, Page = page, Size = size }, cancellationToken);
+    }
+
     // 元取引に紐付く返品取引 (取消済みも含む)
     public ValueTask<List<TransactionEntity>> QueryReturnsAsync(Guid originalTransactionId, CancellationToken cancellationToken) =>
         transactionAccessor.QueryReturnListAsync(originalTransactionId, cancellationToken);

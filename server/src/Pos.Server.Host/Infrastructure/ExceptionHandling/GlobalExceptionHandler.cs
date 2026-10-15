@@ -6,16 +6,15 @@ using Pos.Server.Host.Application;
 
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
+    private readonly ILogger<GlobalExceptionHandler> log;
     private readonly IProblemDetailsService problemDetailsService;
 
-    private readonly ILogger<GlobalExceptionHandler> logger;
-
     public GlobalExceptionHandler(
-        IProblemDetailsService problemDetailsService,
-        ILogger<GlobalExceptionHandler> logger)
+        ILogger<GlobalExceptionHandler> log,
+        IProblemDetailsService problemDetailsService)
     {
+        this.log = log;
         this.problemDetailsService = problemDetailsService;
-        this.logger = logger;
     }
 
     public ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
@@ -32,9 +31,9 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             return WriteProblemAsync(httpContext, exception, badRequest.StatusCode, "入力に誤りがあります");
         }
 
-        logger.ErrorUnhandledException(exception);
+        log.ErrorUnhandledException(exception);
 
-        return WriteProblemAsync(httpContext, exception, StatusCodes.Status500InternalServerError, "サーバーでエラーが発生しました");
+        return WriteProblemAsync(httpContext, exception, StatusCodes.Status500InternalServerError, "サーバでエラーが発生しました");
     }
 
     private ValueTask<bool> WriteProblemAsync(HttpContext httpContext, Exception exception, int status, string? title)

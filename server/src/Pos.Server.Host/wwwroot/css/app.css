@@ -51,10 +51,6 @@ body {
     max-width: 400px;
 }
 
-.progress-card {
-    min-width: 320px;
-}
-
 .filter-select {
     max-width: 160px;
 }
@@ -96,7 +92,7 @@ body {
     }
 }
 
-/* 絞り込みの入力欄の最小幅 */
+/* 最小幅 (絞り込みの入力欄と、折り返す列) */
 .min-w-120 {
     min-width: 120px;
 }
@@ -155,15 +151,6 @@ body {
     border-left: 4px solid var(--mud-palette-error);
 }
 
-/* Progress overlay */
-.progress-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 9999;
-}
-
 /* Blazor error UI */
 #blazor-error-ui {
     color-scheme: light only;
@@ -184,6 +171,12 @@ body {
     position: absolute;
     right: 0.75rem;
     top: 0.5rem;
+}
+
+#blazor-error-ui .dismiss svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: currentColor;
 }
 
 

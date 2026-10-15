@@ -19,9 +19,6 @@ public static class ApiProblems
     public static IResult UnsupportedMediaType(string title) =>
         Problem(StatusCodes.Status415UnsupportedMediaType, ErrorCode.ValidationError, title);
 
-    public static IResult DuplicateCode(string title = "コードが重複しています") =>
-        Problem(StatusCodes.Status409Conflict, ErrorCode.DuplicateCode, title);
-
     public static IResult DuplicateIdMismatch() =>
         Problem(StatusCodes.Status409Conflict, ErrorCode.DuplicateIdMismatch, "同じ ID で内容の異なるデータが登録済みです");
 
@@ -104,4 +101,8 @@ public static class ApiProblems
 
     private static ProblemHttpResult Unprocessable(ErrorCode code, string title, string? detail = null) =>
         Problem(StatusCodes.Status422UnprocessableEntity, code, title, detail);
+
+    // コードの重複は書き込みの結果 (FromStatus) からだけ返す
+    private static ProblemHttpResult DuplicateCode(string title) =>
+        Problem(StatusCodes.Status409Conflict, ErrorCode.DuplicateCode, title);
 }

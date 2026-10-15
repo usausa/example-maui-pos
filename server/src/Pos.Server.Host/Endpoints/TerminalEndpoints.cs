@@ -142,20 +142,13 @@ public static partial class TerminalEndpoints
     // コードの不一致・期限切れ・使用済み、無効・削除済みの端末は 422
     private static async ValueTask<IResult> HandlePairAsync(
         TerminalTokenService tokenService,
-        StoreService storeService,
         TerminalPairRequest request,
         CancellationToken cancellationToken)
     {
         var result = await tokenService.PairAsync(request.PairingCode, request.DeviceName, request.AppVersion, cancellationToken);
-        if (!result.IsSuccess)
-        {
-            return ApiProblems.PairingCodeInvalid();
-        }
-
-        var store = await storeService.QueryAsync(result.Terminal!.StoreId, cancellationToken);
-        return store is null
-            ? ApiProblems.PairingCodeInvalid()
-            : TypedResults.Ok(new TerminalPairResponse { Token = result.Token!, Terminal = ToListResponseItem(result.Terminal), Store = StoreEndpoints.ToListResponseItem(store) });
+        return result.IsSuccess
+            ? TypedResults.Ok(new TerminalPairResponse { Token = result.Token!, Terminal = ToListResponseItem(result.Terminal!), Store = StoreEndpoints.ToListResponseItem(result.Store!) })
+            : ApiProblems.PairingCodeInvalid();
     }
 
     // 最終通信時刻とアプリのバージョンを記録する (ダッシュボードの通信状態)

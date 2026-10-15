@@ -8,7 +8,16 @@ using Pos.Server.Host.Application.Lookup;
 using Pos.Server.Models.Views;
 using Pos.Server.Services;
 
-// 日次締めの内容 (未締めは取引からの集計、締め済みは締めた内容)。[締める] / [締めを解除] はその日の行を返し、実行はページが行う
+public enum DailyClosingDialogAction
+{
+    Close,
+    Reopen
+}
+
+// 日次締めの内容で選んだ操作 (実行はページが行う)
+public sealed record DailyClosingDialogResult(DailyClosingDialogAction Action, DailyClosingDayView Day);
+
+// 日次締めの内容 (未締めは取引からの集計、締め済みは締めた内容)。締めていない日は [締める]、締めた日は [締めを解除] を出す
 public sealed partial class DailyClosingDialog
 {
     private DailyClosingSummaryView? summary;
@@ -35,4 +44,6 @@ public sealed partial class DailyClosingDialog
     {
         summary = await DailyClosingService.QuerySummaryAsync(StoreId, BusinessDate, CancellationToken.None);
     }
+
+    private void Close(DailyClosingDialogAction action) => MudDialog.Close(DialogResult.Ok(new DailyClosingDialogResult(action, summary!.Day)));
 }

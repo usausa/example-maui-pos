@@ -63,7 +63,7 @@ public static partial class TransactionEndpoints
     }
 
     //--------------------------------------------------------------------------------
-    // Mapper: Request -> Entity
+    // Mapper
     //--------------------------------------------------------------------------------
 
     [Mapper]
@@ -106,10 +106,6 @@ public static partial class TransactionEndpoints
             Delivery = request.Delivery is null ? null : ToEntity(request.Delivery)
         };
     }
-
-    //--------------------------------------------------------------------------------
-    // Mapper: Entity -> Response
-    //--------------------------------------------------------------------------------
 
     [Mapper]
     private static partial TransactionListResponseItem ToListResponseItemCore(TransactionEntity entity);

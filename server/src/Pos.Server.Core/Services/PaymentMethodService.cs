@@ -6,18 +6,18 @@ using Pos.Server.Models.Entity;
 // 支払方法 (少数なのでページングなし)。Kind = Points / Deposit の有効な行はそれぞれちょうど 1 件
 public sealed class PaymentMethodService
 {
+    private readonly TimeProvider timeProvider;
     private readonly IDialect dialect;
     private readonly MasterAccessor masterAccessor;
-    private readonly TimeProvider timeProvider;
 
     public PaymentMethodService(
+        TimeProvider timeProvider,
         IDialect dialect,
-        MasterAccessor masterAccessor,
-        TimeProvider timeProvider)
+        MasterAccessor masterAccessor)
     {
+        this.timeProvider = timeProvider;
         this.dialect = dialect;
         this.masterAccessor = masterAccessor;
-        this.timeProvider = timeProvider;
     }
 
     public ValueTask<List<PaymentMethodEntity>> QueryListAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken) =>

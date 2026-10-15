@@ -101,7 +101,7 @@
                                     <td>@Names.StaffName(shift.OpenedByStaffId)</td>
                                     <td><StatusChip Value="@ViewHelper.StatusChip(shift.Status)" /></td>
                                     <td>@shift.OpenedAt.ToShortDateTimeText() 〜 @shift.ClosedAt.ToShortDateTimeText()</td>
-                                    <td class="mud-text-secondary">@(shift.BusinessDate == BusinessDate ? string.Empty : $"営業日 {shift.BusinessDate.ToDateText()}")</td>
+                                    <td class="mud-text-secondary">@shift.BusinessDate.ToBusinessDateText(BusinessDate)</td>
                                     <td class="text-right">@shift.ExpectedCash.ToYen()</td>
                                     <td class="text-right">
                                         @if (shift.Status == ShiftStatus.Closed)
@@ -126,12 +126,12 @@
         @if (summary?.Day.Status == DailyClosingStatus.Closed)
         {
             <AuthorizeView Policy="@Policies.Administrator">
-                <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.LockOpen" OnClick="() => MudDialog.Close(DialogResult.Ok(summary.Day))">締めを解除</MudButton>
+                <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.LockOpen" OnClick="() => Close(DailyClosingDialogAction.Reopen)">締めを解除</MudButton>
             </AuthorizeView>
         }
         else
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Lock" Disabled="@(!CanClose)" OnClick="() => MudDialog.Close(DialogResult.Ok(summary!.Day))">締める</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Lock" Disabled="@(!CanClose)" OnClick="() => Close(DailyClosingDialogAction.Close)">締める</MudButton>
         }
         <MudButton OnClick="() => MudDialog.Cancel()">閉じる</MudButton>
     </DialogActions>

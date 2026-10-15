@@ -35,10 +35,10 @@
         <PropertyColumn Property="x => x.Shift.BusinessDate" Title="営業日" InitialDirection="SortDirection.Descending">
             <CellTemplate>@context.Item.Shift.BusinessDate.ToDateText()</CellTemplate>
         </PropertyColumn>
-        <TemplateColumn Title="店舗 / 端末" Sortable="false" CellClass="cell-wrap">
+        <TemplateColumn Title="店舗 / 端末" Sortable="false" CellClass="cell-wrap min-w-160">
             <CellTemplate>@names.Store(context.Item.Shift.StoreId) / @names.Terminal(context.Item.Shift.TerminalId)</CellTemplate>
         </TemplateColumn>
-        <TemplateColumn Title="担当" Sortable="false" CellClass="cell-wrap">
+        <TemplateColumn Title="担当" Sortable="false" CellClass="cell-wrap min-w-120">
             <CellTemplate>@names.StaffName(context.Item.Shift.OpenedByStaffId)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="状態" Sortable="false">

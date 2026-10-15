@@ -118,18 +118,18 @@ public sealed partial class DailyClosingsPage
             },
             Styles.LargeDialog);
         var result = await reference.Result;
-        if (result is not { Canceled: false, Data: DailyClosingDayView day })
+        if (result is not { Canceled: false, Data: DailyClosingDialogResult selected })
         {
             return;
         }
 
-        if (day.Status == DailyClosingStatus.Open)
+        if (selected.Action == DailyClosingDialogAction.Close)
         {
-            await CloseAsync(day);
+            await CloseAsync(selected.Day);
         }
         else
         {
-            await ReopenAsync(day);
+            await ReopenAsync(selected.Day);
         }
     }
 

@@ -28,7 +28,7 @@
         <PropertyColumn Property="x => x.BusinessDate" Title="営業日" InitialDirection="SortDirection.Descending">
             <CellTemplate>@context.Item.BusinessDate.ToDateText()</CellTemplate>
         </PropertyColumn>
-        <TemplateColumn Title="店舗" Sortable="false" CellClass="cell-wrap">
+        <TemplateColumn Title="店舗" Sortable="false" CellClass="cell-wrap min-w-120">
             <CellTemplate>@names.Store(context.Item.StoreId)</CellTemplate>
         </TemplateColumn>
         <TemplateColumn Title="状態" Sortable="false">
@@ -54,7 +54,7 @@
         <TemplateColumn Title="締め" Sortable="false">
             <CellTemplate>@context.Item.ClosedAt.ToShortDateTimeText()</CellTemplate>
         </TemplateColumn>
-        <TemplateColumn Title="締めた人" Sortable="false" CellClass="cell-wrap">
+        <TemplateColumn Title="締めた人" Sortable="false" CellClass="cell-wrap min-w-120">
             <CellTemplate>@(context.Item.ClosedBy ?? "-")</CellTemplate>
         </TemplateColumn>
     </Columns>

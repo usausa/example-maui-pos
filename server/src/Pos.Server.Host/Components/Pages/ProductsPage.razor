@@ -60,7 +60,7 @@
             <CellTemplate>@context.Item.Kind.ToDisplayName()</CellTemplate>
         </TemplateColumn>
         <PropertyColumn Property="x => x.Price" Title="価格" CellClass="text-right" HeaderClass="text-right">
-            <CellTemplate>@context.Item.Price.ToYen()@(context.Item.TaxIncluded ? string.Empty : " (外税)")</CellTemplate>
+            <CellTemplate>@context.Item.ToPriceText()</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="税率" Sortable="false">
             <CellTemplate>@TaxRateText(context.Item.TaxRateId)</CellTemplate>

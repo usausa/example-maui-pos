@@ -6,15 +6,15 @@ using Pos.Server.Models.Entity;
 // 会社設定 (1 行)
 public sealed class SettingsService
 {
-    private readonly MasterAccessor masterAccessor;
     private readonly TimeProvider timeProvider;
+    private readonly MasterAccessor masterAccessor;
 
     public SettingsService(
-        MasterAccessor masterAccessor,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        MasterAccessor masterAccessor)
     {
-        this.masterAccessor = masterAccessor;
         this.timeProvider = timeProvider;
+        this.masterAccessor = masterAccessor;
     }
 
     public ValueTask<SettingsEntity?> QueryAsync(CancellationToken cancellationToken) =>

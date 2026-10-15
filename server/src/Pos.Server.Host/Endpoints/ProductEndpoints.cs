@@ -140,7 +140,7 @@ public static partial class ProductEndpoints
         };
 
     //--------------------------------------------------------------------------------
-    // Handler
+    // Product
     //--------------------------------------------------------------------------------
 
     // keyword は code / barcode / name / kana / modelNo の部分一致
@@ -341,6 +341,6 @@ public static partial class ProductEndpoints
             return ApiProblems.ImportRowsInvalid(errors);
         }
 
-        return ApiProblems.VersionMismatch();
+        return ApiProblems.FromStatus(result.Status);
     }
 }

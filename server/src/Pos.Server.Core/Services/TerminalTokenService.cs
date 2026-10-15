@@ -12,11 +12,11 @@ using Pos.Server.Models.Views;
 public sealed record TerminalPairingCode(string Code, DateTime ExpiresAt);
 
 // ペアリングの結果。Token は端末に一度だけ渡す (サーバはハッシュだけを持つ)
-public sealed record TerminalPairingResult(string? Token, TerminalEntity? Terminal)
+public sealed record TerminalPairingResult(string? Token, TerminalEntity? Terminal, StoreEntity? Store)
 {
     public bool IsSuccess => Token is not null;
 
-    public static TerminalPairingResult Invalid() => new(null, null);
+    public static TerminalPairingResult Invalid() => new(null, null, null);
 }
 
 // 端末の登録: 管理画面でペアリングコードを発行し、端末がコードと引き換えにトークンを受け取る。
@@ -72,7 +72,7 @@ public sealed class TerminalTokenService
         return new TerminalPairingCode(code, entity.PairingExpiresAt.Value);
     }
 
-    // コードを消費してトークンを発行し、端末の古いトークンを失効させる。不一致・期限切れ・使用済み・無効な端末は Invalid
+    // コードを消費してトークンを発行し、端末の古いトークンを失効させる (端末の店舗も返す)。不一致・期限切れ・使用済み・無効な端末・店舗がないときは Invalid
     public async ValueTask<TerminalPairingResult> PairAsync(string pairingCode, string deviceName, string? appVersion, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -84,6 +84,12 @@ public sealed class TerminalTokenService
 
         var terminal = await masterAccessor.QueryTerminalAsync(pending.TerminalId, cancellationToken);
         if (terminal is not { IsActive: true, IsDeleted: false })
+        {
+            return TerminalPairingResult.Invalid();
+        }
+
+        var store = await masterAccessor.QueryStoreAsync(terminal.StoreId, cancellationToken);
+        if (store is null)
         {
             return TerminalPairingResult.Invalid();
         }
@@ -108,7 +114,7 @@ public sealed class TerminalTokenService
         await masterAccessor.UpdateTerminalSeenAsync(terminal.Id, now, appVersion, cancellationToken);
         terminal.LastSeenAt = now;
         terminal.AppVersion = appVersion ?? terminal.AppVersion;
-        return new TerminalPairingResult(token, terminal);
+        return new TerminalPairingResult(token, terminal, store);
     }
 
     // 登録の解除 (有効なトークンの失効と、未使用のコードの削除)

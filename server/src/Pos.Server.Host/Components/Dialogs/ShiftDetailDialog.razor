@@ -82,7 +82,7 @@
                         <tbody>
                             @foreach (var item in cashEvents)
                             {
-                                <tr><td>@item.OccurredAt.ToTimeText()</td><td><StatusChip Value="@ViewHelper.CashEventChip(item.Type)" /></td><td class="text-right">@item.Amount.ToYen()</td><td>@item.Reason</td><td>@Names.StaffName(item.StaffId)</td></tr>
+                                <tr><td>@item.OccurredAt.ToShortDateTimeText()</td><td><StatusChip Value="@ViewHelper.CashEventChip(item.Type)" /></td><td class="text-right">@item.Amount.ToYen()</td><td>@item.Reason</td><td>@Names.StaffName(item.StaffId)</td></tr>
                             }
                             @if (cashEvents.Count == 0)
                             {

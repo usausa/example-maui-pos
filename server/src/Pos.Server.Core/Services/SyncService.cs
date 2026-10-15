@@ -6,18 +6,18 @@ using Pos.Server.Models.Views;
 // 端末のマスタ同期: since 以降に更新されたマスタをまとめて返す
 public sealed class SyncService
 {
+    private readonly TimeProvider timeProvider;
     private readonly MasterAccessor masterAccessor;
     private readonly ProductAccessor productAccessor;
-    private readonly TimeProvider timeProvider;
 
     public SyncService(
+        TimeProvider timeProvider,
         MasterAccessor masterAccessor,
-        ProductAccessor productAccessor,
-        TimeProvider timeProvider)
+        ProductAccessor productAccessor)
     {
+        this.timeProvider = timeProvider;
         this.masterAccessor = masterAccessor;
         this.productAccessor = productAccessor;
-        this.timeProvider = timeProvider;
     }
 
     public async ValueTask<SyncMasterDataView> QueryMastersAsync(DateTime? since, CancellationToken cancellationToken)

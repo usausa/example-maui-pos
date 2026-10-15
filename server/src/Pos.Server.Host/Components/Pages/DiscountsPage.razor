@@ -31,7 +31,7 @@
         <MudTd>@context.Code</MudTd>
         <MudTd>@context.Name</MudTd>
         <MudTd>@context.Type.ToDisplayName()</MudTd>
-        <MudTd Class="text-right">@(context.Type == DiscountType.Percent ? context.Value.ToPercentText() : context.Value.ToYen() + " 円")</MudTd>
+        <MudTd Class="text-right">@context.ToValueText()</MudTd>
         <MudTd>@context.Scope.ToDisplayName()</MudTd>
         <MudTd>@ViewHelper.ApprovalMark(context.RequiresApproval)</MudTd>
         <MudTd><StatusChip Value="@(context.IsDeleted ? ViewHelper.DeletedChip() : ViewHelper.ActiveChip(context.IsActive))" /></MudTd>

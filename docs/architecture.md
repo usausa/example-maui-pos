@@ -194,12 +194,12 @@ Components/
           ProductsPage (S-50), CategoriesPage (S-53), TaxRatesPage (S-54), DiscountsPage (S-55),
           PaymentMethodsPage (S-56), CustomersPage (S-60), CustomerDetailPage (S-61), StoresPage (S-70), TerminalsPage (S-71), TerminalSetupQrPage (S-73), StaffPage (S-72), SettingsPage (S-80),
           AccountsPage (S-92), Login (S-02), AccessDenied, Error, NotFound。ページは .razor + .razor.cs。_Imports.razor で全ページに [Authorize] (ログイン・エラー・404 は AllowAnonymous)
-  Controls/ (ErrorBanner, ProgressOverlay, StoreSelect (店舗セレクタ), StatusChip (ViewHelper の文言 + 色))
+  Controls/ (ErrorBanner, StoreSelect (店舗セレクタ), StatusChip (ViewHelper の文言 + 色))
   Dialogs/ (EditDialogBase<TForm>, DialogServiceExtensions (情報・確認), AppMessageBox, XxxEditDialog (マスタ 10 種 + Customer), TransactionDetailDialog (S-21), ShiftDetailDialog (S-31), DailyClosingDialog (S-90),
             OrderDialog (S-91), OrderEditDialog, ProductImportDialog (S-52), ProductInventoryDialog (S-41), InventoryChangeDialog (S-43), PurchaseOrderDialog (S-48), PurchaseOrderEditDialog, InventoryReceiptDialog (S-45), InventoryReceiptEditDialog,
             InventoryTransferDialog (S-46), InventoryTransferEditDialog, InventoryMovementDialog (出荷・受領の確認), PointAdjustDialog (S-62), TerminalPairingDialog (S-71),
             StaffPinDialog (S-72), AccountEditDialog / AccountPasswordDialog (S-92))
-  RedirectToLogin.razor              ログインしていないときにログイン画面へ (戻り先を付ける)
+  RedirectToLogin.cs                 ログインしていないときにログイン画面へ (戻り先を付ける)
 Assets/                              Fonts/ipaexg.ttf、Reports/*.xlsx (帳票テンプレート)、Data/Schema.sql (DDL) と Data/InitialData.sql (初期データ。起動時に読んで実行する)。どれも出力ディレクトリへコピーする
 Settings/                            LogSetting (HTTP ログ・本文ダンプ・W3C アクセスログ) / ProfilerSetting (SQL のログとトレース) / TelemetrySetting (長時間実行のしきい値) /
                                      AuthSetting (認証の有効、Cookie の期限、試行回数、初期の管理者) / TerminalSetting (設定 QR の接続先) / PrometheusSetting (メトリクスを公開する URI)

@@ -92,7 +92,7 @@ public static partial class TaxRateEndpoints
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
             ? TypedResults.Created($"{ApiRoutes.TaxRates}/{entity.Id}", ToListResponseItem(entity))
-            : ApiProblems.DuplicateCode();
+            : ApiProblems.FromStatus(status);
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(

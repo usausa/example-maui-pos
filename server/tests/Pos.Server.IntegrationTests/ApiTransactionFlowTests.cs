@@ -166,6 +166,8 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         using var noReceiptNoResponse = await client.GetAsync(new Uri($"{ApiRoutes.Transactions}/lookup?receiptNo=", UriKind.Relative), Token);
         await noReceiptNoResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         Assert.Equal(2, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Customers}/{TestData.Customer1Id}/transactions", options)).Total);
+        using var unknownCustomerResponse = await client.GetAsync(new Uri($"{ApiRoutes.Customers}/{Guid.NewGuid()}/transactions", UriKind.Relative), Token);
+        await unknownCustomerResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
 
         // Act / Assert: 入出金 (再送は 200)
         var cashEvent = new ShiftCashEventRequest { Id = Guid.NewGuid(), Type = CashEventType.PaidOut, Amount = 10000m, Reason = "両替", StaffId = TestData.MainCashierStaffId, OccurredAt = Now.AddHours(1) };

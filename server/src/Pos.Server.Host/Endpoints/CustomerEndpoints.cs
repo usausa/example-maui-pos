@@ -148,7 +148,7 @@ public static partial class CustomerEndpoints
         var status = await service.InsertAsync(entity, cancellationToken);
         return status == DataWriteStatus.Success
             ? TypedResults.Created($"{ApiRoutes.Customers}/{entity.Id}", ToListResponseItem(entity))
-            : ApiProblems.DuplicateCode(DuplicateTitle);
+            : ApiProblems.FromStatus(status, duplicateTitle: DuplicateTitle);
     }
 
     private static async ValueTask<IResult> HandleUpdateAsync(
@@ -204,21 +204,21 @@ public static partial class CustomerEndpoints
             : ApiProblems.FromStatus(result.Status, invalidTitle: "担当が見つかりません");
     }
 
+    //--------------------------------------------------------------------------------
+    // Transactions
+    //--------------------------------------------------------------------------------
+
     // 購入履歴 (新しい順)
     private static async ValueTask<IResult> HandleTransactionsAsync(
-        CustomerService service,
         TransactionService transactionService,
         Guid id,
         CancellationToken cancellationToken,
         [Range(0, Int32.MaxValue)] int page = 0,
         [Range(1, ApiDefaults.MaxPageSize)] int size = ApiDefaults.PageSize)
     {
-        if (await service.QueryAsync(id, cancellationToken) is null)
-        {
-            return ApiProblems.NotFound();
-        }
-
-        var result = await transactionService.QueryDetailPageAsync(new TransactionQueryParameter { CustomerId = id, Desc = true, Page = page, Size = size }, cancellationToken);
-        return TypedResults.Ok(new TransactionListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => TransactionEndpoints.ToListResponseItem(x)).ToList() });
+        var result = await transactionService.QueryCustomerDetailPageAsync(id, page, size, cancellationToken);
+        return result is null
+            ? ApiProblems.NotFound()
+            : TypedResults.Ok(new TransactionListResponse { Total = result.Total, Page = result.Page, Size = result.Size, Items = result.Items.Select(static x => TransactionEndpoints.ToListResponseItem(x)).ToList() });
     }
 }

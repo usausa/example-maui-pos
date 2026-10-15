@@ -43,7 +43,7 @@
                     <MudText Typo="Typo.subtitle2">🕒 経過</MudText>
                     <MudSimpleTable Dense="true" Elevation="0">
                         <tbody>
-                            <tr><td class="mud-text-secondary w-110">受注</td><td>@order.OrderedAt.ToDateTimeText() @Names.Store(order.StoreId) / @(order.TerminalId is { } terminalId ? Names.Terminal(terminalId) : "管理画面") / @Names.StaffName(order.StaffId)</td></tr>
+                            <tr><td class="mud-text-secondary w-110">受注</td><td>@order.OrderedAt.ToDateTimeText() @Names.Store(order.StoreId) / @Names.TerminalOrAdmin(order.TerminalId) / @Names.StaffName(order.StaffId)</td></tr>
                             <tr><td class="mud-text-secondary">入荷</td><td>@order.ArrivedAt.ToDateTimeText()</td></tr>
                             <tr><td class="mud-text-secondary">完了</td><td>@order.CompletedAt.ToDateTimeText()</td></tr>
                             @if (order.CancelledAt is not null)

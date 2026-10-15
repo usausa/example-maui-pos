@@ -34,6 +34,9 @@ public sealed class NameLookup
 
     public string Terminal(Guid id) => Terminals.TryGetValue(id, out var x) ? x.Name : "-";
 
+    // 端末がなければ管理画面で受け付けたもの
+    public string TerminalOrAdmin(Guid? id) => id is { } terminalId ? Terminal(terminalId) : "管理画面";
+
     public string StaffName(Guid? id) => (id is not null) && Staff.TryGetValue(id.Value, out var x) ? x.Name : "-";
 
     // 担当の記録がなければ空 (経過の日時に続けて出す)

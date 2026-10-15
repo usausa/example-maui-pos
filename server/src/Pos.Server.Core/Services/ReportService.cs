@@ -10,21 +10,21 @@ public sealed class ReportService
     private const int DefaultPeriodDays = 30;
     public const string TotalKey = "total";
 
+    private readonly TimeProvider timeProvider;
     private readonly MasterAccessor masterAccessor;
     private readonly ReportAccessor reportAccessor;
     private readonly ShiftService shiftService;
-    private readonly TimeProvider timeProvider;
 
     public ReportService(
+        TimeProvider timeProvider,
         MasterAccessor masterAccessor,
         ReportAccessor reportAccessor,
-        ShiftService shiftService,
-        TimeProvider timeProvider)
+        ShiftService shiftService)
     {
+        this.timeProvider = timeProvider;
         this.masterAccessor = masterAccessor;
         this.reportAccessor = reportAccessor;
         this.shiftService = shiftService;
-        this.timeProvider = timeProvider;
     }
 
     // 今日 (サーバのローカル日付)。期間の既定に使う (ページは時計を持たずこれを使う)
