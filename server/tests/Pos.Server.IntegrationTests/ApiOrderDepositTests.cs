@@ -62,7 +62,7 @@ public sealed class ApiOrderDepositTests : IClassFixture<TestApplicationFactory>
         Directory.CreateDirectory("TestResults");
         await File.WriteAllBytesAsync(Path.Combine("TestResults", "order.pdf"), bytes, Token);
         using var missingPdfResponse = await client.GetAsync(new Uri($"{ApiRoutes.Orders}/{Guid.NewGuid()}/pdf", UriKind.Relative), Token);
-        Assert.Equal(HttpStatusCode.NotFound, missingPdfResponse.StatusCode);
+        await missingPdfResponse.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
         var terminal = await factory.CreateTerminalClientAsync(TestData.MainTerminal1Id);
         using var terminalPdfResponse = await terminal.GetAsync(new Uri($"{ApiRoutes.Orders}/{order.Id}/pdf", UriKind.Relative), Token);
         Assert.Equal(HttpStatusCode.Forbidden, terminalPdfResponse.StatusCode);

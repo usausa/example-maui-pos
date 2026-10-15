@@ -157,7 +157,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(0m, (await client.GetJsonAsync<TransactionListResponseItem>($"{ApiRoutes.Transactions}/{sale.Id}", options)).Lines[1].ReturnedQuantity);
         Assert.Equal(sdCardBefore - 2m, await QuantityAsync(client, TestData.SdCardProductId));
         using var voidAgainResponse = await client.PostJsonAsync($"{ApiRoutes.Transactions}/{returnRequest.Id}/void", voidRequest, options);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, voidAgainResponse.StatusCode);
+        await voidAgainResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "VALIDATION_ERROR", options);
 
         // Act / Assert: 一覧・検索
         Assert.Equal(2, (await client.GetJsonAsync<TransactionListResponse>($"{ApiRoutes.Transactions}?shiftId={shiftId}", options)).Total);

@@ -39,7 +39,7 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         Assert.NotNull(all.Settings);
         Assert.Equal(2, all.Stores.Count);
         Assert.Equal(3, all.Terminals.Count);
-        // 全件同期は削除済みも返す。同じ DB を使う CategoryCrudAndConflicts、WriteWithMissingReferenceReturnsUnprocessable、CustomerPointsAdjust が登録して論理削除した部門と担当は除いて数える
+        // 全件同期は削除済みも返す。同じ DB の他のテストが登録して論理削除した部門と担当は除いて数える
         Assert.Equal(4, all.Staff.Count(x => !x.IsDeleted));
         Assert.Equal(13, all.Categories.Count(x => !x.IsDeleted));
         Assert.Equal(3, all.TaxRates.Count);
@@ -173,8 +173,10 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task ProductLookupAndList()
     {
+        // Arrange
         var client = await factory.CreateAdminClientAsync();
 
+        // Act / Assert: バーコードとコードで引ける
         var camera = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/lookup?barcode=4901234567894", options);
         Assert.Equal("CAM-X100", camera.Code);
         Assert.Equal(TestData.CameraProductId, camera.Id);
@@ -182,9 +184,11 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
         var sdCard = await client.GetJsonAsync<ProductListResponseItem>($"{ApiRoutes.Products}/lookup?code=SD-64", options);
         Assert.Equal(TestData.SdCardProductId, sdCard.Id);
 
+        // Act / Assert: ないものは 404
         using var missing = await client.GetAsync(new Uri($"{ApiRoutes.Products}/lookup?barcode=0000000000000", UriKind.Relative), Token);
         await missing.ReadProblemAsync(HttpStatusCode.NotFound, "NOT_FOUND", options);
 
+        // Act / Assert: キーワードで一覧をページで取れる
         var page = await client.GetJsonAsync<ProductListResponse>($"{ApiRoutes.Products}?keyword=カメラ&page=0&size=2", options);
         Assert.Equal(2, page.Items.Count);
         Assert.True(page.Total > 2);
@@ -214,17 +218,21 @@ public sealed class ApiMasterTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task SettingsUpdateUsesVersion()
     {
+        // Arrange
         var client = await factory.CreateAdminClientAsync();
 
+        // Act / Assert: 初期データの設定
         var settings = await client.GetJsonAsync<SettingsResponse>(ApiRoutes.Settings, options);
         Assert.Equal("うさぎ電機", settings.CompanyName);
         Assert.Equal(TaxRounding.Floor, settings.TaxRounding);
 
+        // Act / Assert: 今の版で更新すると版が進む
         using var updateResponse = await client.PutJsonAsync(ApiRoutes.Settings, new SettingsUpdateRequest { CompanyName = settings.CompanyName, Currency = "JPY", TaxRounding = TaxRounding.Floor, PointBasis = PointBasis.TaxIncluded, BusinessDayStartTime = "06:00", Version = settings.Version }, options);
         var updated = await updateResponse.ReadAsAsync<SettingsResponse>(HttpStatusCode.OK, options);
         Assert.Equal("06:00", updated.BusinessDayStartTime);
         Assert.Equal(settings.Version + 1, updated.Version);
 
+        // Act / Assert: 古い版の更新は 409
         using var staleResponse = await client.PutJsonAsync(ApiRoutes.Settings, new SettingsUpdateRequest { CompanyName = settings.CompanyName, Currency = "JPY", TaxRounding = TaxRounding.Floor, PointBasis = PointBasis.TaxIncluded, BusinessDayStartTime = "05:00", Version = settings.Version }, options);
         await staleResponse.ReadProblemAsync(HttpStatusCode.Conflict, "VERSION_MISMATCH", options);
     }

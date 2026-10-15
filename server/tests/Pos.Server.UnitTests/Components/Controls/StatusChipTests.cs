@@ -11,7 +11,7 @@ public sealed class StatusChipTests : MudBlazorTestBase
     [Fact]
     public void RenderShowsTextColorAndIcon()
     {
-        // Arrange & Act
+        // Act
         var cut = Render<StatusChip>(parameters => parameters.Add(static x => x.Value, ViewHelper.StatusChip(TransactionStatus.Voided)));
 
         // Assert

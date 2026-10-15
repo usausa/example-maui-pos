@@ -31,7 +31,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>
             }
             catch (IOException)
             {
-                // Ignore
+                // 消せなくてもよい (クラスごとに別の DB ファイルを使う)
             }
         }
     }

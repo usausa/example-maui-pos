@@ -100,7 +100,7 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
     [Fact]
     public async Task ImportPreviewsThenAppliesAllOrNothing()
     {
-        // Arrange: SD カードの価格を変え、新しい商品を足す
+        // Arrange
         var client = await factory.CreateAdminClientAsync();
         using var exportResponse = await client.GetAsync(new Uri($"{ApiRoutes.Products}/csv", UriKind.Relative), Token);
         var rows = FromCsv(await exportResponse.Content.ReadAsStringAsync(Token));

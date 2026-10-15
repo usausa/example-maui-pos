@@ -35,13 +35,13 @@ public sealed class ChangeNotificationTests : IClassFixture<TestApplicationFacto
         var notification = factory.Services.GetRequiredService<ChangeNotificationService>();
         notification.Changed += (_, e) => kinds.Enqueue(e.Kind);
 
-        // Act: シフトの開設 (同じ端末の 2 回目は受け付けない) と在庫の調整
+        // Act
         var open = new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, TerminalId = TestData.MainTerminal2Id, BusinessDate = new DateOnly(2026, 9, 14), OpenedAt = Now, OpenedByStaffId = TestData.MainCashierStaffId, OpeningCash = 0m };
         using var openResponse = await client.PostJsonAsync(ApiRoutes.Shifts, open, options);
         Assert.Equal(HttpStatusCode.Created, openResponse.StatusCode);
         var again = new ShiftOpenRequest { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, TerminalId = TestData.MainTerminal2Id, BusinessDate = new DateOnly(2026, 9, 14), OpenedAt = Now, OpenedByStaffId = TestData.MainCashierStaffId, OpeningCash = 0m };
         using var againResponse = await client.PostJsonAsync(ApiRoutes.Shifts, again, options);
-        Assert.Equal(HttpStatusCode.Conflict, againResponse.StatusCode);
+        await againResponse.ReadProblemAsync(HttpStatusCode.Conflict, "TERMINAL_HAS_OPEN_SHIFT", options);
         var change = new InventoryChangesRequest
         {
             Changes = [new InventoryChangesRequestChange { Id = Guid.NewGuid(), StoreId = TestData.MainStoreId, ProductId = TestData.SdCardProductId, Type = InventoryChangeType.Adjustment, Quantity = 1m, Reason = "テスト", StaffId = TestData.MainCashierStaffId, OccurredAt = Now }]

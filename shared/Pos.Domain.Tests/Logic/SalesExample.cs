@@ -81,7 +81,7 @@ internal static class SalesExample
         AllowsChange = true
     };
 
-    // の元取引の明細 (返品テスト用)
+    // 計算例を元取引にした明細 (返品テスト用)
     public static List<ReturnOriginalLine> OriginalLines() =>
     [
         Original(CameraLine, 80000m, 1m, 4000m, 937m, 7037, 4685),

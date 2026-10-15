@@ -16,7 +16,7 @@ public sealed class TerminalPairingDialogTests : MudBlazorTestBase
     [Fact]
     public async Task ShowsCodeWithoutQr()
     {
-        // Act
+        // Arrange
         var provider = Render<MudDialogProvider>();
         var parameters = new DialogParameters<TerminalPairingDialog>
         {
@@ -24,6 +24,8 @@ public sealed class TerminalPairingDialogTests : MudBlazorTestBase
             { static x => x.StoreName, "本店" },
             { static x => x.Code, new TerminalPairingCode("123456", new DateTime(2026, 1, 1, 0, 10, 0, DateTimeKind.Utc)) }
         };
+
+        // Act
         await provider.InvokeAsync(() => Services.GetRequiredService<IDialogService>().ShowAsync<TerminalPairingDialog>(string.Empty, parameters));
 
         // Assert
