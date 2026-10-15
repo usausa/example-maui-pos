@@ -94,7 +94,7 @@ Pos.Server.Host ───────┤                      ▲
 | `Pos.Terminal` | Usa.Smart.Navigation.*、Usa.Smart.Mvvm、Usa.Smart.Maui (+ Extensions)、BunnyTail.DependencyInjection、Components.Maui、CommunityToolkit.Maui、BarcodeScanning.Native.Maui、SkiaSharp (+ Views.Maui.Controls)、QRCoder、Microsoft.Data.Sqlite + Usa.Smart.Data.Accessor、Usa.Smart.Mapper、Microsoft.Extensions.Http、System.Reactive |
 | テスト | xunit.v3、Microsoft.Testing.Extensions.CodeCoverage、bunit + NSubstitute (`Pos.Server.UnitTests`)、Microsoft.AspNetCore.Mvc.Testing (`Pos.Server.IntegrationTests`) |
 
-- 脆弱性の警告が出る推移的な依存は直接ピンし、GHSA 番号を csproj のコメントに書く (`Microsoft.OpenApi`、`SQLitePCLRaw.bundle_e_sqlite3`)
+- 脆弱性の警告が出る推移的な依存は直接ピンし、GHSA 番号を csproj のコメントに書く (`System.Security.Cryptography.Pkcs`)
 
 ---
 
