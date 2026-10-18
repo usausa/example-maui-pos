@@ -337,7 +337,7 @@ Converters/                          DisplayNameConverter (列挙型 → 文言)
                                      色や選択マーク・画面固有の文言は Smart.Maui の BoolToColor / MapToColor / BoolToText を Styles.xaml で構成する
 Markup/                              ViewIdExtension (XAML で画面 ID を `{markup:ViewId Xxx}` と書く)、
                                      AppIcons (ボタンに付ける Material Icons のアイコン。XAML から `{x:Static markup:AppIcons.Xxx}` で使う)
-Helpers/                             アプリに依存しない処理だけ: DateTimeHelper (日付書式の集約)、SettingParser (Key=Value)、ElementHelper、
+Helpers/                             アプリに依存しない処理だけ: DateTimeHelper (日付書式の集約)、SettingParser (Key=Value)、
                                      Data/ (EnumTextConverter<T> / DateOnlyTextConverter / DateTimeTicksConverter / SchemaHelper / SqlHelper: LIKE のエスケープ)、Json/JsonDateTimeConverter
 Permissions.cs                       カメラ権限
 Modules/

@@ -59,15 +59,4 @@ public static partial class EntryOption
     public static Func<string, bool>? GetInputFilter(BindableObject bindable) => (Func<string, bool>?)bindable.GetValue(InputFilterProperty);
 
     public static void SetInputFilter(BindableObject bindable, Func<string, bool>? value) => bindable.SetValue(InputFilterProperty, value);
-
-    // ReSharper disable InconsistentNaming
-    public static readonly BindableProperty HandleEnterKeyProperty = BindableProperty.CreateAttached(
-        "HandleEnterKey",
-        typeof(bool),
-        typeof(EntryOption),
-        false);
-    // ReSharper restore InconsistentNaming
-
-    public static bool GetHandleEnterKey(BindableObject bindable) => (bool)bindable.GetValue(HandleEnterKeyProperty);
-    public static void SetHandleEnterKey(BindableObject bindable, bool value) => bindable.SetValue(HandleEnterKeyProperty, value);
 }

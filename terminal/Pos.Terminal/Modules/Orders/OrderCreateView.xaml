@@ -44,7 +44,8 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="宛名" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding CustomerName}" />
+                   behaviors:EntryBind.Controller="{Binding CustomerName}"
+                   ReturnType="Next" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="電話" />

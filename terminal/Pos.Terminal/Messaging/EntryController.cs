@@ -1,10 +1,5 @@
 namespace Pos.Terminal.Messaging;
 
-public sealed class EntryCompleteEvent
-{
-    public bool Handled { get; set; }
-}
-
 public sealed class EntryController : NotificationObject
 {
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -62,11 +57,11 @@ public sealed class EntryController : NotificationObject
     // Handle
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void HandleCompleted(EntryCompleteEvent e)
+    public void HandleCompleted()
     {
-        if ((command is not null) && command.CanExecute(e))
+        if ((command is not null) && command.CanExecute(null))
         {
-            command.Execute(e);
+            command.Execute(null);
         }
     }
 }

@@ -1418,7 +1418,6 @@
         <Setter Property="BackgroundColor" Value="White" />
         <Setter Property="behaviors:Border.Color" Value="{StaticResource BorderColor}" />
         <Setter Property="behaviors:Border.Width" Value="1" />
-        <Setter Property="behaviors:EntryOption.HandleEnterKey" Value="True" />
     </Style>
 
     <Style x:Key="PosFieldValueButton"

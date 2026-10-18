@@ -159,7 +159,6 @@ public static partial class MauiProgram
         // Behaviors
         builder.ConfigureCustomBehaviors(static options =>
         {
-            options.HandleEnterKey = true;
             options.DisableShowSoftInputOnFocus = true;
         });
 

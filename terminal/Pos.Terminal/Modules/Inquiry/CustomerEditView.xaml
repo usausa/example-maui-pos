@@ -24,17 +24,20 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="会員番号 (必須)" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding Code}" />
+                   behaviors:EntryBind.Controller="{Binding Code}"
+                   ReturnType="Next" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="氏名 (必須)" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding Name}" />
+                   behaviors:EntryBind.Controller="{Binding Name}"
+                   ReturnType="Next" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="かな" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding Kana}" />
+                   behaviors:EntryBind.Controller="{Binding Kana}"
+                   ReturnType="Next" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="電話" />
@@ -46,7 +49,8 @@
                    Text="メール" />
             <Entry Style="{StaticResource PosFieldEntry}"
                    behaviors:EntryBind.Controller="{Binding Email}"
-                   Keyboard="Email" />
+                   Keyboard="Email"
+                   ReturnType="Next" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="郵便番号" />
@@ -57,7 +61,8 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="住所" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding Address}" />
+                   behaviors:EntryBind.Controller="{Binding Address}"
+                   ReturnType="Next" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="生年月日 (yyyy/MM/dd)" />

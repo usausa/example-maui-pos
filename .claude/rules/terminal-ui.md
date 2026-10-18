@@ -71,6 +71,8 @@ paths:
 - 同じ入力を複数の画面で使うときは、ポップアップを 1 つにして `DialogId` で開く (値引は明細値引・取引値引とも `DiscountView`)
 - シートの中の文字入力はキーボードの Enter でも確定できるようにする (キーボードが出ている間は下段のボタンが隠れる)
 - 文字の欄は `EntryController` を `EntryBind.Controller` で結び、Enter で確定する欄は `new EntryController(command)` にする
+- 文字の欄が続くフォームは、次に文字の欄がある欄を `ReturnType="Next"` にして Android に次の文字の欄へ移させる (間のボタンと日付の欄は飛ぶ。Enter で欄を移す処理は書かない)
+- 最後の文字の欄と、Enter でシートを確定する欄は `ReturnType` を付けず (Android では Done)、検索の欄は `ReturnType="Search"` にする
 - 値を入れる欄のボタンは、ラベルが上の欄は `PosFieldInputButton`、行の右に値を出す欄は `PosFieldValueButton` (数量は `PosCountButton`)、選択肢を選ぶ欄は `PosSelectButton` を基本にする (既存の欄は触ったときに揃える)
 - 画面の遷移時 (`OnNavigatedToAsync`) に `Focus()` しない (キーボードが一覧を隠す)。フォーカスを移すのは、クリアや入力不足の知らせのような操作の結果だけにする
 

@@ -25,7 +25,8 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="宛名 (必須)" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding RecipientName}" />
+                   behaviors:EntryBind.Controller="{Binding RecipientName}"
+                   ReturnType="Next" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="電話" />
@@ -42,7 +43,8 @@
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="住所 (必須)" />
             <Entry Style="{StaticResource PosFieldEntry}"
-                   behaviors:EntryBind.Controller="{Binding Address}" />
+                   behaviors:EntryBind.Controller="{Binding Address}"
+                   ReturnType="Next" />
 
             <Label Style="{StaticResource PosFieldLabel}"
                    Text="希望日" />

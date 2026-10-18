@@ -44,8 +44,7 @@
                    Text="その他 (入力)" />
             <Entry Style="{StaticResource PosFieldEntry}"
                    behaviors:EntryBind.Controller="{Binding Custom}"
-                   Margin="16,0,16,12"
-                   ReturnType="Done" />
+                   Margin="16,0,16,12" />
         </VerticalStackLayout>
 
         <Grid Grid.Row="3"

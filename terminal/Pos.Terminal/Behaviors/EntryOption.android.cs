@@ -1,7 +1,6 @@
 namespace Pos.Terminal.Behaviors;
 
 using Android.Text;
-using Android.Views;
 using Android.Widget;
 
 using Java.Lang;
@@ -12,13 +11,6 @@ public static partial class EntryOption
 {
     public static partial void UseCustomMapper(BehaviorOptions options)
     {
-        // HandleEnterKey
-        if (options.HandleEnterKey)
-        {
-            EntryHandler.Mapper.AppendToMapping(HandleEnterKeyProperty.PropertyName, static (handler, _) => UpdateHandleEnterKey(handler.PlatformView, (Entry)handler.VirtualView));
-            EditorHandler.Mapper.AppendToMapping(HandleEnterKeyProperty.PropertyName, static (handler, _) => UpdateHandleEnterKey(handler.PlatformView, (Editor)handler.VirtualView));
-        }
-
         // DisableShowSoftInputOnFocus
         if (options.DisableShowSoftInputOnFocus)
         {
@@ -99,27 +91,6 @@ public static partial class EntryOption
         {
             var value = dest!.SubSequence(0, dstart) + source!.SubSequence(start, end) + dest!.SubSequence(dend, dest!.Length());
             return rule(value) ? source : new String(dest.SubSequence(dstart, dend));
-        }
-    }
-
-    private static void UpdateHandleEnterKey(EditText editText, BindableObject element)
-    {
-        var value = GetHandleEnterKey(element);
-
-        // Mapper が繰り返し呼ばれても購読が重ならないように、いったん外してから付ける
-        editText.EditorAction -= OnEditorAction;
-        if (value)
-        {
-            editText.EditorAction += OnEditorAction;
-        }
-    }
-
-    // ハードキーの Enter では Android の既定の次の欄への移動をさせない(新しい Android では ActionId が ImeNull で来ない)
-    private static void OnEditorAction(object? sender, TextView.EditorActionEventArgs e)
-    {
-        if (e.Event?.KeyCode == Keycode.Enter)
-        {
-            e.Handled = true;
         }
     }
 }
