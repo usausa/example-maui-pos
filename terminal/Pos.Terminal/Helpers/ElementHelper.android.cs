@@ -24,12 +24,15 @@ public static partial class ElementHelper
         var viewGroup = (ViewGroup)parent.ToPlatform(parent.Handler.MauiContext);
         var start = current is not null ? ResolveCurrentView(current) : viewGroup.FindFocus();
         var focused = start;
+        var checkpoint = start;
+        var limit = 1;
+        var steps = 0;
         while (true)
         {
             var next = ff.FindNextFocus(viewGroup, focused, forward ? FocusSearchDirection.Forward : FocusSearchDirection.Backward);
 
             // 次がないか、一周して元に戻った
-            if ((next is null) || next.Equals(start))
+            if ((next is null) || next.Equals(start) || next.Equals(checkpoint))
             {
                 return false;
             }
@@ -40,6 +43,15 @@ public static partial class ElementHelper
             }
 
             focused = next;
+
+            // 循環の確かめ(Brent の方法)
+            steps++;
+            if (steps == limit)
+            {
+                checkpoint = next;
+                limit *= 2;
+                steps = 0;
+            }
         }
     }
 

@@ -396,7 +396,7 @@ Resources/
   Fonts/      MaterialIcons のみ
   Styles/     Colors.xaml、Styles.xaml (Converter の構成、POS 節: Pos 接頭辞のスタイル、ヘッダの状態表示 / 一覧行 / チップ / テンキー / 入力欄)
 Platforms/Android/ MainActivity (pos.terminal.MainActivity。オーバースクロールを止めるテーマ NoOverScrollTheme を当てる)、AndroidHelper (外部ストレージがなければアプリ内のフォルダ)、
-                   DirectFontImageSourceService (FontImageSource の画像を MAUI の画像の読み込み (Glide) を通さずにその場で描く)。権限はネットワークとカメラ。  
+                   Graphics/DirectFontImageSourceService (FontImageSource の画像を MAUI の画像の読み込み (Glide) を通さずにその場で描く)。権限はネットワークとカメラ。  
                    バックアップと端末間の転送はしない (allowBackup = false、Resources/xml/data_extraction_rules.xml)
 ```
 

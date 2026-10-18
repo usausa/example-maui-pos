@@ -75,7 +75,8 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 | プラットフォームのサービス | `Components/` |
 | 未処理の例外の記録 (`CrashReport`) | `Diagnostics/` |
 | プラットフォーム固有の実装 | 元のファイルの隣の `Xxx.android.cs` / `Xxx.ios.cs` (partial。`Pos.Terminal.csproj` が振り分ける) |
-| 元のない Android だけのクラス (`DirectFontImageSourceService`、`AndroidHelper`) | `Platforms/Android/` |
+| Android の入口と共通の処理 (`MainActivity`、`MainApplication`、`AndroidHelper`) | `Platforms/Android/` 直下 |
+| 元のない Android だけのクラス (`DirectFontImageSourceService`、Java の型の拡張 `JavaObjectExtensions`) | `Platforms/Android/` の下の用途のフォルダ (`Graphics/`、`Helpers/`。直下には置かない) |
 
 - 同じ名前のプロパティを写すだけの変換は代入を並べず、Smart.Mapper の `[Mapper] private static partial` で使うクラスに書く
 - 複数の Usecase が使う変換と、Usecase から切り出す長い手書きの変換は `XxxMapper` にする

@@ -130,19 +130,12 @@ public static class AnimationOption
         element.AbortAnimation(HighlightAnimationName);
         element.Animate(
             HighlightAnimationName,
-            v => element.BackgroundColor = LerpColor(highlight, original, v),
+            v => element.BackgroundColor = LerpColor(highlight, original, (float)v),
             16,
             600,
             Easing.CubicOut,
             (_, _) => element.BackgroundColor = original);
     }
-
-    private static Color LerpColor(Color from, Color to, double t) =>
-        new(
-            (float)(from.Red + ((to.Red - from.Red) * t)),
-            (float)(from.Green + ((to.Green - from.Green) * t)),
-            (float)(from.Blue + ((to.Blue - from.Blue) * t)),
-            (float)(from.Alpha + ((to.Alpha - from.Alpha) * t)));
 
     //--------------------------------------------------------------------------------
     // Enter
@@ -291,5 +284,19 @@ public static class AnimationOption
     {
         element.Opacity = 1;
         element.TranslationY = 0;
+    }
+
+    //--------------------------------------------------------------------------------
+    // Helper
+    //--------------------------------------------------------------------------------
+
+    private static Color LerpColor(Color color, Color to, float amount)
+    {
+        var t = Math.Clamp(amount, 0f, 1f);
+        return new Color(
+            Single.Lerp(color.Red, to.Red, t),
+            Single.Lerp(color.Green, to.Green, t),
+            Single.Lerp(color.Blue, to.Blue, t),
+            Single.Lerp(color.Alpha, to.Alpha, t));
     }
 }
