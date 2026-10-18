@@ -27,7 +27,7 @@ public sealed class ReturnUsecase
         this.transaction = transaction;
     }
 
-    // オンラインならサーバの最新 (返品済数量) を使い、取れなければローカルの取引
+    // オンラインならサーバの最新 (返品済みの数量。この端末でまだ送っていない取消と返品も反映する) を使い、取れなければローカルの取引
     public async ValueTask<TransactionListResponseItem?> FindOriginalAsync(Guid id)
     {
         if (network.IsConnected)
@@ -35,6 +35,7 @@ public sealed class ReturnUsecase
             var result = await network.ExecuteAsync(h => h.GetTransactionAsync(id), notify: false);
             if (result.Content is not null)
             {
+                await transaction.ApplyUnsentAsync(result.Content);
                 return result.Content;
             }
         }
@@ -49,6 +50,7 @@ public sealed class ReturnUsecase
             var result = await network.ExecuteAsync(h => h.LookupTransactionAsync(receiptNo), notify: false);
             if (result.Content is not null)
             {
+                await transaction.ApplyUnsentAsync(result.Content);
                 return result.Content;
             }
         }

@@ -9,7 +9,8 @@ public sealed class ReturnLineItem : NotificationObject
 
     public string Name => Line.ProductName;
 
-    public decimal Returnable => Line.Quantity - Line.ReturnedQuantity;
+    // 他の端末の返品とこの端末のオフラインの返品が重なると返品済みが数量を超えるので、0 で止める
+    public decimal Returnable => Math.Max(0m, Line.Quantity - Line.ReturnedQuantity);
 
     public bool IsReturnable => Returnable > 0;
 

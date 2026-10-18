@@ -187,6 +187,14 @@ public sealed partial class TransactionDetailViewModel : AppViewModelBase
             return;
         }
 
+        // 他の端末の返品は端末の記録にないので、サーバの最新で確かめる
+        if (await transactions.HasServerReturnsAsync(transaction))
+        {
+            CanVoid = false;
+            await dialog.InformationAsync(ViewHelper.Reason(RuleReason.HasReturns));
+            return;
+        }
+
         var reason = await popupNavigator.PopupAsync<ReasonSelectParameter, ReasonSelectResult?>(DialogId.ReasonSelect, new ReasonSelectParameter("取消理由", VoidReasons, true));
         if (reason is null)
         {

@@ -378,8 +378,8 @@ Services/                            単機能の部品
   ProductImageService.cs             商品画像の取得と CacheDirectory へのキャッシュ (URL の v ごと。オフラインはキャッシュだけ)
   ShiftReportTextBuilder.cs          精算レポートの共有テキストの組み立て
 Usecases/                            通信 → DB → 完了までの一連の手順
-  TransactionUsecase.cs              取引の保存 (ローカル取引 + Outbox + 自店在庫を 1 トランザクション)、取消、履歴 (送信状態付き)、端末にない取引はオンラインでサーバから
-  SalesUsecase.cs / ReturnUsecase.cs 会計・返品の計算 (Pos.Domain) と確定、保留、元取引の検索 (オンラインならサーバの最新)
+  TransactionUsecase.cs              取引の保存 (ローカル取引 + Outbox + 自店在庫 + 返品の元の取引の返品済みの数量を 1 トランザクション)、取消、履歴 (送信状態付き)、端末にない取引はオンラインでサーバから
+  SalesUsecase.cs / ReturnUsecase.cs 会計・返品の計算 (Pos.Domain) と確定、保留、元取引の検索 (オンラインならサーバの最新に、まだ送っていない取消と返品を反映する)
   ShiftUsecase.cs                    開設 (サーバに残ったシフトの引き継ぎ)、精算、入出金、集計
   OrderUsecase.cs                    受注の登録 (カートから)、受注の取得と会計前の読み直し、受注から会計のカートを作る (前受金を含む)、キャンセル (前受金があれば返してから)、前受金の受取と返金 (今のシフトの記録を端末に写す)
   StockUsecase.cs / SetupUsecase.cs  棚卸・在庫調整の送信、初期設定 (ペアリング・トークンと設定の保存・初回同期)

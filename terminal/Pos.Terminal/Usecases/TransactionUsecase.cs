@@ -10,7 +10,7 @@ using Smart.Mapper;
 
 public sealed record TransactionSummary(TransactionListResponseItem Detail, OutboxStatus SyncStatus);
 
-// 取引の保存 (ローカル取引 + Outbox + 自店在庫キャッシュを 1 トランザクションで書く)、取消、履歴
+// 取引の保存 (ローカル取引 + Outbox + 自店在庫キャッシュ + 返品の元の取引の返品済みの数量を 1 トランザクションで書く)、取消、履歴
 public sealed partial class TransactionUsecase
 {
     private readonly IDbProvider provider;
@@ -87,9 +87,42 @@ public sealed partial class TransactionUsecase
     public async ValueTask<OutboxStatus> QuerySyncStatusAsync(Guid transactionId) =>
         (await QueryOutboxStatusAsync()).GetValueOrDefault(transactionId, OutboxStatus.Sent);
 
-    // 返品のある販売はサーバが取消を拒むので、端末で記録した返品と、サーバから取った明細の返品済みの数量で判定する
+    // 返品のある販売はサーバが取消を拒むので、明細の返品済みの数量 (端末で記録した返品も足してある) と、端末で記録した返品で判定する
     public async ValueTask<bool> HasReturnsAsync(TransactionListResponseItem transaction) =>
         transaction.Lines.Any(static x => x.ReturnedQuantity > 0) || (await accessor.CountReturnsAsync(transaction.Id) > 0);
+
+    // 他の端末の返品はサーバの明細にしかないので、オンラインなら販売の取消の前にサーバの最新で確かめる。
+    // その販売の返品 (とその取消) に未送信があるとサーバの状態が端末より古いので確かめず、取れないときも確かめずに進め、送ったときのサーバの判定に任せる
+    public async ValueTask<bool> HasServerReturnsAsync(TransactionListResponseItem transaction)
+    {
+        if ((transaction.Type != TransactionType.Sale) || !network.IsConnected || (await accessor.CountUnsentReturnsAsync(transaction.Id) > 0))
+        {
+            return false;
+        }
+
+        var result = await network.ExecuteAsync(h => h.GetTransactionAsync(transaction.Id), notify: false);
+        return result.Content?.Lines.Any(static x => x.ReturnedQuantity > 0) ?? false;
+    }
+
+    // サーバから取った元の取引に、この端末でまだ送っていない取消と返品を反映する (サーバの最新にはまだ入っていない)
+    public async ValueTask ApplyUnsentAsync(TransactionListResponseItem original)
+    {
+        // 端末で取り消した取引は、取消を送るまで端末の取消の状態と情報にする (返品させない)
+        if ((original.Status == TransactionStatus.Completed) && (await QueryAsync(original.Id) is { Status: TransactionStatus.Voided } local))
+        {
+            original.Status = TransactionStatus.Voided;
+            original.Void = local.Void;
+        }
+
+        var outbox = await QueryOutboxStatusAsync();
+        foreach (var entity in await accessor.QueryReturnListAsync(original.Id))
+        {
+            if (outbox.ContainsKey(entity.Id) && (Deserialize(entity.Payload) is { } returned))
+            {
+                ApplyReturnedQuantity(original, returned.Lines, 1m);
+            }
+        }
+    }
 
     // 未送信 (Pending / Failed) の取引。要確認が 1 つでもあれば Failed
     private async ValueTask<Dictionary<Guid, OutboxStatus>> QueryOutboxStatusAsync() =>
@@ -102,7 +135,7 @@ public sealed partial class TransactionUsecase
     // Register / Void
     //--------------------------------------------------------------------------------
 
-    // 販売・返品の確定。書いたら送信を促す
+    // 販売・返品の確定。返品は元の取引 (この端末の取引のとき) の返品済みの数量に足す。書いたら送信を促す
     public async ValueTask RegisterAsync(TransactionCreateRequest request, TransactionListResponseItem response)
     {
         var now = DateTime.UtcNow;
@@ -118,6 +151,11 @@ public sealed partial class TransactionUsecase
                 await accessor.AddInventoryQuantityAsync(tx, request.StoreId, productId, delta, now);
             }
 
+            if (response.OriginalTransactionId is { } originalId)
+            {
+                await AddReturnedQuantityAsync(tx, originalId, response.Lines, 1m);
+            }
+
             await tx.CommitAsync();
         });
 
@@ -125,7 +163,7 @@ public sealed partial class TransactionUsecase
         sync.Trigger();
     }
 
-    // 取消: ローカル取引の状態を更新し、在庫を戻す。approvedByStaffId はレジ係の取消を承認した店長以上
+    // 取消: ローカル取引の状態を更新し、在庫と、返品なら元の取引の返品済みの数量を戻す。approvedByStaffId はレジ係の取消を承認した店長以上
     public async ValueTask VoidAsync(TransactionListResponseItem transaction, Guid staffId, Guid? approvedByStaffId, string reason)
     {
         var now = DateTime.UtcNow;
@@ -143,6 +181,11 @@ public sealed partial class TransactionUsecase
             foreach (var (productId, delta) in deltas)
             {
                 await accessor.AddInventoryQuantityAsync(tx, transaction.StoreId, productId, delta, now);
+            }
+
+            if (transaction.OriginalTransactionId is { } originalId)
+            {
+                await AddReturnedQuantityAsync(tx, originalId, transaction.Lines, -1m);
             }
 
             await tx.CommitAsync();
@@ -165,6 +208,32 @@ public sealed partial class TransactionUsecase
     [Mapper]
     [MapUsing(nameof(LocalTransactionEntity.Payload), nameof(Serialize))]
     private static partial LocalTransactionEntity ToEntity(TransactionListResponseItem response);
+
+    // 元の取引がこの端末の取引なら、返品の明細の数量だけ返品済みの数量を増減する (詳細の返品済みと、オフラインの返品の上限に使う)
+    private async ValueTask AddReturnedQuantityAsync(DbTransaction tx, Guid originalId, IEnumerable<TransactionListResponseLine> lines, decimal sign)
+    {
+        var entity = await accessor.QueryTransactionForUpdateAsync(tx, originalId);
+        var original = entity is null ? null : Deserialize(entity.Payload);
+        if (original is null)
+        {
+            return;
+        }
+
+        ApplyReturnedQuantity(original, lines, sign);
+        await accessor.UpdateTransactionAsync(tx, original.Id, original.Status, Serialize(original));
+    }
+
+    // 返品の明細の数量だけ元の明細の返品済みの数量を増減する。前の版で記録した返品は返品済みに足していないので、その取消で負にしない
+    private static void ApplyReturnedQuantity(TransactionListResponseItem original, IEnumerable<TransactionListResponseLine> lines, decimal sign)
+    {
+        foreach (var line in lines)
+        {
+            if (original.Lines.FirstOrDefault(x => x.Id == line.OriginalLineId) is { } originalLine)
+            {
+                originalLine.ReturnedQuantity = Math.Max(0m, originalLine.ReturnedQuantity + (line.Quantity * sign));
+            }
+        }
+    }
 
     // 在庫管理対象の商品だけ増減する
     private async ValueTask<List<(Guid ProductId, decimal Delta)>> ResolveInventoryDeltasAsync(IEnumerable<(Guid ProductId, decimal Delta)> lines)

@@ -566,7 +566,7 @@ public sealed class SyncService : IDisposable
                 var result = await httpService.PostTransactionAsync(Deserialize<TransactionCreateRequest>(item.Payload), cancellationToken);
                 if (result.IsSuccess && (result.Content is not null))
                 {
-                    await accessor.UpdateTransactionAsync(item.TargetId, result.Content.Status, JsonSerializer.Serialize(result.Content, HttpService.JsonOptions));
+                    await ReplaceTransactionAsync(result.Content);
                 }
 
                 return ToPlain(result);
@@ -596,6 +596,37 @@ public sealed class SyncService : IDisposable
                 throw new InvalidOperationException($"Unsupported outbox kind. kind=[{item.Kind}]");
         }
     }
+
+    // 送った取引の端末の記録をサーバの応答で置き換える。送信は発生順なので、その後に端末で記録したものはまだ応答に入っていない。
+    // 端末で取り消した取引は、取消を送るまで取消の状態と情報を残す (取消が要確認になっても、もう一度取り消せない)。
+    // 販売には、この端末で記録した返品の数量を返品の記録から足す (置き換えの後に送信済みにする前に落ちて送り直しても、同じ数量になる)
+    private ValueTask ReplaceTransactionAsync(TransactionListResponseItem transaction) =>
+        provider.UsingTxAsync(async (_, tx) =>
+        {
+            var local = await accessor.QueryTransactionForUpdateAsync(tx, transaction.Id);
+            if ((local is not null) && (local.Status == TransactionStatus.Voided) && (transaction.Status == TransactionStatus.Completed))
+            {
+                transaction.Status = TransactionStatus.Voided;
+                transaction.Void = Deserialize<TransactionListResponseItem>(local.Payload).Void;
+            }
+
+            if (transaction.Type == TransactionType.Sale)
+            {
+                foreach (var entity in await accessor.QueryReturnListAsync(tx, transaction.Id))
+                {
+                    foreach (var line in Deserialize<TransactionListResponseItem>(entity.Payload).Lines)
+                    {
+                        if (transaction.Lines.FirstOrDefault(x => x.Id == line.OriginalLineId) is { } original)
+                        {
+                            original.ReturnedQuantity += line.Quantity;
+                        }
+                    }
+                }
+            }
+
+            await accessor.UpdateTransactionAsync(tx, transaction.Id, transaction.Status, JsonSerializer.Serialize(transaction, HttpService.JsonOptions));
+            await tx.CommitAsync();
+        });
 
     private static T Deserialize<T>(string json) =>
         JsonSerializer.Deserialize<T>(json, HttpService.JsonOptions) ?? throw new InvalidOperationException("Invalid payload.");

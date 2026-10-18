@@ -187,6 +187,11 @@ public sealed partial class DataAccessor
     [SelectSingle(typeof(LocalTransactionEntity))]
     public partial ValueTask<LocalTransactionEntity?> QueryTransactionAsync(Guid id);
 
+    // 同じトランザクションで読んでから書き換える (返品済みの数量の増減、送った取引の置き換え)。null = 端末の記録にない (他の端末の取引)
+    [QueryFirst]
+    [SelectSingle(typeof(LocalTransactionEntity))]
+    public partial ValueTask<LocalTransactionEntity?> QueryTransactionForUpdateAsync(DbTransaction tx, Guid id);
+
     [QueryFirst]
     public partial ValueTask<LocalTransactionEntity?> QueryTransactionByReceiptNoAsync(string receiptNo);
 
@@ -196,6 +201,17 @@ public sealed partial class DataAccessor
     // 取消の可否 (取消していない返品が紐付いていれば取り消せない)
     [ExecuteScalar]
     public partial ValueTask<long> CountReturnsAsync(Guid originalTransactionId);
+
+    // 元の取引に紐付く返品とその取消のうち、まだ送っていないもの (あればサーバの返品済みの数量が端末より古い)
+    [ExecuteScalar]
+    public partial ValueTask<long> CountUnsentReturnsAsync(Guid originalTransactionId);
+
+    // 元の取引に紐付く、取り消していない返品 (送った販売の応答と、サーバから取った元の取引に、返品済みの数量を足す)
+    [Query]
+    public partial ValueTask<List<LocalTransactionEntity>> QueryReturnListAsync(Guid originalTransactionId);
+
+    [Query]
+    public partial ValueTask<List<LocalTransactionEntity>> QueryReturnListAsync(DbTransaction tx, Guid originalTransactionId);
 
     [Execute]
     public partial ValueTask<int> DeleteTransactionsBeforeAsync(DateOnly businessDate);

@@ -43,7 +43,9 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 - 401 は `ApiContext` がイベントで 1 回だけ知らせ、`MainPageViewModel` が知らせて初期設定へ戻すので、画面と `NetworkService` は知らせない (同期のように `NetworkService` を通さない失敗を画面で知らせるときも、`ApiResult.IsUnauthorized` を除く)
 - ほかの操作の失敗を知らせるときは `ApiResult.Message` (Problem Details の title、なければ状態の文言) をそのまま出す (前に「同期できませんでした」のような 1 行を添えてよい。取得できない一覧と詳細は、結果に重ねるときは固定の「取得できません」、知らせて一覧へ戻るときは対象を入れた「取引を取得できません」にする)
 - 取引・シフト・入出金・在庫の変動は、Usecase がローカル DB と Outbox (`SyncService.CreateEntry`) を 1 つのトランザクションで書き、`UpdateCountsAsync()` と `Trigger()` で送信を促す
-- ローカル DB の 1 文だけの書き込みにはトランザクションを使わない
+- 端末で記録した返品は、元の取引 (端末の記録) の返品済みの数量に同じトランザクションで足し、返品の取消で戻す。サーバから取った元の取引には、まだ送っていない取消と返品を反映する
+- 送った取引をサーバの応答で置き換えるときは、端末だけが知る記録を残す (販売にはこの端末で記録した取り消していない返品の数量を足し、取消を送る前の取引は取消の状態と情報を残す。送信は発生順なので、後の記録はまだ応答に入っていない)
+- ローカル DB の 1 文だけの書き込みにはトランザクションを使わない (読んでから書き換えるときは、書き込みが 1 文でも 1 つのトランザクションにする)
 - Outbox の種類を足すときは `OutboxKind`、`SyncService.SendAsync`、`SyncService.Reassign`、`ViewHelper.Name(OutboxKind)`、`DisplayNameConverter` を揃える
 - 端末の設定は `State/Settings` (IPreferences、キーは `nameof`) に置く
 - トークンは `CredentialService` 経由で `ISecureStorage` に置き、`ApiContext` に写す

@@ -82,7 +82,7 @@
                 Style="{StaticResource PosExecuteButton}"
                 Command="{Binding NextCommand}"
                 IsVisible="{Binding CanProceed}"
-                Text="  返品する明細を選ぶ ›" />
+                Text="返品する明細を選ぶ" />
     </Grid>
 
 </ContentView>
