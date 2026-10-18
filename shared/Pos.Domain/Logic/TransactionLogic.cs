@@ -269,13 +269,9 @@ public static class TransactionLogic
             warnings.Add(new RuleWarning(WarningCode.DayAlreadyClosed));
         }
 
-        if (context.Original is null)
+        if (ValidateReturnOriginal(context.Original) is { } originalError)
         {
-            errors.Add(new RuleError(ErrorCode.OriginalNotFound, RuleReason.OriginalNotFound));
-        }
-        else if ((context.Original.Type != TransactionType.Sale) || (context.Original.Status != TransactionStatus.Completed))
-        {
-            errors.Add(new RuleError(ErrorCode.OriginalNotReturnable, RuleReason.OriginalNotReturnable));
+            errors.Add(originalError);
         }
 
         if (StaffLogic.ValidateStaff(context.Staff, context.StoreId) is { } staffError)
@@ -302,6 +298,19 @@ public static class TransactionLogic
         }
 
         return new TransactionValidation { Errors = errors, Warnings = warnings, Expected = expected };
+    }
+
+    // 返品の元の取引は完了した販売であること (返品済みの数量を足せなかったときの読み直しにも使う)
+    public static RuleError? ValidateReturnOriginal(OriginalTransactionFact? original)
+    {
+        if (original is null)
+        {
+            return new RuleError(ErrorCode.OriginalNotFound, RuleReason.OriginalNotFound);
+        }
+
+        return (original.Type != TransactionType.Sale) || (original.Status != TransactionStatus.Completed)
+            ? new RuleError(ErrorCode.OriginalNotReturnable, RuleReason.OriginalNotReturnable)
+            : null;
     }
 
     private static bool ValidateReturnInput(ReturnInput input, List<RuleError> errors)

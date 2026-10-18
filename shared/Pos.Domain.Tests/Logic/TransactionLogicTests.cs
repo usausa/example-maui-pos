@@ -361,7 +361,7 @@ public sealed class TransactionLogicTests
         Assert.Equal((ErrorCode.PaymentMismatch, RuleReason.DepositRefundNotAllowed), (Assert.Single(validation.Errors).Code, validation.Errors[0].Reason));
     }
 
-    // 元の取引がない・取消済み・返品の返品は拒む
+    // 元の取引がない・取消済み・返品の返品は拒み、完了した販売だけを通す
     [Fact]
     public void ValidateReturnOriginal()
     {
@@ -380,6 +380,10 @@ public sealed class TransactionLogicTests
         // Act / Assert: 返品の返品
         var returnOfReturn = TransactionLogic.ValidateReturn(ReturnContext(original: Original(TransactionType.Return, TransactionStatus.Completed)), input, claimed);
         Assert.Contains(returnOfReturn.Errors, static x => x.Code == ErrorCode.OriginalNotReturnable);
+
+        // Act / Assert: 元の取引の判定は完了した販売だけを通す
+        Assert.Null(TransactionLogic.ValidateReturnOriginal(Original(TransactionType.Sale, TransactionStatus.Completed)));
+        Assert.Equal(ErrorCode.OriginalNotReturnable, TransactionLogic.ValidateReturnOriginal(Original(TransactionType.Sale, TransactionStatus.Voided))?.Code);
     }
 
     // 返品数量 ≤ 元数量 − 返品済み数量

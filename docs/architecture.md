@@ -246,7 +246,7 @@ Logic/
   ReturnInput.cs      返品の入力 (ReturnOriginalLine = 元明細の事実)
   TaxLogic.cs         税グループ集計と明細への按分税額 (販売・返品で共用)
   AllocationLogic.cs  最大剰余法の按分、RoundingLogic.cs TaxRounding の丸め
-  TransactionLogic.cs ValidateInput (入力だけの検証) / ValidateSale / ValidateReturn / ValidateVoid → TransactionValidation (Errors / Warnings / Expected)
+  TransactionLogic.cs ValidateInput (入力だけの検証) / ValidateSale / ValidateReturn / ValidateVoid → TransactionValidation (Errors / Warnings / Expected)、ValidateShift / ValidateReturnOriginal → RuleError?
   TransactionValidation.cs  検証結果 (RuleError = ErrorCode + RuleReason、RuleWarning) と、検証に必要な事実 (SaleContext / ReturnContext / VoidContext、ShiftFact / ProductFact / OrderFact ...)
   OrderLogic.cs       受注の状態遷移 (最初の状態、変更・入荷・キャンセル・会計ができるか)、明細の金額、前受金 (受取・返金ができるか、会計で充てる額)
   InventoryMovementLogic.cs  入荷・店舗間移動の状態遷移 (受領・出荷・キャンセルができるか)

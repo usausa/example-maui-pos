@@ -1156,7 +1156,7 @@ PRAGMA foreign_keys = ON
 
 ## 🔒 5. 整合性と更新の単位
 
-SQLite は書き込みが直列化される (単一ライター) が、検証はトランザクションの前に読むので、その後に変わりうる条件 (状態・版・前受金の残り・返品数量、取消のときの返品・精算・締め) は書き込みの文の条件に入れ、条件に合わなければ書き込みを戻す。  
+SQLite は書き込みが直列化される (単一ライター) が、検証はトランザクションの前に読むので、その後に変わりうる条件 (状態・版・前受金の残り・返品数量、取消のときの返品・精算・締め、返品のときの元の取引の取消) は書き込みの文の条件に入れ、条件に合わなければ書き込みを戻す。  
 トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、Service が Accessor の `DbTransaction` 付きメソッドを束ねる (Usecase 層は置かない。[D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く))。
 
 ### 5.1 取引登録 (`POST /transactions`) は 1 つの DB トランザクション
@@ -1166,7 +1166,7 @@ SQLite は書き込みが直列化される (単一ライター) が、検証は
 3. 以下を 1 トランザクションで実行
    - `Transactions` + `TransactionLines` + `TransactionLineSerials` + `TransactionDiscounts` + `TransactionTaxSummaries` + `TransactionPayments` + `TransactionDeliveries` を INSERT
    - 取消済み (`Status = Voided`) で届いた取引は、INSERT と締め済みの印だけを行う
-   - `Return` なら元明細の `ReturnedQuantity` を加算 (超過チェックは同一トランザクション内で再確認)
+   - `Return` なら元明細の `ReturnedQuantity` を加算 (超過しないことと、元の取引が完了であることを同じ文の条件にし、通らなければ登録全体を戻す。元の取引が取り消されていれば `ORIGINAL_NOT_RETURNABLE`、超えれば `RETURN_QUANTITY_EXCEEDED`)
    - `TrackInventory` の明細ごとに `InventoryLevels` を **UPSERT で加減算** (`INSERT ... ON CONFLICT (StoreId, ProductId) DO UPDATE SET Quantity = Quantity + excluded.Quantity`) し、更新後の値 (`RETURNING Quantity`) で `InventoryChanges` を INSERT
    - 顧客があれば `Customers.PointBalance` を `UPDATE ... SET PointBalance = PointBalance + @delta` で加減算し、`PointHistories` を INSERT (`Redeem` → `Earn` の順。Return は `Refund` → `Revoke`。処理後の残高を `Transactions.PointsBalanceAfter` に書く)
    - `Terminals.LastReceiptSeq` を `max(現在値, 今回の連番)` で更新

@@ -149,7 +149,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(TransactionStatus.Completed, (await transactions.QueryAsync(closedDaySaleId, Token))?.Status);
     }
 
-    // 開設 → 販売 (取引一式 + 在庫 + ポイント) → 集計 → 返品数量 → 取消 → 精算 → レポート
+    // 開設 → 販売 (取引一式 + 在庫 + ポイント) → 集計 → 返品数量 → レポート → 取消 → 入出金と精算
     [Fact]
     public async Task TransactionFlow()
     {
@@ -258,7 +258,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal("CAM-X100", products[0].ProductCode);
         Assert.Equal(76000m - 60000m, products[0].GrossProfit);
 
-        // Act / Assert: 取消 → 集計から外れる
+        // Act / Assert: 取消 → 集計から外れ、明細に返品数量を足せない
         var voided = await InTxAsync(provider, tx => transactions.UpdateVoidedAsync(tx, transactionId, now.AddMinutes(10), TestData.ManagerStaffId, "誤操作", now.AddMinutes(10), Token));
         Assert.Equal(TransactionStatus.Voided, voided?.Status);
         Assert.Equal("誤操作", voided?.VoidReason);
@@ -266,6 +266,7 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Equal(TransactionStatus.Voided, (await transactions.QueryAsync(transactionId, Token))!.Status);
         var totalsAfterVoid = await shifts.QuerySummaryAsync(shiftId, Token);
         Assert.Equal(new ShiftTotalsView(0m, 0m, 0m, 0m, 0m, 0m, 0, 0, 1, 0m, 0m), totalsAfterVoid);
+        Assert.Equal(0, await InTxAsync(provider, tx => transactions.AddReturnedQuantityAsync(tx, cameraLineId, 1m, Token)));
 
         // Act / Assert: 入出金と精算
         await shifts.InsertCashEventAsync(new CashEventEntity { Id = Guid.NewGuid(), ShiftId = shiftId, Type = CashEventType.PaidOut, Amount = 10000m, Reason = "両替", StaffId = TestData.MainCashierStaffId, OccurredAt = now.AddMinutes(20), CreatedAt = now.AddMinutes(20) }, Token);

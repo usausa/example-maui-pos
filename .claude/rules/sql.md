@@ -37,6 +37,7 @@ Accessor のメソッド名は accessor.md に置く。
 - decimal の引数を集計や副問い合わせの式と比べるときは `CAST(/*@ x */0 AS NUMERIC)` にする (Microsoft.Data.Sqlite は decimal を TEXT で束縛し、列の親和性がない比較では数値にならない)
 - サーバの編集の更新は `UPDATE ... RETURNING *` で返し、`Version = Version + 1` と `AND Version = /*@ version */0` で楽観ロックし、論理削除のある表は `AND IsDeleted = 0` を付ける
 - サーバの状態を変える更新は、遷移元の状態を `AND Status = '...'` で条件にし、業務ルールで確かめた、ほかの要求が変える記録 (取消の返品・精算・締め、受注の前受金の残り) も条件に入れる (検証のあとに先に通った要求を破らない。担当・承認者は入れない)
+- サーバの記録への加減算も、業務ルールで確かめた、ほかの要求が変える事実を条件に入れる (元の明細に返品済みの数量を足すのは、元の取引が完了のときだけ)
 - 論理削除は `SET IsDeleted = 1, UpdatedAt = …, Version = Version + 1` と `AND IsDeleted = 0` で行い、件数で NotFound を判定する
 - 店舗ごとの連番は 1 文の `INSERT ... SELECT COALESCE(MAX(Seq), 0) + 1 ... RETURNING *` で採番し、(親, Seq) の一意索引で守る
 - サーバのページングする一覧は、件数と一覧の 2 つの SQL の対にし (名前は accessor.md)、一覧は `LIMIT /*@ limit */20 OFFSET /*@ offset */0` でページを取る

@@ -122,7 +122,8 @@ public sealed partial class TransactionAccessor
     [Execute]
     public partial ValueTask<int> UpdatePointsBalanceAfterAsync(DbTransaction tx, Guid id, int? pointsBalanceAfter, CancellationToken cancellationToken);
 
-    // 返品数量を元明細に加算 (超過するときは更新されず 0 が返る)。取消の戻しは負の quantity
+    // 返品数量を元明細に加算 (元の取引が完了で、超過しないときだけ。検証のあとに先に通った取消と返品を破らない)。
+    // 戻り値 0 = 超過するか、元の取引が取り消された。取消の戻しは負の quantity
     [Execute]
     public partial ValueTask<int> AddReturnedQuantityAsync(DbTransaction tx, Guid lineId, decimal quantity, CancellationToken cancellationToken);
 }

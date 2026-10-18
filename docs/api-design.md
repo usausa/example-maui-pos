@@ -668,7 +668,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
    Σ `amount = total`、`tenderedAmount = amount`、`changeAmount = 0`。  
    `kind = Deposit` は使えない (`PAYMENT_MISMATCH`)
 7. 締め済みの営業日は販売と同じく受理して警告 (`DAY_ALREADY_CLOSED`)
-8. 副作用: 在庫変動 (`Return`, +数量)、ポイント履歴 (`Refund` → `Revoke` の順)、元明細の `returnedQuantity` 加算
+8. 検証のあとに元の取引の取消が先に通っているか、先に通った同じ明細の返品で残りが足りなければ返品しない (`ORIGINAL_NOT_RETURNABLE` / `RETURN_QUANTITY_EXCEEDED`)
+9. 副作用: 在庫変動 (`Return`, +数量)、ポイント履歴 (`Refund` → `Revoke` の順)、元明細の `returnedQuantity` 加算
 
 **取消 (`POST /transactions/{id}/void`)**
 

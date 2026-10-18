@@ -286,7 +286,7 @@ public sealed class TransactionService
                 TerminalId = entity.TerminalId,
                 Shift = shiftFact,
                 ReceiptNoInUse = receiptNoInUse,
-                Original = original is null ? null : new OriginalTransactionFact { Id = original.Id, Type = original.Type, Status = original.Status },
+                Original = original is null ? null : ToOriginalFact(original),
                 HasCustomer = customer is not null,
                 DayClosed = dayClosed,
                 Staff = staff
@@ -370,6 +370,13 @@ public sealed class TransactionService
 
                 await tx.CommitAsync(cancellationToken);
             }, cancellationToken);
+        }
+        catch (RuleViolationException ex) when (ex.Code == ErrorCode.ReturnQuantityExceeded)
+        {
+            // 返品済みの数量は元の取引が完了のときだけ足せるので、足せなければ元の取引を読み直し、
+            // 検証のあとに取り消されていれば、超過ではなく返品できない取引にする
+            var current = await transactionAccessor.QueryAsync(entity.OriginalTransactionId ?? Guid.Empty, cancellationToken);
+            return TransactionResult.Violated(TransactionLogic.ValidateReturnOriginal(current is null ? null : ToOriginalFact(current)) ?? new RuleError(ex.Code, ex.Reason));
         }
         catch (RuleViolationException ex)
         {
@@ -764,6 +771,9 @@ public sealed class TransactionService
         Discounts = discounts.Select(static x => new SalesInputDiscount { Id = x.Id, LineId = x.LineId, Type = x.Type, Value = x.Value }).ToList(),
         Payments = ToPayments(payments, paymentMethods)
     };
+
+    private static OriginalTransactionFact ToOriginalFact(TransactionEntity entity) =>
+        new() { Id = entity.Id, Type = entity.Type, Status = entity.Status };
 
     private static ReturnInput ToReturnInput(SettingsEntity settings, IEnumerable<TransactionLineEntity> originalLines, IEnumerable<TransactionLineEntity> lines, IEnumerable<TransactionPaymentEntity> payments, IReadOnlyDictionary<Guid, PaymentMethodEntity> paymentMethods) => new()
     {
