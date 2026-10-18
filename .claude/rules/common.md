@@ -49,4 +49,6 @@
 - 更新の Request は楽観ロックの `Version` を持つ
 - 端末が記録する登録 (シフトの開設、入出金、取引、棚卸・調整、受注、前受金の受取と返金) は、端末が採番した `Id` (サーバと同じ `Guid.CreateVersion7()`) を持つ (会員の登録はサーバが採番する)
 - 項目をまたぐ検証は Request の `IValidatableObject` で 400 にし、DB の事実が要る業務ルールは `Pos.Domain.Logic` で 422 にする
+- 1 つの要求の中で重なってはいけない値 (明細・値引・支払の ID と番号、シリアル番号、精算の金種、受領の明細) は、Request の `IValidatableObject` で 400 にする (一意の制約の違反や辞書の例外の 500 にしない)
+- 一覧を持つ Request は、`IValidatableObject` の先頭で一覧 (要素の中の一覧も含む) の null の要素 (`[null]`) を 400 にし、要素を読む検証の前に `yield break` する (項目の検証は null の要素を飛ばすので、要素を読む処理の例外の 500 になる。一覧そのものの null は `[Required]` で 400 になり、`Validate` は呼ばれない。要素の型は null を許さないので `Cast<object?>().Contains(null)` で確かめる)
 - Contract には通信データと、その型への判定の拡張メソッドだけを置く。JSON の変換器と Problem Details の型は、使う側 (サーバ、端末、ツール) がそれぞれ持つ (テストは Problem Details の型だけを持つ)

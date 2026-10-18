@@ -1,10 +1,19 @@
 namespace Pos.Contract.Inventory;
 
 // 棚卸・調整の一括登録 (POST /inventory/changes)
-public sealed class InventoryChangesRequest
+public sealed class InventoryChangesRequest : IValidatableObject
 {
     [Required]
     public IReadOnlyList<InventoryChangesRequestChange> Changes { get; set; } = default!;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        // 項目の検証は一覧の null の要素を飛ばすので、要素を読む前に拒む
+        if (Changes.Cast<object?>().Contains(null))
+        {
+            yield return new ValidationResult("変動に null は指定できません", [nameof(Changes)]);
+        }
+    }
 }
 
 public sealed class InventoryChangesRequestChange : IValidatableObject

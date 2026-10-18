@@ -74,7 +74,7 @@ C# のプロパティ名は PascalCase (`receiptNo` → `ReceiptNo`)。
 | 作成 | `POST /resources` (本文 `XxxCreateRequest` または端末発の `XxxRequest`) → `201 Created` + `XxxListResponseItem`。`id` を送る登録 (取引、シフトの開設、入出金、受注、前受金の受取と返金) は、**同じ `id` が既に存在すれば `200 OK` で既存を返し**、主な項目が既存と違えば `409 Conflict` (`DUPLICATE_ID_MISMATCH`)。棚卸・調整は要素ごとに `Duplicate` を返し ([§3.16](#316-在庫-inventory))、精算は実査金額が同じ再送を `200` で返す ([§3.13](#313-レジ開閉現金管理-shifts))。同じ `id` の再送が同時に届いても、先に登録した方を既存として返す |
 | 更新 | 管理系は `PUT /resources/{id}` (`XxxUpdateRequest`、全体置換)。本文の `version` で楽観ロック。不一致なら `409 Conflict` (`VERSION_MISMATCH`) |
 | 削除 | 管理系は `DELETE /resources/{id}` で論理削除 (`isDeleted = true`)。取引など履歴は削除しない。削除後も `GET /resources/{id}` は `isDeleted: true` で返し、更新・再削除は `404` |
-| 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422`。本文の JSON や引数の型が読めない要求も `400` (`VALIDATION_ERROR`、[D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする))。1 つの要求の中で重なってはいけない値 (取引の明細・値引・支払の ID と番号、明細のシリアル番号、受注と受領の明細、精算の金種) が重なるときも `400` |
+| 検証 | 入力エラーは `400` (`AddValidation` + DataAnnotations。`errorCode` = `VALIDATION_ERROR`、`errors` にフィールド別)、業務ルール違反は `422`。本文の JSON や引数の型が読めない要求も `400` (`VALIDATION_ERROR`、[D-31](decisions.md#d-31-api-は-camelcase-の-json-と-problem-details-にする))。1 つの要求の中で重なってはいけない値 (取引の明細・値引・支払の ID と番号、明細のシリアル番号、受注と受領の明細、精算の金種) が重なるときと、一覧に `null` の要素があるときも `400` |
 | 重複 | コード・バーコード等の一意制約違反は `409` (`DUPLICATE_CODE`)。`IDialect.IsDuplicate` で SQLite の一意・主キーの違反だけを判定する (外部キーの違反は重複にしない) |
 | 参照先 | 書き込みが指す参照先がなければ、Service が書く前に確かめて `422` にする (外部キーの違反の `500` にしない)。管理の入力 (マスタの店舗・部門・税率、入荷予定・移動の依頼・発注の商品、出荷とポイントの調整の担当) は、削除済みもないものとする。端末の記録 (取引、シフトの開設・入出金・精算、受注、棚卸・調整、受領) は行があればよい (記録した後の無効・削除では拒まない。取引と前受金の担当・承認者は、[§2.6](#26-認証認可) の業務ルールで有効なスタッフかを確かめる)。受領・出荷の担当が見つからなくても、伝票がない (`404`) ことと状態が合わない (`422`) ことを先に返す |
 
@@ -1174,7 +1174,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 
 | HTTP | `errorCode` | 発生箇所 |
 | --- | --- | --- |
-| 400 | `VALIDATION_ERROR` | 入力形式・必須項目、1 つの要求の中の重複 (明細・値引・支払、シリアル番号、精算の金種など)、販売に付いた元取引 (詳細は `errors`) |
+| 400 | `VALIDATION_ERROR` | 入力形式・必須項目、一覧の `null` の要素、1 つの要求の中の重複 (明細・値引・支払、シリアル番号、精算の金種など)、販売に付いた元取引など (詳細は `errors`) |
 | 401 | (本文なし) | ログインもトークンもない、トークンが解除済み・不明、端末が無効・削除済み ([§2.6](#26-認証認可)) |
 | 403 | (本文なし) | 役割が足りない (管理者だけの API、端末からの管理だけの API) |
 | 403 | `TERMINAL_MISMATCH` | 端末のトークンと、本文・クエリの店舗・端末が一致しない |

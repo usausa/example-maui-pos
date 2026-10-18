@@ -13,6 +13,13 @@ public sealed class InventoryTransferReceiveRequest : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        // 項目の検証は一覧の null の要素を飛ばすので、要素を読む前に拒む
+        if (Lines.Cast<object?>().Contains(null))
+        {
+            yield return new ValidationResult("明細に null は指定できません", [nameof(Lines)]);
+            yield break;
+        }
+
         if (Lines.Select(static x => x.LineId).Distinct().Count() != Lines.Count)
         {
             yield return new ValidationResult("明細が重複しています", [nameof(Lines)]);

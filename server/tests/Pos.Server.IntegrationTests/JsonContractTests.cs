@@ -6,7 +6,7 @@ using System.Text.Json;
 using Pos.Contract.Transactions;
 using Pos.Server.Host.Endpoints;
 
-// JSON の約束: camelCase、null は省略、列挙型は文字列、日時は yyyy-MM-ddTHH:mm:ss.fffZ、日付は yyyy-MM-dd
+// JSON の約束: camelCase、null は省略、列挙型は文字列、日時は yyyy-MM-ddTHH:mm:ss.fffZ、日付は yyyy-MM-dd。読めない本文と一覧の null の要素は 400
 public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
 {
     private readonly TestApplicationFactory factory;
@@ -119,5 +119,41 @@ public sealed class JsonContractTests : IClassFixture<TestApplicationFactory>
         // Assert
         var problem = await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         Assert.Equal("入力に誤りがあります", problem.Title);
+    }
+
+    // 一覧の null の要素 (項目の検証は飛ばす) は、その一覧の誤りだけの 400 (VALIDATION_ERROR) にする (要素を読む処理の例外の 500 にしない)
+    [Theory]
+    [InlineData("POST", ApiRoutes.Inventory + "/changes", """{"changes":[null]}""", "changes")]
+    [InlineData("POST", ApiRoutes.InventoryReceipts, """{"lines":[null]}""", "lines")]
+    [InlineData("POST", ApiRoutes.InventoryReceipts + "/00000000-0000-0000-0000-000000000001/receive", """{"lines":[null]}""", "lines")]
+    [InlineData("POST", ApiRoutes.InventoryTransfers, """{"fromStoreId":"00000000-0000-0000-0000-000000000001","toStoreId":"00000000-0000-0000-0000-000000000002","lines":[null]}""", "lines")]
+    [InlineData("POST", ApiRoutes.InventoryTransfers + "/00000000-0000-0000-0000-000000000001/receive", """{"lines":[null]}""", "lines")]
+    [InlineData("POST", ApiRoutes.Orders, """{"customerName":"宛名","lines":[null]}""", "lines")]
+    [InlineData("PUT", ApiRoutes.Orders + "/00000000-0000-0000-0000-000000000001", """{"customerName":"宛名","lines":[null]}""", "lines")]
+    [InlineData("POST", ApiRoutes.PurchaseOrders, """{"lines":[null]}""", "lines")]
+    [InlineData("PUT", ApiRoutes.PurchaseOrders + "/00000000-0000-0000-0000-000000000001", """{"lines":[null]}""", "lines")]
+    [InlineData("POST", ApiRoutes.Shifts + "/00000000-0000-0000-0000-000000000001/close", """{"denominations":[null]}""", "denominations")]
+    [InlineData("POST", ApiRoutes.Transactions + "/calculate", """{"lines":[null]}""", "lines")]
+    [InlineData("POST", ApiRoutes.Transactions + "/calculate", """{"lines":[{"productCode":"P","productName":"P","serialNumbers":[null]}]}""", "lines")]
+    [InlineData("POST", ApiRoutes.Transactions + "/calculate", """{"lines":[],"discounts":[null]}""", "discounts")]
+    [InlineData("POST", ApiRoutes.Transactions + "/calculate", """{"lines":[],"payments":[null]}""", "payments")]
+    [InlineData("POST", ApiRoutes.Transactions, """{"receiptNo":"R","lines":[null],"payments":[]}""", "lines")]
+    [InlineData("POST", ApiRoutes.Transactions, """{"receiptNo":"R","lines":[{"productCode":"P","productName":"P","serialNumbers":[null]}],"payments":[]}""", "lines")]
+    [InlineData("POST", ApiRoutes.Transactions, """{"receiptNo":"R","lines":[],"discounts":[null],"payments":[]}""", "discounts")]
+    [InlineData("POST", ApiRoutes.Transactions, """{"receiptNo":"R","lines":[],"taxSummaries":[null],"payments":[]}""", "taxSummaries")]
+    [InlineData("POST", ApiRoutes.Transactions, """{"receiptNo":"R","lines":[],"payments":[null]}""", "payments")]
+    public async Task ListWithNullItemReturnsValidationError(string method, string path, string body, string key)
+    {
+        // Arrange
+        var client = await factory.CreateAdminClientAsync();
+        using var request = new HttpRequestMessage(new HttpMethod(method), new Uri(path, UriKind.Relative));
+        request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+
+        // Act
+        using var response = await client.SendAsync(request, Token);
+
+        // Assert
+        var problem = await response.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        Assert.Equal([key], problem.Errors?.Keys);
     }
 }

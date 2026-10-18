@@ -38,6 +38,13 @@ public sealed class OrderCreateRequest : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        // 項目の検証は一覧の null の要素を飛ばすので、要素を読む前に拒む
+        if (Lines.Cast<object?>().Contains(null))
+        {
+            yield return new ValidationResult("明細に null は指定できません", [nameof(Lines)]);
+            yield break;
+        }
+
         if ((CustomerId is null) && String.IsNullOrWhiteSpace(CustomerName))
         {
             yield return new ValidationResult("会員か宛名を指定してください", [nameof(CustomerName)]);

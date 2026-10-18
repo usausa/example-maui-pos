@@ -128,8 +128,6 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - 件数の少ないマスタ (税率、値引、支払方法、理由、仕入先) の一覧はページングせずに全件を返し (`page` は 0、`size` は件数)、部門の一覧は `size` の既定を `ApiDefaults.MaxPageSize` にする
 - API の入力検証は DataAnnotations で統一する (FluentValidation は管理画面のフォームだけに使う)
 - クエリの項目をまたぐ検証 (`from` ≤ `to`、「どちらか必須」) は `[AsParameters]` のクエリ型の `IValidatableObject` で行い、ハンドラの中の `if` にしない。またぐ検証のないクエリはハンドラの引数で受ける (Request の検証は common.md)
-- 1 つの要求の中で重なってはいけない値 (明細・値引・支払の ID と番号、シリアル番号、精算の金種、受領の明細) は、Request の `IValidatableObject` で 400 にする (一意の制約の違反や辞書の例外の 500 にしない)
-- `IValidatableObject` が読む一覧には `[Required]` を付ける (null は項目の検証で 400 になり、`Validate` は呼ばれない)
 - `[AsParameters]` のクエリ型の引数は `[FromQuery(Name = "camelCase の名前")]` で名前を付ける (付けないと OpenAPI の引数名がプロパティ名になる)
 - 必須の文字列のクエリは `[Required]` を付ける (空の値は束縛を通ってハンドラに届く)
 - 一覧の `sort` は文字列で受けて列挙型に解析し、不正な値は既定の列にする

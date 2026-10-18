@@ -301,7 +301,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         Assert.Equal(ShiftStatus.Open, (await client.GetJsonAsync<ShiftListResponseItem>($"{ApiRoutes.Shifts}/{shiftId}", options)).Status);
     }
 
-    // 販売の参照先 (店舗、会員、支払方法、税率、値引、承認者) が見つからなければ 422、一意の制約になる ID と番号の重複、販売に付いた元取引、null の一覧 (登録と計算) は 400 で、どれも書かない
+    // 販売の参照先 (店舗、会員、支払方法、税率、値引、承認者) が見つからなければ 422、一意の制約になる ID と番号の重複、販売に付いた元取引、null の一覧 (登録と計算) と null のシリアル番号は 400 で、どれも書かない
     // (外部キーや一意の制約の違反の 500 にすると、端末の未送信が送り直し続ける)
     [Fact]
     public async Task SaleRejectsMissingReferencesAndDuplicates()
@@ -328,7 +328,7 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         using var noApproverResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Discounts[1].ApprovedByStaffId = Guid.NewGuid()), options);
         await noApproverResponse.ReadProblemAsync(HttpStatusCode.UnprocessableEntity, "APPROVAL_REQUIRED", options);
 
-        // Act / Assert: 明細・値引・支払の ID と番号、シリアル番号の重複、販売に付いた元取引、null の一覧
+        // Act / Assert: 明細・値引・支払の ID と番号、シリアル番号の重複、販売に付いた元取引、null の一覧とシリアル番号
         using var lineIdResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Lines[2].Id = x.Lines[1].Id), options);
         await lineIdResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         using var lineNoResponse = await client.PostJsonAsync(ApiRoutes.Transactions, CreateTerminal2SaleRequest(shiftId, calculation, static x => x.Lines[2].LineNo = 2), options);
@@ -352,6 +352,8 @@ public sealed class ApiTransactionFlowTests : IClassFixture<TestApplicationFacto
         await nullTaxSummariesResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         using var nullSerialsResponse = await PostWithNullAsync(client, ApiRoutes.Transactions, valid, static x => x["lines"]![0]!["serialNumbers"] = null);
         await nullSerialsResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
+        using var nullSerialNumberResponse = await PostWithNullAsync(client, ApiRoutes.Transactions, valid, static x => x["lines"]![0]!["serialNumbers"]![0] = null);
+        await nullSerialNumberResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         using var nullCalculateDiscountsResponse = await PostWithNullAsync(client, $"{ApiRoutes.Transactions}/calculate", TransactionRequests.ToCalculateRequest(valid), static x => x["discounts"] = null);
         await nullCalculateDiscountsResponse.ReadProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_ERROR", options);
         using var nullCalculatePaymentsResponse = await PostWithNullAsync(client, $"{ApiRoutes.Transactions}/calculate", TransactionRequests.ToCalculateRequest(valid), static x => x["payments"] = null);
