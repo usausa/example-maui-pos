@@ -814,6 +814,7 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 - 締めた営業日の取引は取消できない (`DAY_CLOSED`)。  
   返品で対応する
 - 締めた後に届いた同じ営業日の取引 (オフラインだった端末の送信、締めた後に開設したシフト) は受理し、`warnings[]` に `DAY_ALREADY_CLOSED` を付けて `hasLateTransactions` を立てる。  
+  取引の検証のあとに締めが先に通ったときも `hasLateTransactions` は立てる (警告は付かない)。  
   締めを解除して締め直すと日計に入る
 
 ### 3.15 受注 (Orders)

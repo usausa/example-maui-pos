@@ -319,7 +319,7 @@ public sealed class TransactionService
             return TransactionResult.Invalid(validation);
         }
 
-        // 登録 (取引一式 + 在庫 + ポイント + 端末の連番) を 1 トランザクションで。Completed 以外 (取消済みの再送) は副作用なし
+        // 登録 (取引一式 + 在庫 + ポイント + 端末の連番) を 1 トランザクションで。Completed 以外 (取消済みで届いた取引) は、締めの印のほかに副作用なし
         entity.CreatedAt = now;
         entity.UpdatedAt = now;
         var sale = entity.Type == TransactionType.Sale;
@@ -362,11 +362,9 @@ public sealed class TransactionService
                     }
                 }
 
-                // 締めた日に届いた取引は、締め直すまで日計に入らないことを示す
-                if (dayClosed)
-                {
-                    await dailyClosingAccessor.UpdateHasLateTransactionsAsync(tx, entity.StoreId, entity.BusinessDate, now, cancellationToken);
-                }
+                // 締めた日に届いた取引は、締め直すまで日計に入らないことを示す。
+                // 検証のあとに締めが先に通った日にも立てるので、検証のときに読んだ締めの有無で分けずに更新する (締めていなければ 0 件)
+                await dailyClosingAccessor.UpdateHasLateTransactionsAsync(tx, entity.StoreId, entity.BusinessDate, now, cancellationToken);
 
                 await tx.CommitAsync(cancellationToken);
             }, cancellationToken);

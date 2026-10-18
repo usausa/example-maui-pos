@@ -1,20 +1,24 @@
 namespace Pos.Server;
 
+using System.Data.Common;
 using System.Text.Json;
 
 using Microsoft.Extensions.DependencyInjection;
 
+using Pos.Contract.DailyClosings;
 using Pos.Contract.Inventory;
 using Pos.Contract.Orders;
 using Pos.Contract.Shifts;
 using Pos.Contract.Transactions;
+using Pos.Server.Accessors;
 using Pos.Server.Host.Endpoints;
+using Pos.Server.Models.Entity;
 
 using Smart.Data;
 
-// 同時に届いた登録: 書き込みを止めた間に送り、書く前の読み取り (同じ Id、レシート番号など) を終えてから書くように重ねる。
-// 先に書いた 1 件のほかは、一意の制約の違反か、条件に合わずに書けなかったこと (前受金、精算) を受けて読み直した結果になる
-public sealed class ApiConcurrentResendTests : IClassFixture<TestApplicationFactory>
+// 同時に届いた書き込み: 書き込みを止めた間に送り、書く前の読み取り (同じ Id、レシート番号、締めなど) を終えてから書くように重ねる。
+// 重なる登録は、先に書いた 1 件のほかが、一意の制約の違反か、条件に合わずに書けなかったこと (前受金、精算) を受けて読み直した結果になる
+public sealed class ApiConcurrencyTests : IClassFixture<TestApplicationFactory>
 {
     private const int Copies = 3;
 
@@ -28,7 +32,7 @@ public sealed class ApiConcurrentResendTests : IClassFixture<TestApplicationFact
 
     private readonly JsonSerializerOptions options;
 
-    public ApiConcurrentResendTests(TestApplicationFactory factory)
+    public ApiConcurrencyTests(TestApplicationFactory factory)
     {
         this.factory = factory;
         options = factory.JsonOptions();
@@ -43,7 +47,7 @@ public sealed class ApiConcurrentResendTests : IClassFixture<TestApplicationFact
     {
         // Arrange
         var client = await factory.CreateAdminClientAsync();
-        var open = OpenRequest(TestData.MainStoreId, TestData.MainTerminal1Id);
+        var open = OpenRequest(TestData.MainStoreId, TestData.MainTerminal1Id, BusinessDate);
         var cashEvent = new ShiftCashEventRequest { Id = Guid.NewGuid(), Type = CashEventType.PaidIn, Amount = 5000m, Reason = "両替", StaffId = TestData.MainCashierStaffId, OccurredAt = Now.AddMinutes(5) };
         var cashEventUrl = $"{ApiRoutes.Shifts}/{open.Id}/cash-events";
         var before = await QuantityAsync(client, TestData.MainStoreId);
@@ -61,7 +65,7 @@ public sealed class ApiConcurrentResendTests : IClassFixture<TestApplicationFact
             cashEvent.Id);
 
         // Act / Assert: 販売
-        var sale = await CreateSaleRequestAsync(client, open.Id, "S001-01-000001");
+        var sale = await CreateSaleRequestAsync(client, open, "S001-01-000001");
         await AssertRegisteredOnceAsync<TransactionListResponseItem>(
             await SendAtOnceAsync(Enumerable.Repeat(sale, Copies), x => client.PostJsonAsync(ApiRoutes.Transactions, x, options)),
             static x => x.Id,
@@ -71,7 +75,7 @@ public sealed class ApiConcurrentResendTests : IClassFixture<TestApplicationFact
         var sameReceiptNo = new List<TransactionCreateRequest>();
         for (var i = 0; i < Copies; i++)
         {
-            sameReceiptNo.Add(await CreateSaleRequestAsync(client, open.Id, "S001-01-000002"));
+            sameReceiptNo.Add(await CreateSaleRequestAsync(client, open, "S001-01-000002"));
         }
 
         await AssertCreatedOnceAsync<TransactionListResponseItem>(
@@ -103,7 +107,7 @@ public sealed class ApiConcurrentResendTests : IClassFixture<TestApplicationFact
     {
         // Arrange
         var client = await factory.CreateAdminClientAsync();
-        var open = OpenRequest(TestData.BranchStoreId, TestData.BranchTerminalId);
+        var open = OpenRequest(TestData.BranchStoreId, TestData.BranchTerminalId, BusinessDate);
         using var openResponse = await client.PostJsonAsync(ApiRoutes.Shifts, open, options);
         await openResponse.ReadAsAsync<ShiftListResponseItem>(HttpStatusCode.Created, options);
         using var otherResponse = await client.PostJsonAsync(ApiRoutes.Orders, OrderRequest(), options);
@@ -175,24 +179,53 @@ public sealed class ApiConcurrentResendTests : IClassFixture<TestApplicationFact
         Assert.Equal(before + 3m, await QuantityAsync(client, TestData.BranchStoreId));
     }
 
+    // 取引の検証のあとに日次締めが先に通っても、その取引の登録で締めの印を立てる (締め直すまで日計に入らないことを示す)
+    [Fact]
+    public async Task ClosingAfterSaleValidationMarksLateTransactions()
+    {
+        // Arrange
+        var client = await factory.CreateAdminClientAsync();
+        var open = OpenRequest(TestData.MainStoreId, TestData.MainTerminal2Id, BusinessDate.AddDays(1));
+        using var openResponse = await client.PostJsonAsync(ApiRoutes.Shifts, open, options);
+        await openResponse.ReadAsAsync<ShiftListResponseItem>(HttpStatusCode.Created, options);
+        var sale = await CreateSaleRequestAsync(client, open, "S001-02-000001");
+        // 集計の後に開設したシフトの取引と重なった締め (締めの Service は止めた書き込みを待つので、止めたトランザクションで行を入れる)
+        var closing = new DailyClosingEntity { Id = Guid.NewGuid(), StoreId = open.StoreId, BusinessDate = open.BusinessDate, ClosedAt = Now, CreatedAt = Now, UpdatedAt = Now };
+        var accessor = factory.Services.GetRequiredService<DailyClosingAccessor>();
+
+        // Act
+        var responses = await SendAtOnceAsync([sale], x => client.PostJsonAsync(ApiRoutes.Transactions, x, options), async tx => await accessor.InsertAsync(tx, closing, Token));
+
+        // Assert
+        using var response = Assert.Single(responses);
+        await response.ReadAsAsync<TransactionListResponseItem>(HttpStatusCode.Created, options);
+        Assert.True((await client.GetJsonAsync<DailyClosingSummaryResponse>($"{ApiRoutes.DailyClosings}/{closing.Id}", options)).DailyClosing.HasLateTransactions);
+    }
+
     //--------------------------------------------------------------------------------
     // Helper
     //--------------------------------------------------------------------------------
 
     // DB の書き込みを止めた間に要求をまとめて送り、読み取りを終えて書き込みで待つころに止めを外す
-    // (それまでに読み取りを終えなかった要求は、順に届いたときの分岐を通るだけで、結果は変わらない)
-    private async Task<HttpResponseMessage[]> SendAtOnceAsync<T>(IEnumerable<T> requests, Func<T, Task<HttpResponseMessage>> send)
+    // (それまでに読み取りを終えなかった要求は、順に届いたときの分岐を通るだけで、結果は変わらない)。
+    // write を渡すと、止めを外す前にその書き込みを先に通す (要求の検証のあとに先に通った、ほかの要求の代わり)
+    private async Task<HttpResponseMessage[]> SendAtOnceAsync<T>(IEnumerable<T> requests, Func<T, Task<HttpResponseMessage>> send, Func<DbTransaction, ValueTask>? write = null)
     {
         await using var con = factory.Services.GetRequiredService<IDbProvider>().CreateConnection();
         await con.OpenAsync(Token);
         Task<HttpResponseMessage>[] tasks;
-        await using (await con.BeginTransactionAsync(Token))
+        await using (var tx = await con.BeginTransactionAsync(Token))
         {
             tasks = requests.Select(send).ToArray();
             await Task.Delay(HoldTime, Token);
 
             // 書き込めない間は、どの要求も終わらない
             Assert.DoesNotContain(tasks, static x => x.IsCompleted);
+            if (write is not null)
+            {
+                await write(tx);
+                await tx.CommitAsync(Token);
+            }
         }
 
         return await Task.WhenAll(tasks);
@@ -234,8 +267,8 @@ public sealed class ApiConcurrentResendTests : IClassFixture<TestApplicationFact
         }
     }
 
-    private static ShiftOpenRequest OpenRequest(Guid storeId, Guid terminalId) =>
-        new() { Id = Guid.NewGuid(), StoreId = storeId, TerminalId = terminalId, BusinessDate = BusinessDate, OpenedAt = Now, OpenedByStaffId = TestData.AdminStaffId, OpeningCash = 0m };
+    private static ShiftOpenRequest OpenRequest(Guid storeId, Guid terminalId, DateOnly businessDate) =>
+        new() { Id = Guid.NewGuid(), StoreId = storeId, TerminalId = terminalId, BusinessDate = businessDate, OpenedAt = Now, OpenedByStaffId = TestData.AdminStaffId, OpeningCash = 0m };
 
     // 支店の取り置き (SD カード 2 枚 = 4,000 円)
     private static OrderCreateRequest OrderRequest() => new()
@@ -260,20 +293,20 @@ public sealed class ApiConcurrentResendTests : IClassFixture<TestApplicationFact
     private async Task<decimal> QuantityAsync(HttpClient client, Guid storeId) =>
         (await client.GetJsonAsync<InventoryProductLevelsResponse>($"{ApiRoutes.Inventory}/{TestData.SdCardProductId}", options)).Levels.Single(x => x.StoreId == storeId).Quantity;
 
-    // SD カード 1 枚 2,000 円を現金で
-    private async Task<TransactionCreateRequest> CreateSaleRequestAsync(HttpClient client, Guid shiftId, string receiptNo)
+    // 本店のシフトで、SD カード 1 枚 2,000 円を現金で
+    private async Task<TransactionCreateRequest> CreateSaleRequestAsync(HttpClient client, ShiftOpenRequest shift, string receiptNo)
     {
         var sale = new TransactionCreateRequest
         {
             Id = Guid.NewGuid(),
             Type = TransactionType.Sale,
             Status = TransactionStatus.Completed,
-            StoreId = TestData.MainStoreId,
-            TerminalId = TestData.MainTerminal1Id,
+            StoreId = shift.StoreId,
+            TerminalId = shift.TerminalId,
             StaffId = TestData.MainCashierStaffId,
-            ShiftId = shiftId,
+            ShiftId = shift.Id,
             ReceiptNo = receiptNo,
-            BusinessDate = BusinessDate,
+            BusinessDate = shift.BusinessDate,
             TransactedAt = Now.AddMinutes(10),
             Lines =
             [

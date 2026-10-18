@@ -1171,7 +1171,7 @@ SQLite は書き込みが直列化される (単一ライター) が、検証は
    - `TrackInventory` の明細ごとに `InventoryLevels` を **UPSERT で加減算** (`INSERT ... ON CONFLICT (StoreId, ProductId) DO UPDATE SET Quantity = Quantity + excluded.Quantity`) し、更新後の値 (`RETURNING Quantity`) で `InventoryChanges` を INSERT
    - 顧客があれば `Customers.PointBalance` を `UPDATE ... SET PointBalance = PointBalance + @delta` で加減算し、`PointHistories` を INSERT (`Redeem` → `Earn` の順。Return は `Refund` → `Revoke`。処理後の残高を `Transactions.PointsBalanceAfter` に書く)
    - `Terminals.LastReceiptSeq` を `max(現在値, 今回の連番)` で更新
-   - 店舗 × 営業日が締め済みなら `DailyClosings.HasLateTransactions` を立てる
+   - 店舗 × 営業日の締めがあれば `DailyClosings.HasLateTransactions` を立てる (検証のあとに締めた日にも立てるので、検証のときの締めの有無によらず更新する)
    - 受注から会計した販売なら、引き渡し待ち (`Arrived`) の受注を `Completed` にして `TransactionId` を入れる (状態か前受金の残りが検証のときと変わっていれば、登録全体を戻して `ORDER_NOT_READY`)
 4. コミット。  
    同じ `Id` の再送が同時に届いて一意の制約に反したら、読み直して 1 と同じく既存を返す (`Id` がなければレシート番号の重複)
