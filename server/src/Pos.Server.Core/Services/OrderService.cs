@@ -388,7 +388,8 @@ public sealed class OrderService
             : new OrderResult(OrderResultStatus.DuplicateMismatch);
     }
 
-    // 前受金の記録。読んだときの残り (balance) のままで、シフトが開設中なら登録し、重なった操作で変わっていたら改めて検証する
+    // 前受金の記録。読んだときの残り (balance) のままで、シフトが開設中なら登録する。
+    // 重なった操作で変わっていたら、同じ id の再送でなければ改めて検証する
     private async ValueTask<OrderResult> InsertDepositAsync(Guid id, OrderDepositEntity deposit, decimal balance, Func<OrderEntity, decimal, RuleError?> validate, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -413,7 +414,7 @@ public sealed class OrderService
         }
         catch (DbException ex) when (dialect.IsDuplicate(ex))
         {
-            // 同じ id の再送が同時に届き、先に登録された
+            // 残りの条件に合ったのに id が重なった (別の受注の前受金と同じ id など)
             var resent = await ResolveResentDepositAsync(id, deposit, deposit.Type, cancellationToken);
             if (resent is null)
             {
@@ -427,6 +428,12 @@ public sealed class OrderService
         {
             changeNotification.Notify(DataChangeKind.Order);
             return new OrderResult(OrderResultStatus.Success, await QueryDetailAsync(id, cancellationToken));
+        }
+
+        // 同じ id の再送が同時に届いて先に登録されると、残りが変わって条件に合わないので、検証の前に再送として読み直す
+        if (await ResolveResentDepositAsync(id, deposit, deposit.Type, cancellationToken) is { } existing)
+        {
+            return existing;
         }
 
         var current = await orderAccessor.QueryAsync(id, cancellationToken);

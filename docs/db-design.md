@@ -1157,7 +1157,8 @@ PRAGMA foreign_keys = ON
 ## 🔒 5. 整合性と更新の単位
 
 SQLite は書き込みが直列化される (単一ライター) が、検証はトランザクションの前に読むので、その後に変わりうる条件 (状態・版・前受金の残り・返品数量、取消のときの返品・精算・締め、返品のときの元の取引の取消) は書き込みの文の条件に入れ、条件に合わなければ書き込みを戻す。  
-トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、Service が Accessor の `DbTransaction` 付きメソッドを束ねる (Usecase 層は置かない。[D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く))。
+トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、Service が Accessor の `DbTransaction` 付きメソッドを束ねる (Usecase 層は置かない。[D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く))。  
+端末が採番した `Id` の登録は、書く前に同じ `Id` を読んで再送を見分け、同時に届いた再送は主キーの違反 (前受金は、残りの条件に合わずに書けなかったこと) を受けて読み直し、先に登録した方を返す。
 
 ### 5.1 取引登録 (`POST /transactions`) は 1 つの DB トランザクション
 
@@ -1203,7 +1204,7 @@ SQLite は書き込みが直列化される (単一ライター) が、検証は
 入荷・キャンセル・変更は状態を条件にした `UPDATE ... RETURNING *` で、行が返らなければ状態 (または版) が合わない。  
 キャンセルは前受金の残りが 0 のときだけにする (条件に `OrderDeposits` の合計を入れる)。  
 前受金の受取・返金は 1 文の `INSERT INTO OrderDeposits ... SELECT ... FROM Orders WHERE ...` で、受注が未完了で、前受金の残りが検証のときと同じで、シフトが開設中のときだけ登録する。  
-同時の受取・返金・キャンセル・会計・精算と重なったら登録せず、改めて検証する。
+同時の受取・返金・キャンセル・会計・精算と重なったら登録せず、同じ `Id` の再送が先に登録されていれば既存を返し、そうでなければ改めて検証する。
 
 ### 5.6 商品画像と CSV 取込
 

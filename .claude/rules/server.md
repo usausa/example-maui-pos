@@ -21,7 +21,8 @@ Accessor の書き方は accessor.md、SQL は sql.md、管理画面は server-u
 - 1 つの Service だけが返す結果型 (`XxxResult`) とその状態 (`XxxResultStatus`) は、その Service のファイルの先頭で定義する。複数の Service で使う型 (`DataWriteStatus`、`DataWriteResult<T>`) は独自のファイルにする
 - 重複 (`IDialect.IsDuplicate`)、楽観ロック (`RETURNING` で行が返らない)、使用中 (件数クエリ) の判定は Service の中で行い、マスタは `DataWriteStatus` / `DataWriteResult<T>`、ほかは `XxxResult` で返す。「読んでから更新」で判定しない
 - `IDialect.IsDuplicate` は一意・主キーの違反だけを重複にする (外部キーの違反を `DUPLICATE_CODE` にしない)
-- 冪等な登録は、書く前に同じ `Id` を読んで再送の結果 (`Existing`、`DuplicateMismatch`) を返す (再送の判定なので「読んでから更新」にあたらない)。同時の再送で起きる一意の違反は `IsDuplicate` で受けて読み直し、行がなければほかの一意の制約の違反 (レシート番号、開設中のシフト) を返し、どれでもなければ例外のままにする
+- 冪等な登録は、書く前に同じ `Id` を読んで再送の結果 (`Existing`、`DuplicateMismatch`) を返す (再送の判定なので「読んでから更新」にあたらない)
+- 同時に届いた再送で起きる一意の違反は `IsDuplicate` で受けて読み直し、行がなければほかの一意の制約の違反 (レシート番号、開設中のシフト) を返し、どれでもなければ例外のままにする。条件付きの登録 (前受金) が 0 件のときも、改めて検証する前に同じ `Id` を読み直す (先に登録された再送で条件が変わる)
 - 書き込みが指す参照先は Service が書く前に確かめ、なければ 422 にする (マスタは `Invalid`、ほかは `RuleError`)。外部キーの違反 (500) に任せない (端末の未送信が要確認にならずに送り直し続ける)
 - 参照先の確かめでは、管理の入力 (マスタ、発注、入荷、移動、出荷、ポイントの調整) は削除済みもないものとし、端末の記録 (取引、シフト、入出金、受注、在庫の変動、受領) は行があればよい (記録した後の無効・削除で拒まない)。例外として、取引と前受金の担当・承認者は業務ルール (`StaffLogic`) で店舗の有効なスタッフかを確かめる
 - 担当・承認者の行がないときは `StaffNotFound` / `ApproverNotFound` (見つかりません) にし、有効なスタッフでないとき (`StaffNotAllowed` / `ApproverNotAllowed`) と文言を分ける
