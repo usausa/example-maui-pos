@@ -114,6 +114,41 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Empty(inactive);
     }
 
+    // 取消の更新は、完了した返品のある販売、精算したシフトの取引、締めた営業日の取引では行を返さない (検証のあとに先に通った返品・精算・締めを破らない。返品の取引は返品が付いていても取り消せる)
+    [Fact]
+    public async Task VoidUpdateRequiresNoReturnsOpenShiftAndOpenDay()
+    {
+        // Arrange
+        var provider = Resolve<IDbProvider>();
+        var shifts = Resolve<ShiftAccessor>();
+        var transactions = Resolve<TransactionAccessor>();
+        var closings = Resolve<DailyClosingAccessor>();
+        var now = new DateTime(2026, 8, 3, 3, 0, 0, DateTimeKind.Utc);
+        var openDate = new DateOnly(2026, 8, 3);
+        var closedDate = new DateOnly(2026, 8, 4);
+        var openShiftId = Guid.NewGuid();
+        var closedShiftId = Guid.NewGuid();
+        await shifts.InsertAsync(new ShiftEntity { Id = openShiftId, StoreId = TestData.BranchStoreId, TerminalId = TestData.BranchTerminalId, Status = ShiftStatus.Open, BusinessDate = openDate, OpenedAt = now, OpenedByStaffId = TestData.BranchCashierStaffId, OpeningCash = 0m, CreatedAt = now, UpdatedAt = now }, Token);
+        await shifts.InsertAsync(new ShiftEntity { Id = closedShiftId, StoreId = TestData.BranchStoreId, TerminalId = TestData.BranchTerminalId, Status = ShiftStatus.Closed, BusinessDate = openDate, OpenedAt = now, OpenedByStaffId = TestData.BranchCashierStaffId, OpeningCash = 0m, ClosedAt = now, ClosedByStaffId = TestData.BranchCashierStaffId, CreatedAt = now, UpdatedAt = now }, Token);
+        var returnedSaleId = await InsertBranchTransactionAsync(provider, transactions, TransactionType.Sale, openShiftId, openDate, null, "S002-01-000001", now);
+        var returnId = await InsertBranchTransactionAsync(provider, transactions, TransactionType.Return, openShiftId, openDate, returnedSaleId, "S002-01-000002", now);
+        await InsertBranchTransactionAsync(provider, transactions, TransactionType.Return, openShiftId, openDate, returnId, "S002-01-000005", now);
+        var closedShiftSaleId = await InsertBranchTransactionAsync(provider, transactions, TransactionType.Sale, closedShiftId, openDate, null, "S002-01-000003", now);
+        var closedDaySaleId = await InsertBranchTransactionAsync(provider, transactions, TransactionType.Sale, openShiftId, closedDate, null, "S002-01-000004", now);
+        await InTxAsync(provider, tx => closings.InsertAsync(tx, new DailyClosingEntity { Id = Guid.NewGuid(), StoreId = TestData.BranchStoreId, BusinessDate = closedDate, ClosedAt = now, CreatedAt = now, UpdatedAt = now }, Token));
+
+        // Act / Assert: 完了した返品のある販売は取り消せず、返品の取引は返品が付いていても取り消せ、返品を取り消すと販売も取り消せる
+        Assert.Null(await VoidAsync(provider, transactions, returnedSaleId, now));
+        Assert.Equal(TransactionStatus.Voided, (await VoidAsync(provider, transactions, returnId, now))?.Status);
+        Assert.Equal(TransactionStatus.Voided, (await VoidAsync(provider, transactions, returnedSaleId, now))?.Status);
+
+        // Act / Assert: 精算したシフトの取引と、締めた営業日の取引は取り消せない
+        Assert.Null(await VoidAsync(provider, transactions, closedShiftSaleId, now));
+        Assert.Null(await VoidAsync(provider, transactions, closedDaySaleId, now));
+        Assert.Equal(TransactionStatus.Completed, (await transactions.QueryAsync(closedShiftSaleId, Token))?.Status);
+        Assert.Equal(TransactionStatus.Completed, (await transactions.QueryAsync(closedDaySaleId, Token))?.Status);
+    }
+
     // 開設 → 販売 (取引一式 + 在庫 + ポイント) → 集計 → 返品数量 → 取消 → 精算 → レポート
     [Fact]
     public async Task TransactionFlow()
@@ -275,4 +310,24 @@ public sealed class AccessorTests : IClassFixture<TestApplicationFactory>
         Assert.Null(await shifts.QueryCurrentAsync(TestData.MainTerminal2Id, Token));
         Assert.Equal(1, await shifts.CountAsync(TestData.MainStoreId, null, ShiftStatus.Closed, businessDate, businessDate, Token));
     }
+
+    //--------------------------------------------------------------------------------
+    // Helper
+    //--------------------------------------------------------------------------------
+
+    // 取消の条件だけを確かめる支店の取引 (明細と支払は持たない)
+    private static async ValueTask<Guid> InsertBranchTransactionAsync(IDbProvider provider, TransactionAccessor transactions, TransactionType type, Guid shiftId, DateOnly businessDate, Guid? originalTransactionId, string receiptNo, DateTime now)
+    {
+        var id = Guid.NewGuid();
+        await InTxAsync(provider, tx => transactions.InsertAsync(tx, new TransactionEntity
+        {
+            Id = id, Type = type, Status = TransactionStatus.Completed,
+            StoreId = TestData.BranchStoreId, TerminalId = TestData.BranchTerminalId, StaffId = TestData.BranchCashierStaffId, ShiftId = shiftId,
+            ReceiptNo = receiptNo, BusinessDate = businessDate, TransactedAt = now, OriginalTransactionId = originalTransactionId, CreatedAt = now, UpdatedAt = now
+        }, Token));
+        return id;
+    }
+
+    private static ValueTask<TransactionEntity?> VoidAsync(IDbProvider provider, TransactionAccessor transactions, Guid id, DateTime now) =>
+        InTxAsync(provider, tx => transactions.UpdateVoidedAsync(tx, id, now, TestData.BranchCashierStaffId, "取消", now, Token));
 }

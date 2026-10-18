@@ -677,7 +677,8 @@ POST /api/v1/transactions      (TransactionCreateRequest)
 3. 取引の店舗 × 営業日が締め済みなら取消不可 (`DAY_CLOSED`。返品で対応)
 4. 担当は取引の店舗 (または本部) の有効なスタッフ (`STAFF_INVALID`)。  
    レジ係なら、その店舗 (または本部) の店長以上の承認者が要る (`APPROVAL_REQUIRED`)
-5. 副作用: 在庫変動 (`Void`, 逆方向)、ポイント履歴 (`Void`)、`Return` の取消なら元明細の `returnedQuantity` を戻し、受注から会計した `Sale` の取消なら受注を引き渡し待ちに戻す。  
+5. 検証のあとに取消・返品・精算・締めが先に通っていれば取り消さず、読み直した違反を返す (違反がなければ `409` `VERSION_MISMATCH`)
+6. 副作用: 在庫変動 (`Void`, 逆方向)、ポイント履歴 (`Void`)、`Return` の取消なら元明細の `returnedQuantity` を戻し、受注から会計した `Sale` の取消なら受注を引き渡し待ちに戻す。  
    取消済み取引は集計から除外
 
 ### 3.13 レジ開閉・現金管理 (Shifts)
@@ -1183,7 +1184,7 @@ pointsRedeemed            = −Floor(o.pointsRedeemed × q / o.quantity)      (�
 | 422 | `VALIDATION_ERROR` | 取引の入力の誤り (明細なし、数量・単価・値引の値、値引の超過など)、取消済みの取引の取消、参照先 (店舗・端末・部門・税率・会員・仕入先・支払方法・値引・調整理由、ポイントの調整の担当) がない、有効な `Points` / `Deposit` の支払方法の 2 件目、部門の親に自身、商品画像の形式、CSV 取込の誤りのある行 (`errors` は行番号ごと) |
 | 404 | `NOT_FOUND` | 対象なし |
 | 409 | `DUPLICATE_ID_MISMATCH` | 同一 `id` で内容が異なる再送 |
-| 409 | `VERSION_MISMATCH` | 楽観ロック失敗 |
+| 409 | `VERSION_MISMATCH` | 楽観ロック失敗、検証のあとに他で変わって書き込めなかった取消・前受金 |
 | 409 | `DUPLICATE_CODE` | コード・バーコード・会員番号の重複 |
 | 409 | `TERMINAL_HAS_OPEN_SHIFT` | 開設中シフトがある端末で再開設 |
 | 409 | `ALREADY_CLOSED` | 締め済みの営業日の締め |

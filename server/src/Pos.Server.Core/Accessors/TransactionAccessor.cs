@@ -113,7 +113,8 @@ public sealed partial class TransactionAccessor
     // Update
     //--------------------------------------------------------------------------------
 
-    // 取消済みにする。戻り値 null = 既に取消済み
+    // 取消済みにする (完了で、シフトが開設中で、営業日を締めておらず、販売なら完了した返品がないときだけ。検証のあとに先に通った返品・精算・締めを破らない)。
+    // 戻り値 null = 取消済み・シフトを精算した・営業日を締めた・返品がある
     [QueryFirst]
     public partial ValueTask<TransactionEntity?> UpdateVoidedAsync(DbTransaction tx, Guid id, DateTime voidedAt, Guid voidedByStaffId, string reason, DateTime updatedAt, CancellationToken cancellationToken);
 

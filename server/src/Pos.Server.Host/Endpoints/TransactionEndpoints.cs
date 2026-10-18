@@ -59,6 +59,7 @@ public static partial class TransactionEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
     }
 
@@ -342,6 +343,7 @@ public static partial class TransactionEndpoints
             TransactionResultStatus.Success => TypedResults.Ok(ToListResponseItem(result.Detail!)),
             TransactionResultStatus.NotFound => ApiProblems.NotFound("取引が見つかりません"),
             TransactionResultStatus.Invalid => ToProblem(result.Validation!),
+            TransactionResultStatus.VersionMismatch => ApiProblems.VersionMismatch(),
             _ => ApiProblems.FromViolation(result.Violation!)
         };
     }

@@ -19,7 +19,9 @@ public enum TransactionResultStatus
     // 業務ルール違反 (Validation にエラーと期待値)
     Invalid,
     // 書き込み中に見つかった違反 (Violation)
-    Violation
+    Violation,
+    // 検証のあとに他で変わって書き込めなかった (読み直すと違反はない)
+    VersionMismatch
 }
 
 // 取引の登録・取消の結果
@@ -55,6 +57,8 @@ public sealed class TransactionResult
     public static TransactionResult Invalid(TransactionValidation validation) => new(TransactionResultStatus.Invalid, validation: validation);
 
     public static TransactionResult Violated(RuleError violation) => new(TransactionResultStatus.Violation, violation: violation);
+
+    public static TransactionResult VersionMismatch() => new(TransactionResultStatus.VersionMismatch);
 }
 
 // 計算の結果 (登録しない)。Error は先頭の 1 件
@@ -667,7 +671,8 @@ public sealed class TransactionService
             Approver = await QueryStaffFactAsync(approvedByStaffId, cancellationToken)
         };
 
-    // 取消の更新で行が返らなかった (検証のあとで取消が先に通った): 読み直して違反を返す
+    // 取消の更新で行が返らなかった (検証のあとで取消・返品・精算・締めが先に通った): 読み直して違反を返す。
+    // 違反がなければ (読み直すまでに返品の取消や締めの解除も通った) 他で変わったとして版の不一致にする (前受金と同じ)
     private async ValueTask<TransactionResult> RevalidateVoidAsync(Guid id, Guid staffId, Guid? approvedByStaffId, CancellationToken cancellationToken)
     {
         if (await transactionAccessor.QueryAsync(id, cancellationToken) is not { } current)
@@ -676,9 +681,7 @@ public sealed class TransactionService
         }
 
         var validation = TransactionLogic.ValidateVoid(await QueryVoidContextAsync(current, staffId, approvedByStaffId, cancellationToken));
-        return validation.IsValid
-            ? TransactionResult.Violated(new RuleError(ErrorCode.ValidationError, RuleReason.AlreadyVoided))
-            : TransactionResult.Invalid(validation);
+        return validation.IsValid ? TransactionResult.VersionMismatch() : TransactionResult.Invalid(validation);
     }
 
     private async ValueTask<SettingsEntity> QuerySettingsAsync(CancellationToken cancellationToken) =>

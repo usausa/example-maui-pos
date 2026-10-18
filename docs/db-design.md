@@ -1156,7 +1156,7 @@ PRAGMA foreign_keys = ON
 
 ## 🔒 5. 整合性と更新の単位
 
-SQLite は書き込みが直列化される (単一ライター) が、検証はトランザクションの前に読むので、その後に変わりうる条件 (状態・版・前受金の残り・返品数量) は書き込みの文の条件に入れ、条件に合わなければ書き込みを戻す。  
+SQLite は書き込みが直列化される (単一ライター) が、検証はトランザクションの前に読むので、その後に変わりうる条件 (状態・版・前受金の残り・返品数量、取消のときの返品・精算・締め) は書き込みの文の条件に入れ、条件に合わなければ書き込みを戻す。  
 トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、Service が Accessor の `DbTransaction` 付きメソッドを束ねる (Usecase 層は置かない。[D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く))。
 
 ### 5.1 取引登録 (`POST /transactions`) は 1 つの DB トランザクション
@@ -1177,7 +1177,9 @@ SQLite は書き込みが直列化される (単一ライター) が、検証は
 
 ### 5.2 取消 (`POST /transactions/{id}/void`)
 
-`UPDATE Transactions ... WHERE Status = 'Completed' RETURNING *` で `Status = Voided` と取消の列を書き (行が返らなければ取消済み)、在庫は逆方向の `InventoryChanges (Type = Void)`、ポイントは `PointHistories (Type = Void)` を足す。  
+`UPDATE Transactions ... WHERE Status = 'Completed' RETURNING *` で `Status = Voided` と取消の列を書き、在庫は逆方向の `InventoryChanges (Type = Void)`、ポイントは `PointHistories (Type = Void)` を足す。  
+更新は、シフトが開設中で、店舗 × 営業日を締めておらず、販売なら完了した返品がないことも条件にする (検証のあとに先に通った返品・精算・締めを破らない)。  
+行が返らなければ読み直し、取消済みか取り消せない理由を返す (読み直しても違反がなければ、他で変わったとして `409` (`VERSION_MISMATCH`) を返す)。  
 元の履歴行は変更しない。  
 販売の取消は同じトランザクションで受注を `Arrived` に戻して `TransactionId` を外し、返品の取消は元明細の `ReturnedQuantity` を戻す。  
 店舗 × 営業日が締め済みのとき、シフトが精算済みのとき、返品のある販売の取消は拒否する。
