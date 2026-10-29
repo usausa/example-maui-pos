@@ -314,23 +314,25 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
 `net10.0-android`。
 
 ```
-MauiProgram.cs                       BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド (D-23)、NavigationFocusPlugin、NavigationFeedbackPlugin、Debug のときは LeakDetectionPlugin)、Dialog / Popup、フォントは MaterialIcons のみ
+MauiProgram.cs                       BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド (D-23)、NavigationFocusPlugin、NavigationUnfocusPlugin、NavigationFeedbackPlugin、Debug のときは LeakDetectionPlugin)、Dialog / Popup、フォントは MaterialIcons のみ
                                      + BarcodeScanning、HttpClient (IHttpClientFactory)、IDbProvider (SQLite)、DataAccessor、Service / Usecase、State
 MainPage.xaml / MainPageViewModel    シェル (タイトル + 店舗-端末 担当 + 未送信バッジ + F1〜F4)。起動時に Setup (未登録) または StaffSelect へ。要求が 401 になったら知らせて Setup へ。  
-                                     根の画面 (AppViewModelBase.HandlesBack = false) の戻るはプラットフォームに任せる (MainActivity がタスクを背面へ回す)。  
+                                     根の画面 (ホーム、スタッフ選択、未登録の初期設定) の戻るは、ViewModel が AndroidHelper.MoveTaskToBack でタスクを背面へ回す。  
                                      遷移の間は Busy にして、ボタン・F キー・戻るを受け付けない
 App.xaml.cs                          起動時に前回の異常終了を知らせ、DatabaseService でローカル DB を作り、CredentialService でトークンを読み、SyncService でセッションを復元して同期を始める。  
                                      ローカル DB を開けないときは理由を出して終了する (未送信を含む DB を作り直さない)
-Extensions.cs                        拡張メソッド (リソース、IDialog の日本語ボタン、PostForwardAsync / PostActionAsync、TrimToNull、ObservableCollection.Replace)
+Extensions.cs                        拡張メソッド (リソース、既定のフォーカス、IDialog の日本語ボタン、PostForwardAsync / PostActionAsync、TrimToNull、ObservableCollection.Replace、イベントの Observable)
 Shell/                               ShellProperty (表示中の View だけがシェルを更新する。ステータスバーの色も画面ごとに指定できるが、今の画面は指定しない)、ShellEvent、
                                      ShellUpdateBehavior、IShellControl (値は NotificationValue、F キーは FunctionState の一覧)
 Behaviors/                           Entry / Label / Scroll などの動作 (Scroll はオーバースクロールを既定で止める)、TouchOption (押したときの波紋とクリック。要素を増やさずにビューに付ける)、
-                                     EntryBind (EntryController)、BarcodeBind (CameraView)
-Messaging/                           BarcodeController、EntryController
-Controls/                            SectionPanel (見出しと白い面の節)、StatusChip (状態を色と短い文言で示すチップ)
+                                     EntryBind (EntryController。完了を処理済みにしなければ次の欄へフォーカスを移す)、BarcodeBind (CameraView)、
+                                     Focus (遷移時の既定のフォーカスを止める SuppressDefaultFocus と、既定の欄の Default)
+Messaging/                           BarcodeController、EntryController、EntryCompleteCommand (文字の欄の完了を処理済みにして、次の欄や一覧へフォーカスを移さない)
+Controls/                            SectionPanel (見出しと白い面の節)、LabelChip (状態・種別・属性を色と短い文言で示す表示だけのチップ。テンプレートの StatusChip より小さい POS の大きさ)
 Components/                          StorageManager (アプリのフォルダ。ローカル DB の置き場所)、
-                                     DeviceInformation (回線の状態を Android の通知から受けて持ち、変化をイベントで知らせる。起動時に開始)
-Extender/                            NavigationFocusPlugin (離れる画面の入力欄のフォーカスを外し、移った後にソフトキーボードを閉じる。Android)、NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、
+                                     DeviceInformation (回線・電池・無線 LAN の状態を Android の通知から受けて持ち、変化をイベントで知らせる。起動時に開始)
+Extender/                            NavigationFocusPlugin (移った後にソフトキーボードを閉じ、開いた画面の既定の欄にフォーカスを置く。文字の欄がある画面は Focus.SuppressDefaultFocus で止める。Android)、
+                                     NavigationUnfocusPlugin (離れる画面の入力欄のフォーカスを外す)、NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、
                                      LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)、PopupActivationPlugin (ポップアップを開いている間は、後ろの画面の操作を受け付けない)
 Log.cs                               [LoggerMessage] の集約
 Diagnostics/                         CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)
@@ -338,7 +340,7 @@ Converters/                          DisplayNameConverter (列挙型 → 文言)
                                      色や選択マーク・画面固有の文言は Smart.Maui の BoolToColor / MapToColor / BoolToText を Styles.xaml で構成する
 Markup/                              ViewIdExtension (XAML で画面 ID を `{markup:ViewId Xxx}` と書く)、
                                      AppIcons (ボタンに付ける Material Icons のアイコン。XAML から `{x:Static markup:AppIcons.Xxx}` で使う)
-Helpers/                             アプリに依存しない処理だけ: DateTimeHelper (日付書式の集約)、SettingParser (Key=Value)、
+Helpers/                             アプリに依存しない処理だけ: DateTimeHelper (日付書式の集約)、SettingParser (Key=Value)、ElementHelper (フォーカスできる要素の探索と移動)、
                                      Data/ (EnumTextConverter<T> / DateOnlyTextConverter / DateTimeTicksConverter / SchemaHelper / SqlHelper: LIKE のエスケープ)、Json/JsonDateTimeConverter
 Permissions.cs                       カメラ権限
 Modules/
@@ -363,7 +365,7 @@ Modules/
 Models/
   Cart/       SalesCart, CartLine, CartDiscount, CartPayment, CartDelivery
   Entity/     ローカル DB のエンティティ (LocalTransaction / LocalShift / LocalCashEvent / LocalOrderDeposit / Outbox / SyncState / HoldCart。マスタは Pos.Contract の Response をそのまま使う)
-  Input/      NumberInputParameter, NumberInputModel
+  Input/      NumberInputParameter (数値), DigitsInputParameter (番号と PIN), NumberInputModel
   Inventory/  ReceivingDocument (受領待ちの伝票と明細), ReceivingKind, ReceivingLineState, StockChange (棚卸・在庫調整の 1 件)
   SummaryRow.cs (集計・詳細画面の行と節)
 Services/                            単機能の部品
@@ -389,18 +391,21 @@ Usecases/                            通信 → DB → 完了までの一連の�
   TransactionMapper.cs               Cart → Pos.Domain の計算入力 → TransactionCreateRequest の変換、送る前の取引を履歴に出すための要求 → 応答の変換
   ShiftSummaryCalculator.cs          ローカルの取引・入出金・前受金からのシフト集計
 State/
-  DeviceState.cs                     回線の状態 (DeviceInformation の通知を UI スレッドに移して持つ。オンラインかどうかの判定に使う)
+  DeviceState.cs                     回線・電池・無線 LAN の状態 (DeviceInformation の通知を UI スレッドに移して持つ。回線はオンラインかどうかの判定に使う)
   StartupState.cs                    起動処理の完了 (シェルは完了を待ってから最初の画面へ進む)
   Settings.cs                        ApiEndPoint / StoreId / TerminalId / PairedAt / OpenSalesAfterLogin (IPreferences。トークンは CredentialService の SecureStorage)
   Session.cs                         使用者に紐付く状態: 会社設定、店舗、端末、選択中スタッフ、開設中シフト、未送信 / 要確認件数、営業日、CanTransact
 Resources/
   Fonts/      MaterialIcons のみ
   Styles/     Colors.xaml、Styles.xaml (Converter の構成、POS 節: Pos 接頭辞のスタイル、ヘッダの状態表示 / 一覧行 / チップ / テンキー / 入力欄)
-Platforms/Android/ MainActivity (pos.terminal.MainActivity。オーバースクロールを止めるテーマ NoOverScrollTheme を当てる)、AndroidHelper (外部ストレージがなければアプリ内のフォルダ)、
+Platforms/Android/ MainActivity (pos.terminal.MainActivity。オーバースクロールを止めるテーマ NoOverScrollTheme を当てる)、AndroidHelper (外部ストレージがなければアプリ内のフォルダ、タスクを背面へ回す)、
                    Graphics/DirectFontImageSourceService (FontImageSource の画像を MAUI の画像の読み込み (Glide) を通さずにその場で描く)。権限はネットワークとカメラ。  
                    バックアップと端末間の転送はしない (allowBackup = false、Resources/xml/data_extraction_rules.xml)
 ```
 
+- 共通の部品 (`Behaviors/`、`Extender/`、`Shell/`、`Components/`、`Diagnostics/`、`Messaging/`、`Helpers/`、`Converters/`、`Markup/ViewIdExtension`、`Platforms/Android/`、`App`、ViewModel の基底などのうち、MAUI のテンプレート (template-maui) にもあるファイル) は、テンプレートと同じにし、名前空間のほかは変えない ([D-26](decisions.md#d-26-サーバ端末共有のプロジェクトに分ける))。  
+  テンプレートにしかない機能やパッケージが要る行 (通知、地図、PDF などの登録、前面の状態) は入れず、起動時の初期化は POS のものにする。  
+  POS だけの動きと見た目は別のファイル (`NavigationUnfocusPlugin`、`EntryCompleteCommand`、`DigitsInputParameter`、`LabelChip` など) に置く
 - ViewModel は入力の検証と表示に徹し、通信 → DB → 完了までの一連の手順は `Usecases/` の `XxxUsecase`、単機能は `Services/` の `XxxService` に置く ([D-28](decisions.md#d-28-端末は-viewmodel-から-service-と-usecase-を呼ぶ))。  
   ViewModel から `IDbProvider` は使わない
 - 特定の機能の画面間でだけ共有する状態 (カート、返品、棚卸の入力、入荷・移動の検品、会員編集の下書き) は `State` ではなく `SalesContext` / `ReturnContext` / `StockContext` / `ReceivingContext` / `CustomerDraft` とし、ViewModel の `[Scope]` プロパティに Smart.Navigation の Scope プラグインが注入する (DI に transient 登録)。  

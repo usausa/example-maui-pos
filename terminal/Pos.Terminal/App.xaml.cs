@@ -4,26 +4,23 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
 using Pos.Terminal.Diagnostics;
+using Pos.Terminal.Services;
 
 #pragma warning disable CA1724
 public sealed partial class App
 {
-    private readonly ILogger<App> log;
-
     private readonly IServiceProvider serviceProvider;
 
-    public App(ILogger<App> log, IServiceProvider serviceProvider)
-    {
-        this.log = log;
-        this.serviceProvider = serviceProvider;
+    private readonly ILogger<App> log;
 
-        // OS のテーマ (ダークモード) によらずライトテーマにする
+    public App(IServiceProvider serviceProvider, ILogger<App> log)
+    {
+        this.serviceProvider = serviceProvider;
+        this.log = log;
+
         Current!.UserAppTheme = AppTheme.Light;
 
         InitializeComponent();
-
-        // Start
-        log.InfoApplicationStart(typeof(App).Assembly.GetName().Version, Environment.Version);
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
@@ -34,37 +31,36 @@ public sealed partial class App
     // ReSharper disable once AsyncVoidMethod
     protected override async void OnStart()
     {
-        // 前回の異常終了を知らせる
         await CrashReport.ShowReport();
 
-        // ローカル DB を開けないときは理由を出して終了する (未送信を含む DB を作り直さない)。
-        // 画面の仕組みが揃う前なので OS のダイアログで出す
-        if (await InitializeDataAsync() is { } error)
+        var initializeError = await InitializeDataAsync();
+        if (initializeError is not null)
         {
             var page = Current?.Windows[0].Page;
             if (page is not null)
             {
-                await page.DisplayAlertAsync("起動できません", $"データベースを開けません\n{error.Message}", "終了");
+                await page.DisplayAlertAsync("Initialize error", $"Failed to initialize database.\r\n{initializeError.Message}", "Exit");
             }
 
             Current?.Quit();
             return;
         }
 
+        log.InfoApplicationStart(typeof(App).Assembly.GetName().Version, Environment.Version);
+
         serviceProvider.GetRequiredService<SyncService>().Start();
 
-        // Completed
         serviceProvider.GetRequiredService<StartupState>().NotifyCompleted();
     }
 
-    // ローカル DB と端末の登録 (トークン) とセッション
-    private async ValueTask<Exception?> InitializeDataAsync()
+    private async Task<Exception?> InitializeDataAsync()
     {
         try
         {
             await serviceProvider.GetRequiredService<DatabaseService>().InitializeAsync();
             await serviceProvider.GetRequiredService<CredentialService>().LoadAsync();
             await serviceProvider.GetRequiredService<SyncService>().RefreshSessionAsync();
+
             return null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException)

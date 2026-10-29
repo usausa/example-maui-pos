@@ -89,7 +89,7 @@ public sealed partial class CustomerEditViewModel : AppViewModelBase
     [ObservableProperty]
     public partial string? BirthDateText { get; set; }
 
-    public EntryController Note { get; } = new();
+    public EntryController Note { get; } = new(EntryCompleteCommand.Create());
 
     public IObserveCommand InputPhoneCommand { get; }
 

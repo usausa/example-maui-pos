@@ -19,7 +19,8 @@
              shell:ShellProperty.Function1Enabled="True"
              shell:ShellProperty.Function2Enabled="True"
              shell:ShellProperty.Function3Enabled="False"
-             shell:ShellProperty.Function4Enabled="True">
+             shell:ShellProperty.Function4Enabled="True"
+             behaviors:Focus.SuppressDefaultFocus="True">
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,Auto,*">
@@ -104,12 +105,12 @@
 
                                 <!-- 状態・種別・受注番号 -->
                                 <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                         Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}"
-                                                         ChipColor="{Binding Status, Converter={StaticResource OrderStatusColorConverter}}" />
-                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                         Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
-                                                         ChipColor="{Binding Type, Converter={StaticResource OrderTypeColorConverter}}" />
+                                    <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                        Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}"
+                                                        ChipColor="{Binding Status, Converter={StaticResource OrderStatusColorConverter}}" />
+                                    <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                        Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
+                                                        ChipColor="{Binding Type, Converter={StaticResource OrderTypeColorConverter}}" />
                                     <Label Style="{StaticResource PosCodeLabel}"
                                            Text="{Binding OrderNo}" />
                                 </FlexLayout>

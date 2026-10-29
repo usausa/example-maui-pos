@@ -21,9 +21,6 @@ public sealed partial class MenuViewModel : AppViewModelBase
 
     public IObserveCommand ForwardCommand { get; }
 
-    // 根の画面: 戻るはプラットフォームに任せる (タスクを背面へ)
-    public override bool HandlesBack => false;
-
     public MenuViewModel(
         IAppInfo appInfo,
         IDialog dialog,
@@ -78,5 +75,11 @@ public sealed partial class MenuViewModel : AppViewModelBase
         }
 
         await Navigator.ForwardAsync(id);
+    }
+
+    protected override Task OnNotifyBackAsync()
+    {
+        AndroidHelper.MoveTaskToBack();
+        return Task.CompletedTask;
     }
 }

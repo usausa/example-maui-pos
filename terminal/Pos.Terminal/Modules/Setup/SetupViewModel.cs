@@ -29,7 +29,7 @@ public sealed partial class SetupViewModel : AppViewModelBase
 
     public BarcodeController Controller { get; } = new();
 
-    public EntryController ApiEndPoint { get; } = new();
+    public EntryController ApiEndPoint { get; } = new(EntryCompleteCommand.Create());
 
     [ObservableProperty]
     public partial string? PairingCode { get; set; }
@@ -43,9 +43,6 @@ public sealed partial class SetupViewModel : AppViewModelBase
     public IObserveCommand DetectCommand { get; }
 
     public IObserveCommand InputPairingCodeCommand { get; }
-
-    // 初回と登録の解除の後は根の画面: 戻るはプラットフォームに任せる (タスクを背面へ)
-    public override bool HandlesBack => CanBack;
 
     public SetupViewModel(
         IDialog dialog,
@@ -259,8 +256,17 @@ public sealed partial class SetupViewModel : AppViewModelBase
     // Function
     //--------------------------------------------------------------------------------
 
-    protected override Task OnNotifyBackAsync() =>
-        Navigator.ForwardAsync(ViewId.Setting, Parameters.Make().WithReturnTo(settingReturnTo ?? ViewId.Menu));
+    // 初回と登録の解除の後は根の画面 (戻るとタスクを背面へ回す。F1 は押せない)
+    protected override Task OnNotifyBackAsync()
+    {
+        if (!CanBack)
+        {
+            AndroidHelper.MoveTaskToBack();
+            return Task.CompletedTask;
+        }
+
+        return Navigator.ForwardAsync(ViewId.Setting, Parameters.Make().WithReturnTo(settingReturnTo ?? ViewId.Menu));
+    }
 
     protected override Task OnNotifyFunction1() => OnNotifyBackAsync();
 

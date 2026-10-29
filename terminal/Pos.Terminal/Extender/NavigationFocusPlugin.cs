@@ -1,34 +1,58 @@
 namespace Pos.Terminal.Extender;
 
+using Pos.Terminal.Behaviors;
+using Pos.Terminal.Helpers;
+
+using Smart.Maui;
 using Smart.Navigation.Plugins;
 
 public sealed partial class NavigationFocusPlugin : PluginBase
 {
+    private readonly Dictionary<object, VisualElement> focusBackup = [];
+
+    public override void OnClose(IPluginContext pluginContext, object view, object? target)
+    {
+        focusBackup.Remove(view);
+    }
+
     public override void OnNavigatingFrom(IPluginContext pluginContext, INavigationContext navigationContext, object? view, object? target)
     {
-        // 離れる画面の入力欄のフォーカスを外す (戻ったときもフォーカスを戻さず、キーボードを出さない)
-        if (view is IVisualTreeElement element)
+        if (navigationContext.Attribute.IsStacked() && (view is Element element))
         {
-            UnfocusDescendants(element);
+            var page = element.FindParent<Page>();
+            if (page is not null)
+            {
+                var focused = ElementHelper.FindFocused(page);
+                if (focused is not null)
+                {
+                    focusBackup[view] = focused;
+                }
+            }
         }
     }
 
     public override void OnNavigatedTo(IPluginContext pluginContext, INavigationContext navigationContext, object view, object? target)
     {
-        // 前の画面で開いたソフトキーボードは、画面を移っても Android が閉じないので、移った後に閉じる
         HideSoftInput();
-    }
 
-    private static void UnfocusDescendants(IVisualTreeElement element)
-    {
-        foreach (var child in element.GetVisualChildren())
+        if (navigationContext.Attribute.IsRestore())
         {
-            if (child is VisualElement { IsFocused: true } visual)
+            if (focusBackup.TryGetValue(view, out var focused))
             {
-                visual.Unfocus();
+                Application.Current?.Dispatcher.Dispatch(() => focused.Focus());
             }
-
-            UnfocusDescendants(child);
+        }
+        else
+        {
+            var element = (Element)view;
+            if (!Focus.GetSuppressDefaultFocus(element))
+            {
+                var page = element.FindParent<Page>();
+                if (page is not null)
+                {
+                    Application.Current?.Dispatcher.Dispatch(page.SetDefaultFocus);
+                }
+            }
         }
     }
 

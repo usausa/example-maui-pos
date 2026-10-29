@@ -52,7 +52,7 @@ public sealed partial class CustomerInquiryViewModel : AppViewModelBase
         this.network = network;
 
         SearchCommand = MakeAsyncCommand(SearchAsync);
-        Keyword = new EntryController(SearchCommand);
+        Keyword = new EntryController(EntryCompleteCommand.Create(SearchCommand));
         SelectCommand = MakeAsyncCommand<CustomerItem>(x => UpdateCustomerAsync(x.Customer));
     }
 

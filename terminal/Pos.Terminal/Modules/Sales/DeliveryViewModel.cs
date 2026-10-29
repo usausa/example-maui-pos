@@ -25,7 +25,7 @@ public sealed partial class DeliveryViewModel : AppViewModelBase
 
     public EntryController Address { get; } = new();
 
-    public EntryController Note { get; } = new();
+    public EntryController Note { get; } = new(EntryCompleteCommand.Create());
 
     [ObservableProperty]
     public partial bool HasCustomer { get; set; }

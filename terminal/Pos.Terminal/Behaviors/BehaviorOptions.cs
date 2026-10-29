@@ -18,9 +18,13 @@ public sealed class BehaviorOptions
 
     // Entry
 
+    public bool HandleEnterKey { get; set; }
+
     public bool DisableShowSoftInputOnFocus { get; set; }
 
     public bool SelectAllOnFocus { get; set; } = true;
+
+    public bool NoBorder { get; set; } = true;
 
     public bool InputFilter { get; set; } = true;
 }

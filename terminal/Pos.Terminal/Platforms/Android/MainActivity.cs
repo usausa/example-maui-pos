@@ -25,7 +25,6 @@ public sealed class MainActivity : MauiAppCompatActivity
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
-        // アプリ全体のオーバースクロールを無効にする
         Theme?.ApplyStyle(_Microsoft.Android.Resource.Designer.ResourceConstant.Style.NoOverScrollTheme, true);
 
         base.OnCreate(savedInstanceState);
@@ -45,7 +44,6 @@ public sealed class MainActivity : MauiAppCompatActivity
         base.Dispose(disposing);
     }
 
-    // 画面が戻るを処理しないとき (ホームなどの根の画面) はアプリを終了せずタスクを背面へ回す
     private sealed class BackPressedCallback : OnBackPressedCallback
     {
         private readonly MainActivity activity;
@@ -65,7 +63,15 @@ public sealed class MainActivity : MauiAppCompatActivity
                 return;
             }
 
-            activity.MoveTaskToBack(true);
+            Enabled = false;
+            try
+            {
+                activity.OnBackPressedDispatcher.OnBackPressed();
+            }
+            finally
+            {
+                Enabled = true;
+            }
         }
     }
 }

@@ -40,9 +40,9 @@ public static class PopupNavigatorExtensions
 
     // スタッフの PIN (入力を伏せる)
     public static ValueTask<string?> InputPinAsync(this IPopupNavigator popupNavigator, string title) =>
-        popupNavigator.PopupAsync<NumberInputParameter, string?>(
+        popupNavigator.PopupAsync<DigitsInputParameter, string?>(
             DialogId.InputNumber,
-            new NumberInputParameter(title, string.Empty, Length.PinDigits, digits: true, masked: true));
+            new DigitsInputParameter(title, string.Empty, Length.PinDigits, masked: true));
 
     //--------------------------------------------------------------------------------
     // 数値
@@ -101,7 +101,7 @@ public static class PopupNavigatorExtensions
             new NumberInputParameter(title, value, maxLength));
 
     private static ValueTask<string?> InputDigitsAsync(this IPopupNavigator popupNavigator, string title, string? value, int maxLength) =>
-        popupNavigator.PopupAsync<NumberInputParameter, string?>(
+        popupNavigator.PopupAsync<DigitsInputParameter, string?>(
             DialogId.InputNumber,
-            new NumberInputParameter(title, value ?? string.Empty, maxLength, digits: true));
+            new DigitsInputParameter(title, value ?? string.Empty, maxLength));
 }

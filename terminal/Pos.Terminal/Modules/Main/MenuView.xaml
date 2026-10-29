@@ -18,9 +18,9 @@
         <Grid Grid.Row="0"
               Style="{StaticResource PosListRowGrid}"
               ColumnDefinitions="Auto,*">
-            <controls:StatusChip Grid.Column="0"
-                                 Text="{Binding IsShiftOpen, Converter={StaticResource ShiftStateTextConverter}}"
-                                 ChipColor="{Binding IsShiftOpen, Converter={StaticResource ShiftOpenColorConverter}}" />
+            <controls:LabelChip Grid.Column="0"
+                                Text="{Binding IsShiftOpen, Converter={StaticResource ShiftStateTextConverter}}"
+                                ChipColor="{Binding IsShiftOpen, Converter={StaticResource ShiftOpenColorConverter}}" />
             <Label Grid.Column="1"
                    Style="{StaticResource PosCaptionLabel}"
                    Text="{Binding ShiftDetail}" />

@@ -16,7 +16,8 @@
              shell:ShellProperty.Function1Enabled="True"
              shell:ShellProperty.Function2Enabled="True"
              shell:ShellProperty.Function3Enabled="True"
-             shell:ShellProperty.Function4Enabled="True">
+             shell:ShellProperty.Function4Enabled="True"
+             behaviors:Focus.SuppressDefaultFocus="True">
 
     <ScrollView>
         <VerticalStackLayout Style="{StaticResource FillVerticalStack}"

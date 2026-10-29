@@ -29,7 +29,7 @@ public static partial class LabelOption
     public static void SetMaxSize(BindableObject bindable, double value) => bindable.SetValue(MaxSizeProperty, value);
 
     //--------------------------------------------------------------------------------
-    // CountUp (合計や釣銭を数え上げて見せる。Text は書式で組み立てるので Text のバインドと併用しない)
+    // CountUp
     //--------------------------------------------------------------------------------
 
     private const string CountUpAnimationName = "LabelOptionCountUpAnimation";
@@ -44,12 +44,11 @@ public static partial class LabelOption
 
     public static void SetCountUpDuration(BindableObject bindable, int value) => bindable.SetValue(CountUpDurationProperty, value);
 
-    // 既定値と同じ値では変更が通知されないため、既定値を NaN にして最初の値が 0 でも表示する
     public static readonly BindableProperty CountUpValueProperty = BindableProperty.CreateAttached(
         "CountUpValue",
         typeof(double),
         typeof(LabelOption),
-        double.NaN,
+        Double.NaN,
         propertyChanged: OnCountUpValueChanged);
 
     public static double GetCountUpValue(BindableObject bindable) => (double)bindable.GetValue(CountUpValueProperty);
@@ -66,7 +65,6 @@ public static partial class LabelOption
 
     public static void SetCountUpFormat(BindableObject bindable, string value) => bindable.SetValue(CountUpFormatProperty, value);
 
-    // 表示中の値 (途中で値が変わったときはそこから続ける)
     private static readonly BindableProperty CountUpDisplayValueProperty = BindableProperty.CreateAttached(
         "CountUpDisplayValue",
         typeof(double),
@@ -86,7 +84,6 @@ public static partial class LabelOption
         }
         else
         {
-            // 表示前に値が決まったときは Loaded で 0 から数え上げる
             label.Loaded -= OnCountUpLabelLoaded;
             label.Loaded += OnCountUpLabelLoaded;
         }
@@ -113,7 +110,7 @@ public static partial class LabelOption
             {
                 var current = from + ((to - from) * v);
                 label.SetValue(CountUpDisplayValueProperty, current);
-                label.Text = String.Format(CultureInfo.InvariantCulture, format, current);
+                label.Text = String.Format(CultureInfo.CurrentCulture, format, current);
             },
             16,
             (uint)GetCountUpDuration(label),
@@ -121,7 +118,7 @@ public static partial class LabelOption
             (_, _) =>
             {
                 label.SetValue(CountUpDisplayValueProperty, to);
-                label.Text = String.Format(CultureInfo.InvariantCulture, format, to);
+                label.Text = String.Format(CultureInfo.CurrentCulture, format, to);
             });
     }
 }

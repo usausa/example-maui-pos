@@ -123,7 +123,7 @@ public sealed partial class TransactionListViewModel : AppViewModelBase
         this.sync = sync;
 
         SerialSearchCommand = MakeAsyncCommand(SearchSerialAsync);
-        Serial = new EntryController(SerialSearchCommand);
+        Serial = new EntryController(EntryCompleteCommand.Create(SerialSearchCommand));
         PeriodCommand = MakeAsyncCommand(ChoosePeriodAsync);
         TypeCommand = MakeAsyncCommand(async () =>
         {

@@ -1,7 +1,7 @@
 namespace Pos.Terminal.Modules.Dialogs;
 
 // 電卓: 数値・番号を入力して返す (桁数と伏せ字は引数で受ける)
-public sealed partial class InputNumberViewModel : AppDialogViewModelBase, IPopupInitialize<NumberInputParameter>
+public sealed partial class InputNumberViewModel : AppDialogViewModelBase, IPopupInitialize<NumberInputParameter>, IPopupInitialize<DigitsInputParameter>
 {
     [ObservableProperty]
     public partial string Title { get; set; } = default!;
@@ -28,8 +28,15 @@ public sealed partial class InputNumberViewModel : AppDialogViewModelBase, IPopu
     public void Initialize(NumberInputParameter parameter)
     {
         Title = parameter.Title;
-        Input.AllowEmpty = parameter.Digits;
-        Input.KeepLeadingZeros = parameter.Digits;
+        Input.MaxLength = parameter.MaxLength;
+        Input.Text = parameter.Value;
+    }
+
+    public void Initialize(DigitsInputParameter parameter)
+    {
+        Title = parameter.Title;
+        Input.AllowEmpty = true;
+        Input.KeepLeadingZeros = true;
         Input.MaxLength = parameter.MaxLength;
         Input.Masked = parameter.Masked;
         Input.Text = parameter.Value;

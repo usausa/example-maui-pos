@@ -1,5 +1,6 @@
 namespace Pos.Terminal.Behaviors;
 
+using Pos.Terminal.Helpers;
 using Pos.Terminal.Messaging;
 
 using Smart.Maui.Interactivity;
@@ -99,7 +100,18 @@ public static class EntryBind
 
         private void BindableOnCompleted(object? sender, EventArgs e)
         {
-            controller?.HandleCompleted();
+            if (controller is null)
+            {
+                return;
+            }
+
+            var entry = (Entry)sender!;
+            var ice = new EntryCompleteEvent();
+            controller.HandleCompleted(ice);
+            if (!ice.Handled)
+            {
+                ElementHelper.MoveFocusInRoot(entry, true);
+            }
         }
     }
 }

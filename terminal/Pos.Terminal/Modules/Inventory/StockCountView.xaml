@@ -72,10 +72,10 @@
                                            FontAttributes="Bold" />
                                 </Grid>
                                 <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                         Icon="{Binding Change.Type, Converter={StaticResource StockTypeIconConverter}}"
-                                                         Text="{Binding Change.Type, Converter={StaticResource DisplayNameConverter}}"
-                                                         ChipColor="{Binding Change.Type, Converter={StaticResource StockTypeColorConverter}}" />
+                                    <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                        Icon="{Binding Change.Type, Converter={StaticResource StockTypeIconConverter}}"
+                                                        Text="{Binding Change.Type, Converter={StaticResource DisplayNameConverter}}"
+                                                        ChipColor="{Binding Change.Type, Converter={StaticResource StockTypeColorConverter}}" />
                                     <Label Style="{StaticResource PosCodeLabel}"
                                            Text="{Binding Code}" />
                                     <Label Style="{StaticResource PosInfoLabel}"

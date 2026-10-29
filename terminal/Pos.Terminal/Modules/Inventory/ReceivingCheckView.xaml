@@ -38,9 +38,9 @@
                        FontAttributes="Bold" />
                 <FlexLayout Grid.Row="1" Grid.Column="0"
                             Style="{StaticResource PosChipFlexLayout}">
-                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                         Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}"
-                                         ChipColor="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}" />
+                    <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                        Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}"
+                                        ChipColor="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}" />
                     <Label Style="{StaticResource PosCodeLabel}"
                            Text="{Binding Number}" />
                 </FlexLayout>
@@ -92,9 +92,9 @@
                                        FontAttributes="Bold" />
                             </Grid>
                             <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                     Text="{Binding State, Converter={StaticResource DisplayNameConverter}}"
-                                                     ChipColor="{Binding State, Converter={StaticResource ReceivingLineColorConverter}}" />
+                                <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                    Text="{Binding State, Converter={StaticResource DisplayNameConverter}}"
+                                                    ChipColor="{Binding State, Converter={StaticResource ReceivingLineColorConverter}}" />
                                 <Label Style="{StaticResource PosCodeLabel}"
                                        Text="{Binding Code}" />
                                 <Label Style="{StaticResource PosInfoLabel}"

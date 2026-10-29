@@ -20,7 +20,8 @@
              shell:ShellProperty.Function1Enabled="True"
              shell:ShellProperty.Function2Enabled="True"
              shell:ShellProperty.Function3Enabled="True"
-             shell:ShellProperty.Function4Enabled="{Binding HasCustomer}">
+             shell:ShellProperty.Function4Enabled="{Binding HasCustomer}"
+             behaviors:Focus.SuppressDefaultFocus="True">
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,Auto,*">

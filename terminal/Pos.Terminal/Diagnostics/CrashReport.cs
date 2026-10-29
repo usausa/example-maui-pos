@@ -1,6 +1,7 @@
 namespace Pos.Terminal.Diagnostics;
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 public sealed record CrashInfo
 {
@@ -23,12 +24,28 @@ public sealed record CrashInfo
     public string ToReport()
     {
         var report = new StringBuilder();
-        report.AppendLine($"日時: {Time.LocalDateTime:yyyy/MM/dd HH:mm:ss}");
-        report.AppendLine($"バージョン: {Version}");
-        report.AppendLine($"機種: {Device}");
-        report.AppendLine("例外:");
+        report.AppendLine($"Time: {Time.LocalDateTime:yyyy/MM/dd HH:mm:ss}");
+        report.AppendLine($"Version: {Version}");
+        report.AppendLine($"Device: {Device}");
+        report.AppendLine("Exception:");
         report.AppendLine(Detail);
         return report.ToString();
+    }
+}
+
+[JsonSerializable(typeof(CrashInfo))]
+internal sealed partial class CrashInfoJsonContext : JsonSerializerContext;
+
+public sealed class CrashEventArgs : EventArgs
+{
+    public CrashInfo Info { get; }
+
+    public bool IsTerminating { get; }
+
+    public CrashEventArgs(CrashInfo info, bool isTerminating)
+    {
+        Info = info;
+        IsTerminating = isTerminating;
     }
 }
 
@@ -36,16 +53,18 @@ public static partial class CrashReport
 {
     private static Exception? lastException;
 
+    public static event EventHandler<CrashEventArgs>? Crashed;
+
     public static void Start()
     {
         AppDomain.CurrentDomain.UnhandledException += static (_, args) =>
         {
             if (args.ExceptionObject is Exception ex)
             {
-                LogException(ex);
+                LogException(ex, args.IsTerminating);
             }
         };
-        TaskScheduler.UnobservedTaskException += static (_, args) => LogException(args.Exception);
+        TaskScheduler.UnobservedTaskException += static (_, args) => LogException(args.Exception, false);
 
         PlatformStart();
     }
@@ -54,7 +73,7 @@ public static partial class CrashReport
 
     private static partial string ResolveCrashPath();
 
-    public static void LogException(Exception e)
+    public static void LogException(Exception e, bool isTerminating)
     {
         if (ReferenceEquals(Interlocked.Exchange(ref lastException, e), e))
         {
@@ -76,10 +95,12 @@ public static partial class CrashReport
                 Detail = e.ToString()
             };
             Save(info);
+
+            Crashed?.Invoke(null, new CrashEventArgs(info, isTerminating));
         }
         catch
         {
-            // 記録できなくても終了の処理を妨げない
+            // Ignore
         }
 #pragma warning restore CA1031
     }
@@ -94,7 +115,7 @@ public static partial class CrashReport
         var page = Application.Current?.Windows[0].Page;
         if (page is not null)
         {
-            await page.DisplayAlertAsync("前回の異常終了", info.ToReport(), "閉じる");
+            await page.DisplayAlertAsync("Crash report", info.ToReport(), "Close");
         }
 
         Save(info with { Shown = true });
@@ -114,7 +135,7 @@ public static partial class CrashReport
 
         try
         {
-            return JsonSerializer.Deserialize<CrashInfo>(File.ReadAllText(path));
+            return JsonSerializer.Deserialize(File.ReadAllText(path), CrashInfoJsonContext.Default.CrashInfo);
         }
         catch (JsonException)
         {
@@ -123,5 +144,5 @@ public static partial class CrashReport
     }
 
     private static void Save(CrashInfo info) =>
-        File.WriteAllText(ResolveCrashPath(), JsonSerializer.Serialize(info));
+        File.WriteAllText(ResolveCrashPath(), JsonSerializer.Serialize(info, CrashInfoJsonContext.Default.CrashInfo));
 }

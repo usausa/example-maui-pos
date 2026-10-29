@@ -1,6 +1,5 @@
 namespace Pos.Terminal.Converters;
 
-// 名前 → 先頭の 1 文字 (アバターの文字)
 public sealed class InitialConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>

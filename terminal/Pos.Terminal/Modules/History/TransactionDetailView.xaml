@@ -39,21 +39,21 @@
                            FontSize="28" />
                     <FlexLayout Grid.Row="1" Grid.Column="0"
                                 Style="{StaticResource PosChipFlexLayout}">
-                        <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                             Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
-                                             ChipColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}">
-                            <controls:StatusChip.Triggers>
-                                <DataTrigger TargetType="controls:StatusChip"
+                        <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                            Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
+                                            ChipColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}">
+                            <controls:LabelChip.Triggers>
+                                <DataTrigger TargetType="controls:LabelChip"
                                              Binding="{Binding IsVoided}"
                                              Value="True">
                                     <Setter Property="ChipColor" Value="{StaticResource RedDarken1}" />
                                     <Setter Property="Text" Value="{x:Static helpers:ViewHelper.VoidedText}" />
                                 </DataTrigger>
-                            </controls:StatusChip.Triggers>
-                        </controls:StatusChip>
-                        <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                             Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}"
-                                             ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}" />
+                            </controls:LabelChip.Triggers>
+                        </controls:LabelChip>
+                        <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                            Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}"
+                                            ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}" />
                     </FlexLayout>
                     <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
                            Style="{StaticResource PosHeroCaptionLabel}"

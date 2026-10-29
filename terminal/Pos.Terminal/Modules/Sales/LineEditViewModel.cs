@@ -96,8 +96,8 @@ public sealed partial class LineEditViewModel : AppDialogViewModelBase, IPopupIn
         CloseCommand = MakeAsyncCommand(async () => await CloseAsync());
         CommitCommand = MakeAsyncCommand(CommitAsync);
         // キーボードの Enter でも確定する (キーボードが出ている間はシートの下段ボタンが隠れる)
-        Serial = new EntryController(CommitCommand);
-        Note = new EntryController(CommitCommand);
+        Serial = new EntryController(EntryCompleteCommand.Create(CommitCommand));
+        Note = new EntryController(EntryCompleteCommand.Create(CommitCommand));
     }
 
     public void Initialize(LineEditParameter parameter)

@@ -248,6 +248,7 @@ public static partial class MauiProgram
             config.UseMauiNavigationProvider(static options => options.RestoreFocus = false);
             config.AddHierarchyEffectPlugin();
             config.AddPlugin<NavigationFocusPlugin>();
+            config.AddPlugin<NavigationUnfocusPlugin>();
             config.AddPlugin<NavigationFeedbackPlugin>();
 #if DEBUG
             config.AddPlugin<LeakDetectionPlugin>();
@@ -351,7 +352,7 @@ public static partial class MauiProgram
         // XAML からの解決 (ResolveProvider) にサービスを渡す
         ResolveProvider.Default.Provider = services;
 
-        // 回線の状態の監視を始める
+        // 回線と電池の状態の監視を始める
         services.GetRequiredService<DeviceInformation>().Start();
 
 #if DEBUG

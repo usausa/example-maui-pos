@@ -66,7 +66,7 @@ public sealed partial class OrderListViewModel : AppViewModelBase
         this.network = network;
 
         SearchCommand = MakeAsyncCommand(LoadAsync);
-        Keyword = new EntryController(SearchCommand);
+        Keyword = new EntryController(EntryCompleteCommand.Create(SearchCommand));
         FilterCommand = MakeAsyncCommand(SelectFilterAsync);
         SelectCommand = MakeAsyncCommand<OrderItem>(x => Navigator.ForwardAsync(ViewId.OrderDetail, Parameters.Make().WithOrderId(x.Id)));
     }

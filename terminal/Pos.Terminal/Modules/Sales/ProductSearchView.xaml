@@ -19,7 +19,8 @@
              shell:ShellProperty.Function1Enabled="True"
              shell:ShellProperty.Function2Enabled="True"
              shell:ShellProperty.Function3Enabled="True"
-             shell:ShellProperty.Function4Enabled="False">
+             shell:ShellProperty.Function4Enabled="False"
+             behaviors:Focus.SuppressDefaultFocus="True">
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,Auto,*">
@@ -159,11 +160,11 @@
                                 <Label Style="{StaticResource PosInfoLabel}"
                                        IsVisible="{Binding Detail, Converter={StaticResource NotEmptyConverter}}"
                                        Text="{Binding Detail}" />
-                                <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                     IsVisible="{Binding RequiresSerial}"
-                                                     Icon="{x:Static fonts:MaterialIcons.Numbers}"
-                                                     Text="S/N 必須"
-                                                     ChipColor="{StaticResource BlueGrayDefault}" />
+                                <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                    IsVisible="{Binding RequiresSerial}"
+                                                    Icon="{x:Static fonts:MaterialIcons.Numbers}"
+                                                    Text="S/N 必須"
+                                                    ChipColor="{StaticResource BlueGrayDefault}" />
                             </FlexLayout>
                         </Grid>
                         <BoxView Grid.Row="1"

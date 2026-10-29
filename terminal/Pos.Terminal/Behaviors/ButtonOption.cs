@@ -168,4 +168,103 @@ public static partial class ButtonOption
             view.Behaviors.Add(new PressEffectBehavior());
         }
     }
+
+    //--------------------------------------------------------------------------------
+    // LongPress
+    //--------------------------------------------------------------------------------
+
+    public static readonly BindableProperty LongPressCommandProperty = BindableProperty.CreateAttached(
+        "LongPressCommand",
+        typeof(ICommand),
+        typeof(ButtonOption),
+        null,
+        propertyChanged: OnLongPressCommandChanged);
+
+    public static ICommand? GetLongPressCommand(BindableObject obj) =>
+        (ICommand?)obj.GetValue(LongPressCommandProperty);
+
+    public static void SetLongPressCommand(BindableObject obj, ICommand? value) =>
+        obj.SetValue(LongPressCommandProperty, value);
+
+    public static readonly BindableProperty LongPressDurationProperty = BindableProperty.CreateAttached(
+        "LongPressDuration",
+        typeof(int),
+        typeof(ButtonOption),
+        500,
+        propertyChanged: OnLongPressDurationChanged);
+
+    public static int GetLongPressDuration(BindableObject obj) =>
+        (int)obj.GetValue(LongPressDurationProperty);
+
+    public static void SetLongPressDuration(BindableObject obj, int value) =>
+        obj.SetValue(LongPressDurationProperty, value);
+
+    private static void OnLongPressCommandChanged(BindableObject bindable, object? oldValue, object? newValue)
+    {
+        if (bindable is not (Button or ImageButton))
+        {
+            return;
+        }
+
+        var view = (View)bindable;
+        var behavior = view.Behaviors.OfType<LongPressBehavior>().FirstOrDefault();
+        if (newValue is ICommand command)
+        {
+            if (behavior is null)
+            {
+                behavior = new LongPressBehavior { Duration = TimeSpan.FromMilliseconds(GetLongPressDuration(view)) };
+                view.Behaviors.Add(behavior);
+            }
+
+            behavior.Command = command;
+        }
+        else if (behavior is not null)
+        {
+            view.Behaviors.Remove(behavior);
+        }
+    }
+
+    private static void OnLongPressDurationChanged(BindableObject bindable, object? oldValue, object? newValue)
+    {
+        if ((bindable is View view) && (view.Behaviors.OfType<LongPressBehavior>().FirstOrDefault() is { } behavior))
+        {
+            behavior.Duration = TimeSpan.FromMilliseconds((int)newValue!);
+        }
+    }
+
+    //--------------------------------------------------------------------------------
+    // HapticFeedback
+    //--------------------------------------------------------------------------------
+
+    public static readonly BindableProperty HapticFeedbackProperty = BindableProperty.CreateAttached(
+        "HapticFeedback",
+        typeof(bool),
+        typeof(ButtonOption),
+        defaultValue: false,
+        propertyChanged: OnHapticFeedbackChanged);
+
+    public static bool GetHapticFeedback(BindableObject obj) =>
+        (bool)obj.GetValue(HapticFeedbackProperty);
+
+    public static void SetHapticFeedback(BindableObject obj, bool value) =>
+        obj.SetValue(HapticFeedbackProperty, value);
+
+    private static void OnHapticFeedbackChanged(BindableObject bindable, object? oldValue, object? newValue)
+    {
+        if (bindable is not (Button or ImageButton))
+        {
+            return;
+        }
+
+        var view = (View)bindable;
+        var behavior = view.Behaviors.FirstOrDefault(static x => x is HapticFeedbackBehavior);
+        if (behavior is not null)
+        {
+            view.Behaviors.Remove(behavior);
+        }
+        if (newValue is true)
+        {
+            view.Behaviors.Add(new HapticFeedbackBehavior());
+        }
+    }
 }

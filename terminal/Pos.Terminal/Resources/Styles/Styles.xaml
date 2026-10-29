@@ -996,7 +996,7 @@
         <Setter Property="VerticalOptions" Value="Center" />
     </Style>
 
-    <!-- Chip (状態表示) -->
+    <!-- LabelChip (状態・種別・属性の表示) -->
 
     <Style x:Key="PosChipBorder"
            TargetType="Border">
@@ -1027,7 +1027,7 @@
         <Setter Property="VerticalOptions" Value="Center" />
     </Style>
 
-    <!-- 件数や状態のチップを折り返して並べる (StatusChip) -->
+    <!-- 件数や状態のチップを折り返して並べる (LabelChip) -->
 
     <Style x:Key="PosChipFlexLayout"
            TargetType="FlexLayout">
@@ -1035,8 +1035,8 @@
         <Setter Property="AlignItems" Value="Center" />
     </Style>
 
-    <Style x:Key="PosFlexStatusChip"
-           TargetType="controls:StatusChip">
+    <Style x:Key="PosFlexLabelChip"
+           TargetType="controls:LabelChip">
         <Setter Property="Margin" Value="0,0,6,2" />
     </Style>
 
@@ -1243,7 +1243,7 @@
         <Setter Property="TextColor" Value="{StaticResource BlueDarken2}" />
     </Style>
 
-    <!-- 一覧の上の件数の内訳 (StatusChip を背景の上に並べる) -->
+    <!-- 一覧の上の件数の内訳 (LabelChip を背景の上に並べる) -->
 
     <Style x:Key="PosSummaryFlexLayout"
            TargetType="FlexLayout"

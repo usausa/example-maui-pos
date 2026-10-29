@@ -79,9 +79,9 @@
 
                                 <!-- 種類と番号 -->
                                 <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                         Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}"
-                                                         ChipColor="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}" />
+                                    <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                        Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}"
+                                                        ChipColor="{Binding Kind, Converter={StaticResource ReceivingKindColorConverter}}" />
                                     <Label Style="{StaticResource PosCodeLabel}"
                                            Text="{Binding Number}" />
                                 </FlexLayout>

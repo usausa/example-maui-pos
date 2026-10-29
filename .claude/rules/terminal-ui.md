@@ -9,7 +9,6 @@ paths:
   - "terminal/Pos.Terminal/Messaging/**"
   - "terminal/Pos.Terminal/Shell/**"
   - "terminal/Pos.Terminal/MainPage*"
-  - "terminal/Pos.Terminal/Platforms/Android/MainActivity.cs"
   - "terminal/Pos.Terminal/App.xaml.cs"
   - "terminal/Pos.Terminal/Diagnostics/**"
   - "terminal/Pos.Terminal/Models/**"
@@ -29,8 +28,8 @@ paths:
 - 遷移は `ForwardAsync` で行い、戻り先は固定か `Parameters.WithReturnTo` で受ける (呼び出し元がさらに戻る先は `WithCallerReturnTo` で引き継ぐ)
 - パラメータは `Parameters` に `WithXxx` と `GetXxx` の対で足す (いくつかの値をまとめて渡す `WithScan` は、値ごとの `GetXxx` で読む)
 - ナビゲーションイベントの中の遷移と非同期処理は、`PostForwardAsync`、`PostActionAsync` で後回しにする
-- 根の画面の戻るは `HandlesBack = false` で宣言し、`MainActivity` がタスクを背面へ回す (ViewModel は遷移だけを行う)
-- F1 は戻る (戻れない画面は `—` で無効、根の画面は設定など) にし、F1 と戻るを同じ遷移にする
+- 根の画面 (ホーム、スタッフ選択、未登録の初期設定) の戻るは、`OnNotifyBackAsync` で `AndroidHelper.MoveTaskToBack()` を呼び、タスクを背面へ回す (アプリを終了しない)
+- F1 は戻る (戻れない画面は `—` で無効、根の画面は設定など) にし、根の画面を除いて F1 と戻るを同じ遷移にする
 - スキャンできる画面の F2 はスキャンにする (カメラを出す画面 (スキャン、初期設定) はライト)
 - F4 は画面の主操作 (確定、登録、会計。なければ更新や次の画面。どれもない画面 (商品検索、スタッフ選択) は `—`) にする
 - 例外として、ホームは F キーの列を出さず (`FunctionVisible="False"`)、販売の F1 はメニュー、会員選択の F4 は会員の解除にし、完了の画面は F1 を無効にして戻るを F4 (次へ) と同じにする
@@ -58,7 +57,7 @@ paths:
 - 物理キーボードを前提にしない。ソフトウェアキーボードは設定と、文字を含む項目 (名前、住所、メール、備考、シリアル番号、会員番号、検索キーワード、理由の自由入力) だけに使う
 - 数値・番号は電卓のポップアップで入力し、`PopupNavigatorExtensions` に入力の種類ごとのメソッド (`InputPhoneAsync`、`InputQuantityAsync`、`InputAmountAsync`、`InputPinAsync` など) を置く
 - 番号の表題は入力の種類ごとのメソッドで決め (PIN と伝票番号は文脈を入れた表題を渡す)、数値は画面の文脈 (最大数、現在庫) を入れた表題を渡す
-- `NumberInputParameter` は画面で作らず `PopupNavigatorExtensions` を通す (番号は桁数、PIN は伏せ字)
+- 電卓の引数 (数値の `NumberInputParameter`、番号と PIN の `DigitsInputParameter`) は画面で作らず `PopupNavigatorExtensions` を通す (番号は桁数、PIN は伏せ字)
 - レシート番号のような英数字の番号は、自店の端末番号と連番のように数字だけで入力できる形にする
 - 理由は定型の選択 (`ReasonSelect`) にして自由入力も受け、定型の理由は ViewModel の固定の一覧 (在庫の調整はマスタの調整理由) から出す
 - 理由を省けるかは操作で決める (返品と任意の値引は必須、入出金は省けるなど)
@@ -66,24 +65,26 @@ paths:
 - 確認と情報は `IDialog` の `AskAsync` と `InformationAsync` で出す。`SheetDialog` が `Confirm` と `Message` のシートに変換するので、ViewModel からこれらのシートを `IPopupNavigator` で開かない
 - 操作の完了は `Toast`、入力の不足や失敗は `InformationAsync`、取り消しにくい操作の前は `AskAsync` (OK に操作の動詞を入れる) で知らせる。控えが要る結果 (受注番号) は `InformationAsync` にする
 - ポップアップは `DialogId` に足し、View は `[Popup(DialogId.Xxx)]`、ViewModel は `AppDialogViewModelBase` と `IPopupInitialize<T>` で受けて `CloseAsync(result)` で返す (引数なし = キャンセル)
-- ポップアップ専用の引数と結果の型は、ViewModel のファイルの先頭に置く (電卓の `NumberInputParameter` は `Models/Input`)
+- ポップアップ専用の引数と結果の型は、ViewModel のファイルの先頭に置く (電卓の `NumberInputParameter` と `DigitsInputParameter` は `Models/Input`)
 - シートの下段のボタンは `InputCancelButton` と `InputConfirmButton` (削除のあるシートは `InputDeleteButton` も) にし、コマンドは `CloseCommand` と `CommitCommand` にする (確認と情報のシートは文言のボタンにし、閉じるだけの情報の OK は `CloseCommand`)
 - ポップアップは画面の下端に寄せた幅いっぱいのシート (上角が丸い) にし、下段のボタン (✕、✔) は F キーと同じ位置・配色にする。一覧からの選択のシートだけ外側のタップでも閉じる
 - 同じ入力を複数の画面で使うときは、ポップアップを 1 つにして `DialogId` で開く (値引は明細値引・取引値引とも `DiscountView`)
 - シートの中の文字入力はキーボードの Enter でも確定できるようにする (キーボードが出ている間は下段のボタンが隠れる)
-- 文字の欄は `EntryController` を `EntryBind.Controller` で結び、Enter で確定する欄は `new EntryController(command)` にする
-- 文字の欄が続くフォームは、次に文字の欄がある欄を `ReturnType="Next"` にして Android に次の文字の欄へ移させる (間のボタンと日付の欄は飛ぶ。Enter で欄を移す処理は書かない)
+- 文字の欄は `EntryController` を `EntryBind.Controller` で結ぶ
+- `EntryBind` は Enter と完了の後、コマンドが `EntryCompleteEvent.Handled` を立てなければ次にフォーカスできるもの (次の文字の欄、最後の欄では先頭の欄、一覧) へフォーカスを移すので、`ReturnType="Next"` の欄のほか (最後の欄、検索の欄、Enter でシートを確定する欄) は `new EntryController(EntryCompleteCommand.Create(command))` (コマンドがなければ `Create()`) にして欄にフォーカスを残す
+- 文字の欄が続くフォームは、次に文字の欄がある欄を `ReturnType="Next"` にする (`EntryBind` と Android が次の文字の欄へ移す。間のボタンと日付の欄は飛ぶ。Enter で欄を移す処理は書かない)
 - 最後の文字の欄と、Enter でシートを確定する欄は `ReturnType` を付けず (Android では Done)、検索の欄は `ReturnType="Search"` にする
 - 値を入れる欄のボタンは、ラベルが上の欄は `PosFieldInputButton`、行の右に値を出す欄は `PosFieldValueButton` (数量は `PosCountButton`)、選択肢を選ぶ欄は `PosSelectButton` を基本にする (既存の欄は触ったときに揃える)
 - 画面の遷移時 (`OnNavigatedToAsync`) に `Focus()` しない (キーボードが一覧を隠す)。フォーカスを移すのは、クリアや入力不足の知らせのような操作の結果だけにする
+- 文字の欄がある画面は、ルートに `behaviors:Focus.SuppressDefaultFocus="True"` を付けて、`NavigationFocusPlugin` が開いた画面の最初の欄にフォーカスを置くのを止める
 
 ## デザイン
 
 - 画面は灰色の背景の見出しと幅いっぱいの白い面で組む (`SectionPanel`、`PosSectionTemplate`)。角丸のカードを並べる作りにせず、角丸はチップ、アバター、ボタン、シート、カメラの読み取り枠、未送信のバッジだけに使う
 - 主な金額は白い帯 (`PosHeroBorder`)、件数や金額の集計は罫線の表 (`PosStatGrid`) にする (販売、会計、返金、金種のような入力中の合計は、帯にせず行で出す)
 - 状態のある一覧は左端の帯と行の背景で状態を示し、区切り線で並べる
-- 状態の文言はチップ (`StatusChip`) で示す
-- チップのアイコンは `StatusChip.Icon`、色付きのボタンの文言に添えるアイコンは白い `FontImageSource` で付ける
+- 状態・種別・属性の文言は POS のチップ (`LabelChip`。濃い塗りに白い文字と記号) で示し、色は `ChipColor` で指定する (折り返して並べるときは `PosFlexLabelChip`。テンプレートの `StatusChip` は大きいので使わない)
+- チップのアイコンは `LabelChip.Icon`、色付きのボタンの文言に添えるアイコンは白い `FontImageSource` で付ける
 - ボタンの `FontImageSource` は `Markup/AppIcons` の静的フィールドに足し、XAML から `{x:Static markup:AppIcons.Xxx}` で使う (`Styles.xaml` や画面の `Resources` に置かない)
 - 選ぶと背景が濃くなるボタンは、選ばれていないときは濃い色のグリフにし、選んだら Trigger でアイコンも白 (`XxxSelected`) にする
 - アイコンだけのボタン (`PosMethodIconButton`、`PosSelectIconButton`、`PosExpandButton`、シートの `InputDeleteButton`) は、`Text` にグリフを置き、フォントはスタイルで付ける

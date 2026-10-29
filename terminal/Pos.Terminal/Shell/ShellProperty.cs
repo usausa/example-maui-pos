@@ -8,7 +8,6 @@ using Smart.Maui.Interactivity;
 
 public static class ShellProperty
 {
-    // 表示中の View だけがシェルを更新する (遷移で外れた View のバインディング解除で上書きされないように)
     private static WeakReference<BindableObject>? currentView;
 
     internal static void SetCurrentView(BindableObject? view)
@@ -16,9 +15,9 @@ public static class ShellProperty
         currentView = view is null ? null : new WeakReference<BindableObject>(view);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // Shell
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     public static readonly BindableProperty TitleProperty = BindableProperty.CreateAttached(
         "Title",
@@ -212,9 +211,9 @@ public static class ShellProperty
         }
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // BusyOverlay
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     public static readonly BindableProperty BusyOverlayProperty = BindableProperty.CreateAttached(
         "BusyOverlay",

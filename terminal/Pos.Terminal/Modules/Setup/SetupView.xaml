@@ -17,7 +17,8 @@
              shell:ShellProperty.Function1Enabled="{Binding CanBack}"
              shell:ShellProperty.Function2Enabled="True"
              shell:ShellProperty.Function3Enabled="True"
-             shell:ShellProperty.Function4Enabled="True">
+             shell:ShellProperty.Function4Enabled="True"
+             behaviors:Focus.SuppressDefaultFocus="True">
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="*,Auto,Auto">

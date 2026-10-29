@@ -1,12 +1,12 @@
 namespace Pos.Terminal.Controls;
 
-// 状態を色と短い文言で示すチップ。色は画面側の Converter で決める
-public sealed partial class StatusChip
+// 状態・種別・属性を色と短い文言で示す表示だけのチップ。色は使う側が ChipColor で決める (Converter、固定の色、Trigger)
+public sealed partial class LabelChip
 {
     public static readonly BindableProperty TextProperty = BindableProperty.Create(
         nameof(Text),
         typeof(string),
-        typeof(StatusChip),
+        typeof(LabelChip),
         string.Empty);
 
     public string Text
@@ -19,7 +19,7 @@ public sealed partial class StatusChip
     public static readonly BindableProperty IconProperty = BindableProperty.Create(
         nameof(Icon),
         typeof(string),
-        typeof(StatusChip),
+        typeof(LabelChip),
         string.Empty);
 
     public string Icon
@@ -32,7 +32,7 @@ public sealed partial class StatusChip
     public static readonly BindableProperty ChipColorProperty = BindableProperty.Create(
         nameof(ChipColor),
         typeof(Color),
-        typeof(StatusChip),
+        typeof(LabelChip),
         Color.FromArgb("#BDBDBD"));
 
     public Color ChipColor
@@ -44,7 +44,7 @@ public sealed partial class StatusChip
     public static readonly BindableProperty TextColorProperty = BindableProperty.Create(
         nameof(TextColor),
         typeof(Color),
-        typeof(StatusChip),
+        typeof(LabelChip),
         Colors.White);
 
     public Color TextColor
@@ -53,7 +53,7 @@ public sealed partial class StatusChip
         set => SetValue(TextColorProperty, value);
     }
 
-    public StatusChip()
+    public LabelChip()
     {
         InitializeComponent();
     }

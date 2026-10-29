@@ -21,7 +21,8 @@
              shell:ShellProperty.Function1Enabled="True"
              shell:ShellProperty.Function2Enabled="True"
              shell:ShellProperty.Function3Enabled="False"
-             shell:ShellProperty.Function4Enabled="True">
+             shell:ShellProperty.Function4Enabled="True"
+             behaviors:Focus.SuppressDefaultFocus="True">
 
     <Grid Style="{StaticResource PosPageGrid}"
           RowDefinitions="Auto,Auto,Auto,*">
@@ -65,22 +66,22 @@
         <!-- 件数の内訳 -->
         <FlexLayout Grid.Row="2"
                     Style="{StaticResource PosSummaryFlexLayout}">
-            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                 IsVisible="{Binding SaleCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
-                                 Text="{Binding SaleCount, StringFormat='販売 {0}'}"
-                                 ChipColor="{StaticResource BlueDarken1}" />
-            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                 IsVisible="{Binding ReturnCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
-                                 Text="{Binding ReturnCount, StringFormat='返品 {0}'}"
-                                 ChipColor="{StaticResource OrangeDarken1}" />
-            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                 IsVisible="{Binding VoidCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
-                                 Text="{Binding VoidCount, StringFormat='取消 {0}'}"
-                                 ChipColor="{StaticResource RedDarken1}" />
-            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                 IsVisible="{Binding UnsentCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
-                                 Text="{Binding UnsentCount, StringFormat='未送信 {0}'}"
-                                 ChipColor="{StaticResource BlueGrayDefault}" />
+            <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                IsVisible="{Binding SaleCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
+                                Text="{Binding SaleCount, StringFormat='販売 {0}'}"
+                                ChipColor="{StaticResource BlueDarken1}" />
+            <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                IsVisible="{Binding ReturnCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
+                                Text="{Binding ReturnCount, StringFormat='返品 {0}'}"
+                                ChipColor="{StaticResource OrangeDarken1}" />
+            <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                IsVisible="{Binding VoidCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
+                                Text="{Binding VoidCount, StringFormat='取消 {0}'}"
+                                ChipColor="{StaticResource RedDarken1}" />
+            <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                IsVisible="{Binding UnsentCount, Converter={StaticResource GreaterThanToBoolConverter}, ConverterParameter=0}"
+                                Text="{Binding UnsentCount, StringFormat='未送信 {0}'}"
+                                ChipColor="{StaticResource BlueGrayDefault}" />
         </FlexLayout>
 
         <!-- 結果。シリアル番号の検索 (オンライン) の取得中と取得できないときは上に重ねて隠す -->
@@ -145,26 +146,26 @@
 
                                 <!-- 種別・送信状態・会員 -->
                                 <FlexLayout Style="{StaticResource PosChipFlexLayout}">
-                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                         Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
-                                                         ChipColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}">
-                                        <controls:StatusChip.Triggers>
-                                            <DataTrigger TargetType="controls:StatusChip"
+                                    <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                        Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
+                                                        ChipColor="{Binding Type, Converter={StaticResource TransactionTypeColorConverter}}">
+                                        <controls:LabelChip.Triggers>
+                                            <DataTrigger TargetType="controls:LabelChip"
                                                          Binding="{Binding IsVoided}"
                                                          Value="True">
                                                 <Setter Property="ChipColor" Value="{StaticResource RedDarken1}" />
                                                 <Setter Property="Text" Value="{x:Static helpers:ViewHelper.VoidedText}" />
                                             </DataTrigger>
-                                        </controls:StatusChip.Triggers>
-                                    </controls:StatusChip>
-                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                         Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}"
-                                                         ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}" />
-                                    <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                         IsVisible="{Binding HasCustomer}"
-                                                         Icon="{x:Static fonts:MaterialIcons.Person}"
-                                                         Text="会員"
-                                                         ChipColor="{StaticResource BlueGrayDefault}" />
+                                        </controls:LabelChip.Triggers>
+                                    </controls:LabelChip>
+                                    <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                        Text="{Binding SyncStatus, Converter={StaticResource DisplayNameConverter}}"
+                                                        ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}" />
+                                    <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                        IsVisible="{Binding HasCustomer}"
+                                                        Icon="{x:Static fonts:MaterialIcons.Person}"
+                                                        Text="会員"
+                                                        ChipColor="{StaticResource BlueGrayDefault}" />
                                 </FlexLayout>
 
                                 <!-- 時刻・担当・支払 -->

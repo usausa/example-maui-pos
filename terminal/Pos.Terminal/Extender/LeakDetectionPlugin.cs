@@ -1,11 +1,8 @@
-#if DEBUG
 namespace Pos.Terminal.Extender;
 
 using Smart.Mvvm.Resolver;
 using Smart.Navigation.Plugins;
 
-// 閉じた画面 (View と ViewModel) が一定時間後に GC で回収されたかを確かめ、残っていればリークの疑いとしてログに出す (Debug だけ)。
-// Entry にスペルチェックの対象の単語が入っていた画面は、Android のスペルチェッカーがしばらく参照を持つので 5 秒では残ることがある
 public sealed class LeakDetectionPlugin : PluginBase
 {
     private static readonly TimeSpan CheckDelay = TimeSpan.FromSeconds(5);
@@ -28,10 +25,11 @@ public sealed class LeakDetectionPlugin : PluginBase
 
     private void Check(List<KeyValuePair<string, WeakReference>> references)
     {
-        // Java 側からの参照 (プラットフォームのビュー) も切れるように両方の GC を回す
         GC.Collect();
         GC.WaitForPendingFinalizers();
+#if ANDROID
         Java.Lang.JavaSystem.Gc();
+#endif
         GC.Collect();
 
         foreach (var (name, reference) in references)
@@ -47,4 +45,3 @@ public sealed class LeakDetectionPlugin : PluginBase
         }
     }
 }
-#endif

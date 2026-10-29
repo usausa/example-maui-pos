@@ -57,9 +57,9 @@
                        Style="{StaticResource PosCaptionLabel}"
                        Text="{Binding LastSyncText}"
                        FontSize="15" />
-                <controls:StatusChip Grid.Column="1"
-                                     Text="{Binding UnsentText}"
-                                     ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}" />
+                <controls:LabelChip Grid.Column="1"
+                                    Text="{Binding UnsentText}"
+                                    ChipColor="{Binding SyncStatus, Converter={StaticResource OutboxStatusColorConverter}}" />
             </Grid>
 
             <!-- 未送信一覧 -->
@@ -97,9 +97,9 @@
                                         <Label Grid.Column="0"
                                                Style="{StaticResource PosListNameLabel}"
                                                Text="{Binding Kind, Converter={StaticResource DisplayNameConverter}}" />
-                                        <controls:StatusChip Grid.Column="1"
-                                                             Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}"
-                                                             ChipColor="{Binding Status, Converter={StaticResource OutboxStatusColorConverter}}" />
+                                        <controls:LabelChip Grid.Column="1"
+                                                            Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}"
+                                                            ChipColor="{Binding Status, Converter={StaticResource OutboxStatusColorConverter}}" />
                                     </Grid>
                                     <FlexLayout Style="{StaticResource PosChipFlexLayout}">
                                         <Label Style="{StaticResource PosInfoLabel}"

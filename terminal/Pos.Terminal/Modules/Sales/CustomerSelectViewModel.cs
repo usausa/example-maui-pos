@@ -52,7 +52,7 @@ public sealed partial class CustomerSelectViewModel : AppViewModelBase
 
         SearchCommand = MakeAsyncCommand(SearchAsync);
         InputNumberCommand = MakeAsyncCommand(InputNumberAsync);
-        Keyword = new EntryController(SearchCommand);
+        Keyword = new EntryController(EntryCompleteCommand.Create(SearchCommand));
         SelectCommand = MakeAsyncCommand<CustomerItem>(x => ApplyAsync(x.Customer));
     }
 

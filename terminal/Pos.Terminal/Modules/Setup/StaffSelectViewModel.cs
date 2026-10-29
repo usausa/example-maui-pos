@@ -23,9 +23,6 @@ public sealed partial class StaffSelectViewModel : AppViewModelBase
 
     public IObserveCommand SelectCommand { get; }
 
-    // 根の画面: 戻るはプラットフォームに任せる (タスクを背面へ)
-    public override bool HandlesBack => false;
-
     public StaffSelectViewModel(
         IDialog dialog,
         Settings settings,
@@ -76,6 +73,12 @@ public sealed partial class StaffSelectViewModel : AppViewModelBase
         await (settings.OpenSalesAfterLogin && session.IsShiftOpen
             ? Navigator.ForwardAsync(ViewId.Sales)
             : Navigator.ForwardAsync(ViewId.Menu));
+    }
+
+    protected override Task OnNotifyBackAsync()
+    {
+        AndroidHelper.MoveTaskToBack();
+        return Task.CompletedTask;
     }
 
     protected override Task OnNotifyFunction1() =>

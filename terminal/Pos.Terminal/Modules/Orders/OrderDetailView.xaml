@@ -43,12 +43,12 @@
                                FontSize="28" />
                         <FlexLayout Grid.Row="1" Grid.Column="0"
                                     Style="{StaticResource PosChipFlexLayout}">
-                            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                 Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}"
-                                                 ChipColor="{Binding Status, Converter={StaticResource OrderStatusColorConverter}}" />
-                            <controls:StatusChip Style="{StaticResource PosFlexStatusChip}"
-                                                 Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
-                                                 ChipColor="{Binding Type, Converter={StaticResource OrderTypeColorConverter}}" />
+                            <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                Text="{Binding Status, Converter={StaticResource DisplayNameConverter}}"
+                                                ChipColor="{Binding Status, Converter={StaticResource OrderStatusColorConverter}}" />
+                            <controls:LabelChip Style="{StaticResource PosFlexLabelChip}"
+                                                Text="{Binding Type, Converter={StaticResource DisplayNameConverter}}"
+                                                ChipColor="{Binding Type, Converter={StaticResource OrderTypeColorConverter}}" />
                             <Label Style="{StaticResource PosCodeLabel}"
                                    Text="{Binding OrderNo}" />
                         </FlexLayout>

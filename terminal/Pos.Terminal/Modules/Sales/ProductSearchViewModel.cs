@@ -125,7 +125,7 @@ public sealed partial class ProductSearchViewModel : AppViewModelBase
 
         SearchCommand = MakeAsyncCommand(SearchAsync);
         InputNumberCommand = MakeAsyncCommand(InputNumberAsync);
-        Keyword = new EntryController(SearchCommand);
+        Keyword = new EntryController(EntryCompleteCommand.Create(SearchCommand));
         SelectParentCommand = MakeAsyncCommand<CategoryItem>(SelectParentAsync);
         SelectChildCommand = MakeAsyncCommand<CategoryItem>(SelectChildAsync);
         SelectCommand = MakeAsyncCommand<ProductItem>(SelectAsync);

@@ -27,8 +27,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 - アプリで作る画像 (レシート、QR) は SkiaSharp の `SKImageImageSource` で出し、`ImageSource.FromStream` を使わない (MAUI の画像の読み込み (Glide) は初回の初期化で UI スレッドを止める)
 - 取得した商品画像は、保存したファイルを `ImageSource.FromFile` で出す (Glide の縮小・向きの補正・キャッシュを使う。初回の初期化で止まるのは Release では目立たない)
 - コードで結ぶバインディング (`EntryBind`、`BarcodeBind` の `SetBinding`) はラムダで書き、文字列のパスの `Binding` を使わない (リフレクションを使わず、トリミングで消えず、名前の誤りがビルドで出る)
-- 回線の状態は `DeviceState` から読み、Essentials の `IConnectivity` は使わない (`DeviceInformation` が Android の通知から受け取る)
-- 電池の残量と無線 LAN の信号強度は取らない
+- 回線・電池・無線 LAN の状態は `DeviceState` から読み、Essentials の `IConnectivity` と `IBattery` は使わない (`DeviceInformation` が Android の通知から受け取る)
 - 承認の要否は、取消は `StaffLogic.RequiresVoidApproval`、値引は値引の定義の `RequiresApproval` で判定する
 - 承認者は `PinService.ChooseApproverAsync` で選び、`ApprovedByStaffId` に入れる (画面で PIN を照合しない)
 - Service が `IDialog` と `IPopupNavigator` を使うのは、`PinService`、`NetworkService` のような画面をまたぐ対話だけにする
@@ -63,17 +62,17 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 | 画面と、機能の画面間の状態 (`XxxContext`、`CustomerDraft`) | `Modules/{機能}/` |
 | 共通のダイアログ | `Modules/Dialogs/` |
 | 表示用の書式と文言、業務ルールの文言 (`ViewHelper`) | `Modules/Helpers/` |
-| アプリに依存しない処理だけ (日付の書式の `DateTimeHelper`、LIKE のパターンの `Data/SqlHelper` (サーバの `SqlHelper` とは別物)、DB と JSON の変換器) | `Helpers/`、`Helpers/Data/`、`Helpers/Json/` |
+| アプリに依存しない処理だけ (日付の書式の `DateTimeHelper`、要素の探索とフォーカスの移動の `ElementHelper`、LIKE のパターンの `Data/SqlHelper` (サーバの `SqlHelper` とは別物)、DB と JSON の変換器) | `Helpers/`、`Helpers/Data/`、`Helpers/Json/` |
 | XAML の Converter (画面固有のものも) | `Converters/` |
 | 画面をまたぐモデル (カートは `Models/Cart/`) | `Models/{機能}/` |
 | DB の行 | `Models/Entity/` |
 | 単機能の部品 (`XxxService`)、サーバとの通信の型 (`ApiContext`、`ApiResult`、`ProblemResponse`、`ApiNames`)、ローカル DB (`DataAccessor`、`DataProfile`、`Sql/`)、テキストや画像の組み立て (`XxxBuilder`) | `Services/` |
 | 複合的な手順 (`XxxUsecase`) と、その変換 (`XxxMapper`) と計算 (`XxxCalculator`) | `Usecases/` |
 | 見た目の部品 | `Controls/` |
-| 添付プロパティ (`XxxOption`、`EntryBind`、`BarcodeBind`、`Border`、`Scroll`) | `Behaviors/` |
+| 添付プロパティ (`XxxOption`、`EntryBind`、`BarcodeBind`、`Border`、`Scroll`、`Focus`) | `Behaviors/` |
 | マークアップ拡張とアイコン (`AppIcons`) | `Markup/` |
 | F キー、表題、ステータスバーの仕組み (`ShellProperty`、`ShellUpdateBehavior`、`IShellControl` と `FunctionState`、`ShellEvent`) | `Shell/` |
-| ViewModel から View を動かす仕組み (`EntryController`、`BarcodeController`) | `Messaging/` |
+| ViewModel から View を動かす仕組み (`EntryController` と `EntryCompleteCommand`、`BarcodeController`) | `Messaging/` |
 | Smart.Navigation と MauiComponents のプラグイン | `Extender/` |
 | プラットフォームのサービス | `Components/` |
 | 未処理の例外の記録 (`CrashReport`) | `Diagnostics/` |
@@ -81,7 +80,11 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 | Android の入口と共通の処理 (`MainActivity`、`MainApplication`、`AndroidHelper`) | `Platforms/Android/` 直下 |
 | 元のない Android だけのクラス (`DirectFontImageSourceService`、Java の型の拡張 `JavaObjectExtensions`) | `Platforms/Android/` の下の用途のフォルダ (`Graphics/`、`Helpers/`。直下には置かない) |
 
-- `Shell/` はテンプレート (template-maui-kiosk、template-maui-keyboard の `Template.MobileApp/Shell`) と同じにし、替えるのは名前空間、区切りコメント、意図のコメントだけにする (POS だけの処理は `Extender/` のプラグインか `MainPage`、`MainPageViewModel` に置く)
+- 共通の部品 (テンプレート template-maui の `Template.MobileApp` にもある `Behaviors/`、`Extender/`、`Shell/`、`Components/`、`Diagnostics/`、`Messaging/`、`Helpers/`、`Converters/`、`Platforms/Android/` の C# と XAML のファイル、`Markup/ViewIdExtension` と、`App`、`AppViewModelBase`、`AppDialogViewModelBase`、`ValidationHelper`、`DeviceState`、`StartupState`、`NumberInputParameter`) は、テンプレートと同じにし、替えるのは名前空間と using の並びだけにする (`AndroidManifest.xml` はアプリごとに違うので除く)
+- 共通の部品のコメントは区切り (帯と見出し。帯の形 (`//----`、`// ----`) もテンプレートのまま)、ReSharper の指示、空の catch の `// Ignore` だけにし、テンプレートからも同じに消す (日本語のコメントと、コンストラクタの引数の順の規則は当てない)
+- 例外として、テンプレートにしかない機能やパッケージが要る行 (`AppHostBuilderExtensions` の PDF・Stepper・Carousel、`MainActivity` の通知、`MainApplication` の地図のキー、`App.xaml` の Palettes、`App.xaml.cs` の前面の状態 (`Session.IsForeground`)) は入れず、`MainActivity` の名前と、`App.xaml.cs` の初期化の中身と同期の開始は POS のものにする
+- POS だけの動きと見た目は共通の部品を変えずに、別のファイル (`Extender/NavigationUnfocusPlugin`、`Messaging/EntryCompleteCommand`、`Models/Input/DigitsInputParameter`、`Controls/LabelChip`) か、アプリ固有のファイル (`MainPage`、`MainPageViewModel`、`Extensions.cs`、`Log.cs`) に置く
+- 共通の部品が使うアプリ固有のファイルのメンバー (`Extensions.cs` の `SetDefaultFocus` と `XxxChangedAsObservable`、`Log.cs` のメッセージ) は、テンプレートと同じにする (違うと、テンプレートの更新を取り込んだときに壊れる)
 - 同じ名前のプロパティを写すだけの変換は代入を並べず、Smart.Mapper の `[Mapper] private static partial` で使うクラスに書く
 - 複数の Usecase が使う変換と、Usecase から切り出す長い手書きの変換は `XxxMapper` にする
 - 一覧のプロパティは要素の `[Mapper]` を `[MapCollection]` に渡して写し、入れ子の 1 件は `[MapNested]` で写す

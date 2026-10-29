@@ -38,7 +38,7 @@ public sealed partial class OrderCreateViewModel : AppViewModelBase
     [ObservableProperty]
     public partial DateTime RequestedDate { get; set; }
 
-    public EntryController Note { get; } = new();
+    public EntryController Note { get; } = new(EntryCompleteCommand.Create());
 
     [ObservableProperty]
     public partial string CartText { get; set; } = string.Empty;
