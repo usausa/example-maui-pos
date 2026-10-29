@@ -1,7 +1,5 @@
 namespace Pos.Terminal;
 
-using System.Reflection;
-
 #pragma warning disable CA1724
 public static class Extensions
 {
@@ -38,12 +36,6 @@ public static class Extensions
                 }
             }
         }
-    }
-
-    public static IEnumerable<Type> UnderNamespaceTypes(this Assembly assembly, Type baseNamespaceType)
-    {
-        var ns = baseNamespaceType.Namespace!;
-        return assembly.ExportedTypes.Where(x => x.Namespace?.StartsWith(ns, StringComparison.Ordinal) ?? false);
     }
 
     //--------------------------------------------------------------------------------

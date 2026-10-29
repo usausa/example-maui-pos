@@ -247,6 +247,7 @@ public static partial class MauiProgram
         {
             config.UseMauiNavigationProvider(static options => options.RestoreFocus = false);
             config.AddHierarchyEffectPlugin();
+            config.AddPlugin<NavigationFocusPlugin>();
             config.AddPlugin<NavigationFeedbackPlugin>();
 #if DEBUG
             config.AddPlugin<LeakDetectionPlugin>();

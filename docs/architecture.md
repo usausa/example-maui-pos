@@ -314,7 +314,7 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
 `net10.0-android`。
 
 ```
-MauiProgram.cs                       BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド (D-23)、NavigationFeedbackPlugin、Debug のときは LeakDetectionPlugin)、Dialog / Popup、フォントは MaterialIcons のみ
+MauiProgram.cs                       BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド (D-23)、NavigationFocusPlugin、NavigationFeedbackPlugin、Debug のときは LeakDetectionPlugin)、Dialog / Popup、フォントは MaterialIcons のみ
                                      + BarcodeScanning、HttpClient (IHttpClientFactory)、IDbProvider (SQLite)、DataAccessor、Service / Usecase、State
 MainPage.xaml / MainPageViewModel    シェル (タイトル + 店舗-端末 担当 + 未送信バッジ + F1〜F4)。起動時に Setup (未登録) または StaffSelect へ。要求が 401 になったら知らせて Setup へ。  
                                      根の画面 (AppViewModelBase.HandlesBack = false) の戻るはプラットフォームに任せる (MainActivity がタスクを背面へ回す)。  
@@ -329,8 +329,8 @@ Messaging/                           BarcodeController、EntryController
 Controls/                            SectionPanel (見出しと白い面の節)、StatusChip (状態を色と短い文言で示すチップ)
 Components/                          StorageManager (アプリのフォルダ。ローカル DB の置き場所)、
                                      DeviceInformation (回線の状態を Android の通知から受けて持ち、変化をイベントで知らせる。起動時に開始)
-Extender/                            NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)、
-                                     PopupActivationPlugin (ポップアップを開いている間は、後ろの画面の操作を受け付けない)
+Extender/                            NavigationFocusPlugin (遷移の後にソフトキーボードを閉じる。Android)、NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、
+                                     LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)、PopupActivationPlugin (ポップアップを開いている間は、後ろの画面の操作を受け付けない)
 Log.cs                               [LoggerMessage] の集約
 Diagnostics/                         CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)
 Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、StockSendTextConverter、AvatarColorConverter / InitialConverter (会員のアバターの色と頭文字)。  

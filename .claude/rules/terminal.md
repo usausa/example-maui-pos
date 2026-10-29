@@ -26,6 +26,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 - UI スレッドを塞ぐ処理 (SkiaSharp の描画、QR の生成、PIN のハッシュの照合) は Service の中で `Task.Run` に回す
 - アプリで作る画像 (レシート、QR) は SkiaSharp の `SKImageImageSource` で出し、`ImageSource.FromStream` を使わない (MAUI の画像の読み込み (Glide) は初回の初期化で UI スレッドを止める)
 - 取得した商品画像は、保存したファイルを `ImageSource.FromFile` で出す (Glide の縮小・向きの補正・キャッシュを使う。初回の初期化で止まるのは Release では目立たない)
+- コードで結ぶバインディング (`EntryBind`、`BarcodeBind` の `SetBinding`) はラムダで書き、文字列のパスの `Binding` を使わない (リフレクションを使わず、トリミングで消えず、名前の誤りがビルドで出る)
 - 回線の状態は `DeviceState` から読み、Essentials の `IConnectivity` は使わない (`DeviceInformation` が Android の通知から受け取る)
 - 電池の残量と無線 LAN の信号強度は取らない
 - 承認の要否は、取消は `StaffLogic.RequiresVoidApproval`、値引は値引の定義の `RequiresApproval` で判定する

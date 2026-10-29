@@ -1,8 +1,11 @@
 namespace Pos.Terminal.Modules;
 
+using System.Diagnostics.CodeAnalysis;
+
 using Pos.Terminal.Shell;
 
 [ObservableGeneratorOption(Reactive = true, ViewModel = true)]
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
 public abstract class AppViewModelBase :
     ExtendViewModelBase,
     IValidatable,
@@ -30,8 +33,11 @@ public abstract class AppViewModelBase :
 
     public void Validate(string name)
     {
-        ValidationHelper.Validate(this, name, Errors);
+        ValidationHelper.Validate(this, GetType(), name, Errors);
     }
+
+    protected ValueTask<bool> ValidateInputsAsync(IDialog dialog, params string[] names) =>
+        ValidationHelper.ValidateInputsAsync(this, Errors, dialog, names);
 
     public virtual Task OnNavigatingFromAsync(INavigationContext context) => Task.CompletedTask;
 
