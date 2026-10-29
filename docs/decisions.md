@@ -558,7 +558,8 @@ POS サンプル (サーバ API・DB・管理画面・端末) の機能とアー
 
 ### D-41. 警告は 0 にし、抑止は理由のあるものだけにする
 
-- サーバと端末は警告 0 でビルドし、InspectCode (ソリューション全体の解析) の指摘も 0 にする
+- サーバと端末は警告 0 でビルドし、InspectCode の指摘も 0 にする (ソリューション全体の解析はしない)。  
+  全体の解析は、テンプレートと同じにする端末の共通の部品のうち POS で使わないメンバーを `.Global` の指摘で挙げる
 - 抑止は避けられない理由のあるものだけにし、アセンブリ単位は `GlobalSuppressions.cs`、箇所だけは `#pragma warning disable` と `restore` で行う。  
   例は `Pos.Contract` の URL の文字列 (CA1056)、`EnumTextConverter<T>` の static abstract の実装 (CA1000)、ハッシュの `byte[]` のプロパティ (CA1819) など
 - NuGet の脆弱性の警告は抑止せず、推移的な依存を直接ピンする

@@ -97,7 +97,8 @@ def inspect(solution, out):
     sarif = out / f'{stem}.sarif'
     # キャッシュが残っていると古い解析結果を返すことがあるので、毎回新しい場所を使う
     caches = out / f'inspect-cache-{stem}-{time.strftime("%Y%m%d%H%M%S")}'
-    code = run(['jb', 'inspectcode', solution, '--swea', f'--caches-home={caches}', f'-o={sarif}'], out / f'inspect-{stem}.log')
+    # ソリューション全体の解析 (.Global の指摘) はしない (テンプレートと同じにする共通の部品には、POS で使わないメンバーが残る)
+    code = run(['jb', 'inspectcode', solution, '--no-swea', f'--caches-home={caches}', f'-o={sarif}'], out / f'inspect-{stem}.log')
     # 使い終わったキャッシュは消す (実行のたびに増えないように)
     shutil.rmtree(caches, ignore_errors=True)
     if code != 0 or not sarif.exists():

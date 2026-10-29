@@ -108,15 +108,16 @@ dotnet run --project server/tests/Pos.Server.IntegrationTests
 ```
 
 ビルドは警告ゼロ、ReSharper の InspectCode は指摘ゼロを保つ。  
-InspectCode はソリューション全体の解析 (`--swea`) を有効にし、`--caches-home` には毎回新しいフォルダを渡す。  
-ソリューション全体の解析がないと `.Global` の指摘が出ずに Jenkins と結果が違い、キャッシュが残っていると前回の結果が混じることがある。
+InspectCode はソリューション全体の解析をせず (`--no-swea`)、`--caches-home` には毎回新しいフォルダを渡す。  
+全体の解析は、テンプレートと同じにする端末の共通の部品のうち POS で使わないメンバーを `.Global` の指摘で挙げる。  
+キャッシュが残っていると、前回の結果が混じることがある。
 
 ```bash
-jb inspectcode server/Pos.Server.slnx --swea --caches-home=<新しいフォルダ> -o=results-server.sarif
+jb inspectcode server/Pos.Server.slnx --no-swea --caches-home=<新しいフォルダ> -o=results-server.sarif
 ```
 
 ```bash
-jb inspectcode terminal/Pos.Terminal.slnx --swea --caches-home=<新しいフォルダ> -o=results-terminal.sarif
+jb inspectcode terminal/Pos.Terminal.slnx --no-swea --caches-home=<新しいフォルダ> -o=results-terminal.sarif
 ```
 
 ビルド (警告)、テスト、InspectCode、変更したファイルの改行コードと文書の改行は、次のスクリプトでまとめて確かめられる (ログは一時フォルダの `pos-verify`)。
