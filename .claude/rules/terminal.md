@@ -72,7 +72,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 | 見た目の部品 | `Controls/` |
 | 添付プロパティ (`XxxOption`、`EntryBind`、`BarcodeBind`、`Border`、`Scroll`) | `Behaviors/` |
 | マークアップ拡張とアイコン (`AppIcons`) | `Markup/` |
-| F キーと表題の仕組み (`ShellProperty`、`ShellUpdateBehavior`、`IShellControl`、`ShellEvent`) | `Shell/` |
+| F キー、表題、ステータスバーの仕組み (`ShellProperty`、`ShellUpdateBehavior`、`IShellControl` と `FunctionState`、`ShellEvent`) | `Shell/` |
 | ViewModel から View を動かす仕組み (`EntryController`、`BarcodeController`) | `Messaging/` |
 | Smart.Navigation と MauiComponents のプラグイン | `Extender/` |
 | プラットフォームのサービス | `Components/` |
@@ -81,6 +81,7 @@ Accessor の書き方は accessor.md、SQL は sql.md、画面は terminal-ui.md
 | Android の入口と共通の処理 (`MainActivity`、`MainApplication`、`AndroidHelper`) | `Platforms/Android/` 直下 |
 | 元のない Android だけのクラス (`DirectFontImageSourceService`、Java の型の拡張 `JavaObjectExtensions`) | `Platforms/Android/` の下の用途のフォルダ (`Graphics/`、`Helpers/`。直下には置かない) |
 
+- `Shell/` はテンプレート (template-maui-kiosk、template-maui-keyboard の `Template.MobileApp/Shell`) と同じにし、替えるのは名前空間、区切りコメント、意図のコメントだけにする (POS だけの処理は `Extender/` のプラグインか `MainPage`、`MainPageViewModel` に置く)
 - 同じ名前のプロパティを写すだけの変換は代入を並べず、Smart.Mapper の `[Mapper] private static partial` で使うクラスに書く
 - 複数の Usecase が使う変換と、Usecase から切り出す長い手書きの変換は `XxxMapper` にする
 - 一覧のプロパティは要素の `[Mapper]` を `[MapCollection]` に渡して写し、入れ子の 1 件は `[MapNested]` で写す

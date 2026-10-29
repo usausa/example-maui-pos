@@ -1,5 +1,8 @@
 namespace Pos.Terminal.Shell;
 
+using CommunityToolkit.Maui.Behaviors;
+using CommunityToolkit.Maui.Core;
+
 using Smart.Maui.Interactivity;
 
 public sealed class ShellUpdateBehavior : BehaviorBase<ContentPage>
@@ -16,6 +19,12 @@ public sealed class ShellUpdateBehavior : BehaviorBase<ContentPage>
         set => SetValue(NavigatorProperty, value);
     }
 
+    private IShellControl? shell;
+
+    private StatusBarBehavior? statusBar;
+    private Color defaultStatusBarColor = Colors.Transparent;
+    private StatusBarStyle defaultStatusBarStyle = StatusBarStyle.Default;
+
     protected override void OnDetachingFrom(ContentPage bindable)
     {
         if (Navigator is not null)
@@ -23,6 +32,8 @@ public sealed class ShellUpdateBehavior : BehaviorBase<ContentPage>
             Navigator.Navigating -= NavigatorOnNavigating;
             Navigator.Exited -= NavigatorOnExited;
         }
+
+        DetachShell();
 
         base.OnDetachingFrom(bindable);
     }
@@ -54,36 +65,7 @@ public sealed class ShellUpdateBehavior : BehaviorBase<ContentPage>
 
     private void NavigatorOnNavigating(object? sender, Smart.Navigation.NavigationEventArgs e)
     {
-        if (e.FromView is BindableObject from)
-        {
-            ShellProperty.SetActive(from, false);
-
-            // 入力欄にフォーカスが残っているとソフトキーボードが次の画面に残るため、離れる前に外す
-            if (from is IVisualTreeElement tree)
-            {
-                UnfocusDescendants(tree);
-            }
-        }
-
-        if (e.ToView is BindableObject to)
-        {
-            ShellProperty.SetActive(to, true);
-        }
-
         UpdateShell(e.ToView as Element);
-    }
-
-    private static void UnfocusDescendants(IVisualTreeElement element)
-    {
-        foreach (var child in element.GetVisualChildren())
-        {
-            if (child is VisualElement { IsFocused: true } visual)
-            {
-                visual.Unfocus();
-            }
-
-            UnfocusDescendants(child);
-        }
     }
 
     private void NavigatorOnExited(object? sender, EventArgs e)
@@ -93,9 +75,67 @@ public sealed class ShellUpdateBehavior : BehaviorBase<ContentPage>
 
     private void UpdateShell(BindableObject? view)
     {
-        if (AssociatedObject?.BindingContext is IShellControl shell)
+        ShellProperty.SetCurrentView(view);
+
+        if (AssociatedObject?.BindingContext is IShellControl control)
         {
-            ShellProperty.UpdateShellControl(shell, view);
+            AttachShell(control);
+            ShellProperty.UpdateShellControl(control, view);
         }
+    }
+
+    private void AttachShell(IShellControl control)
+    {
+        if (ReferenceEquals(shell, control))
+        {
+            return;
+        }
+
+        DetachShell();
+
+        shell = control;
+        control.StatusBarColor.PropertyChanged += OnStatusBarChanged;
+        control.StatusBarStyle.PropertyChanged += OnStatusBarChanged;
+    }
+
+    private void DetachShell()
+    {
+        if (shell is null)
+        {
+            return;
+        }
+
+        shell.StatusBarColor.PropertyChanged -= OnStatusBarChanged;
+        shell.StatusBarStyle.PropertyChanged -= OnStatusBarChanged;
+        shell = null;
+    }
+
+    private void OnStatusBarChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        ApplyStatusBar();
+    }
+
+    private void ApplyStatusBar()
+    {
+        if (shell is null)
+        {
+            return;
+        }
+
+        if (statusBar is null)
+        {
+            statusBar = AssociatedObject?.Behaviors.OfType<StatusBarBehavior>().FirstOrDefault();
+            if (statusBar is null)
+            {
+                return;
+            }
+
+            defaultStatusBarColor = statusBar.StatusBarColor;
+            defaultStatusBarStyle = statusBar.StatusBarStyle;
+        }
+
+        var style = shell.StatusBarStyle.Value;
+        statusBar.StatusBarColor = shell.StatusBarColor.Value ?? defaultStatusBarColor;
+        statusBar.StatusBarStyle = style == StatusBarStyle.Default ? defaultStatusBarStyle : style;
     }
 }

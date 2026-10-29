@@ -322,14 +322,15 @@ MainPage.xaml / MainPageViewModel    シェル (タイトル + 店舗-端末 担
 App.xaml.cs                          起動時に前回の異常終了を知らせ、DatabaseService でローカル DB を作り、CredentialService でトークンを読み、SyncService でセッションを復元して同期を始める。  
                                      ローカル DB を開けないときは理由を出して終了する (未送信を含む DB を作り直さない)
 Extensions.cs                        拡張メソッド (リソース、IDialog の日本語ボタン、PostForwardAsync / PostActionAsync、TrimToNull、ObservableCollection.Replace)
-Shell/ ShellProperty (+ Active: 表示中の View だけがシェルを更新) / ShellEvent / ShellUpdateBehavior / IShellControl
+Shell/                               ShellProperty (表示中の View だけがシェルを更新する。ステータスバーの色も画面ごとに指定できるが、今の画面は指定しない)、ShellEvent、
+                                     ShellUpdateBehavior、IShellControl (値は NotificationValue、F キーは FunctionState の一覧)
 Behaviors/                           Entry / Label / Scroll などの動作 (Scroll はオーバースクロールを既定で止める)、TouchOption (押したときの波紋とクリック。要素を増やさずにビューに付ける)、
                                      EntryBind (EntryController)、BarcodeBind (CameraView)
 Messaging/                           BarcodeController、EntryController
 Controls/                            SectionPanel (見出しと白い面の節)、StatusChip (状態を色と短い文言で示すチップ)
 Components/                          StorageManager (アプリのフォルダ。ローカル DB の置き場所)、
                                      DeviceInformation (回線の状態を Android の通知から受けて持ち、変化をイベントで知らせる。起動時に開始)
-Extender/                            NavigationFocusPlugin (遷移の後にソフトキーボードを閉じる。Android)、NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、
+Extender/                            NavigationFocusPlugin (離れる画面の入力欄のフォーカスを外し、移った後にソフトキーボードを閉じる。Android)、NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、
                                      LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)、PopupActivationPlugin (ポップアップを開いている間は、後ろの画面の操作を受け付けない)
 Log.cs                               [LoggerMessage] の集約
 Diagnostics/                         CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)

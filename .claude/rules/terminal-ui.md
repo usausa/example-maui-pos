@@ -35,6 +35,7 @@ paths:
 - F4 は画面の主操作 (確定、登録、会計。なければ更新や次の画面。どれもない画面 (商品検索、スタッフ選択) は `—`) にする
 - 例外として、ホームは F キーの列を出さず (`FunctionVisible="False"`)、販売の F1 はメニュー、会員選択の F4 は会員の解除にし、完了の画面は F1 を無効にして戻るを F4 (次へ) と同じにする
 - ViewModel のプロパティは `[ObservableProperty] public partial` にする
+- 例外として、画面の枠 (`MainPageViewModel`) のシェルの値 (`IShellControl`) は、テンプレートと同じ `NotificationValue<T>` と `FunctionState` の一覧にする
 - コマンドは `MakeAsyncCommand`、`MakeDelegateCommand` で作る
 - コマンドは行や欄の操作 (`-`、`+`、入力) を先、閉じる (`CloseCommand`) と確定 (`CommitCommand`) を後にして、宣言と代入を同じ順に並べる
 - ViewModel (シートと画面の枠も) のクラスの前に「画面名: 役割」の 1 行コメントを書く

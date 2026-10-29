@@ -1,5 +1,7 @@
 namespace Pos.Terminal;
 
+using CommunityToolkit.Maui.Core;
+
 using Pos.Terminal.Modules;
 using Pos.Terminal.Shell;
 
@@ -25,32 +27,22 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
 
     public INavigator Navigator { get; }
 
-    [ObservableProperty]
-    public partial string Title { get; set; } = default!;
+    public NotificationValue<string> Title { get; } = new(string.Empty);
 
-    [ObservableProperty]
-    public partial bool HeaderVisible { get; set; }
+    public NotificationValue<bool> HeaderVisible { get; } = new();
 
-    [ObservableProperty]
-    public partial bool FunctionVisible { get; set; }
+    public NotificationValue<bool> FunctionVisible { get; } = new();
 
-    [ObservableProperty]
-    public partial string Function1Text { get; set; } = default!;
-    [ObservableProperty]
-    public partial string Function2Text { get; set; } = default!;
-    [ObservableProperty]
-    public partial string Function3Text { get; set; } = default!;
-    [ObservableProperty]
-    public partial string Function4Text { get; set; } = default!;
+    public NotificationValue<Color?> StatusBarColor { get; } = new();
 
-    [ObservableProperty]
-    public partial bool Function1Enabled { get; set; }
-    [ObservableProperty]
-    public partial bool Function2Enabled { get; set; }
-    [ObservableProperty]
-    public partial bool Function3Enabled { get; set; }
-    [ObservableProperty]
-    public partial bool Function4Enabled { get; set; }
+    public NotificationValue<StatusBarStyle> StatusBarStyle { get; } = new(CommunityToolkit.Maui.Core.StatusBarStyle.Default);
+
+    public IReadOnlyList<FunctionState> Functions { get; } = [new(), new(), new(), new()];
+
+    public FunctionState Function1 => Functions[0];
+    public FunctionState Function2 => Functions[1];
+    public FunctionState Function3 => Functions[2];
+    public FunctionState Function4 => Functions[3];
 
     // タイトルバー右側: 店舗-端末 担当 と未送信バッジ
     [ObservableProperty]
@@ -94,10 +86,10 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
         this.credential = credential;
         this.syncService = syncService;
 
-        Function1Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function1), () => Function1Enabled);
-        Function2Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function2), () => Function2Enabled);
-        Function3Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function3), () => Function3Enabled);
-        Function4Command = MakeAsyncCommand(() => Navigator.NotifyAsync(ShellEvent.Function4), () => Function4Enabled);
+        Function1Command = CreateFunctionCommand(Functions[0], ShellEvent.Function1);
+        Function2Command = CreateFunctionCommand(Functions[1], ShellEvent.Function2);
+        Function3Command = CreateFunctionCommand(Functions[2], ShellEvent.Function3);
+        Function4Command = CreateFunctionCommand(Functions[3], ShellEvent.Function4);
 
         // 遷移の間は Busy にして、ボタン・F キー・戻るを受け付けない
         Disposables.Add(Observable.FromEventPattern<EventArgs>(h => Navigator.ExecutingChanged += h, h => Navigator.ExecutingChanged -= h)
@@ -120,6 +112,12 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
                 syncService.Trigger();
             }
         }));
+    }
+
+    private IObserveCommand CreateFunctionCommand(FunctionState function, ShellEvent shellEvent)
+    {
+        var command = MakeAsyncCommand(() => Navigator.NotifyAsync(shellEvent), () => function.Enabled.Value);
+        return Observe(function.Enabled.AsObservable(nameof(NotificationValue<>.Value)), command);
     }
 
     // ReSharper disable once AsyncVoidMethod
