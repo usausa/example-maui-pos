@@ -68,13 +68,17 @@ public static class Extensions
     {
         if (navigator.Executing)
         {
+            var target = navigator.CurrentTarget;
             // ReSharper disable once AsyncVoidEventHandlerMethod
             async void ExecutingChanged(object? sender, EventArgs args)
             {
                 if (!navigator.Executing)
                 {
                     navigator.ExecutingChanged -= ExecutingChanged;
-                    await navigator.ForwardAsync(viewId, parameter);
+                    if (ReferenceEquals(navigator.CurrentTarget, target))
+                    {
+                        await navigator.ForwardAsync(viewId, parameter);
+                    }
                 }
             }
 
@@ -91,13 +95,17 @@ public static class Extensions
     {
         if (navigator.Executing)
         {
+            var target = navigator.CurrentTarget;
             // ReSharper disable once AsyncVoidEventHandlerMethod
             async void ExecutingChanged(object? sender, EventArgs args)
             {
                 if (!navigator.Executing)
                 {
                     navigator.ExecutingChanged -= ExecutingChanged;
-                    await task();
+                    if (ReferenceEquals(navigator.CurrentTarget, target))
+                    {
+                        await task();
+                    }
                 }
             }
 

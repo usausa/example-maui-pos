@@ -335,7 +335,7 @@ Extender/                            NavigationFocusPlugin (移った後にソ�
                                      NavigationUnfocusPlugin (離れる画面の入力欄のフォーカスを外す)、NavigationFeedbackPlugin (遷移先の画面にボタンの押下表示を残さない。Android)、
                                      LeakDetectionPlugin (Debug だけ。閉じた画面が回収されたかをログに出す)、PopupActivationPlugin (ポップアップを開いている間は、後ろの画面の操作を受け付けない)
 Log.cs                               [LoggerMessage] の集約
-Diagnostics/                         CrashReport (未処理の例外を crash.json に残し、次の起動で知らせる)
+Diagnostics/                         CrashReport (アプリを落とした例外を crash.json に残し、次の起動で知らせる)
 Converters/                          DisplayNameConverter (列挙型 → 文言)、EmptyTextConverter、StockSendTextConverter、AvatarColorConverter / InitialConverter (会員のアバターの色と頭文字)。  
                                      色や選択マーク・画面固有の文言は Smart.Maui の BoolToColor / MapToColor / BoolToText を Styles.xaml で構成する
 Markup/                              ViewIdExtension (XAML で画面 ID を `{markup:ViewId Xxx}` と書く)、

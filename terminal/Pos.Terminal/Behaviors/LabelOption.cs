@@ -29,6 +29,20 @@ public static partial class LabelOption
     public static void SetMaxSize(BindableObject bindable, double value) => bindable.SetValue(MaxSizeProperty, value);
 
     //--------------------------------------------------------------------------------
+    // LineHeight
+    //--------------------------------------------------------------------------------
+
+    public static readonly BindableProperty FixedLineHeightProperty = BindableProperty.CreateAttached(
+        "FixedLineHeight",
+        typeof(double),
+        typeof(LabelOption),
+        0d);
+
+    public static double GetFixedLineHeight(BindableObject bindable) => (double)bindable.GetValue(FixedLineHeightProperty);
+
+    public static void SetFixedLineHeight(BindableObject bindable, double value) => bindable.SetValue(FixedLineHeightProperty, value);
+
+    //--------------------------------------------------------------------------------
     // CountUp
     //--------------------------------------------------------------------------------
 

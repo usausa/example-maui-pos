@@ -1,8 +1,11 @@
 namespace Pos.Terminal.Behaviors;
 
+using Android.Util;
 using Android.Widget;
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Handlers;
+using Microsoft.Maui.Platform;
 
 public static partial class LabelOption
 {
@@ -27,6 +30,27 @@ public static partial class LabelOption
                 if (GetAutoSize(label))
                 {
                     UpdateLabelSize(handler, label);
+                }
+            });
+        }
+
+        if (options.FixedLineHeight)
+        {
+            LabelHandler.Mapper.AppendToMapping(FixedLineHeightProperty.PropertyName, static (handler, view) =>
+            {
+                var label = (Label)view;
+                var height = GetFixedLineHeight(label);
+                if (height > 0)
+                {
+                    var textView = handler.PlatformView;
+                    if (label.FormattedText is not null)
+                    {
+                        textView.UpdateFont(label, handler.MauiContext!.Services.GetRequiredService<IFontManager>());
+                    }
+
+                    textView.FallbackLineSpacing = false;
+                    textView.SetIncludeFontPadding(false);
+                    textView.LineHeight = (int)Math.Round(TypedValue.ApplyDimension(ComplexUnitType.Dip, (float)height, textView.Resources!.DisplayMetrics));
                 }
             });
         }
