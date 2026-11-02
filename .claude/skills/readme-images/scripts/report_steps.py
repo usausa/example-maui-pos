@@ -26,10 +26,11 @@ REPORTS = [
         const p = j.items.find(x => !x.note) ?? j.items[0];
         return '{API}/inventory/purchase-orders/' + p.id + '/pdf';
     }})()"""),
-    # 精算レポート: 精算済みのシフト
+    # 精算レポート: 販売のある精算済みのシフト (なければ最初の精算済みのシフト)
     ('report-shift', f"""(async () => {{
-        const j = await (await fetch('{API}/shifts?status=Closed&size=1')).json();
-        return '{API}/shifts/' + j.items[0].id + '/summary/pdf';
+        const j = await (await fetch('{API}/shifts?status=Closed&size=20')).json();
+        const s = j.items.find(x => x.totals.salesCount > 0) ?? j.items[0];
+        return '{API}/shifts/' + s.id + '/summary/pdf';
     }})()"""),
     # 売上日報: 締め済みの店舗 × 営業日
     ('report-daily-sales', f"""(async () => {{

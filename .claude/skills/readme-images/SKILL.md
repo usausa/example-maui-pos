@@ -72,7 +72,7 @@ description: README の画面と帳票の画像 (docs/images/ の server-*.png�
 | --- | --- |
 | `report-order` | 受注票 (前受金のある未完了の受注) |
 | `report-purchase-order` | 発注書 (備考のない発注済みの発注) |
-| `report-shift` | 精算レポート (精算済みのシフト) |
+| `report-shift` | 精算レポート (販売のある精算済みのシフト) |
 | `report-daily-sales` | 売上日報 (締め済みの店舗 × 営業日) |
 | `report-receipt` | レシートの控え (直近の販売のうち明細の多いもの) |
 
