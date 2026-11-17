@@ -16,50 +16,70 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| RDBMS | **SQLite** (`Microsoft.Data.Sqlite`)。接続文字列は `Data Source=pos.db;Cache=Shared;Pooling=True;Foreign Keys=True`。起動時の PRAGMA で WAL にする (DB ファイルに残るので全接続に効く) |
-| データアクセス | `Usa.Smart.Data.Accessor` の `[DataAccessor]` + 2-way SQL ファイル (`Accessors/Sql/{Accessor}.{Method}.sql`)。ORM は使わない。SQL は Accessor だけが持ち、Accessor を使うのは `Services/` の Service だけ ([D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く)) |
-| スキーマ作成 | 起動時に `Host/Assets/Data/Schema.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を読んで実行する。マイグレーションは持たない (列を足すときは下の「スキーマの変更」) |
-| 命名 | テーブル = 複数形 PascalCase (`Transactions`)、列 = PascalCase。FK は `〜Id`。エンティティクラスは `{Table 単数}Entity` (`TransactionEntity`) |
-| 主キー | `guid` を **TEXT (36 文字。`Microsoft.Data.Sqlite` の既定で大文字)** で保存。端末発のデータは端末が GUID v7 を採番 ([D-32](decisions.md#d-32-端末発の書き込みは端末が-id-を採番する)) |
-| 列挙型 | TEXT (列挙名)。汎用 `EnumTextConverter<T>` を `DataProfile` (`[AccessorProfile]`) に列挙型ごとに宣言し、各 Accessor が `[ExecuteConfig(typeof(DataProfile))]` で参照する ([D-30](decisions.md#d-30-金額は-decimalid-は-guid-v7日時は-utc-にする))。値は API の enum と同じ |
-| 論理削除 | マスタ系は `IsDeleted`。差分同期で削除も伝える必要があるので、通常の照会側で `IsDeleted = 0` を明示する |
-| 監査列 | `CreatedAt` / `UpdatedAt` (UTC)。マスタ系・会員・アカウントと、状態を持つ伝票 (受注・入荷・発注・移動) は `Version` (INTEGER、更新ごとに +1) を持ち、編集の更新は版を条件にする (楽観ロック) |
-| 履歴 | 取引・入出金・在庫変動・ポイント履歴・前受金は**消さない**。取引の取消は `Status` と取消の列だけを更新し、在庫とポイントは逆方向の履歴を足す。元明細は返品と返品の取消で `ReturnedQuantity` だけを加減する。シフトは精算で集計列と `Status` を確定する。日次締めは締め解除で行ごと消し、締め直しで作り直す |
-| スナップショット | 取引明細は商品名・単価・税率・還元率を販売時点の値で保持する。マスタ変更が過去の取引に影響しない |
-| 外部キー | `FOREIGN KEY` は宣言するが、SQLite の既定では強制されないため、接続文字列の `Foreign Keys=True` で接続ごとに有効にする |
+| RDBMS | SQLite (`Microsoft.Data.Sqlite`)。起動時の PRAGMA で WAL にする (DB ファイルに残るので全接続に効く) |
+| 接続文字列 | `Data Source=pos.db;Cache=Shared;Pooling=True;Foreign Keys=True` |
+| データアクセス | `Usa.Smart.Data.Accessor` の `[DataAccessor]` + 2-way SQL ファイル (`Accessors/Sql/{Accessor}.{Method}.sql`)。ORM は使わない |
+| Accessor | SQL は Accessor だけが持ち、Accessor を使うのは `Services/` の Service だけ ([D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く)) |
+| スキーマ作成 | 起動時に `Host/Assets/Data/Schema.sql` (`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`) を読んで実行する。マイグレーションは持たない (列の追加は下の「スキーマの変更」) |
+| 命名 | テーブルは複数形の PascalCase (`Transactions`)、列は PascalCase、FK は `〜Id`。エンティティクラスは `{Table 単数}Entity` (`TransactionEntity`) |
+| 主キー | `guid` を TEXT で保存する (36 文字。`Microsoft.Data.Sqlite` の既定で大文字)。端末発のデータは端末が GUID v7 を採番する ([D-32](decisions.md#d-32-端末発の書き込みは端末が-id-を採番する)) |
+| 列挙型 | TEXT (列挙名)。値は API の enum と同じ |
+| 列挙型の変換 | 汎用の `EnumTextConverter<T>` を `DataProfile` (`[AccessorProfile]`) に列挙型ごとに宣言し、各 Accessor が `[ExecuteConfig(typeof(DataProfile))]` で参照する ([D-30](decisions.md#d-30-金額は-decimalid-は-guid-v7日時は-utc-にする)) |
+| 論理削除 | マスタ系は `IsDeleted` を持つ。差分同期で削除も伝えるため、通常の照会では `IsDeleted = 0` を明示する |
+| 監査列 | `CreatedAt` / `UpdatedAt` (UTC) |
+| 楽観ロック | マスタ系、会員、アカウント、状態を持つ伝票 (受注・入荷・発注・移動) は `Version` (INTEGER、更新ごとに +1) を持つ。編集の更新はバージョンを条件にする |
+| 履歴 | 取引・入出金・在庫変動・ポイント履歴・前受金は消さない (更新は下の「履歴の扱い」) |
+| スナップショット | 取引明細は、商品名・単価・税率・還元率を販売時点の値で持つ。マスタの変更は過去の取引に影響しない |
+| 外部キー | `FOREIGN KEY` は宣言する。SQLite の既定では強制されないので、接続文字列の `Foreign Keys=True` で接続ごとに有効にする |
+
+履歴の扱い:
+
+| 対象 | 扱い |
+| --- | --- |
+| 取引の取消 | `Status` と取消の列だけを更新する。在庫とポイントは逆方向の履歴を足す |
+| 返品と返品の取消 | 元明細の `ReturnedQuantity` だけを加減する |
+| シフトの精算 | 集計列と `Status` を確定する |
+| 日次締め | 締め解除で行ごと消し、締め直しで作り直す |
 
 型の表記 (C# ↔ SQLite):
 
 | 表記 | C# | SQLite | 備考 |
 | --- | --- | --- | --- |
 | `guid` | `Guid` | `TEXT` | `Microsoft.Data.Sqlite` の既定 (36 文字、大文字)。生成コードは `GetGuid` で読む |
-| `string(n)` | `string` | `TEXT` | 長さはアプリ側で検証 (SQLite は長さ制約を強制しない) |
-| `money` | `decimal` | `NUMERIC` | 円。`Microsoft.Data.Sqlite` は `decimal` を TEXT で書くが、NUMERIC 親和性により数値 (INTEGER / REAL) に変換されて保存される ([D-30](decisions.md#d-30-金額は-decimalid-は-guid-v7日時は-utc-にする)) |
+| `string(n)` | `string` | `TEXT` | 長さはアプリで検証する (SQLite は長さの制約を強制しない) |
+| `money` | `decimal` | `NUMERIC` | 円。`Microsoft.Data.Sqlite` は `decimal` を TEXT で書くが、NUMERIC 親和性で数値 (INTEGER / REAL) として保存される ([D-30](decisions.md#d-30-金額は-decimalid-は-guid-v7日時は-utc-にする)) |
 | `rate` | `decimal` | `NUMERIC` | `0.1` (REAL として保存)。集計しない |
 | `qty` | `decimal` | `NUMERIC` | 数量 (小数可) |
 | `decimal` | `decimal` | `NUMERIC` | 金額か率 (値引の値。`Type` で決まる) |
 | `int` | `int` | `INTEGER` | |
 | `bool` | `bool` | `INTEGER` | 0 / 1 |
-| `datetime` | `DateTime` (UTC) | `TEXT` | `yyyy-MM-dd HH:mm:ss.fffffff` (`Microsoft.Data.Sqlite` の既定書式。文字列比較で範囲検索できる)。`DateTimeTextConverter` で UTC に固定して読み書きする |
+| `datetime` | `DateTime` (UTC) | `TEXT` | `yyyy-MM-dd HH:mm:ss.fffffff` (`Microsoft.Data.Sqlite` の既定の書式) で、文字列の比較で範囲検索できる。`DateTimeTextConverter` で UTC に固定して読み書きする |
 | `date` | `DateOnly` | `TEXT` | `yyyy-MM-dd` (`DateOnlyTextConverter`) |
 | `enum` | enum | `TEXT` | 列挙名 |
 | `blob` | `byte[]` | `BLOB` | ハッシュと画像 |
 
 スキーマの変更:
 
-起動時の `CREATE TABLE IF NOT EXISTS` は既存のテーブルに列を足さないので、機能を足すときは既存のテーブルに列を足さず、新しいテーブルで持つ (受注と取引は `Orders.TransactionId`、発注と入荷予定は `PurchaseOrders.ReceiptId` で結ぶ)。  
-列を足すしかないときは `Schema.sql` の `CREATE TABLE` に書いたうえで、起動時に `SchemaHelper.EnsureColumnAsync` (`PRAGMA table_info` で確かめて `ALTER TABLE ADD COLUMN`) で既存の DB にも足し、既存の行の値を補う。  
-端末のローカル DB も同じ方法で列を足す。  
-スキーマの末尾の `DROP INDEX IF EXISTS` は、名前を変えた索引の古い名前を前の版の DB から消す (残ると同じ索引が 2 つになる)。
+- 起動時の `CREATE TABLE IF NOT EXISTS` は、既存のテーブルに列を足さない。  
+  そのため、機能を足すときは既存のテーブルに列を足さず、新しいテーブルで持つ (受注と取引は `Orders.TransactionId`、発注と入荷予定は `PurchaseOrders.ReceiptId` で結ぶ)
+- 列を足すしかないときは、`Schema.sql` の `CREATE TABLE` に書く。  
+  そのうえで起動時に `SchemaHelper.EnsureColumnAsync` で既存の DB にも足し、既存の行の値を補う (`PRAGMA table_info` で確認して `ALTER TABLE ADD COLUMN` する)
+- 端末のローカル DB も同じ方法で列を足す
+- スキーマの末尾の `DROP INDEX IF EXISTS` は、名前を変えたインデックスの古い名前を前のバージョンの DB から消す (残ると同じインデックスが 2 つになる)
 
 | DB | 起動時に足す列 | 既存の行 |
 | --- | --- | --- |
-| サーバ | `PaymentMethods.ShortName` | 列を足したときに、初期データのコード (前受金を除く `CASH` など) の行へ初期データと同じボタン名を入れ、`UpdatedAt` / `Version` を進める (端末は差分同期で受け取る) |
+| サーバ | `PaymentMethods.ShortName` | 列を足したときに、初期データのコード (前受金を除く `CASH` など) の行へ初期データと同じボタン名を入れる。`UpdatedAt` / `Version` を進め、端末は差分同期で受け取る |
 | サーバ | `Shifts.DepositCashIn` / `DepositCashOut` | `DEFAULT 0` (前受金より前に精算したシフトは 0) |
 | 端末 | `PaymentMethods.ShortName` | 空のまま (ボタンは `Name` を出し、同期で行が届くと入る) |
 | 端末 | `Staff.PinHash` | `SyncState` の `ServerTime` を消し、次のマスタ同期を全件にする (PIN は全員分が要る) |
 
-後から足した初期データ (前受金の支払方法 `DEPOSIT`) は起動時に足す (種別 `Deposit`、コード `DEPOSIT`、同じ Id のいずれかの行があれば足さない)。
+後から足した初期データ (前受金の支払方法 `DEPOSIT`) は起動時に足す。  
+次のいずれかの行があれば足さない。
+
+- 種別が `Deposit`
+- コードが `DEPOSIT`
+- 同じ Id
 
 ---
 
@@ -352,7 +372,7 @@ erDiagram
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`, `IX(UpdatedAt)`
+インデックス: `UQ(Code)`、`IX(UpdatedAt)`
 
 #### Terminals (レジ端末)
 
@@ -362,13 +382,16 @@ erDiagram
 | StoreId | guid | | FK → Stores |
 | TerminalNo | int | | 店舗内番号 |
 | Name | string(50) | | |
-| LastReceiptSeq | int | | 最終レシート連番。取引の登録で大きい方に更新し、`UpdatedAt` と版は進めない (差分同期には載らず、入れ直した端末がペアリングの全件同期で受け取って連番を続ける) |
+| LastReceiptSeq | int | | 最終レシート連番。取引の登録で大きい方に更新する |
 | LastSeenAt | datetime | ✅ | 最終通信 (取引の登録・ペアリング・ハートビートで更新) |
 | AppVersion | string(50) | ✅ | 端末が送ったアプリのバージョン (ペアリングとハートビートで更新) |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(StoreId, TerminalNo)`, `IX(UpdatedAt)`
+インデックス: `UQ(StoreId, TerminalNo)`、`IX(UpdatedAt)`
+
+`LastReceiptSeq` の更新では `UpdatedAt` とバージョンを進めない。  
+差分同期には載らないので、入れ直した端末はペアリングの全件同期で受け取って連番を続ける。
 
 #### Staff (スタッフ)
 
@@ -379,11 +402,13 @@ erDiagram
 | Name | string(50) | | |
 | Role | enum | | `Cashier` / `Manager` / `Admin` |
 | StoreId | guid | ✅ | FK → Stores。NULL = 本部 |
-| PinHash | blob | ✅ | PIN のハッシュ (`PinHasher`: PBKDF2 のソルト 16 + ハッシュ 32 バイト)。端末向けの同期にだけ載せる。NULL = 未設定 (端末で担当に選べない) |
+| PinHash | blob | ✅ | PIN のハッシュ (`PinHasher`: PBKDF2 のソルト 16 + ハッシュ 32 バイト)。NULL = 未設定 (端末で担当に選べない) |
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`, `IX(StoreId)`, `IX(UpdatedAt)`
+インデックス: `UQ(Code)`、`IX(StoreId)`、`IX(UpdatedAt)`
+
+`PinHash` は端末向けの同期にだけ載せる。
 
 #### Categories (部門)
 
@@ -396,7 +421,7 @@ erDiagram
 | SortOrder | int | | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`, `IX(ParentId)`, `IX(UpdatedAt)`
+インデックス: `UQ(Code)`、`IX(ParentId)`、`IX(UpdatedAt)`
 
 #### TaxRates (税率)
 
@@ -411,14 +436,14 @@ erDiagram
 | SortOrder | int | | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`, `IX(UpdatedAt)`
+インデックス: `UQ(Code)`、`IX(UpdatedAt)`
 
 #### Products (商品)
 
 | 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
-| Code | string(20) | | UQ 商品コード |
+| Code | string(20) | | UQ。商品コード |
 | Barcode | string(20) | ✅ | UQ (NULL を除く)。JAN / EAN |
 | Name | string(100) | | |
 | Kana | string(100) | ✅ | |
@@ -439,7 +464,7 @@ erDiagram
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`, `UQ(Barcode) WHERE Barcode IS NOT NULL`, `IX(CategoryId)`, `IX(Name)`, `IX(Kana)`, `IX(UpdatedAt)`
+インデックス: `UQ(Code)`、`UQ(Barcode) WHERE Barcode IS NOT NULL`、`IX(CategoryId)`、`IX(Name)`、`IX(Kana)`、`IX(UpdatedAt)`
 
 #### ProductImages (商品画像)
 
@@ -467,7 +492,7 @@ erDiagram
 | SortOrder | int | | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`, `IX(UpdatedAt)`
+インデックス: `UQ(Code)`、`IX(UpdatedAt)`
 
 #### PaymentMethods (支払方法)
 
@@ -484,7 +509,7 @@ erDiagram
 | SortOrder | int | | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`, `IX(UpdatedAt)`
+インデックス: `UQ(Code)`、`IX(UpdatedAt)`
 
 アプリ側制約: `Kind = Points` と `Kind = Deposit` の有効な行はそれぞれ 1 件まで (2 件目を有効にする登録・更新は拒否する)。
 
@@ -499,7 +524,7 @@ erDiagram
 | IsActive | bool | | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`, `IX(UpdatedAt)`
+インデックス: `UQ(Code)`、`IX(UpdatedAt)`
 
 #### Suppliers (仕入先)
 
@@ -514,7 +539,7 @@ erDiagram
 | IsActive | bool | | 入荷予定と発注の登録で選べる |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`
+インデックス: `UQ(Code)`
 
 入荷と発注は削除済みの仕入先の名前も引く。  
 端末には同期しない。
@@ -526,7 +551,7 @@ erDiagram
 | 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
 | Id | guid | | PK |
-| Code | string(20) | | UQ 会員番号 |
+| Code | string(20) | | UQ。会員番号 |
 | Name | string(100) | | |
 | Kana | string(100) | ✅ | |
 | Phone | string(20) | ✅ | |
@@ -538,7 +563,7 @@ erDiagram
 | Note | string(500) | ✅ | |
 | 共通列 + IsDeleted, Version | | | |
 
-索引: `UQ(Code)`, `IX(Phone)`, `IX(Kana)`, `IX(UpdatedAt)`
+インデックス: `UQ(Code)`、`IX(Phone)`、`IX(Kana)`、`IX(UpdatedAt)`
 
 #### PointHistories (ポイント履歴)
 
@@ -555,7 +580,7 @@ erDiagram
 | OccurredAt | datetime | | |
 | CreatedAt | datetime | | |
 
-索引: `IX(CustomerId, OccurredAt DESC)`, `IX(TransactionId)`
+インデックス: `IX(CustomerId, OccurredAt DESC)`、`IX(TransactionId)`
 
 ### 3.3 シフト (レジ開閉)
 
@@ -574,7 +599,7 @@ erDiagram
 | ClosedAt | datetime | ✅ | |
 | ClosedByStaffId | guid | ✅ | FK → Staff |
 | ActualCash | money | ✅ | |
-| ExpectedCash | money | ✅ | 精算時に確定 (`OpeningCash + CashSales − CashReturns + PaidIn − PaidOut + DepositCashIn − DepositCashOut`) |
+| ExpectedCash | money | ✅ | 精算時に確定 (計算式は表の下) |
 | Difference | money | ✅ | `ActualCash − ExpectedCash` |
 | CashSales | money | | 精算時に確定 (Open 中は取引から都度集計) |
 | CashReturns | money | | 同上 |
@@ -590,7 +615,9 @@ erDiagram
 | Note | string(500) | ✅ | |
 | 共通列 | | | |
 
-索引: `UQ(TerminalId) WHERE Status = 'Open'` (端末につき開設中は 1 つ。SQLite の部分インデックス)、`IX(StoreId, BusinessDate)`
+インデックス: `UQ(TerminalId) WHERE Status = 'Open'` (端末につき開設中は 1 つ。SQLite の部分インデックス)、`IX(StoreId, BusinessDate)`
+
+`ExpectedCash` の計算式: `OpeningCash + CashSales − CashReturns + PaidIn − PaidOut + DepositCashIn − DepositCashOut`
 
 #### ShiftDenominations (金種別枚数)
 
@@ -613,12 +640,13 @@ erDiagram
 | OccurredAt | datetime | | |
 | CreatedAt | datetime | | |
 
-索引: `IX(ShiftId, OccurredAt)`
+インデックス: `IX(ShiftId, OccurredAt)`
 
 ### 3.4 日次締め
 
 店舗 × 営業日の締め ([D-12](decisions.md#d-12-日次締めは日計を写して持ち締めた日の取消を止める))。  
-締めた時点の日計と内訳を写して持ち、締め解除で内訳ごと消す。
+締めた時点の日計と内訳のスナップショットを持つ。  
+締め解除で内訳ごと消す。
 
 #### DailyClosings
 
@@ -644,7 +672,7 @@ erDiagram
 | HasLateTransactions | bool | | 締めた後に同じ営業日の取引が届いた (締め直すまで日計に含まれない) |
 | CreatedAt / UpdatedAt | datetime | | |
 
-索引: `UQ(StoreId, BusinessDate)`
+インデックス: `UQ(StoreId, BusinessDate)`
 
 #### DailyClosingPayments (支払方法別)
 
@@ -704,7 +732,7 @@ erDiagram
 | VoidReason | string(200) | ✅ | |
 | 共通列 | | | |
 
-索引: `UQ(ReceiptNo)`, `IX(StoreId, BusinessDate)`, `IX(ShiftId)`, `IX(TerminalId, TransactedAt)`, `IX(CustomerId, TransactedAt)`, `IX(OriginalTransactionId)`, `IX(TransactedAt)`
+インデックス: `UQ(ReceiptNo)`、`IX(StoreId, BusinessDate)`、`IX(ShiftId)`、`IX(TerminalId, TransactedAt)`、`IX(CustomerId, TransactedAt)`、`IX(OriginalTransactionId)`、`IX(TransactedAt)`
 
 #### TransactionLines
 
@@ -735,7 +763,7 @@ erDiagram
 | ReturnedQuantity | qty | | 元明細側で更新される唯一の列 |
 | Note | string(200) | ✅ | |
 
-索引: `UQ(TransactionId, LineNo)`, `IX(ProductId)`, `IX(OriginalLineId)`
+インデックス: `UQ(TransactionId, LineNo)`、`IX(ProductId)`、`IX(OriginalLineId)`
 
 #### TransactionLineSerials
 
@@ -744,7 +772,7 @@ erDiagram
 | TransactionLineId | guid | | PK, FK → TransactionLines |
 | SerialNumber | string | | PK |
 
-索引: `IX(SerialNumber)` (シリアルからの取引検索用)
+インデックス: `IX(SerialNumber)` (シリアルからの取引検索用)
 
 #### TransactionDiscounts
 
@@ -762,7 +790,7 @@ erDiagram
 | Reason | string(200) | ✅ | |
 | ApprovedByStaffId | guid | ✅ | FK → Staff。承認が必要な値引の承認者 |
 
-索引: `IX(TransactionId)`
+インデックス: `IX(TransactionId)`
 
 #### TransactionTaxSummaries
 
@@ -789,7 +817,7 @@ erDiagram
 | Reference | string(50) | ✅ | |
 | Note | string(200) | ✅ | |
 
-索引: `UQ(TransactionId, SeqNo)`, `IX(PaymentMethodId)`
+インデックス: `UQ(TransactionId, SeqNo)`、`IX(PaymentMethodId)`
 
 #### TransactionDeliveries
 
@@ -833,7 +861,7 @@ erDiagram
 | CancelReason | string(200) | ✅ | |
 | 共通列 + Version | | | |
 
-索引: `UQ(StoreId, Seq)`、`UQ(OrderNo)`、`IX(StoreId, Status)`、`IX(CustomerId)`、`IX(TransactionId)`
+インデックス: `UQ(StoreId, Seq)`、`UQ(OrderNo)`、`IX(StoreId, Status)`、`IX(CustomerId)`、`IX(TransactionId)`
 
 #### OrderLines
 
@@ -849,7 +877,7 @@ erDiagram
 | Amount | money | | 単価 × 数量 (切り捨て) |
 | Note | string(200) | ✅ | |
 
-索引: `IX(OrderId)`
+インデックス: `IX(OrderId)`
 
 #### OrderDeposits (前受金)
 
@@ -873,7 +901,7 @@ erDiagram
 | OccurredAt | datetime | | |
 | CreatedAt | datetime | | |
 
-索引: `IX(OrderId)`、`IX(ShiftId)`
+インデックス: `IX(OrderId)`、`IX(ShiftId)`
 
 ### 3.7 在庫
 
@@ -886,13 +914,13 @@ erDiagram
 | Quantity | qty | | 負も許容 |
 | UpdatedAt | datetime | | |
 
-索引: `IX(ProductId)` (他店在庫照会)、`IX(StoreId, UpdatedAt)` (差分同期)
+インデックス: `IX(ProductId)` (他店在庫照会)、`IX(StoreId, UpdatedAt)` (差分同期)
 
 #### InventoryChanges (在庫変動履歴)
 
 | 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
-| Id | guid | | PK (端末採番 or サーバ採番) |
+| Id | guid | | PK (端末かサーバが採番) |
 | StoreId | guid | | FK → Stores |
 | ProductId | guid | | FK → Products |
 | Type | enum | | `Sale` / `Return` / `Void` / `PhysicalCount` / `Adjustment` / `Receive` / `TransferOut` / `TransferIn` |
@@ -907,7 +935,7 @@ erDiagram
 | OccurredAt | datetime | | |
 | CreatedAt | datetime | | |
 
-索引: `IX(StoreId, ProductId, OccurredAt DESC)`, `IX(ReferenceId)`
+インデックス: `IX(StoreId, ProductId, OccurredAt DESC)`、`IX(ReferenceId)`
 
 #### InventoryReceipts (入荷)
 
@@ -927,7 +955,7 @@ erDiagram
 | CancelledAt | datetime | ✅ | |
 | 共通列 + Version | | | |
 
-索引: `IX(StoreId, Status)`
+インデックス: `IX(StoreId, Status)`
 
 #### InventoryReceiptLines
 
@@ -942,12 +970,13 @@ erDiagram
 | ReceivedQuantity | qty | ✅ | 受領した数 (受領まで NULL) |
 | Cost | money | ✅ | 仕入単価 |
 
-索引: `IX(ReceiptId)`
+インデックス: `IX(ReceiptId)`
 
 #### PurchaseOrders (発注)
 
 仕入先への注文。  
-[発注] で明細を写した入荷予定を作り、入荷予定の受領とキャンセルで状態が変わる ([D-17](decisions.md#d-17-発注は入荷予定を作りその受領とキャンセルに合わせる))。
+[発注] で、明細をコピーした入荷予定を作る。  
+入荷予定の受領とキャンセルで状態が変わる ([D-17](decisions.md#d-17-発注は入荷予定を作りその受領とキャンセルに合わせる))。
 
 | 列 | 型 | NULL 可 | 説明 |
 | --- | --- | --- | --- |
@@ -965,7 +994,7 @@ erDiagram
 | CancelledAt | datetime | ✅ | |
 | 共通列 + Version | | | |
 
-索引: `UQ(StoreId, Seq)`、`UQ(PurchaseOrderNo)`、`IX(StoreId, Status)`、`IX(ReceiptId)`
+インデックス: `UQ(StoreId, Seq)`、`UQ(PurchaseOrderNo)`、`IX(StoreId, Status)`、`IX(ReceiptId)`
 
 #### PurchaseOrderLines
 
@@ -979,7 +1008,7 @@ erDiagram
 | Quantity | qty | | 発注の数 |
 | Cost | money | ✅ | 仕入単価 |
 
-索引: `IX(PurchaseOrderId)`
+インデックス: `IX(PurchaseOrderId)`
 
 #### InventoryTransfers (店舗間移動)
 
@@ -996,7 +1025,7 @@ erDiagram
 | ShippedByStaffId / ReceivedByStaffId | guid | ✅ | FK → Staff |
 | 共通列 + Version | | | |
 
-索引: `UQ(FromStoreId, Seq)`、`UQ(TransferNo)`、`IX(ToStoreId, Status)`
+インデックス: `UQ(FromStoreId, Seq)`、`UQ(TransferNo)`、`IX(ToStoreId, Status)`
 
 #### InventoryTransferLines
 
@@ -1010,7 +1039,7 @@ erDiagram
 | Quantity | qty | | 依頼・出荷の数 |
 | ReceivedQuantity | qty | ✅ | 受領した数 (受領まで NULL) |
 
-索引: `IX(TransferId)`
+インデックス: `IX(TransferId)`
 
 ### 3.8 認証
 
@@ -1026,13 +1055,14 @@ erDiagram
 | Password | blob | | PBKDF2 (SHA-256、310,000 回) のソルト 32 + ハッシュ 32 バイト (`IPasswordProvider`) |
 | Role | enum | | `Administrator` / `Operator` |
 | IsActive | bool | | 無効はログインできない |
-| LastLoginAt | datetime | ✅ | 最終ログイン (版を変えずに更新する) |
+| LastLoginAt | datetime | ✅ | 最終ログイン (バージョンを変えずに更新する) |
 | CreatedAt, UpdatedAt | | | |
-| Version | int | | 役割・有効・パスワードを変えると +1。ログイン中のセッションは版が変わると無効になる |
+| Version | int | | 役割・有効・パスワードを変えると +1。ログイン中のセッションはバージョンが変わると無効になる |
 
-索引: `UQ(Name)`。  
-起動時に 1 件もなければ設定 (`Auth:InitialName` / `InitialPassword`) の管理者を作る。  
-削除は行ごと消す (他の表から参照しない)
+インデックス: `UQ(Name)`
+
+- 起動時に 1 件もなければ、設定 (`Auth:InitialName` / `InitialPassword`) の管理者を作る
+- 削除は行ごと消す (ほかのテーブルから参照しない)
 
 #### TerminalTokens (端末の登録)
 
@@ -1050,15 +1080,17 @@ erDiagram
 | RevokedAt | datetime | ✅ | 登録の解除・再ペアリングで失効した日時 |
 | CreatedAt | datetime | | |
 
-索引: `IX(TerminalId)`、`UQ(TokenHash) WHERE TokenHash IS NOT NULL`、`IX(PairingCode) WHERE PairingCode IS NOT NULL`。  
-コードを発行すると端末の未使用のコードは消し、ペアリングで端末の有効なトークンを失効させる (端末ごとに有効なトークンは 1 つ)
+インデックス: `IX(TerminalId)`、`UQ(TokenHash) WHERE TokenHash IS NOT NULL`、`IX(PairingCode) WHERE PairingCode IS NOT NULL`
+
+- コードを発行すると、その端末の未使用のコードを消す
+- ペアリングで、その端末の有効なトークンを失効させる (端末ごとに有効なトークンは 1 つ)
 
 ---
 
 ## 📝 4. DDL 例
 
 `Host/Assets/Data/Schema.sql` に置く SQLite の DDL (端末は `Resources/Raw/Schema.sql`)。  
-他のテーブルも同じ規則 (guid = TEXT、money / rate / qty = NUMERIC、enum = TEXT、datetime = TEXT) で書く。
+ほかのテーブルも同じ規則 (guid = TEXT、money / rate / qty = NUMERIC、enum = TEXT、datetime = TEXT) で書く。
 
 ```sql
 -- Schema.sql (抜粋)
@@ -1142,7 +1174,9 @@ public sealed partial class TransactionAccessor
 }
 ```
 
-初期データは Host の `Assets/Data/InitialData.sql` (複数の `INSERT`。`@now` は投入時刻) を起動時に読み、`GenericAccessor.ExecuteScriptAsync` (`[DirectSql]`) で会社設定がない DB へ 1 トランザクションで投入する (内容は [architecture.md §6](architecture.md#-6-初期データ))。
+初期データは Host の `Assets/Data/InitialData.sql` に置く (複数の `INSERT`。`@now` は投入時刻)。  
+起動時に読み、会社設定がない DB へ `GenericAccessor.ExecuteScriptAsync` (`[DirectSql]`) で 1 トランザクションで投入する。  
+内容は [architecture.md §6](architecture.md#-6-初期データ)。
 
 起動時の PRAGMA (`GenericAccessor.ExecutePragmaAsync.sql`。WAL は DB ファイルに永続化される):
 
@@ -1156,97 +1190,201 @@ PRAGMA foreign_keys = ON
 
 ## 🔒 5. 整合性と更新の単位
 
-SQLite は書き込みが直列化される (単一ライター) が、検証はトランザクションの前に読むので、その後に変わりうる条件 (状態・版・前受金の残り・返品数量、取消のときの返品・精算・締め、返品のときの元の取引の取消) は書き込みの文の条件に入れ、条件に合わなければ書き込みを戻す。  
-トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱い、Service が Accessor の `DbTransaction` 付きメソッドを束ねる (Usecase 層は置かない。[D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く))。  
-端末が採番した `Id` の登録は、書く前に同じ `Id` を読んで再送を見分け、同時に届いた再送は主キーの違反 (前受金は、残りの条件に合わずに書けなかったこと) を受けて読み直し、先に登録した方を返す。
+SQLite は書き込みを直列化する (単一ライター)。  
+ただし検証はトランザクションの前に読むので、その後に変わりうる次の条件は書き込みの文の条件に入れ、合わなければ書き込みを戻す。
+
+- 状態、バージョン、前受金の残り、返品数量
+- 取消のときの返品、精算、締め
+- 返品のときの元の取引の取消
+
+トランザクションは Smart.Data の `IDbProvider.UsingTxAsync` で扱う。  
+Service が Accessor の `DbTransaction` 付きのメソッドを束ねる (Usecase 層は置かない。[D-27](decisions.md#d-27-サーバは-service-に手順を集めsql-は-accessor-に置く))。
+
+端末が採番した `Id` の登録は、書く前に同じ `Id` を読んで再送を見分ける。  
+同時に届いた再送は、主キーの違反を受けて再取得し、先に登録した方を返す。  
+前受金は、主キーの違反ではなく、残りの条件に合わずに書けなかったことを受けて再取得する。
 
 ### 5.1 取引登録 (`POST /transactions`) は 1 つの DB トランザクション
 
-1. `Transactions.Id` が既にあれば既存を返して終える (種別・端末・シフト・レシート番号・合計・取引日時のどれかが違えば 409)
+1. `Transactions.Id` が既にあれば、既存を返して終える (種別・端末・シフト・レシート番号・合計・取引日時のどれかが違えば 409)
 2. 検証 (参照先、シフト状態、商品、計算一致、返品数量 …)
-3. 以下を 1 トランザクションで実行
+3. 以下を 1 トランザクションで実行する
    - `Transactions` + `TransactionLines` + `TransactionLineSerials` + `TransactionDiscounts` + `TransactionTaxSummaries` + `TransactionPayments` + `TransactionDeliveries` を INSERT
    - 取消済み (`Status = Voided`) で届いた取引は、INSERT と締め済みの印だけを行う
-   - `Return` なら元明細の `ReturnedQuantity` を加算 (超過しないことと、元の取引が完了であることを同じ文の条件にし、通らなければ登録全体を戻す。元の取引が取り消されていれば `ORIGINAL_NOT_RETURNABLE`、超えれば `RETURN_QUANTITY_EXCEEDED`)
-   - `TrackInventory` の明細ごとに `InventoryLevels` を **UPSERT で加減算** (`INSERT ... ON CONFLICT (StoreId, ProductId) DO UPDATE SET Quantity = Quantity + excluded.Quantity`) し、更新後の値 (`RETURNING Quantity`) で `InventoryChanges` を INSERT
-   - 顧客があれば `Customers.PointBalance` を `UPDATE ... SET PointBalance = PointBalance + @delta` で加減算し、`PointHistories` を INSERT (`Redeem` → `Earn` の順。Return は `Refund` → `Revoke`。処理後の残高を `Transactions.PointsBalanceAfter` に書く)
-   - `Terminals.LastReceiptSeq` を `max(現在値, 今回の連番)` で更新
-   - 店舗 × 営業日の締めがあれば `DailyClosings.HasLateTransactions` を立てる (検証のあとに締めた日にも立てるので、検証のときの締めの有無によらず更新する)
-   - 受注から会計した販売なら、引き渡し待ち (`Arrived`) の受注を `Completed` にして `TransactionId` を入れる (状態か前受金の残りが検証のときと変わっていれば、登録全体を戻して `ORDER_NOT_READY`)
-4. コミット。  
-   同じ `Id` の再送が同時に届いて一意の制約に反したら、読み直して 1 と同じく既存を返す (`Id` がなければレシート番号の重複)
+   - `Return` なら、元明細の `ReturnedQuantity` を加算する。  
+     超過しないことと元の取引が完了であることを同じ文の条件にし、通らなければ登録全体を戻す (元の取引が取り消されていれば `ORIGINAL_NOT_RETURNABLE`、超えれば `RETURN_QUANTITY_EXCEEDED`)
+   - `TrackInventory` の明細ごとに、`InventoryLevels` を UPSERT で加減算する (`INSERT ... ON CONFLICT (StoreId, ProductId) DO UPDATE SET Quantity = Quantity + excluded.Quantity`)。  
+     更新後の値 (`RETURNING Quantity`) で `InventoryChanges` を INSERT する
+   - 顧客があれば、`Customers.PointBalance` を `UPDATE ... SET PointBalance = PointBalance + @delta` で加減算し、`PointHistories` を INSERT する。  
+     順は `Redeem` → `Earn` (Return は `Refund` → `Revoke`)。  
+     処理後の残高を `Transactions.PointsBalanceAfter` に書く
+   - `Terminals.LastReceiptSeq` を `max(現在値, 今回の連番)` で更新する
+   - 店舗 × 営業日の締めがあれば、`DailyClosings.HasLateTransactions` を立てる。  
+     検証のあとに締めた日にも立てるので、検証のときの締めの有無によらず更新する
+   - 受注から会計した販売なら、引き渡し待ち (`Arrived`) の受注を `Completed` にして `TransactionId` を入れる。  
+     状態か前受金の残りが検証のときと変わっていれば、登録全体を戻して `ORDER_NOT_READY` を返す
+4. コミットする。  
+   同じ `Id` の再送が同時に届いて一意制約に反したら、再取得して 1 と同じく既存を返す (`Id` がなければレシート番号の重複)
 
 ### 5.2 取消 (`POST /transactions/{id}/void`)
 
-`UPDATE Transactions ... WHERE Status = 'Completed' RETURNING *` で `Status = Voided` と取消の列を書き、在庫は逆方向の `InventoryChanges (Type = Void)`、ポイントは `PointHistories (Type = Void)` を足す。  
-更新は、シフトが開設中で、店舗 × 営業日を締めておらず、販売なら完了した返品がないことも条件にする (検証のあとに先に通った返品・精算・締めを破らない)。  
-行が返らなければ読み直し、取消済みか取り消せない理由を返す (読み直しても違反がなければ、他で変わったとして `409` (`VERSION_MISMATCH`) を返す)。  
-元の履歴行は変更しない。  
-販売の取消は同じトランザクションで受注を `Arrived` に戻して `TransactionId` を外し、返品の取消は元明細の `ReturnedQuantity` を戻す。  
-店舗 × 営業日が締め済みのとき、シフトが精算済みのとき、返品のある販売の取消は拒否する。
+`UPDATE Transactions ... WHERE Status = 'Completed' RETURNING *` で `Status = Voided` と取消の列を書く。  
+在庫は逆方向の `InventoryChanges (Type = Void)`、ポイントは `PointHistories (Type = Void)` を足す。  
+元の履歴行は変更しない。
+
+- 販売の取消は、同じトランザクションで受注を `Arrived` に戻して `TransactionId` を外す
+- 返品の取消は、元明細の `ReturnedQuantity` を戻す
+
+次のときは取消を拒否する。  
+検証のあとに先に通った返品・精算・締めを破らないよう、更新の文にも条件を入れる。
+
+| 拒否するとき | 更新の条件 |
+| --- | --- |
+| 店舗 × 営業日が締め済み | 店舗 × 営業日を締めていない |
+| シフトが精算済み | シフトが開設中 |
+| 返品のある販売 | 販売なら、完了した返品がない |
+
+行が返らなければ再取得し、取消済みか取り消せない理由を返す。  
+再取得しても違反がなければ、ほかで変わったとして `409` (`VERSION_MISMATCH`) を返す。
 
 ### 5.3 精算 (`POST /shifts/{id}/close`)
 
-シフト内の `Completed` 取引と `CashEvents`、現金の `OrderDeposits` から集計列を求め、`Status = 'Open'` を条件にした UPDATE (`RETURNING *`) で `Shifts` に確定して `Status = Closed` にし、金種別枚数 (`ShiftDenominations`) と同じトランザクションで書く。  
-先に精算が通っていたら金種を足さずに終え、実査金額が同じ再送は精算済みの内容を返す。  
-以降、そのシフトへの取引・入出金・前受金・取消は拒否する。
+シフト内の `Completed` の取引、`CashEvents`、現金の `OrderDeposits` から集計列を求める。  
+`Status = 'Open'` を条件にした UPDATE (`RETURNING *`) で集計列を `Shifts` に確定し、`Status = Closed` にする。  
+金種別枚数 (`ShiftDenominations`) は同じトランザクションで書く。
+
+- 先に精算が通っていたら、金種を足さずに終える
+- 実査金額が同じ再送には、精算済みの内容を返す
+- 精算の後は、そのシフトへの取引・入出金・前受金・取消を拒否する
 
 ### 5.4 日次締め (`POST /daily-closings`)
 
-関係するシフト (その営業日のシフトと、その営業日の取引を含むシフト) がすべて `Closed` であることを確かめ、日計と支払方法別・税率別を集計して `DailyClosings` + `DailyClosingPayments` + `DailyClosingTaxes` を 1 トランザクションで INSERT する。  
-同時に締めたときは `UQ(StoreId, BusinessDate)` の重複で片方を締め済みとして返す。  
-締め解除 (`DELETE /daily-closings/{id}`) は内訳と行を 1 トランザクションで DELETE する。
+関係するシフトがすべて `Closed` であることを確認する (その営業日のシフトと、その営業日の取引を含むシフト)。  
+日計と支払方法別・税率別を集計し、`DailyClosings` + `DailyClosingPayments` + `DailyClosingTaxes` を 1 トランザクションで INSERT する。
+
+- 同時に締めたときは、`UQ(StoreId, BusinessDate)` の重複で片方を締め済みとして返す
+- 締め解除 (`DELETE /daily-closings/{id}`) は、内訳と行を 1 トランザクションで DELETE する
 
 ### 5.5 受注の登録 (`POST /orders`)
 
 受注番号は 1 文の `INSERT INTO Orders ... SELECT COALESCE(MAX(Seq), 0) + 1 ... RETURNING *` で採番して登録し、明細と同じトランザクションで書く。  
-同時に登録しても連番は重ならない (`UQ(StoreId, Seq)` でも守る)。  
-入荷・キャンセル・変更は状態を条件にした `UPDATE ... RETURNING *` で、行が返らなければ状態 (または版) が合わない。  
-キャンセルは前受金の残りが 0 のときだけにする (条件に `OrderDeposits` の合計を入れる)。  
-前受金の受取・返金は 1 文の `INSERT INTO OrderDeposits ... SELECT ... FROM Orders WHERE ...` で、受注が未完了で、前受金の残りが検証のときと同じで、シフトが開設中のときだけ登録する。  
-同時の受取・返金・キャンセル・会計・精算と重なったら登録せず、同じ `Id` の再送が先に登録されていれば既存を返し、そうでなければ改めて検証する。
+同時に登録しても連番は重ならない (`UQ(StoreId, Seq)` でも守る)。
+
+- 入荷・キャンセル・変更は、状態を条件にした `UPDATE ... RETURNING *` で書く。  
+  行が返らなければ、状態 (またはバージョン) が合わない
+- キャンセルは、前受金の残りが 0 のときだけにする (条件に `OrderDeposits` の合計を入れる)
+
+前受金の受取・返金は 1 文の `INSERT INTO OrderDeposits ... SELECT ... FROM Orders WHERE ...` で書き、次のときだけ登録する。
+
+- 受注が未完了
+- 前受金の残りが検証のときと同じ
+- シフトが開設中
+
+同時の受取・返金・キャンセル・会計・精算と重なったら、登録しない。  
+同じ `Id` の再送が先に登録されていれば既存を返し、そうでなければ改めて検証する。
 
 ### 5.6 商品画像と CSV 取込
 
-画像の登録・削除は `ProductImages` の UPSERT / DELETE と `Products.ImageUrl` の更新 (`UpdatedAt` / `Version` を進める) を 1 トランザクションで行う。  
-CSV 取込は全行を検証してから、登録と更新を 1 トランザクションで書く。  
-更新は版を条件にした `UPDATE ... RETURNING *` で、行が返らないか一意制約に反したら全体を取り消す (検証の後に他で変わった)。
+- 画像の登録・削除は、`ProductImages` の UPSERT / DELETE と `Products.ImageUrl` の更新 (`UpdatedAt` / `Version` を進める) を 1 トランザクションで行う
+- CSV 取込は、全行を検証してから登録と更新を 1 トランザクションで書く。  
+  更新はバージョンを条件にした `UPDATE ... RETURNING *` で行う。  
+  行が返らないか一意制約に反したら、検証の後にほかで変わったとして全体を取り消す
 
 ### 5.7 入荷・店舗間移動・発注・棚卸
 
-入荷の受領は、状態を条件にした `UPDATE InventoryReceipts ... WHERE Status = 'Draft' RETURNING *` と、明細ごとの受領数の更新・`InventoryLevels` の UPSERT・`InventoryChanges (Type = Receive)` の INSERT を 1 トランザクションで行う。  
-行が返らなければ状態が合わないか伝票がない。  
-移動と発注の番号は受注と同じく 1 文の `INSERT ... SELECT COALESCE(MAX(Seq), 0) + 1 ... RETURNING *` で採番する。  
-出荷 (`TransferOut`、出荷店を依頼の数だけ減らす) と受領 (`TransferIn`、入荷店を受領した数だけ増やす) もそれぞれ状態を条件にした UPDATE と在庫の加減算を 1 トランザクションで行う。  
-発注の [発注] は、状態を条件にした `UPDATE PurchaseOrders ... WHERE Status = 'Draft'` と入荷予定・明細の INSERT を 1 トランザクションで行う。  
-入荷予定の受領とキャンセルは、同じトランザクションで `ReceiptId` の発注を入荷済み・キャンセルにする。  
-発注済みの発注のキャンセルは、同じトランザクションで入荷予定もキャンセルする (入荷予定が先に受領されていたら、発注のキャンセルも行わない)。  
-棚卸・調整は参照先 (店舗・商品・理由・担当) を先にまとめて確かめ、見つからない変動があればどれも書かない。  
-そのうえで 1 件ずつ、`InventoryLevels` の UPSERT と `InventoryChanges` の INSERT を 1 トランザクションで行う (棚卸は現在庫との差を `QuantityDelta` にし、同じ Id の再送は登録済みを返す)。
+移動と発注の番号は、受注と同じく 1 文の `INSERT ... SELECT COALESCE(MAX(Seq), 0) + 1 ... RETURNING *` で採番する。
+
+入荷:
+
+- 受領は、次を 1 トランザクションで行う
+  - 状態を条件にした `UPDATE InventoryReceipts ... WHERE Status = 'Draft' RETURNING *` (行が返らなければ、状態が合わないか伝票がない)
+  - 明細ごとの受領数の更新
+  - `InventoryLevels` の UPSERT
+  - `InventoryChanges (Type = Receive)` の INSERT
+- 入荷予定の受領とキャンセルは、同じトランザクションで `ReceiptId` の発注を入荷済み・キャンセルにする
+
+店舗間移動:
+
+- 出荷は、状態を条件にした UPDATE と在庫の減算 (`TransferOut`。出荷店を依頼の数だけ減らす) を 1 トランザクションで行う
+- 受領は、状態を条件にした UPDATE と在庫の加算 (`TransferIn`。入荷店を受領した数だけ増やす) を 1 トランザクションで行う
+
+発注:
+
+- [発注] は、状態を条件にした `UPDATE PurchaseOrders ... WHERE Status = 'Draft'` と入荷予定・明細の INSERT を 1 トランザクションで行う
+- 発注済みの発注のキャンセルは、同じトランザクションで入荷予定もキャンセルする (入荷予定が先に受領されていたら、発注のキャンセルも行わない)
+
+棚卸・調整:
+
+- 参照先 (店舗・商品・理由・担当) を先にまとめて検証し、見つからない変動があればどれも書かない
+- そのうえで 1 件ずつ、`InventoryLevels` の UPSERT と `InventoryChanges` の INSERT を 1 トランザクションで行う
+- 棚卸は現在庫との差を `QuantityDelta` にする。  
+  同じ Id の再送は登録済みを返す
 
 ### 5.8 集計の考え方
 
-- 取引の集計は常に `Status = 'Completed'` を対象にし、`Type = 'Return'` を負として扱う。  
-  金額列は NUMERIC 親和性で数値として保存されるので `SUM` をそのまま使える
-- `Customers.PointBalance` と `InventoryLevels.Quantity` は非正規化した値で、`PointHistories` と `InventoryChanges` を書くのと同じトランザクションで加減算する (`Shifts` の集計列は精算の時点の集計を写す)。  
-  初期データの会員の残高は `Adjust` の履歴で持つが、初期の在庫は変動の履歴を持たない。  
-  管理画面のダッシュボードは、在庫とポイント残高が負のものを要確認に出す
+- 取引の集計は常に `Status = 'Completed'` を対象にし、`Type = 'Return'` を負として扱う
+- 金額列は NUMERIC 親和性で数値として保存されるので、`SUM` をそのまま使える
+- `Customers.PointBalance` と `InventoryLevels.Quantity` は非正規化した値。  
+  `PointHistories` と `InventoryChanges` を書くのと同じトランザクションで加減算する
+- `Shifts` の集計列は、精算の時点の集計のスナップショット
+- 初期データの会員の残高は `Adjust` の履歴で持つ。  
+  初期の在庫は変動の履歴を持たない
+- 管理画面のダッシュボードは、在庫とポイント残高が負のものを要確認に出す
 
 ---
 
 ## 📱 6. 端末ローカル DB (SQLite) の概要
 
-MAUI 側のローカル DB。  
-`Microsoft.Data.Sqlite` + Smart.Data.Accessor (`DataAccessor` + `Services/Sql/*.sql`) で扱い、日時は INTEGER (UTC ticks) + `DateTimeTicksConverter` で保存する ([D-30](decisions.md#d-30-金額は-decimalid-は-guid-v7日時は-utc-にする))。  
-スキーマはアプリに同梱した `Resources/Raw/Schema.sql` を起動時に実行する (列の追加と索引の名前の変更は [§1](#-1-前提))。
+MAUI 側のローカル DB。
+
+- データアクセス: `Microsoft.Data.Sqlite` + Smart.Data.Accessor (`DataAccessor` + `Services/Sql/*.sql`)
+- 日時: INTEGER (UTC ticks) + `DateTimeTicksConverter` で保存する ([D-30](decisions.md#d-30-金額は-decimalid-は-guid-v7日時は-utc-にする))
+- スキーマ: アプリに同梱した `Resources/Raw/Schema.sql` を起動時に実行する (列の追加とインデックスの名前の変更は [§1](#-1-前提))
 
 | テーブル | 内容 |
 | --- | --- |
-| マスタ各種 | `Settings` / `Stores` / `Terminals` / `Staff` / `Categories` / `TaxRates` / `Products` / `Discounts` / `PaymentMethods` / `AdjustmentReasons` を `Pos.Contract` の Response と同じ列で保持 (エンティティクラスは Response をそのまま使う)。`GET /sync/masters` の結果を Id で削除 → 挿入 (1 トランザクション)。削除済み (`IsDeleted`) も保持し、検索時に除く。商品画像は DB に持たず、表示するときに取得して `CacheDirectory/products/{商品 ID}_{v}` に置く (オフラインはキャッシュだけ) |
-| `InventoryLevels` | 自店分のみ (`updatedSince` で差分取り込み。販売・返品・取消・棚卸・調整ではローカルでも増減させる) |
-| `Shifts` / `CashEvents` | 端末で開設したシフトと入出金 (精算の予想現金の計算に使う)。サーバに開設中のシフトが残っていれば (入れ直したときなど)、写して引き継ぐ |
-| `OrderDeposits` | サーバが受け付けた前受金の受取・返金のうち、今のシフトの分の写し (精算の予想現金の計算に使う)。受取・返金の応答と受注を読んだときに、まだ写していない記録を足す (写し済みは変えない)。前受金はオンライン限定なので Outbox には入れない |
-| `Transactions` | 検索用の列 (種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引) + `Payload` (`TransactionListResponseItem` の JSON。送信後はサーバの応答で置き換える。端末で記録した返品は元の取引の返品済みの数量に足し、販売の応答で置き換えるときは、端末で記録した取り消していない返品の数量を足す。端末で取り消した取引は、取消を送るまで取消の状態を残す)。取引履歴・再印字・返品の元取引参照と、取消の可否 (紐付く返品の件数) に使う |
-| `Outbox` | `Id` (guid)、`Kind` (ShiftOpen / Transaction / TransactionVoid / CashEvent / ShiftClose / InventoryChanges)、`TargetId` (取引 ID やシフト ID)、`Payload` (JSON、`XxxRequest` をそのまま直列化)、`CreatedAt`、`Status` (Pending / Sent / Failed)、`Attempts`、`LastError`、`SentAt`。Sent は 7 日で削除 |
-| `SyncState` | `Key` / `Value` (最終 `ServerTime`、在庫の同期時刻、レシート番号の連番)。端末設定 (サーバ URL・店舗 ID・端末 ID・登録日時) は `IPreferences` (`Settings`)、端末のトークンは `SecureStorage` (`CredentialService`) に置く |
+| マスタ各種 | `Settings` / `Stores` / `Terminals` / `Staff` / `Categories` / `TaxRates` / `Products` / `Discounts` / `PaymentMethods` / `AdjustmentReasons` を、`Pos.Contract` の Response と同じ列で保持する |
+| `InventoryLevels` | 自店分のみ (`updatedSince` で差分を取り込む)。販売・返品・取消・棚卸・調整では、ローカルでも増減させる |
+| `Shifts` / `CashEvents` | 端末で開設したシフトと入出金 (精算の予想現金の計算に使う)。サーバに開設中のシフトが残っていれば (入れ直したときなど)、コピーして引き継ぐ |
+| `OrderDeposits` | サーバが受け付けた前受金の受取・返金のうち、今のシフトの分のコピー (精算の予想現金の計算に使う) |
+| `Transactions` | 検索用の列と `Payload` (`TransactionListResponseItem` の JSON)。取引履歴・再印字・返品の元取引参照と、取消の可否 (紐付く返品の件数) に使う |
+| `Outbox` | 列は下の「`Outbox` の列」。Sent は 7 日で削除 |
+| `SyncState` | `Key` / `Value` (最終 `ServerTime`、在庫の同期時刻、レシート番号の連番) |
 | `HoldCarts` | 会計途中の保留 (端末ローカルのみ、T-17)。`Summary` / `Total` と `Payload` (`SalesCart` の JSON) |
+
+マスタ各種:
+
+- エンティティクラスは Response をそのまま使う
+- `GET /sync/masters` の結果を、Id で削除 → 挿入する (1 トランザクション)
+- 削除済み (`IsDeleted`) も保持し、検索時に除く
+- 商品画像は DB に持たない。  
+  表示するときに取得して `CacheDirectory/products/{商品 ID}_{v}` に置く (オフラインはキャッシュだけ)
+
+`OrderDeposits`:
+
+- 受取・返金のレスポンスと受注を読んだときに、まだコピーしていない記録を足す (コピー済みは変えない)
+- 前受金はオンライン限定なので、Outbox には入れない
+
+`Transactions`:
+
+- 検索用の列は、種別・状態・シフト・レシート番号・営業日・日時・会員・合計・ポイント・元取引
+- `Payload` は、送信後にサーバのレスポンスで置き換える
+- 端末で記録した返品は、元の取引の返品済みの数量に足す。  
+  販売のレスポンスで置き換えるときは、端末で記録した取り消していない返品の数量を足す
+- 端末で取り消した取引は、取消を送るまで取消の状態を残す
+
+`Outbox` の列:
+
+| 列 | 内容 |
+| --- | --- |
+| `Id` | guid |
+| `Kind` | ShiftOpen / Transaction / TransactionVoid / CashEvent / ShiftClose / InventoryChanges |
+| `TargetId` | 取引 ID やシフト ID |
+| `Payload` | JSON (`XxxRequest` をそのままシリアライズ) |
+| `CreatedAt` | |
+| `Status` | Pending / Sent / Failed |
+| `Attempts` | |
+| `LastError` | |
+| `SentAt` | |
+
+端末設定 (サーバ URL・店舗 ID・端末 ID・登録日時) は `IPreferences` (`Settings`)、端末のトークンは `SecureStorage` (`CredentialService`) に置く。
