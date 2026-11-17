@@ -1,10 +1,17 @@
+# General Constraints
+
+- **General:** Follow the rules defined in `.editorconfig`.
+- **Warnings:** Ensure there are no build warnings.
+- **Suppress warnings:** If warning suppression is needed, ask before applying the fix.
+- **Line endings:** Preserve existing line endings; use CRLF for newly created text files.
+- **Comments:** Do not write comments in the code unless instructed.
+- **Documentation:** Keep documentation minimal and concise. Do not write background context or rationale unless explicitly asked.
+
 # プロジェクトの規則
 
 ## コーディングスタイル
 
 - `.editorconfig` (C#) と `Settings.XamlStyler` (XAML) の規則に従う (これらのファイル自体は変更しない)
-- フィールドに `_` 接頭辞を付けない
-- ビルド警告が出ない状態になるように実装する。警告の抑止は理由のあるものだけにし、抑止する前に確認する
 - テキストファイルの改行は CRLF にする (`.gitattributes` の `eol=crlf`。verify の `--fix` でそろえる)
 - ソースのコメントは日本語で、意図や制約を書く (コードの言い換えは書かない。端末のテンプレートと同じにする共通の部品は terminal.md による)
 - XML ドキュメントコメントは付けず、区切りコメント (`// Xxx` と、`//----` で挟んだ帯) でまとめる。区切りの見出しは英語の名詞でよい (端末の共通の部品の帯はテンプレートの形のまま)
