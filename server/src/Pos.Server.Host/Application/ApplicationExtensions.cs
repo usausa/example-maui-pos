@@ -431,7 +431,9 @@ public static class ApplicationExtensions
         // Razor components
         builder.Services
             .AddRazorComponents()
-            .AddInteractiveServerComponents();
+            .AddInteractiveServerComponents()
+            .AddHubOptions(options => builder.Configuration.GetSection("Blazor:Hub").Bind(options));
+        builder.Services.Configure<Microsoft.AspNetCore.Components.Server.CircuitOptions>(builder.Configuration.GetSection("Blazor:Circuit"));
 
         // 認証の状態 (回線の中でもアカウントの変更を反映する。既定の提供元を置き換えるので Razor components の後に登録する)
         builder.Services.AddCascadingAuthenticationState();
@@ -513,6 +515,8 @@ public static class ApplicationExtensions
                         .AddRuntimeInstrumentation()
                         .AddHttpClientInstrumentation()
                         .AddAspNetCoreInstrumentation()
+                        // 部品の型ごとに分かれる Blazor の描画の計測は系列が多すぎるので出さない
+                        .AddView(static instrument => instrument.Meter.Name == "Microsoft.AspNetCore.Components.Lifecycle" ? MetricStreamConfiguration.Drop : null)
                         .AddApplicationInstrumentation();
 
                     if (useOtlpExporter)

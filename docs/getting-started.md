@@ -45,6 +45,7 @@ dotnet run --project server/src/Pos.Server.Host
 - Aspire で起動する場合は `dotnet run --project server/src/Pos.Server.AppHost` (ダッシュボードは http://localhost:15000 。ログ・メトリクス・トレースが OTLP で送られる)
 - メトリクスは http://localhost:9464/metrics (Prometheus 形式。`Prometheus:Uri` を空にすると止まる)。  
   API の要求ログは `Log:HttpLog`、本文のダンプは `Log:HttpDump`、W3C 形式のアクセスログは `Log:W3CLog`、SQL のログとトレースは `Profiler` で切り替える (Development は HTTP ログと SQL が既定で有効)
+- 管理画面の回線と SignalR の値 (切れた回線を残す時間、タイムアウトなど) は `Blazor:Circuit`、`Blazor:Hub` で変える (既定は ASP.NET Core の既定と同じ値)
 - Visual Studio では `server/Pos.Server.slnx` を開いて実行する。  
   既定のスタートアップは `Pos.Server.AppHost` (Aspire) で、Aspire なしで動かすときは `Pos.Server.Host` をスタートアップにする
 
