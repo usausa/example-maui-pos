@@ -23,7 +23,7 @@ public sealed partial class MainPageViewModel : ExtendViewModelBase, IShellContr
 
     private bool destroying;
 
-    private IDisposable? navigatingBusy;
+    private BusyStateScope? navigatingBusy;
 
     public INavigator Navigator { get; }
 

@@ -57,8 +57,8 @@ description: 端末アプリ (MAUI Android) をエミュレータに入れて動
 
 - `emu.py install --release` は、入っているアプリのデータを消して入れ直す
 - データを残すときは、Release でビルドしてから上書きで入れる
-  - `dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net10.0-android -c Release`
-  - `adb -s emulator-xxxx install -r terminal/Pos.Terminal/bin/Release/net10.0-android/pos.terminal-Signed.apk`
+  - `dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net11.0-android -c Release`
+  - `adb -s emulator-xxxx install -r terminal/Pos.Terminal/bin/Release/net11.0-android/pos.terminal-Signed.apk`
 - エミュレータの空きが足りずに入らないときは、`adb -s emulator-xxxx uninstall pos.terminal` してから入れ、登録し直す
 - Release では `emu.py screen` (Navigated のログ) と `emu.py pref` (run-as) が使えないので、遷移は撮った画像で確かめる
 - 時間を測るときは、一時的に `Android.Util.Log.Info("POSDBG", ...)` を入れる (測り終えたら外す)

@@ -241,7 +241,7 @@ public sealed partial class SetupViewModel : AppViewModelBase
     {
         if (Uri.TryCreate(text?.Trim(), UriKind.Absolute, out var uri) && ((uri.Scheme == Uri.UriSchemeHttp) || (uri.Scheme == Uri.UriSchemeHttps)))
         {
-            endPoint = uri.ToString().EndsWith('/') ? uri : new Uri(uri + "/");
+            endPoint = uri.ToString().EndsWith('/', StringComparison.Ordinal) ? uri : new Uri(uri + "/");
             return true;
         }
 

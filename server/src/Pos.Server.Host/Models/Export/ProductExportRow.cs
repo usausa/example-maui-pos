@@ -1,64 +1,65 @@
 namespace Pos.Server.Host.Models.Export;
 
-using CsvHelper.Configuration.Attributes;
+using CsvHelper;
 
 // 商品 CSV の 1 行 (GET /products/csv。取込の ProductImportRow と同じ見出し)
-public sealed class ProductExportRow
+[CsvRecord]
+public sealed partial class ProductExportRow
 {
-    [Name(ProductCsvHeader.Code)]
+    [CsvColumn(ProductCsvHeader.Code)]
     public string Code { get; set; } = default!;
 
-    [Name(ProductCsvHeader.Barcode)]
+    [CsvColumn(ProductCsvHeader.Barcode)]
     public string? Barcode { get; set; }
 
-    [Name(ProductCsvHeader.Name)]
+    [CsvColumn(ProductCsvHeader.Name)]
     public string Name { get; set; } = default!;
 
-    [Name(ProductCsvHeader.Kana)]
+    [CsvColumn(ProductCsvHeader.Kana)]
     public string? Kana { get; set; }
 
-    [Name(ProductCsvHeader.Brand)]
+    [CsvColumn(ProductCsvHeader.Brand)]
     public string? Brand { get; set; }
 
-    [Name(ProductCsvHeader.ModelNo)]
+    [CsvColumn(ProductCsvHeader.ModelNo)]
     public string? ModelNo { get; set; }
 
-    [Name(ProductCsvHeader.CategoryCode)]
+    [CsvColumn(ProductCsvHeader.CategoryCode)]
     public string CategoryCode { get; set; } = default!;
 
-    [Name(ProductCsvHeader.CategoryName)]
+    [CsvColumn(ProductCsvHeader.CategoryName)]
     public string CategoryName { get; set; } = default!;
 
-    [Name(ProductCsvHeader.Kind)]
+    [CsvColumn(ProductCsvHeader.Kind)]
     public ProductKind Kind { get; set; }
 
-    [Name(ProductCsvHeader.Price)]
+    [CsvColumn(ProductCsvHeader.Price)]
     public decimal Price { get; set; }
 
-    [Name(ProductCsvHeader.TaxIncluded)]
+    [CsvColumn(ProductCsvHeader.TaxIncluded)]
     public bool TaxIncluded { get; set; }
 
-    [Name(ProductCsvHeader.TaxRateCode)]
+    [CsvColumn(ProductCsvHeader.TaxRateCode)]
     public string TaxRateCode { get; set; } = default!;
 
-    [Name(ProductCsvHeader.Cost)]
+    [CsvColumn(ProductCsvHeader.Cost)]
     public decimal? Cost { get; set; }
 
-    [Name(ProductCsvHeader.PointRate)]
+    [CsvColumn(ProductCsvHeader.PointRate)]
     public decimal PointRate { get; set; }
 
-    [Name(ProductCsvHeader.RequiresSerial)]
+    [CsvColumn(ProductCsvHeader.RequiresSerial)]
     public bool RequiresSerial { get; set; }
 
-    [Name(ProductCsvHeader.TrackInventory)]
+    [CsvColumn(ProductCsvHeader.TrackInventory)]
     public bool TrackInventory { get; set; }
 
-    [Name(ProductCsvHeader.AllowsPriceOverride)]
+    [CsvColumn(ProductCsvHeader.AllowsPriceOverride)]
     public bool AllowsPriceOverride { get; set; }
 
-    [Name(ProductCsvHeader.Unit)]
+    [CsvColumn(ProductCsvHeader.Unit)]
     public string? Unit { get; set; }
 
-    [Name(ProductCsvHeader.IsActive)]
+    [CsvColumn(ProductCsvHeader.IsActive)]
     public bool IsActive { get; set; }
 }

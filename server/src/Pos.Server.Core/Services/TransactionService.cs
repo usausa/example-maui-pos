@@ -744,7 +744,7 @@ public sealed class TransactionService
     // {店舗コード}-{端末番号:00}-{連番:000000} の連番
     private static int ParseReceiptSeq(string receiptNo)
     {
-        var index = receiptNo.LastIndexOf('-');
+        var index = receiptNo.LastIndexOf('-', StringComparison.Ordinal);
         return (index >= 0) && Int32.TryParse(receiptNo.AsSpan(index + 1), NumberStyles.None, CultureInfo.InvariantCulture, out var seq) ? seq : 0;
     }
 

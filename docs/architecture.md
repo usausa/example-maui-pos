@@ -37,9 +37,9 @@ example-maui-pos/
 ├─ .claude/agents/                   AI 向け: 読み取り専用のエージェント (rules-auditor = 規則・skills・agents とコードの照合、doc-auditor = 文書とコードの照合、change-reviewer = 変更のレビュー)
 ├─ docs/                             設計文書、未実装と今後の検討事項 (backlog.md)、README の画像 (images/)、CSV 取込の例 (samples/)
 ├─ shared/                           両ソリューションに含める共有プロジェクト
-│  ├─ Pos.Domain/                    ドメインロジック: 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール検証 (net10.0)
+│  ├─ Pos.Domain/                    ドメインロジック: 列挙型、計算 (税・値引按分・ポイント・返品)、業務ルール検証 (net11.0)
 │  ├─ Pos.Domain.Tests/              計算ロジックの単体テスト。依存関係の検証テスト (Pos.Domain が UI / DB / HTTP に依存しない) を含む
-│  └─ Pos.Contract/                    通信データ: XxxRequest / XxxResponse (net10.0)
+│  └─ Pos.Contract/                    通信データ: XxxRequest / XxxResponse (net11.0)
 ├─ server/                           サーバ
 │  ├─ Pos.Server.slnx                サーバ + shared/ (Domain / Contract / Domain.Tests) + tests + tools
 │  ├─ Pos.Server.sln.DotSettings
@@ -55,7 +55,7 @@ example-maui-pos/
 └─ terminal/                         端末
    ├─ Pos.Terminal.slnx              端末 + shared/ (Domain / Contract)
    ├─ Pos.Terminal.sln.DotSettings
-   └─ Pos.Terminal/                  MAUI (net10.0-android)
+   └─ Pos.Terminal/                  MAUI (net11.0-android)
 ```
 
 - `server/Pos.Server.slnx` と `terminal/Pos.Terminal.slnx` は互いを含まない。  
@@ -181,7 +181,7 @@ Models/Forms/                        管理画面のフォーム + FluentValidat
                                      Entity ↔ Form の変換 ([Mapper]。Guid? / DateOnly の変換は [MapUsing]) はフォームが持つ。
                                      1 つのページだけで使うフォーム (SettingsForm) はそのページの内部クラス。文字列の長さは Pos.Domain.Length の定数
 Models/Queries/                      API のクエリ ([AsParameters]): ReportPeriodQuery (店舗と期間。from ≤ to は IValidatableObject)、ProductLookupQuery (barcode か code のどちらかが要る。IValidatableObject)
-Models/Export/                       CSV の行 (ProductExportRow, SalesSummaryExportRow, ProductSalesExportRow。CsvHelper の [Name] で日本語見出し)、ProductCsvHeader (商品 CSV の見出し)
+Models/Export/                       CSV の行 (ProductExportRow, SalesSummaryExportRow, ProductSalesExportRow。CsvHelper の [CsvColumn] で日本語見出し)、ProductCsvHeader (商品 CSV の見出し)
 Models/Import/                       取込の行 (ProductImportRow: 見出しは出力と同じで値は文字列のまま。Service の ProductImportLine に写す)
 Components/
   App.razor, Routes.razor, _Imports.razor
@@ -311,7 +311,7 @@ Reports/       ReportSalesSummaryResponse (+ Row), ReportProductSalesResponse (+
 
 ## 📱 5. 端末 (`Pos.Terminal`)
 
-`net10.0-android`。
+`net11.0-android`。
 
 ```
 MauiProgram.cs                       BunnyTail DI、Navigator (HierarchyEffectPlugin で Forward / Back のスライド (D-23)、NavigationFocusPlugin、NavigationUnfocusPlugin、NavigationFeedbackPlugin、Debug のときは LeakDetectionPlugin)、Dialog / Popup、フォントは MaterialIcons のみ

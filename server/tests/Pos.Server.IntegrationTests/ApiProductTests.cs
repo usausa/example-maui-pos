@@ -202,14 +202,14 @@ public sealed class ApiProductTests : IClassFixture<TestApplicationFactory>
     private static List<ProductExportRow> FromCsv(string text)
     {
         using var reader = new StringReader(text);
-        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+        using var csv = CsvReader.Create(reader);
         return csv.GetRecords<ProductExportRow>().ToList();
     }
 
     private static string ToCsv(IEnumerable<ProductExportRow> rows)
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+        using (var csv = CsvWriter.Create(writer))
         {
             csv.WriteRecords(rows);
         }

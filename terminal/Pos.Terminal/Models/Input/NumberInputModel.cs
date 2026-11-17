@@ -33,7 +33,7 @@ public sealed class NumberInputModel : NotificationObject
 
     public string DisplayText => Masked ? new string('●', text.Length) : text;
 
-    public string NormalizeText => text.EndsWith('.') ? text[..^1] : text;
+    public string NormalizeText => text.EndsWith('.', StringComparison.Ordinal) ? text[..^1] : text;
 
     public void Clear()
     {

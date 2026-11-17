@@ -1,7 +1,6 @@
 namespace Pos.Server.Host.Infrastructure.Csv;
 
 using CsvHelper;
-using CsvHelper.Configuration;
 
 // LineNo はファイルの行番号 (見出しが 1 行目)
 public sealed record CsvImportRow<T>(int LineNo, T Record);
@@ -16,42 +15,34 @@ public static class CsvImport
     // 取り込むファイルの上限
     public const int MaxBytes = 5 * 1024 * 1024;
 
+    // 区切りはカンマに決める (先頭の行から推し量らせない)
+    private static readonly CsvReaderOptions Options = new() { Separator = ',' };
+
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
     public static CsvImportResult<T> Read<T>(ReadOnlySpan<byte> data)
     {
-        var text = Decode(data);
-        var missing = new List<string>();
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        using var reader = new StringReader(Decode(data));
+        using var csv = CsvReader.Create(reader, Options);
+        if (!csv.TryValidateHeader<T>(out var missing))
         {
-            PrepareHeaderForMatch = static args => args.Header.Trim(),
-            HeaderValidated = args => missing.AddRange(args.InvalidHeaders.Select(static x => x.Names[0])),
-            MissingFieldFound = null,
-            BadDataFound = null
-        };
-
-        using var reader = new StringReader(text);
-        using var csv = new CsvReader(reader, config);
-        if (!csv.Read())
-        {
-            csv.ValidateHeader<T>();
-            return new CsvImportResult<T>(missing, []);
-        }
-
-        csv.ReadHeader();
-        csv.ValidateHeader<T>();
-        if (missing.Count > 0)
-        {
-            return new CsvImportResult<T>(missing, []);
+            return new CsvImportResult<T>(missing.Select(HeaderName).ToList(), []);
         }
 
         var rows = new List<CsvImportRow<T>>();
         while (csv.Read())
         {
-            rows.Add(new CsvImportRow<T>(csv.Parser.Row, csv.GetRecord<T>()));
+            rows.Add(new CsvImportRow<T>((int)csv.RowNumber + 1, csv.GetRecord<T>()));
         }
 
-        return new CsvImportResult<T>(missing, rows);
+        return new CsvImportResult<T>([], rows);
+    }
+
+    // 足りない列は「型.メンバー ('見出し')」の形で返るので、見出しの名前にする
+    private static string HeaderName(string column)
+    {
+        var start = column.IndexOf("('", StringComparison.Ordinal);
+        return (start >= 0) && column.EndsWith("')", StringComparison.Ordinal) ? column[(start + 2)..^2] : column;
     }
 
     // BOM があれば UTF-8、UTF-8 として読めなければ Shift_JIS

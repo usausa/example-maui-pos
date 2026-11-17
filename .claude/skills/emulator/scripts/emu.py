@@ -37,7 +37,7 @@ PACKAGE = 'pos.terminal'
 # Settings (IPreferences) が使う既定の設定ファイル
 DEFAULT_PREFERENCES = f'{PACKAGE}_preferences.xml'
 PROJECT = 'terminal/Pos.Terminal/Pos.Terminal.csproj'
-FRAMEWORK = 'net10.0-android'
+FRAMEWORK = 'net11.0-android'
 
 # 1080x2400 (Pixel 6a 相当) の配置。変わったら撮った画像で確かめる
 SCREEN_SIZE = '1080x2400'

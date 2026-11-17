@@ -41,8 +41,8 @@ public static class AuthClaims
         return (identity is not null) &&
                Guid.TryParse(identity.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) &&
                Int32.TryParse(identity.FindFirst(AccountVersion)?.Value, NumberStyles.None, CultureInfo.InvariantCulture, out var version)
-            ? new AccountIdentity(id, identity.Name ?? string.Empty, version)
-            : null;
+                   ? new AccountIdentity(id, identity.Name ?? string.Empty, version)
+                   : null;
     }
 
     public static TerminalIdentity? TerminalOf(ClaimsPrincipal user)
@@ -51,8 +51,8 @@ public static class AuthClaims
         return (identity is not null) &&
                Guid.TryParse(identity.FindFirst(TerminalId)?.Value, out var terminalId) &&
                Guid.TryParse(identity.FindFirst(StoreId)?.Value, out var storeId)
-            ? new TerminalIdentity(terminalId, storeId)
-            : null;
+                   ? new TerminalIdentity(terminalId, storeId)
+                   : null;
     }
 
     // 複数のスキームで認証した要求は、スキームごとの ID を持つ

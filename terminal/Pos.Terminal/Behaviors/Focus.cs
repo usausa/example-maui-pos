@@ -4,6 +4,7 @@ using Smart.Maui.Interactivity;
 
 using MauiBorder = Microsoft.Maui.Controls.Border;
 
+#pragma warning disable CA1724
 public static class Focus
 {
     //--------------------------------------------------------------------------------
@@ -19,22 +20,6 @@ public static class Focus
     public static bool GetSuppressDefaultFocus(BindableObject bindable) => (bool)bindable.GetValue(SuppressDefaultFocusProperty);
 
     public static void SetSuppressDefaultFocus(BindableObject bindable, bool value) => bindable.SetValue(SuppressDefaultFocusProperty, value);
-
-    //--------------------------------------------------------------------------------
-    // Default
-    //--------------------------------------------------------------------------------
-
-    // ReSharper disable InconsistentNaming
-    public static readonly BindableProperty DefaultProperty = BindableProperty.CreateAttached(
-        "Default",
-        typeof(bool),
-        typeof(Focus),
-        false);
-    // ReSharper restore InconsistentNaming
-
-    public static bool GetDefault(BindableObject bindable) => (bool)bindable.GetValue(DefaultProperty);
-
-    public static void SetDefault(BindableObject bindable, bool value) => bindable.SetValue(DefaultProperty, value);
 
     //--------------------------------------------------------------------------------
     // FocusedStroke / FocusedThickness
@@ -250,3 +235,4 @@ public static class Focus
         }
     }
 }
+#pragma warning restore CA1724

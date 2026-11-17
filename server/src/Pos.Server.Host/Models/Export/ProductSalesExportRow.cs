@@ -1,40 +1,41 @@
 namespace Pos.Server.Host.Models.Export;
 
-using CsvHelper.Configuration.Attributes;
+using CsvHelper;
 
 // 商品別売上 CSV の 1 行 (GET /reports/sales/products/csv)
-public sealed class ProductSalesExportRow
+[CsvRecord]
+public sealed partial class ProductSalesExportRow
 {
-    [Name("商品コード")]
+    [CsvColumn("商品コード")]
     public string ProductCode { get; set; } = default!;
 
-    [Name("商品名")]
+    [CsvColumn("商品名")]
     public string ProductName { get; set; } = default!;
 
-    [Name("部門")]
+    [CsvColumn("部門")]
     public string CategoryName { get; set; } = default!;
 
-    [Name("販売数量")]
+    [CsvColumn("販売数量")]
     public decimal QuantitySold { get; set; }
 
-    [Name("返品数量")]
+    [CsvColumn("返品数量")]
     public decimal QuantityReturned { get; set; }
 
-    [Name("純数量")]
+    [CsvColumn("純数量")]
     public decimal NetQuantity { get; set; }
 
-    [Name("売上")]
+    [CsvColumn("売上")]
     public decimal SalesTotal { get; set; }
 
-    [Name("返品")]
+    [CsvColumn("返品")]
     public decimal ReturnsTotal { get; set; }
 
-    [Name("純売上")]
+    [CsvColumn("純売上")]
     public decimal NetSales { get; set; }
 
-    [Name("値引")]
+    [CsvColumn("値引")]
     public decimal DiscountTotal { get; set; }
 
-    [Name("粗利")]
+    [CsvColumn("粗利")]
     public decimal? GrossProfit { get; set; }
 }

@@ -4,7 +4,7 @@ description: 人向けの設計文書 (docs/*.md、README.md) を今のコード
 tools: Read, Grep, Glob
 ---
 
-あなたはこのリポジトリ (.NET 10 の POS。サーバは server/、端末は terminal/、共有は shared/) の設計文書を、実装と照合する監査役。
+あなたはこのリポジトリ (.NET 11 の POS。サーバは server/、端末は terminal/、共有は shared/) の設計文書を、実装と照合する監査役。
 ファイルは変更しない。
 
 ## 手順

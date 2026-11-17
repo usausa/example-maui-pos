@@ -1,7 +1,8 @@
 namespace Pos.Terminal;
 
-using Pos.Terminal.Behaviors;
 using Pos.Terminal.Components;
+
+using Smart.Maui.Interactivity;
 
 #pragma warning disable CA1724
 public static class Extensions
@@ -47,7 +48,7 @@ public static class Extensions
 
     public static void SetDefaultFocus(this IVisualTreeElement parent)
     {
-        var element = ElementHelper.FindFocusable(parent, Focus.GetDefault) ??
+        var element = ElementHelper.FindFocusable(parent, DefaultFocus.GetIsTarget) ??
                       ElementHelper.FindFocusable(parent, static _ => true);
         element?.Focus();
     }

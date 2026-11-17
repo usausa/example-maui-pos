@@ -16,13 +16,13 @@ terminal/  Pos.Terminal.slnx: Pos.Terminal (MAUI, Android)
 
 | 項目 | 内容 |
 | --- | --- |
-| サーバ | .NET 10 / Minimal API + Blazor Server (MudBlazor) / SQLite + Smart.Data.Accessor (2-way SQL) / OpenAPI (Swagger, ReDoc) / 帳票 PDF (OysterReport) / Aspire |
-| 端末 | .NET 10 MAUI (Android) / Smart.Navigation + Smart.Mvvm / SQLite ローカル DB + Outbox (オフライン対応) / カメラスキャン / レシート画像 (SkiaSharp) + 電子レシート QR |
+| サーバ | .NET 11 / Minimal API + Blazor Server (MudBlazor) / SQLite + Smart.Data.Accessor (2-way SQL) / OpenAPI (Swagger, ReDoc) / 帳票 PDF (OysterReport) / Aspire |
+| 端末 | .NET 11 MAUI (Android) / Smart.Navigation + Smart.Mvvm / SQLite ローカル DB + Outbox (オフライン対応) / カメラスキャン / レシート画像 (SkiaSharp) + 電子レシート QR |
 | 共有 | `Pos.Domain` (税・値引按分・ポイント・返品の計算、業務ルール) / `Pos.Contract` (`XxxRequest` / `XxxResponse`) |
 
 ## 🧰 前提
 
-- .NET 10 SDK
+- .NET 11 SDK
 - 端末は MAUI の Android ワークロード (`dotnet workload install maui-android`) と、Android 11 以上のエミュレータか実機
 - InspectCode は `jb` (`dotnet tool install -g JetBrains.ReSharper.GlobalTools`)、検証のスクリプトは Python
 
@@ -55,7 +55,7 @@ dotnet run --project server/src/Pos.Server.Host
 コマンドラインなら次のとおり。
 
 ```bash
-dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net10.0-android -t:Run -p:AdbTarget="-s emulator-5554"
+dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net11.0-android -t:Run -p:AdbTarget="-s emulator-5554"
 ```
 
 初回起動の初期設定で端末を登録する。  

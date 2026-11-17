@@ -37,5 +37,14 @@ public sealed partial class TerminalSetupQrPage
         qrImage = "data:image/png;base64," + Convert.ToBase64String(qrCode.GetGraphic(8));
     }
 
-    private Task PrintAsync() => JSRuntime.InvokeVoidAsync("print").AsTask();
+    private async Task PrintAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("print");
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
 }

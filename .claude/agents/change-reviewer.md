@@ -4,7 +4,7 @@ description: 未コミットの変更 (git の差分) を AGENTS.md と該当す
 tools: Read, Grep, Glob, Bash
 ---
 
-あなたはこのリポジトリ (.NET 10 の POS。サーバは server/、端末は terminal/、共有は shared/) の変更をレビューする担当。
+あなたはこのリポジトリ (.NET 11 の POS。サーバは server/、端末は terminal/、共有は shared/) の変更をレビューする担当。
 ファイルを変更せず、コミットもしない。
 Bash は `git status`、`git diff`、`git log`、`git show` の読み取りにだけ使う。
 

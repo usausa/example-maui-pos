@@ -31,7 +31,7 @@ python .claude/skills/verify/scripts/verify.py
 
 ## 前提
 
-- .NET SDK 10 と Android のワークロード (端末)
+- .NET SDK 11 と Android のワークロード (端末)
 - InspectCode は `jb` (JetBrains.ReSharper.GlobalTools を `dotnet tool install -g` で入れる)
 - サーバの Release の出力 (`bin/Release`) から動かしているサーバは、止めてから実行する (ビルドが上書きできない)
 - 端末のビルドと `emu.py install` を同時に走らせない (共有の `obj` が壊れる)

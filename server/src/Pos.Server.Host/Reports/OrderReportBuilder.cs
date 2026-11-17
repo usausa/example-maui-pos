@@ -87,14 +87,15 @@ public sealed class OrderReportBuilder
             ["DepositMethod"] = DepositMethod(x.Type, report.PaymentMethodNames.GetValueOrDefault(x.PaymentMethodId) ?? x.Kind.ToDisplayName(), x.Reference),
             ["DepositAmount"] = x.Type == OrderDepositType.Refund ? "-" + ReportText.Yen(x.Amount) : ReportText.Yen(x.Amount)
         }).ToList());
-        ReportText.FillRows(sheet, "DepositLabel", hasDeposits ?
-        [
-            new Dictionary<string, string?>
-            {
-                ["DepositLabel"] = DepositLabel(order.Status),
-                ["DepositTotal"] = ReportText.Yen(open ? detail.DepositBalance : detail.DepositNet)
-            }
-        ] : []);
+        ReportText.FillRows(sheet, "DepositLabel", hasDeposits
+            ? [
+                new Dictionary<string, string?>
+                {
+                    ["DepositLabel"] = DepositLabel(order.Status),
+                    ["DepositTotal"] = ReportText.Yen(open ? detail.DepositBalance : detail.DepositNet)
+                }
+              ]
+            : []);
     }
 
     // 完了とキャンセルは表題に状態を付ける (お渡し前の控えと区別する)
