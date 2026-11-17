@@ -11,21 +11,17 @@
 
 ## コーディングスタイル
 
-- `.editorconfig` (C#) と `Settings.XamlStyler` (XAML) の規則に従う (これらのファイル自体は変更しない)
-- テキストファイルの改行は CRLF にする (`.gitattributes` の `eol=crlf`。verify の `--fix` でそろえる)
-- ソースのコメントは日本語で、意図や制約を書く (コードの言い換えは書かない。端末のテンプレートと同じにする共通の部品は terminal.md による)
-- XML ドキュメントコメントは付けず、区切りコメント (`// Xxx` と、`//----` で挟んだ帯) でまとめる。区切りの見出しは英語の名詞でよい (端末の共通の部品の帯はテンプレートの形のまま)
-- ソースのコメントから設計文書 (文書名、節番号、画面 ID、決定番号) を参照しない (ソースが正)
+- XAML は `Settings.XamlStyler` の規則に従う。`.editorconfig` と `Settings.XamlStyler` は変更しない
 - クラスの DI は従来型のコンストラクタで受ける (プライマリコンストラクタは使わない)
 - Blazor の部品は `[Inject]`、端末の画面間の状態は `[Scope]`、エンドポイントはハンドラの引数で受ける
 - コンストラクタの引数とフィールドは、基盤 (`ILogger<T>` / `ILoggerFactory`、`TimeProvider`、`IDbProvider`、`IDialect` の順) を先、固有のサービスを後に並べる (基底クラスに渡す引数は基底の順。端末の ViewModel は terminal.md の順、端末の共通の部品はテンプレートの順。既存のクラスは触ったときに揃える)
 
 ## 検証
 
-- 作業の単位ごとに `.claude/skills/verify/` の検証を通し、すべて OK にする (ビルドの警告 0、テスト、InspectCode の指摘 0、改行コード、文書の改行)
+- 作業の単位ごとに `/verify` を通し、すべて OK にする
 - テストは `dotnet run --project` で実行する。`dotnet test` は使わない
-- UI の変更は、端末はエミュレータ (`.claude/skills/emulator/`)、管理画面はブラウザ (ヘッドレスなら readme-images の `capture_server.mjs`) で動作を確かめる
-- 画面や帳票の見た目を変えたら、README の画像 (`docs/images/`) を撮り直す
+- UI の変更は、端末は `/emulator`、管理画面はブラウザ (ヘッドレスなら readme-images の `capture_server.mjs`) で動作を確認する
+- 画面や帳票の見た目を変えたら、README の画像 (`docs/images/`) を `/readme-images` で撮り直す
 
 ## 進め方
 
@@ -35,4 +31,4 @@
 - コミットのメッセージは日本語で、要約 1 行 (「。」を付けない) と変更点の箇条書きにする
 - パッケージの追加・更新は事前に確認する
 - パッケージのバージョンは csproj に直接書いて固定する (CPM や浮動バージョンは使わない。すべてのプロジェクトに入れる分析器だけは `Directory.Build.props` に書く)
-- NuGet の脆弱性警告 (NU1902、NU1903) は `NoWarn` で消さず、推移的依存を直接ピンし、引いている元と GHSA 番号をコメントに書く (`推移的な依存のピン (直接の依存 → 古い版を引く依存 が 版 を引く): GHSA 番号`)
+- NuGet の脆弱性警告 (NU1902、NU1903) は `NoWarn` で消さず、推移的依存を直接ピンし、引いている元と GHSA 番号をコメントに書く (`推移的な依存のピン (直接の依存 → 古いバージョンを引く依存 が バージョン を引く): GHSA 番号`)

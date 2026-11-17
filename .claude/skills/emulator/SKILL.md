@@ -1,78 +1,108 @@
 ---
 name: emulator
-description: 端末アプリ (MAUI Android) をエミュレータに入れて動作を確かめる。エミュレータの起動と終了、ビルドと配置、画面の撮影・タップ・F キー・電卓の入力、管理画面でのペアリングコードの発行と登録の解除、PIN のログイン、機内モード、カメラの許可、アプリの設定の読み書きと確認後の戻しを行う。端末の UI や通信を変えたときに使う。実機には入れない。
+description: レジ端末アプリをエミュレータで動かして確認する (インストール、撮影、タップ、F キー、電卓、登録とログイン)。端末の UI や通信を変更したときに使う
 ---
 
 # エミュレータでの確認
 
 操作はリポジトリのルートで `python .claude/skills/emulator/scripts/emu.py <コマンド>` を使う (Windows では `python`、他では `python3`)。
-スクリプトはエミュレータ (`emulator-` で始まる機器) だけを選び、実機が接続されていても使わない。
-`adb` や `dotnet build -t:Run` を直接使うときも、必ずエミュレータを指定する (`adb` は `-s emulator-xxxx`、`dotnet build -t:Run` は `"-p:AdbTarget=-s emulator-xxxx"`)。
-`adb` と `emulator` が PATH にないときは、環境変数 `ADB` と `EMULATOR` で場所を渡す (emu.py は Android SDK の既定の場所も探す)。
-使う機器は環境変数 `ANDROID_SERIAL` (`emulator-` で始まるものだけ) でも選べる。
+
+## デバイスの選択
+
+- スクリプトはエミュレータ (`emulator-` で始まるデバイス) だけを選び、実機が接続されていても使わない
+- 使うデバイスは、環境変数 `ANDROID_SERIAL` でも選べる (`emulator-` で始まるものだけ)
+- `adb` や `dotnet build -t:Run` を直接使うときも、必ずエミュレータを指定する
+  - `adb`: `-s emulator-xxxx`
+  - `dotnet build -t:Run`: `"-p:AdbTarget=-s emulator-xxxx"`
 
 ## 準備
 
-- エミュレータを起動する: `emu.py boot <AVD の名前>` (名前を省くと AVD の一覧を出す。起動済みなら起動が終わるのを待つだけ)
-- 座標 (F キー、電卓) は 1080x2400 (Pixel 6a 相当) の配置。`emu.py devices` が違う大きさを出したら、撮った画像で座標を確かめる
-- サーバをバックグラウンドで起動し、`<サーバの URL>/health` が応答するまで待つ。エミュレータからホストへは `http://10.0.2.2:<ポート>/` でつながる
-- 確かめる前に、元に戻すための値を控える (`emu.py pref get ApiEndPoint`)
-- 入れる: `emu.py install` (Debug。ビルドから起動まで数分かかるので、バックグラウンドで実行する)
-- 端末のビルドは同時に 2 つ走らせない (`verify.py terminal` と `emu.py install` を重ねると、共有の `obj` が壊れて署名に失敗する)
+- `adb` と `emulator` が PATH にないときは、環境変数 `ADB` と `EMULATOR` で場所を渡す (emu.py は Android SDK の既定の場所も探す)
+- エミュレータを起動する: `emu.py boot <AVD の名前>`
+  - 名前を省くと、AVD の一覧を出す
+  - 起動済みなら、起動が終わるのを待つだけ
+- F キーと電卓の座標は、1080x2400 (Pixel 6a 相当) の画面のもの
+  - `emu.py devices` が違う大きさを出したら、撮った画像で座標を確認する
+- サーバをバックグラウンドで起動する
+  - `<サーバの URL>/health` がレスポンスを返すまで待つ
+- エミュレータからホストへは、`http://10.0.2.2:<ポート>/` で接続できる
+- 確認の前に、元に戻すための値を控える (`emu.py pref get ApiEndPoint`)
+- インストールする: `emu.py install` (Debug)
+  - ビルドから起動まで数分かかるので、バックグラウンドで実行する
+- 端末のビルドを同時に 2 つ実行しない (`verify.py terminal` と `emu.py install` を重ねると、共有の `obj` が壊れて署名に失敗する)
 
 ## 登録とログイン
 
-1. ペアリングコード (6 桁、10 分) を発行する。管理画面の「レジ端末」の操作なので、手順を作って撮影のスクリプトで実行する
-   - `python .claude/skills/emulator/scripts/admin_steps.py pair --out <一時フォルダ> --base <サーバの URL>` (端末は `--terminal <名称>`。既定は「本店 レジ 2」)
-   - `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json` の出力の `"code: 123456"` がコード
-2. アプリを起動すると、初期設定がカメラの許可を求める。`emu.py camera deny` で断る (ダイアログが出るのを待って戻るを送る。`emu.py key BACK` をダイアログのないときに送ると、アプリが背面へ回る)
-3. サーバ URL の欄をタップし、`emu.py text http://10.0.2.2:<ポート>/` で入れて `emu.py key ENTER` でキーボードを閉じる
+ペアリングコード (6 桁、10 分で失効) は管理画面の「レジ端末」で発行するので、手順を作って撮影のスクリプトで実行する。
+
+1. 発行の手順を作る: `python .claude/skills/emulator/scripts/admin_steps.py pair --out <一時フォルダ> --base <サーバの URL>`
+   - 端末は `--terminal <名称>` で選ぶ (既定は「本店 レジ 2」)
+2. 手順を実行する: `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json`
+   - 出力の `"code: 123456"` がペアリングコード
+3. アプリを起動すると、初期設定がカメラの許可を求めるので、`emu.py camera deny` で拒否する
+   - `camera deny` は、ダイアログが出るのを待ってから戻るキーを送る
+   - 未登録の初期設定で、ダイアログのないときに戻るキーを送ると、アプリがバックグラウンドへ回る (`emu.py launch` で戻す)
+4. サーバ URL の欄をタップする
+5. `emu.py text http://10.0.2.2:<ポート>/` で入力する
    - 前の値が残っているときは、先に `emu.py key MOVE_END` と `emu.py key DEL --repeat 40` で消す
-   - 未登録の初期設定で戻るキーを押すと、アプリが背面へ回る。そのときは `emu.py launch` で戻す
-4. `emu.py fkey 3` (コード) で電卓のシートを開き、撮って開いたことを確かめてから `emu.py keypad <6 桁> --ok` で入れる
-5. `emu.py fkey 4` (登録) を押す。登録済みの端末では「登録し直しますか？」の確認が出る
-6. 全件の同期が終わると担当の選択に進むので、`emu.py screen` か撮った画像で待つ
-7. 担当を選び、PIN を `emu.py keypad <PIN> --ok` で入れる (初期データは A001 = 0000、M001 = 1111、C001 = 2222、C002 = 3333)
+6. `emu.py key ENTER` でキーボードを閉じる
+7. `emu.py fkey 3` (コード) で電卓のシートを開く
+8. 撮って、シートが開いたことを確認する
+9. `emu.py keypad <6 桁> --ok` でペアリングコードを入力する
+10. `emu.py fkey 4` (登録) を押す
+    - 登録済みの端末では「登録し直しますか？」の確認が出る
+11. 全件の同期が終わって担当の選択に進むまで、`emu.py screen` か撮った画像で待つ
+12. 担当を選ぶ
+13. `emu.py keypad <PIN> --ok` で PIN を入力する (初期データは A001 = 0000、M001 = 1111、C001 = 2222、C002 = 3333)
 
 ## 操作
 
-- 画面を見る: `emu.py shot <一時フォルダ>/xxx.png` で撮って画像を読む
-- 遷移を見る: `emu.py screen` で logcat の `Navigated:` を出す (最後の行が今の画面。Debug だけ)
-- 押す: `emu.py tap <x> <y>`。座標は撮った画像 (1080x2400) の画素で、縮小して表示された画像から読むときは倍率を戻す
+- 画面: `emu.py shot <一時フォルダ>/xxx.png` で撮って、画像を読む
+- 遷移: `emu.py screen` で logcat の `Navigated:` を出す (Debug だけ)
+  - 最後の行が今の画面
+- タップ: `emu.py tap <x> <y>`
+  - 座標は撮った画像 (1080x2400) のピクセル
+  - 縮小して表示された画像から読むときは、倍率を戻す
 - F キー: `emu.py fkey <1-4>` (画面下端の 4 つ)
-- 電卓のシート: `emu.py keypad <数字>` (`A` = AC、`C` = 1 字消す)、`--ok` で確定 (確定だけは `emu.py keypad --ok`)
-- 電卓は数字の間を待たないので、シートが開いたのを撮って確かめてから押す
-- 入れた値を確かめるときは、`--ok` を付けずに押して撮り、確定だけを送る
-- 処理中と遷移中のタップは捨てられるので、押した後は撮って結果を確かめてから次へ進む
+- 電卓のシート: `emu.py keypad <数字>` (`A` = AC、`C` = 1 字消す)
+  - `--ok` で確定する (確定だけなら `emu.py keypad --ok`)
+  - 数字の間を待たないので、シートが開いたことを撮って確認してから押す
+  - 入力した値を確認するときは、`--ok` を付けずに押して撮り、確定だけを送る
+- 処理中と遷移中のタップは捨てられるので、押した後は撮って結果を確認してから次へ進む
 - 文字: `emu.py text <ASCII>` (空白と日本語は送れない)
 - キー: `emu.py key BACK`、`ENTER`、`DEL` など (`--repeat N` で繰り返す)
-- 送る: `emu.py swipe <x1> <y1> <x2> <y2> [ms]` (設定画面の末尾の [登録の解除] などへ送る)
-- 起動と停止: `emu.py launch`、`emu.py stop`
+- スワイプ: `emu.py swipe <x1> <y1> <x2> <y2> [ms]` (設定画面の末尾の [登録の解除] などへスクロールする)
+- アプリの起動と停止: `emu.py launch`、`emu.py stop`
 - オフライン: `emu.py airplane on` / `off`
-- 例外の確認: `emu.py logcat --grep "Exception|FATAL"` (`--lines` で読む行数を変える)
-- カメラの許可: `emu.py camera status` / `grant` / `revoke` / `deny` (QR の読み取りを確かめるときだけ許可する)
-- エミュレータの仮想のカメラの初期の視野には画像を映せない (`virtualscene-image` の壁と台は視野の外) ので、設定 QR の読み取りは利用者に実機での確認を頼む
+- 例外の確認: `emu.py logcat --grep "Exception|FATAL"` (`--lines` で読む行数を変更する)
+- カメラの許可: `emu.py camera status` / `grant` / `revoke` / `deny`
+  - QR の読み取りを確認するときだけ許可する
+  - 設定 QR の読み取りは、利用者に実機での確認を頼む (エミュレータの仮想カメラの初期の視野に画像を映せないため。`virtualscene-image` の壁と台は視野の外)
 
-## Release で確かめる
+## Release での確認
 
-- `emu.py install --release` は、入っているアプリのデータを消して入れ直す
-- データを残すときは、Release でビルドしてから上書きで入れる
+- `emu.py install --release` は、インストール済みのアプリのデータを消して再インストールする
+- データを残すときは、Release でビルドしてから上書きでインストールする
   - `dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net11.0-android -c Release`
   - `adb -s emulator-xxxx install -r terminal/Pos.Terminal/bin/Release/net11.0-android/pos.terminal-Signed.apk`
-- エミュレータの空きが足りずに入らないときは、`adb -s emulator-xxxx uninstall pos.terminal` してから入れ、登録し直す
-- Release では `emu.py screen` (Navigated のログ) と `emu.py pref` (run-as) が使えないので、遷移は撮った画像で確かめる
-- 時間を測るときは、一時的に `Android.Util.Log.Info("POSDBG", ...)` を入れる (測り終えたら外す)
+- エミュレータの空きが足りずにインストールできないときは、`adb -s emulator-xxxx uninstall pos.terminal` でアンインストールしてからインストールする
+  - インストールの後、登録し直す
+- Release では `emu.py screen` (Navigated のログ) と `emu.py pref` (run-as) が使えないので、遷移は撮った画像で確認する
+- 時間を測るときは、一時的に `Android.Util.Log.Info("POSDBG", ...)` を追加する (測り終えたら削除する)
   - 操作の前に `adb -s emulator-xxxx shell log -t POSDBG <印>` で印を付ける
   - logcat で印とログの時刻を比べる
 
-## 後片付け
+## クリーンアップ
 
+- 確認のために開いたシフトは精算する (未精算のシフトが残ると、その日を締められず、サンプルデータもその端末を使わない)
+- 確認のために登録した端末は、端末の [登録の解除] (手元のトークンを消すだけ) に加えて、サーバ側の登録も解除する
+  - 手順を作る: `python .claude/skills/emulator/scripts/admin_steps.py revoke --out <一時フォルダ> --base <サーバの URL>`
+  - 手順を実行する: `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json`
+  - 出力が `"revoked: …"` か `"not registered: …"` なら完了
 - `emu.py stop` でアプリを止める
-- 変えた設定を控えた値に戻す (`emu.py pref set ApiEndPoint <元の値>`。`pref set` は動いているアプリを止めてから書き換え、キーがなければ足す)
-- 確かめるために登録した端末は、端末の [登録の解除] (手元のトークンを消すだけ) に加えて、サーバ側の登録も解除する
-  - `python .claude/skills/emulator/scripts/admin_steps.py revoke --out <一時フォルダ> --base <サーバの URL>`
-  - `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json` の出力が `"revoked: …"` か `"not registered: …"` なら済み
-- 確かめるために開いたシフトは精算する (未精算のシフトが残ると、その日を締められず、サンプルデータもその端末を使わない)
-- 機内モードにしたときは `emu.py airplane off` で戻す
-- カメラを許可したときは `emu.py camera revoke` で、次にまた尋ねる状態に戻す
-- 確かめるためにエミュレータを起動したときは、`emu.py shutdown` で終了する
+- 変更した設定を、控えた値に戻す: `emu.py pref set ApiEndPoint <元の値>`
+  - `pref set` は、動いているアプリを止めてから書き換える
+  - キーがなければ足す
+- 機内モードにしたときは、`emu.py airplane off` で戻す
+- カメラを許可したときは、`emu.py camera revoke` で次にまた尋ねる状態に戻す
+- 確認のためにエミュレータを起動したときは、`emu.py shutdown` で終了する
