@@ -19,7 +19,7 @@ public sealed partial class ShiftAccessor
     public partial ValueTask<long> CountAsync(Guid? storeId, Guid? terminalId, ShiftStatus? status, DateOnly? from, DateOnly? to, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<ShiftEntity>> QueryListAsync(Guid? storeId, Guid? terminalId, ShiftStatus? status, DateOnly? from, DateOnly? to, ShiftSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<ShiftEntity>> QueryListAsync(Guid? storeId, Guid? terminalId, ShiftStatus? status, DateOnly? from, DateOnly? to, ShiftSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(ShiftEntity))]
@@ -78,7 +78,7 @@ public sealed partial class ShiftAccessor
     public partial ValueTask<long> CountCashEventsAsync(Guid shiftId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<CashEventEntity>> QueryCashEventListAsync(Guid shiftId, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<CashEventEntity>> QueryCashEventListAsync(Guid shiftId, int limit, long offset, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Summary

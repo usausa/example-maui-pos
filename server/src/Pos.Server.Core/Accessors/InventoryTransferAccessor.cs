@@ -11,7 +11,7 @@ public sealed partial class InventoryTransferAccessor
     public partial ValueTask<long> CountAsync(Guid? storeId, Guid? fromStoreId, Guid? toStoreId, InventoryTransferStatus? status, bool openOnly, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<InventoryTransferEntity>> QueryListAsync(Guid? storeId, Guid? fromStoreId, Guid? toStoreId, InventoryTransferStatus? status, bool openOnly, InventoryTransferSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<InventoryTransferEntity>> QueryListAsync(Guid? storeId, Guid? fromStoreId, Guid? toStoreId, InventoryTransferStatus? status, bool openOnly, InventoryTransferSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(InventoryTransferEntity))]

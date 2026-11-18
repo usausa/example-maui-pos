@@ -27,7 +27,7 @@ public sealed class TerminalService
     public async ValueTask<PagedResult<TerminalEntity>> QueryPageAsync(TerminalQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await masterAccessor.CountTerminalsAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
-        var items = await masterAccessor.QueryTerminalListAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await masterAccessor.QueryTerminalListAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
         return new PagedResult<TerminalEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 

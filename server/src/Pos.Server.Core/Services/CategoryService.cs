@@ -25,7 +25,7 @@ public sealed class CategoryService
     public async ValueTask<PagedResult<CategoryEntity>> QueryPageAsync(CategoryQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await masterAccessor.CountCategoriesAsync(parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
-        var items = await masterAccessor.QueryCategoryListAsync(parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await masterAccessor.QueryCategoryListAsync(parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
         return new PagedResult<CategoryEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 

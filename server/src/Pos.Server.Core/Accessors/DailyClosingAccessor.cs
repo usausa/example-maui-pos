@@ -17,7 +17,7 @@ public sealed partial class DailyClosingAccessor
 
     // 締め済みは締めた時点の日計、未締めは取引から集計する
     [Query]
-    public partial ValueTask<List<DailyClosingDayView>> QueryDayListAsync(Guid? storeId, DailyClosingStatus? status, DateOnly? from, DateOnly? to, DailyClosingSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<DailyClosingDayView>> QueryDayListAsync(Guid? storeId, DailyClosingStatus? status, DateOnly? from, DateOnly? to, DailyClosingSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     // その営業日のシフトと、その営業日の取引を含むシフト (前日から日をまたいだシフト)
     [Query]

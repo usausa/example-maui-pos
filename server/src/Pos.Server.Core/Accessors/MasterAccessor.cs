@@ -39,7 +39,7 @@ public sealed partial class MasterAccessor
     public partial ValueTask<long> CountStoresAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<StoreEntity>> QueryStoreListAsync(DateTime? updatedSince, bool includeDeleted, StoreSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<StoreEntity>> QueryStoreListAsync(DateTime? updatedSince, bool includeDeleted, StoreSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     // 全件 (コード順)
     [Query]
@@ -81,7 +81,7 @@ public sealed partial class MasterAccessor
     public partial ValueTask<long> CountTerminalsAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<TerminalEntity>> QueryTerminalListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, TerminalSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<TerminalEntity>> QueryTerminalListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, TerminalSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     // 全件 (店舗、端末番号順)
     [Query]
@@ -130,7 +130,7 @@ public sealed partial class MasterAccessor
     public partial ValueTask<long> CountStaffAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<StaffEntity>> QueryStaffListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, StaffSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<StaffEntity>> QueryStaffListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, StaffSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     // 全件 (コード順)
     [Query]
@@ -171,7 +171,7 @@ public sealed partial class MasterAccessor
     public partial ValueTask<long> CountCategoriesAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<CategoryEntity>> QueryCategoryListAsync(DateTime? updatedSince, bool includeDeleted, CategorySort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<CategoryEntity>> QueryCategoryListAsync(DateTime? updatedSince, bool includeDeleted, CategorySort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     // 全件 (並び順、コード順)
     [Query]

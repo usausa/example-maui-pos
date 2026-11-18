@@ -160,7 +160,7 @@ public sealed class TransactionService
     {
         var serialNumber = String.IsNullOrWhiteSpace(parameter.SerialNumber) ? null : parameter.SerialNumber.Trim();
         var total = await transactionAccessor.CountAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, serialNumber, cancellationToken);
-        var items = await transactionAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, serialNumber, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await transactionAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.StaffId, parameter.ShiftId, parameter.CustomerId, parameter.From, parameter.To, parameter.Type, parameter.Status, serialNumber, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
         return new PagedResult<TransactionEntity>((int)total, parameter.Page, parameter.Size, items);
     }
 

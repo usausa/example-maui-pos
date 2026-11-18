@@ -15,7 +15,7 @@ public sealed partial class CustomerAccessor
     public partial ValueTask<long> CountAsync(string? keyword, string? code, string? phone, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<CustomerEntity>> QueryListAsync(string? keyword, string? code, string? phone, DateTime? updatedSince, bool includeDeleted, CustomerSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<CustomerEntity>> QueryListAsync(string? keyword, string? code, string? phone, DateTime? updatedSince, bool includeDeleted, CustomerSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(CustomerEntity))]
@@ -69,5 +69,5 @@ public sealed partial class CustomerAccessor
     public partial ValueTask<long> CountPointHistoryAsync(Guid customerId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<PointHistoryEntity>> QueryPointHistoryListAsync(Guid customerId, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<PointHistoryEntity>> QueryPointHistoryListAsync(Guid customerId, int limit, long offset, CancellationToken cancellationToken);
 }

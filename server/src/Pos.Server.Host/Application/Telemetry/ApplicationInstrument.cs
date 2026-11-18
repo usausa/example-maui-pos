@@ -3,19 +3,26 @@ namespace Pos.Server.Host.Application.Telemetry;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-// 独自の計測: 稼働時間、API の要求数と長時間実行の回数 (BCL の Meter / ActivitySource で計装し、エクスポータは ConfigureTelemetry で付ける)
+// 独自の計測: 稼働時間、API のリクエスト数と長時間実行の回数 (BCL の Meter / ActivitySource で計装し、エクスポータは ConfigureTelemetry で付ける)
 public sealed class ApplicationInstrument : IDisposable
 {
-    private readonly Meter meter;
+    private readonly TimeProvider timeProvider;
 
-    public ActivitySource ActivitySource { get; }
+    private readonly long startTimestamp;
+
+    private readonly Meter meter;
 
     private readonly Counter<long> requestLongExecution;
 
     private readonly Counter<long> requestExecution;
 
-    public ApplicationInstrument(IMeterFactory meterFactory)
+    public ActivitySource ActivitySource { get; }
+
+    public ApplicationInstrument(TimeProvider timeProvider, IMeterFactory meterFactory)
     {
+        this.timeProvider = timeProvider;
+        startTimestamp = timeProvider.GetTimestamp();
+
         ActivitySource = new ActivitySource(Source.Name, Source.Version);
         meter = meterFactory.Create(Source.Name, Source.Version);
 
@@ -27,11 +34,12 @@ public sealed class ApplicationInstrument : IDisposable
 
     public void Dispose()
     {
+        ActivitySource.Dispose();
         meter.Dispose();
     }
 
-    private static long ObserveApplicationUptime() =>
-        (long)(DateTime.Now - Process.GetCurrentProcess().StartTime).TotalSeconds;
+    private long ObserveApplicationUptime() =>
+        (long)timeProvider.GetElapsedTime(startTimestamp).TotalSeconds;
 
     public void IncrementRequestExecution(string method, string route) =>
         requestExecution.Add(1, new("http.request.method", method), new("http.route", route));

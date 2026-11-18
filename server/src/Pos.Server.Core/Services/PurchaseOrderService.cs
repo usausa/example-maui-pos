@@ -53,7 +53,7 @@ public sealed class PurchaseOrderService
     public async ValueTask<PagedResult<PurchaseOrderDetailView>> QueryPageAsync(PurchaseOrderQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await purchaseOrderAccessor.CountAsync(parameter.StoreId, parameter.SupplierId, parameter.Status, parameter.OpenOnly, parameter.From, parameter.To, cancellationToken);
-        var items = await purchaseOrderAccessor.QueryListAsync(parameter.StoreId, parameter.SupplierId, parameter.Status, parameter.OpenOnly, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await purchaseOrderAccessor.QueryListAsync(parameter.StoreId, parameter.SupplierId, parameter.Status, parameter.OpenOnly, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
         var suppliers = await QuerySupplierNamesAsync(cancellationToken);
         var details = new List<PurchaseOrderDetailView>(items.Count);
         foreach (var item in items)

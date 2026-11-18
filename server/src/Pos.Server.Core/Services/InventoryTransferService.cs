@@ -53,7 +53,7 @@ public sealed class InventoryTransferService
     public async ValueTask<PagedResult<InventoryTransferDetailView>> QueryPageAsync(InventoryTransferQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await transferAccessor.CountAsync(parameter.StoreId, parameter.FromStoreId, parameter.ToStoreId, parameter.Status, parameter.OpenOnly, cancellationToken);
-        var items = await transferAccessor.QueryListAsync(parameter.StoreId, parameter.FromStoreId, parameter.ToStoreId, parameter.Status, parameter.OpenOnly, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await transferAccessor.QueryListAsync(parameter.StoreId, parameter.FromStoreId, parameter.ToStoreId, parameter.Status, parameter.OpenOnly, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
         var stores = await QueryStoreNamesAsync(cancellationToken);
         var details = new List<InventoryTransferDetailView>(items.Count);
         foreach (var item in items)

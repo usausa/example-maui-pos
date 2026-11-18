@@ -11,7 +11,7 @@ public sealed partial class PurchaseOrderAccessor
     public partial ValueTask<long> CountAsync(Guid? storeId, Guid? supplierId, PurchaseOrderStatus? status, bool openOnly, DateOnly? from, DateOnly? to, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<PurchaseOrderEntity>> QueryListAsync(Guid? storeId, Guid? supplierId, PurchaseOrderStatus? status, bool openOnly, DateOnly? from, DateOnly? to, PurchaseOrderSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<PurchaseOrderEntity>> QueryListAsync(Guid? storeId, Guid? supplierId, PurchaseOrderStatus? status, bool openOnly, DateOnly? from, DateOnly? to, PurchaseOrderSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(PurchaseOrderEntity))]

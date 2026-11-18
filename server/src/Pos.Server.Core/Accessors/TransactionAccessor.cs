@@ -47,7 +47,7 @@ public sealed partial class TransactionAccessor
         TransactionSort sort,
         bool desc,
         int limit,
-        int offset,
+        long offset,
         CancellationToken cancellationToken);
 
     [Query]

@@ -11,7 +11,7 @@ public sealed partial class InventoryReceiptAccessor
     public partial ValueTask<long> CountAsync(Guid? storeId, Guid? supplierId, InventoryReceiptStatus? status, DateOnly? from, DateOnly? to, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<InventoryReceiptEntity>> QueryListAsync(Guid? storeId, Guid? supplierId, InventoryReceiptStatus? status, DateOnly? from, DateOnly? to, InventoryReceiptSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<InventoryReceiptEntity>> QueryListAsync(Guid? storeId, Guid? supplierId, InventoryReceiptStatus? status, DateOnly? from, DateOnly? to, InventoryReceiptSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(InventoryReceiptEntity))]

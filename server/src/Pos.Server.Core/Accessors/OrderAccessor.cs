@@ -17,7 +17,7 @@ public sealed partial class OrderAccessor
     public partial ValueTask<long> CountAsync(Guid? storeId, OrderStatus? status, bool openOnly, OrderType? type, Guid? customerId, string? keyword, DateTime? orderedFrom, DateTime? orderedTo, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<OrderEntity>> QueryListAsync(Guid? storeId, OrderStatus? status, bool openOnly, OrderType? type, Guid? customerId, string? keyword, DateTime? orderedFrom, DateTime? orderedTo, OrderSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<OrderEntity>> QueryListAsync(Guid? storeId, OrderStatus? status, bool openOnly, OrderType? type, Guid? customerId, string? keyword, DateTime? orderedFrom, DateTime? orderedTo, OrderSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(OrderEntity))]

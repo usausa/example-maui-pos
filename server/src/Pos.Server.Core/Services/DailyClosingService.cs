@@ -55,7 +55,7 @@ public sealed class DailyClosingService
     public async ValueTask<PagedResult<DailyClosingDayView>> QueryDayPageAsync(DailyClosingQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await dailyClosingAccessor.CountDaysAsync(parameter.StoreId, parameter.Status, parameter.From, parameter.To, cancellationToken);
-        var items = await dailyClosingAccessor.QueryDayListAsync(parameter.StoreId, parameter.Status, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        var items = await dailyClosingAccessor.QueryDayListAsync(parameter.StoreId, parameter.Status, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
         return new PagedResult<DailyClosingDayView>((int)total, parameter.Page, parameter.Size, items);
     }
 
