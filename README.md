@@ -70,3 +70,10 @@ MAUI (レジ端末アプリ) + ASP.NET Core (POS サーバ: API + Blazor 管理�
 | [docs/screen-design.md](docs/screen-design.md) | 画面設計。端末と管理画面の画面一覧・遷移・レイアウト |
 | [docs/decisions.md](docs/decisions.md) | 設計方針。機能とアーキテクチャについて、何をどこまでサポートし、どうあるべきか |
 | [docs/backlog.md](docs/backlog.md) | 未実装と今後の検討事項。後回しにしているもの、作らないと決めたもの、前提として残る制約 |
+
+## 🔗 基にしたテンプレート
+
+| テンプレート | 基にしたもの |
+| --- | --- |
+| [template-maui](https://github.com/usausa/template-maui) | 端末の共通の部品 (テンプレートと同じにする) |
+| [template-blazor-server](https://github.com/usausa/template-blazor-server) | サーバの構成と管理画面 (ログイン、データアクセス、テレメトリ) |
