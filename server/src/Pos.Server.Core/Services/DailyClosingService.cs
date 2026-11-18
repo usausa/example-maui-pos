@@ -55,8 +55,13 @@ public sealed class DailyClosingService
     public async ValueTask<PagedResult<DailyClosingDayView>> QueryDayPageAsync(DailyClosingQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await dailyClosingAccessor.CountDaysAsync(parameter.StoreId, parameter.Status, parameter.From, parameter.To, cancellationToken);
-        var items = await dailyClosingAccessor.QueryDayListAsync(parameter.StoreId, parameter.Status, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
-        return new PagedResult<DailyClosingDayView>((int)total, parameter.Page, parameter.Size, items);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<DailyClosingDayView>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await dailyClosingAccessor.QueryDayListAsync(parameter.StoreId, parameter.Status, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<DailyClosingDayView>(total, parameter.Page, parameter.Size, items);
     }
 
     // 前日までの未締め (ダッシュボードの要確認。古い日も漏らさないよう期間で絞らない)

@@ -64,8 +64,13 @@ public sealed class ProductService
     {
         var keyword = ServiceHelper.ToLikePattern(dialect, parameter.Keyword);
         var total = await productAccessor.CountAsync(parameter.CategoryId, keyword, parameter.IsActive, parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
-        var items = await productAccessor.QueryListAsync(parameter.CategoryId, keyword, parameter.IsActive, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
-        return new PagedResult<ProductEntity>((int)total, parameter.Page, parameter.Size, items);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<ProductEntity>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await productAccessor.QueryListAsync(parameter.CategoryId, keyword, parameter.IsActive, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<ProductEntity>(total, parameter.Page, parameter.Size, items);
     }
 
     // 全件 (コード順)

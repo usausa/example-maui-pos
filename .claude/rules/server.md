@@ -52,6 +52,7 @@ Service の書き込みのメソッド名は次にする。
 - Service への入力は `Models/Parameters` に置く
 - 並び順を選べる一覧は、`PagedParameter<TSort>` を基底にした `XxxQueryParameter` (`Sort` はリソースごとの列挙型) にする
 - 並び順のない一覧は、絞り込みがあれば `Page` と `Size` を持つ `XxxQueryParameter` にし、親の ID とページだけなら引数で受ける
+- ページングする一覧は、件数を数えた後に `Page > total / Size` なら DB を引かずに空の一覧を返す (`Page * Size` を件数以下のときだけ計算し、int に収める)
 - Service が使う列挙型 (並び順、集計の軸、変更の通知の種類など) は `Views` や `Parameters` に混ぜず `Models/Enums` に置く (結果の状態の `XxxResultStatus` と `DataWriteStatus` は除く)
 - 1 つの Service だけが返す結果型 (`XxxResult`) とその状態 (`XxxResultStatus`) は、その Service のファイルの先頭で定義する
 - 複数の Service で使う型 (`DataWriteStatus`、`DataWriteResult<T>`) は独自のファイルにする

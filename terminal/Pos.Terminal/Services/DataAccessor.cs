@@ -132,7 +132,7 @@ public sealed partial class DataAccessor
     //--------------------------------------------------------------------------------
 
     [ExecuteScalar]
-    public partial ValueTask<long> CountProductsAsync();
+    public partial ValueTask<int> CountProductsAsync();
 
     [QueryFirst]
     public partial ValueTask<ProductListResponseItem?> QueryProductAsync(Guid id);
@@ -200,11 +200,11 @@ public sealed partial class DataAccessor
 
     // 取消の可否 (取消していない返品が紐付いていれば取り消せない)
     [ExecuteScalar]
-    public partial ValueTask<long> CountReturnsAsync(Guid originalTransactionId);
+    public partial ValueTask<int> CountReturnsAsync(Guid originalTransactionId);
 
     // 元の取引に紐付く返品とその取消のうち、まだ送っていないもの (あればサーバの返品済みの数量が端末より古い)
     [ExecuteScalar]
-    public partial ValueTask<long> CountUnsentReturnsAsync(Guid originalTransactionId);
+    public partial ValueTask<int> CountUnsentReturnsAsync(Guid originalTransactionId);
 
     // 元の取引に紐付く、取り消していない返品 (送った販売の応答と、サーバから取った元の取引に、返品済みの数量を足す)
     [Query]
@@ -282,7 +282,7 @@ public sealed partial class DataAccessor
     public partial ValueTask<List<OutboxEntity>> QueryOutboxListAsync(int limit);
 
     [ExecuteScalar]
-    public partial ValueTask<long> CountOutboxAsync(OutboxStatus status);
+    public partial ValueTask<int> CountOutboxAsync(OutboxStatus status);
 
     [Execute]
     public partial ValueTask<int> UpdateOutboxAsync(Guid id, OutboxStatus status, int attempts, string? lastError, DateTime? sentAt);

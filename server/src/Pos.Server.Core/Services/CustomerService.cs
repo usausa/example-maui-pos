@@ -36,8 +36,13 @@ public sealed class CustomerService
     {
         var keyword = ServiceHelper.ToLikePattern(dialect, parameter.Keyword);
         var total = await customerAccessor.CountAsync(keyword, parameter.Code, parameter.Phone, parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
-        var items = await customerAccessor.QueryListAsync(keyword, parameter.Code, parameter.Phone, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
-        return new PagedResult<CustomerEntity>((int)total, parameter.Page, parameter.Size, items);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<CustomerEntity>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await customerAccessor.QueryListAsync(keyword, parameter.Code, parameter.Phone, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<CustomerEntity>(total, parameter.Page, parameter.Size, items);
     }
 
     public ValueTask<CustomerEntity?> QueryAsync(Guid id, CancellationToken cancellationToken) =>
@@ -100,8 +105,13 @@ public sealed class CustomerService
         }
 
         var total = await customerAccessor.CountPointHistoryAsync(customerId, cancellationToken);
-        var items = await customerAccessor.QueryPointHistoryListAsync(customerId, size, (long)page * size, cancellationToken);
-        return new PagedResult<PointHistoryEntity>((int)total, page, size, items);
+        if (page > total / size)
+        {
+            return new PagedResult<PointHistoryEntity>(total, page, size, []);
+        }
+
+        var items = await customerAccessor.QueryPointHistoryListAsync(customerId, size, page * size, cancellationToken);
+        return new PagedResult<PointHistoryEntity>(total, page, size, items);
     }
 
     // 手動調整 (Adjust 履歴を作り、残高を加減算する)。会員がなければ NotFound、担当が見つからなければ (削除済みも) Invalid

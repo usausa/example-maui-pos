@@ -25,8 +25,13 @@ public sealed class CategoryService
     public async ValueTask<PagedResult<CategoryEntity>> QueryPageAsync(CategoryQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await masterAccessor.CountCategoriesAsync(parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
-        var items = await masterAccessor.QueryCategoryListAsync(parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
-        return new PagedResult<CategoryEntity>((int)total, parameter.Page, parameter.Size, items);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<CategoryEntity>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await masterAccessor.QueryCategoryListAsync(parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<CategoryEntity>(total, parameter.Page, parameter.Size, items);
     }
 
     // 全件を大分類の並び順に、その中分類を続けた順で返す (セレクタ・ツリー用)。親のない中分類は末尾

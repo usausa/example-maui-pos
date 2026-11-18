@@ -36,10 +36,10 @@ public sealed partial class MasterAccessor
     //--------------------------------------------------------------------------------
 
     [ExecuteScalar]
-    public partial ValueTask<long> CountStoresAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountStoresAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<StoreEntity>> QueryStoreListAsync(DateTime? updatedSince, bool includeDeleted, StoreSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<StoreEntity>> QueryStoreListAsync(DateTime? updatedSince, bool includeDeleted, StoreSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (コード順)
     [Query]
@@ -78,10 +78,10 @@ public sealed partial class MasterAccessor
     //--------------------------------------------------------------------------------
 
     [ExecuteScalar]
-    public partial ValueTask<long> CountTerminalsAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountTerminalsAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<TerminalEntity>> QueryTerminalListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, TerminalSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<TerminalEntity>> QueryTerminalListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, TerminalSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (店舗、端末番号順)
     [Query]
@@ -119,7 +119,7 @@ public sealed partial class MasterAccessor
 
     // 削除可否 (開設中シフトがあれば IN_USE)
     [ExecuteScalar]
-    public partial ValueTask<long> CountTerminalOpenShiftsAsync(Guid terminalId, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountTerminalOpenShiftsAsync(Guid terminalId, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Staff
@@ -127,10 +127,10 @@ public sealed partial class MasterAccessor
 
     // storeId 指定時は本部 (StoreId = NULL) も含める
     [ExecuteScalar]
-    public partial ValueTask<long> CountStaffAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountStaffAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<StaffEntity>> QueryStaffListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, StaffSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<StaffEntity>> QueryStaffListAsync(Guid? storeId, DateTime? updatedSince, bool includeDeleted, StaffSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (コード順)
     [Query]
@@ -168,10 +168,10 @@ public sealed partial class MasterAccessor
     //--------------------------------------------------------------------------------
 
     [ExecuteScalar]
-    public partial ValueTask<long> CountCategoriesAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountCategoriesAsync(DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<CategoryEntity>> QueryCategoryListAsync(DateTime? updatedSince, bool includeDeleted, CategorySort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<CategoryEntity>> QueryCategoryListAsync(DateTime? updatedSince, bool includeDeleted, CategorySort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (並び順、コード順)
     [Query]
@@ -201,10 +201,10 @@ public sealed partial class MasterAccessor
 
     // 削除可否 (所属商品・子部門があれば IN_USE)
     [ExecuteScalar]
-    public partial ValueTask<long> CountCategoryProductsAsync(Guid categoryId, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountCategoryProductsAsync(Guid categoryId, CancellationToken cancellationToken);
 
     [ExecuteScalar]
-    public partial ValueTask<long> CountCategoryChildrenAsync(Guid parentId, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountCategoryChildrenAsync(Guid parentId, CancellationToken cancellationToken);
 
     // 部門ごとの所属商品数 (管理画面のツリー)
     [Query]
@@ -248,7 +248,7 @@ public sealed partial class MasterAccessor
 
     // 削除可否 (使用中商品があれば IN_USE)
     [ExecuteScalar]
-    public partial ValueTask<long> CountTaxRateProductsAsync(Guid taxRateId, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountTaxRateProductsAsync(Guid taxRateId, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Discount
@@ -318,7 +318,7 @@ public sealed partial class MasterAccessor
 
     // Kind = Points / Deposit の有効な行はそれぞれちょうど 1 件 (指定 ID を除いた件数)
     [ExecuteScalar]
-    public partial ValueTask<long> CountActivePaymentMethodsByKindAsync(PaymentKind kind, Guid exceptId, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountActivePaymentMethodsByKindAsync(PaymentKind kind, Guid exceptId, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // AdjustmentReason

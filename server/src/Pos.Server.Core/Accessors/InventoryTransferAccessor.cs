@@ -8,10 +8,10 @@ using Pos.Server.Models.Entity;
 public sealed partial class InventoryTransferAccessor
 {
     [ExecuteScalar]
-    public partial ValueTask<long> CountAsync(Guid? storeId, Guid? fromStoreId, Guid? toStoreId, InventoryTransferStatus? status, bool openOnly, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountAsync(Guid? storeId, Guid? fromStoreId, Guid? toStoreId, InventoryTransferStatus? status, bool openOnly, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<InventoryTransferEntity>> QueryListAsync(Guid? storeId, Guid? fromStoreId, Guid? toStoreId, InventoryTransferStatus? status, bool openOnly, InventoryTransferSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<InventoryTransferEntity>> QueryListAsync(Guid? storeId, Guid? fromStoreId, Guid? toStoreId, InventoryTransferStatus? status, bool openOnly, InventoryTransferSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(InventoryTransferEntity))]

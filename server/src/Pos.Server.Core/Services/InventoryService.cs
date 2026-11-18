@@ -50,8 +50,13 @@ public sealed class InventoryService
     public async ValueTask<PagedResult<InventoryLevelEntity>> QueryLevelPageAsync(InventoryLevelQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await inventoryAccessor.CountLevelsAsync(parameter.StoreId, parameter.ProductId, parameter.CategoryId, parameter.NegativeOnly, parameter.UpdatedSince, cancellationToken);
-        var items = await inventoryAccessor.QueryLevelListAsync(parameter.StoreId, parameter.ProductId, parameter.CategoryId, parameter.NegativeOnly, parameter.UpdatedSince, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
-        return new PagedResult<InventoryLevelEntity>((int)total, parameter.Page, parameter.Size, items);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<InventoryLevelEntity>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await inventoryAccessor.QueryLevelListAsync(parameter.StoreId, parameter.ProductId, parameter.CategoryId, parameter.NegativeOnly, parameter.UpdatedSince, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<InventoryLevelEntity>(total, parameter.Page, parameter.Size, items);
     }
 
     // 商品の全店舗在庫 (他店在庫照会)。商品がなければ null
@@ -70,8 +75,13 @@ public sealed class InventoryService
     {
         var keyword = ServiceHelper.ToLikePattern(dialect, parameter.Keyword);
         var total = await inventoryAccessor.CountLevelDetailsAsync(parameter.StoreId, parameter.CategoryId, keyword, parameter.NegativeOnly, cancellationToken);
-        var items = await inventoryAccessor.QueryLevelDetailListAsync(parameter.StoreId, parameter.CategoryId, keyword, parameter.NegativeOnly, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
-        return new PagedResult<InventoryLevelDetailView>((int)total, parameter.Page, parameter.Size, items);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<InventoryLevelDetailView>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await inventoryAccessor.QueryLevelDetailListAsync(parameter.StoreId, parameter.CategoryId, keyword, parameter.NegativeOnly, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<InventoryLevelDetailView>(total, parameter.Page, parameter.Size, items);
     }
 
     //--------------------------------------------------------------------------------
@@ -123,8 +133,13 @@ public sealed class InventoryService
     public async ValueTask<PagedResult<InventoryChangeEntity>> QueryChangePageAsync(InventoryChangeQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await inventoryAccessor.CountChangesAsync(parameter.StoreId, parameter.ProductId, parameter.Type, parameter.From, parameter.To, cancellationToken);
-        var items = await inventoryAccessor.QueryChangeListAsync(parameter.StoreId, parameter.ProductId, parameter.Type, parameter.From, parameter.To, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
-        return new PagedResult<InventoryChangeEntity>((int)total, parameter.Page, parameter.Size, items);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<InventoryChangeEntity>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await inventoryAccessor.QueryChangeListAsync(parameter.StoreId, parameter.ProductId, parameter.Type, parameter.From, parameter.To, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<InventoryChangeEntity>(total, parameter.Page, parameter.Size, items);
     }
 
     // 1 トランザクションで在庫を加減算し、変動履歴を残す。PhysicalCount は quantityDelta = quantity − 現在庫

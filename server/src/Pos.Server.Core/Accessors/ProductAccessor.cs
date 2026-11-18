@@ -9,10 +9,10 @@ public sealed partial class ProductAccessor
 {
     // keyword は呼び出し側でエスケープ済みの LIKE パターン (%...%)
     [ExecuteScalar]
-    public partial ValueTask<long> CountAsync(Guid? categoryId, string? keyword, bool? isActive, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountAsync(Guid? categoryId, string? keyword, bool? isActive, DateTime? updatedSince, bool includeDeleted, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<ProductEntity>> QueryListAsync(Guid? categoryId, string? keyword, bool? isActive, DateTime? updatedSince, bool includeDeleted, ProductSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<ProductEntity>> QueryListAsync(Guid? categoryId, string? keyword, bool? isActive, DateTime? updatedSince, bool includeDeleted, ProductSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // 全件 (コード順)
     [Query]

@@ -47,6 +47,8 @@ paths:
 - テーブル名は Entity クラスの `[Name("Stores")]` で持ち、Builder 属性 (`[SelectSingle]`、`[Insert]`、`[Delete]`) に `Table` を書かない
 - DB に保存する列挙型と日付の変換は `DataProfile` に登録する (新しい列挙型も登録する)
 - 列挙型は `EnumTextConverter<T>` で文字列にする
+- 件数 (`CountXxx`) は `int` で返す (画面の部品と .NET の `Count` が int。DB の 64 bit の値は Accessor が変換し、int を超えると例外になる)
+- ページングの `limit` と `offset` は `int` で受ける
 - 戻り値の 0 や null が何を意味するか (先に変えられた、見つからない) は、メソッドのコメントに書く
 - 同じ意味のメソッドが多い Accessor (`MasterAccessor`) は、戻り値の意味をクラスのコメントにまとめてよい
 

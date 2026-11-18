@@ -13,11 +13,11 @@ public sealed partial class DailyClosingAccessor
 
     // 店舗 × 営業日 (シフト・取引・締めのある日)。その日のシフトと、その日の取引を含むシフトを数える
     [ExecuteScalar]
-    public partial ValueTask<long> CountDaysAsync(Guid? storeId, DailyClosingStatus? status, DateOnly? from, DateOnly? to, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountDaysAsync(Guid? storeId, DailyClosingStatus? status, DateOnly? from, DateOnly? to, CancellationToken cancellationToken);
 
     // 締め済みは締めた時点の日計、未締めは取引から集計する
     [Query]
-    public partial ValueTask<List<DailyClosingDayView>> QueryDayListAsync(Guid? storeId, DailyClosingStatus? status, DateOnly? from, DateOnly? to, DailyClosingSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<DailyClosingDayView>> QueryDayListAsync(Guid? storeId, DailyClosingStatus? status, DateOnly? from, DateOnly? to, DailyClosingSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     // その営業日のシフトと、その営業日の取引を含むシフト (前日から日をまたいだシフト)
     [Query]

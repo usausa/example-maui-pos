@@ -391,8 +391,8 @@ public sealed class SyncService : IDisposable
         var failed = await accessor.CountOutboxAsync(OutboxStatus.Failed);
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            session.UnsentCount = (int)(pending + failed);
-            session.FailedCount = (int)failed;
+            session.UnsentCount = pending + failed;
+            session.FailedCount = failed;
         });
     }
 

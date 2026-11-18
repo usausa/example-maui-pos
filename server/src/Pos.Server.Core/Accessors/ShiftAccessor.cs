@@ -16,10 +16,10 @@ public sealed partial class ShiftAccessor
     public partial ValueTask<ShiftEntity?> QueryCurrentAsync(Guid terminalId, CancellationToken cancellationToken);
 
     [ExecuteScalar]
-    public partial ValueTask<long> CountAsync(Guid? storeId, Guid? terminalId, ShiftStatus? status, DateOnly? from, DateOnly? to, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountAsync(Guid? storeId, Guid? terminalId, ShiftStatus? status, DateOnly? from, DateOnly? to, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<ShiftEntity>> QueryListAsync(Guid? storeId, Guid? terminalId, ShiftStatus? status, DateOnly? from, DateOnly? to, ShiftSort sort, bool desc, int limit, long offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<ShiftEntity>> QueryListAsync(Guid? storeId, Guid? terminalId, ShiftStatus? status, DateOnly? from, DateOnly? to, ShiftSort sort, bool desc, int limit, int offset, CancellationToken cancellationToken);
 
     [QueryFirst]
     [SelectSingle(typeof(ShiftEntity))]
@@ -75,10 +75,10 @@ public sealed partial class ShiftAccessor
     public partial ValueTask<CashEventEntity?> QueryCashEventAsync(Guid id, CancellationToken cancellationToken);
 
     [ExecuteScalar]
-    public partial ValueTask<long> CountCashEventsAsync(Guid shiftId, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountCashEventsAsync(Guid shiftId, CancellationToken cancellationToken);
 
     [Query]
-    public partial ValueTask<List<CashEventEntity>> QueryCashEventListAsync(Guid shiftId, int limit, long offset, CancellationToken cancellationToken);
+    public partial ValueTask<List<CashEventEntity>> QueryCashEventListAsync(Guid shiftId, int limit, int offset, CancellationToken cancellationToken);
 
     //--------------------------------------------------------------------------------
     // Summary

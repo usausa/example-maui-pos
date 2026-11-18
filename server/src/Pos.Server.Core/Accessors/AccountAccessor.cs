@@ -7,7 +7,7 @@ using Pos.Server.Models.Entity;
 public sealed partial class AccountAccessor
 {
     [ExecuteScalar]
-    public partial ValueTask<long> CountAsync(CancellationToken cancellationToken);
+    public partial ValueTask<int> CountAsync(CancellationToken cancellationToken);
 
     // ログイン ID 順
     [Query]

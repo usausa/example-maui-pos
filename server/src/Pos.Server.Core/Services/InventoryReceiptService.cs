@@ -57,7 +57,12 @@ public sealed class InventoryReceiptService
     public async ValueTask<PagedResult<InventoryReceiptDetailView>> QueryPageAsync(InventoryReceiptQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await receiptAccessor.CountAsync(parameter.StoreId, parameter.SupplierId, parameter.Status, parameter.From, parameter.To, cancellationToken);
-        var items = await receiptAccessor.QueryListAsync(parameter.StoreId, parameter.SupplierId, parameter.Status, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<InventoryReceiptDetailView>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await receiptAccessor.QueryListAsync(parameter.StoreId, parameter.SupplierId, parameter.Status, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
         var suppliers = await QuerySupplierNamesAsync(cancellationToken);
         var details = new List<InventoryReceiptDetailView>(items.Count);
         foreach (var item in items)
@@ -65,7 +70,7 @@ public sealed class InventoryReceiptService
             details.Add(await LoadDetailAsync(item, suppliers, cancellationToken));
         }
 
-        return new PagedResult<InventoryReceiptDetailView>((int)total, parameter.Page, parameter.Size, details);
+        return new PagedResult<InventoryReceiptDetailView>(total, parameter.Page, parameter.Size, details);
     }
 
     public async ValueTask<InventoryReceiptDetailView?> QueryDetailAsync(Guid id, CancellationToken cancellationToken)

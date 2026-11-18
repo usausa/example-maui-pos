@@ -68,14 +68,19 @@ public sealed class OrderService
         var keyword = ServiceHelper.ToLikePattern(dialect, parameter.Keyword);
         var (from, to) = ToUtcRange(parameter.From, parameter.To);
         var total = await orderAccessor.CountAsync(parameter.StoreId, parameter.Status, parameter.OpenOnly, parameter.Type, parameter.CustomerId, keyword, from, to, cancellationToken);
-        var orders = await orderAccessor.QueryListAsync(parameter.StoreId, parameter.Status, parameter.OpenOnly, parameter.Type, parameter.CustomerId, keyword, from, to, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<OrderDetailView>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var orders = await orderAccessor.QueryListAsync(parameter.StoreId, parameter.Status, parameter.OpenOnly, parameter.Type, parameter.CustomerId, keyword, from, to, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
         var items = new List<OrderDetailView>(orders.Count);
         foreach (var order in orders)
         {
             items.Add(await LoadDetailAsync(order, cancellationToken));
         }
 
-        return new PagedResult<OrderDetailView>((int)total, parameter.Page, parameter.Size, items);
+        return new PagedResult<OrderDetailView>(total, parameter.Page, parameter.Size, items);
     }
 
     public async ValueTask<OrderDetailView?> QueryDetailAsync(Guid id, CancellationToken cancellationToken)

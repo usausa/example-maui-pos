@@ -53,7 +53,12 @@ public sealed class InventoryTransferService
     public async ValueTask<PagedResult<InventoryTransferDetailView>> QueryPageAsync(InventoryTransferQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await transferAccessor.CountAsync(parameter.StoreId, parameter.FromStoreId, parameter.ToStoreId, parameter.Status, parameter.OpenOnly, cancellationToken);
-        var items = await transferAccessor.QueryListAsync(parameter.StoreId, parameter.FromStoreId, parameter.ToStoreId, parameter.Status, parameter.OpenOnly, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<InventoryTransferDetailView>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await transferAccessor.QueryListAsync(parameter.StoreId, parameter.FromStoreId, parameter.ToStoreId, parameter.Status, parameter.OpenOnly, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
         var stores = await QueryStoreNamesAsync(cancellationToken);
         var details = new List<InventoryTransferDetailView>(items.Count);
         foreach (var item in items)
@@ -61,7 +66,7 @@ public sealed class InventoryTransferService
             details.Add(await LoadDetailAsync(item, stores, cancellationToken));
         }
 
-        return new PagedResult<InventoryTransferDetailView>((int)total, parameter.Page, parameter.Size, details);
+        return new PagedResult<InventoryTransferDetailView>(total, parameter.Page, parameter.Size, details);
     }
 
     public async ValueTask<InventoryTransferDetailView?> QueryDetailAsync(Guid id, CancellationToken cancellationToken)
@@ -75,7 +80,7 @@ public sealed class InventoryTransferService
     {
         var requested = await transferAccessor.CountAsync(storeId, null, null, InventoryTransferStatus.Requested, false, cancellationToken);
         var shipped = await transferAccessor.CountAsync(storeId, null, null, InventoryTransferStatus.Shipped, false, cancellationToken);
-        return ((int)requested, (int)shipped);
+        return (requested, shipped);
     }
 
     //--------------------------------------------------------------------------------

@@ -26,8 +26,13 @@ public sealed class StaffService
     public async ValueTask<PagedResult<StaffEntity>> QueryPageAsync(StaffQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await masterAccessor.CountStaffAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, cancellationToken);
-        var items = await masterAccessor.QueryStaffListAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
-        return new PagedResult<StaffEntity>((int)total, parameter.Page, parameter.Size, items);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<StaffEntity>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await masterAccessor.QueryStaffListAsync(parameter.StoreId, parameter.UpdatedSince, parameter.IncludeDeleted, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<StaffEntity>(total, parameter.Page, parameter.Size, items);
     }
 
     // 全件 (コード順)

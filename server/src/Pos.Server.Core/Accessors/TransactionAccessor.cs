@@ -19,7 +19,7 @@ public sealed partial class TransactionAccessor
     public partial ValueTask<TransactionEntity?> QueryByReceiptNoAsync(string receiptNo, CancellationToken cancellationToken);
 
     [ExecuteScalar]
-    public partial ValueTask<long> CountAsync(
+    public partial ValueTask<int> CountAsync(
         Guid? storeId,
         Guid? terminalId,
         Guid? staffId,
@@ -47,7 +47,7 @@ public sealed partial class TransactionAccessor
         TransactionSort sort,
         bool desc,
         int limit,
-        long offset,
+        int offset,
         CancellationToken cancellationToken);
 
     [Query]
@@ -71,7 +71,7 @@ public sealed partial class TransactionAccessor
 
     // 取消可否 (返品が紐付いていれば HAS_RETURNS)
     [ExecuteScalar]
-    public partial ValueTask<long> CountReturnsAsync(Guid originalTransactionId, CancellationToken cancellationToken);
+    public partial ValueTask<int> CountReturnsAsync(Guid originalTransactionId, CancellationToken cancellationToken);
 
     // 元取引に紐付く返品取引 (取消済みも含む。管理画面の関連取引)
     [Query]

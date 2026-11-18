@@ -95,8 +95,13 @@ public sealed class ShiftService
     public async ValueTask<PagedResult<ShiftEntity>> QueryPageAsync(ShiftQueryParameter parameter, CancellationToken cancellationToken)
     {
         var total = await shiftAccessor.CountAsync(parameter.StoreId, parameter.TerminalId, parameter.Status, parameter.From, parameter.To, cancellationToken);
-        var items = await shiftAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.Status, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, (long)parameter.Page * parameter.Size, cancellationToken);
-        return new PagedResult<ShiftEntity>((int)total, parameter.Page, parameter.Size, items);
+        if (parameter.Page > total / parameter.Size)
+        {
+            return new PagedResult<ShiftEntity>(total, parameter.Page, parameter.Size, []);
+        }
+
+        var items = await shiftAccessor.QueryListAsync(parameter.StoreId, parameter.TerminalId, parameter.Status, parameter.From, parameter.To, parameter.Sort, parameter.Desc, parameter.Size, parameter.Page * parameter.Size, cancellationToken);
+        return new PagedResult<ShiftEntity>(total, parameter.Page, parameter.Size, items);
     }
 
     // 集計付き
@@ -318,8 +323,13 @@ public sealed class ShiftService
         }
 
         var total = await shiftAccessor.CountCashEventsAsync(shiftId, cancellationToken);
-        var items = await shiftAccessor.QueryCashEventListAsync(shiftId, size, (long)page * size, cancellationToken);
-        return new PagedResult<CashEventEntity>((int)total, page, size, items);
+        if (page > total / size)
+        {
+            return new PagedResult<CashEventEntity>(total, page, size, []);
+        }
+
+        var items = await shiftAccessor.QueryCashEventListAsync(shiftId, size, page * size, cancellationToken);
+        return new PagedResult<CashEventEntity>(total, page, size, items);
     }
 
     //--------------------------------------------------------------------------------
