@@ -1,6 +1,6 @@
 ---
 name: readme-images
-description: README の画像 (管理画面、端末、帳票) を撮り直す。画面や帳票の見た目を変更したときと、README に画像を足すときに使う
+description: README の画像 (管理画面、端末、帳票) を撮り直す。画面や帳票の表示を変更したときと、README に画像を足すときに使う
 ---
 
 # README の画像
@@ -26,7 +26,7 @@ description: README の画像 (管理画面、端末、帳票) を撮り直す�
 - サーバをバックグラウンドで起動する: `dotnet run --project server/src/Pos.Server.Host`
   - `<サーバの URL>/health` がレスポンスを返すまで待つ
   - 撮り終えたら止める
-- 画面に中身が出るように、サンプルの取引を作る
+- 画面に内容が出るように、サンプルの取引を作る
   - `dotnet run --project server/tools/Pos.Server.SampleData -- --days 7`
 - ダッシュボードには当日の取引が要るので、撮る直前に当日分を足す
   - `dotnet run --project server/tools/Pos.Server.SampleData -- --days 1 --seed 3`
@@ -40,7 +40,7 @@ description: README の画像 (管理画面、端末、帳票) を撮り直す�
 2. 撮る: `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json`
    - Node.js 22 以降と Chrome が要る
    - Chrome の場所は `CHROME_PATH`、DevTools のポートは `CDP_PORT` (既定 9334) で変更する
-3. 撮った画像を見て、中身 (件数、ダイアログ、エラーの有無) を確認する
+3. 撮った画像を見て、内容 (件数、ダイアログ、エラーの有無) を確認する
 4. そろえる: `python .claude/skills/readme-images/scripts/shrink.py server <一時フォルダ>/server-*.png` (`*` はスクリプトが展開する)
 
 - レジ端末 (`server-terminals`) は、登録していない「本店 レジ 2」にペアリングコードを発行し、ダイアログを出した状態で撮る (コードは 10 分で失効する)
@@ -83,7 +83,7 @@ description: README の画像 (管理画面、端末、帳票) を撮り直す�
 1. 手順を作る: `python .claude/skills/readme-images/scripts/report_steps.py --out <一時フォルダ>`
    - 一部だけなら `--only report-order`
 2. 撮る: `node .claude/skills/readme-images/scripts/capture_server.mjs <一時フォルダ>/steps.json 1240 1754` (A4 の比)
-3. 撮った画像を見て、対象と中身を確認する (確認のために入力した備考などが写っていないか)
+3. 撮った画像を見て、対象と内容を確認する (確認のために入力した備考などが写っていないか)
 4. そろえる: `python .claude/skills/readme-images/scripts/shrink.py report <一時フォルダ>/report-*.png` (用紙を切り出し、600x849 の枠の中央に置く)
 
 | 画像 | 帳票の対象 (開発用の DB から選ぶ) |
@@ -103,4 +103,4 @@ description: README の画像 (管理画面、端末、帳票) を撮り直す�
 - 撮るために変更したデータ (発行したペアリングコード、足した取引、端末の登録、開いたシフト) は、開発用の DB に残る
   - 端末の登録は解除する
   - シフトは精算する
-- DB を作り直すときは、サーバを止めて `pos.db` (Host の出力フォルダ) を消し、起動し直す (初期データが入る)
+- DB を再作成するときは、サーバを止めて `pos.db` (Host の出力フォルダ) を消し、再起動する (初期データが入る)

@@ -12,7 +12,7 @@ from pathlib import Path
 
 API = '/api/v1'
 
-# (画像の名前, 取り出す PDF の URL を返す式)。README の帳票の表と同じ順。対象は開発用の DB から選ぶ
+# (画像の名前, 取得する PDF の URL を返す式)。README の帳票の表と同じ順。対象は開発用の DB から選ぶ
 REPORTS = [
     # 受注票: 前受金のある未完了の受注 (なければ最初の未完了の受注)
     ('report-order', f"""(async () => {{

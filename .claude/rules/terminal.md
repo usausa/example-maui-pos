@@ -91,7 +91,7 @@ paths:
 - 書いた後は、`UpdateCountsAsync()` と `Trigger()` で送信を促す
 - 端末で記録した返品は、元の取引 (端末の記録) の返品済みの数量に、同じトランザクションで足す
 - 返品の取消では、元の取引の返品済みの数量を戻す
-- サーバから取得した元の取引には、まだ送っていない取消と返品を反映する
+- サーバから取得した元の取引には、未送信の取消と返品を反映する
 - 送った取引をサーバのレスポンスで置き換えるときは、端末だけが知る記録を残す (送信は発生順なので、後の記録はまだレスポンスに入っていない)
   - 販売には、この端末で記録した取り消していない返品の数量を足す
   - 取消を送る前の取引は、取消の状態と情報を残す
@@ -122,7 +122,7 @@ paths:
 | ローカル DB のエンティティ | `Models/Entity/` |
 | 単機能の部品 (`XxxService`)、サーバとの通信の型 (`ApiContext`、`ApiResult`、`ProblemResponse`、`ApiNames`)、ローカル DB (`DataAccessor`、`DataProfile`、`Sql/`)、テキストや画像の組み立て (`XxxBuilder`) | `Services/` |
 | 複合的な手順 (`XxxUsecase`) と、その変換 (`XxxMapper`) と計算 (`XxxCalculator`) | `Usecases/` |
-| 見た目の部品 | `Controls/` |
+| 表示の部品 | `Controls/` |
 | 添付プロパティ (`XxxOption`、`EntryBind`、`BarcodeBind`、`Border`、`Scroll`、`Focus`) | `Behaviors/` |
 | マークアップ拡張とアイコン (`AppIcons`) | `Markup/` |
 | F キー、タイトル、ステータスバーの仕組み (`ShellProperty`、`ShellUpdateBehavior`、`IShellControl` と `FunctionState`、`ShellEvent`) | `Shell/` |
@@ -153,8 +153,8 @@ paths:
   - `MainApplication` の地図のキー
   - `App.xaml` の Palettes
   - `App.xaml.cs` のフォアグラウンドの状態 (`Session.IsForeground`)
-- 例外として、`MainActivity` の名前と、`App.xaml.cs` の初期化の中身と同期の開始は POS のものにする
-- POS だけの動きと見た目は、共通の部品を変えずに、別のファイル (`Extender/NavigationUnfocusPlugin`、`Messaging/EntryCompleteCommand`、`Models/Input/DigitsInputParameter`、`Controls/LabelChip`) か、アプリ固有のファイル (`MainPage`、`MainPageViewModel`、`Extensions.cs`、`Log.cs`) に置く
+- 例外として、`MainActivity` の名前と、`App.xaml.cs` の初期化の内容と同期の開始は POS のものにする
+- POS だけの動きと表示は、共通の部品を変えずに、別のファイル (`Extender/NavigationUnfocusPlugin`、`Messaging/EntryCompleteCommand`、`Models/Input/DigitsInputParameter`、`Controls/LabelChip`) か、アプリ固有のファイル (`MainPage`、`MainPageViewModel`、`Extensions.cs`、`Log.cs`) に置く
 - 共通の部品が使うアプリ固有のファイルのメンバー (`Extensions.cs` の `SetDefaultFocus` と `XxxChangedAsObservable`、`Log.cs` のメッセージ) は、テンプレートと同じにする (違うと、テンプレートの更新を取り込んだときに壊れるため)
 
 ## 変換

@@ -4,7 +4,7 @@
 //
 // steps: [{ "go": url, "waitMs"?: n }, { "wait": ms }, { "click": text, "selector"?: css, "nth"?: n }, { "type": text },
 //         { "key": "Enter" }, { "eval": js }, { "save": js, "file": file }, { "shot": file }]
-// save はログインした画面から取り出す URL を返す式 (帳票の PDF などを file に保存する)
+// save はログインした画面から取得する URL を返す式 (帳票の PDF などを file に保存する)
 // Chrome の場所は環境変数 CHROME_PATH、DevTools のポートは CDP_PORT (既定 9334) で変えられる
 import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -123,7 +123,7 @@ async function main() {
     } else if (step.eval) {
       console.log(JSON.stringify(await evaluate(step.eval)));
     } else if (step.save) {
-      // 画面の Cookie で取り出し、Base64 で受け取って保存する
+      // 画面の Cookie で取得し、Base64 で受け取って保存する
       const result = await evaluate(`(async () => {
         const url = await (${step.save});
         const response = await fetch(url);
@@ -134,7 +134,7 @@ async function main() {
         return { data: btoa(text) };
       })()`);
       if (!result?.data) {
-        throw new Error(`取り出せません: ${result?.error ?? step.save}`);
+        throw new Error(`取得できません: ${result?.error ?? step.save}`);
       }
       writeFileSync(step.file, Buffer.from(result.data, "base64"));
       console.log(`saved ${step.file}`);

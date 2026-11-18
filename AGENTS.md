@@ -21,7 +21,7 @@
 - 作業の単位ごとに `/verify` を通し、すべて OK にする
 - テストは `dotnet run --project` で実行する。`dotnet test` は使わない
 - UI の変更は、端末は `/emulator`、管理画面はブラウザ (ヘッドレスなら readme-images の `capture_server.mjs`) で動作を確認する
-- 画面や帳票の見た目を変えたら、README の画像 (`docs/images/`) を `/readme-images` で撮り直す
+- 画面や帳票の表示を変えたら、README の画像 (`docs/images/`) を `/readme-images` で撮り直す
 
 ## 進め方
 

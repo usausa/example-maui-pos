@@ -58,7 +58,7 @@ paths:
 - `MudDialogProvider` は `MainLayout` の `ErrorBoundary` の中にだけ置く (ダイアログの読み込みの例外も `ErrorBoundary` が受け、回線の未処理例外にしない)
 - エラー表示の間は `MudDialogProvider` がないので、`ErrorBoundary` の外の部品 (AppBar、NavMenu) からダイアログを開かない
 
-## 見た目
+## デザイン
 
 - スタイルは `wwwroot/css/app.css` のクラスに集約し、`.razor.css` を作らず、要素に `Style=`、`style=` を書かない
 - 表の列幅も、`w-120` のような幅クラスを app.css に定義して使う

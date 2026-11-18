@@ -86,7 +86,7 @@ description: レジ端末アプリをエミュレータで動かして確認す�
   - `dotnet build terminal/Pos.Terminal/Pos.Terminal.csproj -f net11.0-android -c Release`
   - `adb -s emulator-xxxx install -r terminal/Pos.Terminal/bin/Release/net11.0-android/pos.terminal-Signed.apk`
 - エミュレータの空きが足りずにインストールできないときは、`adb -s emulator-xxxx uninstall pos.terminal` でアンインストールしてからインストールする
-  - インストールの後、登録し直す
+  - インストールの後、再登録する
 - Release では `emu.py screen` (Navigated のログ) と `emu.py pref` (run-as) が使えないので、遷移は撮った画像で確認する
 - 時間を測るときは、一時的に `Android.Util.Log.Info("POSDBG", ...)` を追加する (測り終えたら削除する)
   - 操作の前に `adb -s emulator-xxxx shell log -t POSDBG <印>` で印を付ける
