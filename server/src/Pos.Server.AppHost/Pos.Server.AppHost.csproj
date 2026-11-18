@@ -3,7 +3,6 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net11.0</TargetFramework>
-    <CodeAnalysisRuleSet>..\..\..\Analyzers.ruleset</CodeAnalysisRuleSet>
     <AspireUseCliBundle>true</AspireUseCliBundle>
     <UserSecretsId>7d3f0f1e-9b64-4b7e-a1c2-2f5c1b0d9e47</UserSecretsId>
   </PropertyGroup>

@@ -36,7 +36,7 @@
 ```
 example-maui-pos/
 ├─ .editorconfig / .gitattributes / .gitignore / Directory.Build.props / Directory.Build.targets / Settings.XamlStyler
-├─ Analyzers.ruleset / CodeCoverage.runsettings / AGENTS.md (AI 向け: 全体の書き方・検証・進め方) / LICENSE / README.md
+├─ .globalconfig / CodeCoverage.runsettings / AGENTS.md (AI 向け: 全体の書き方・検証・進め方) / LICENSE / README.md
 │                                    ↑ ルートに 1 セット (MAUI 用の NoWarn NU1608 を含む)
 ├─ .claude/rules/                    AI 向け: コードの書き方の規則 (common = 全体と共有プロジェクト、他は paths で対象を絞る)
 ├─ .claude/skills/                   AI 向け: 繰り返す手順とスクリプト (verify = 検証、readme-images = README の画像、emulator = エミュレータでの確認)
@@ -66,9 +66,9 @@ example-maui-pos/
 
 - `server/Pos.Server.slnx` と `terminal/Pos.Terminal.slnx` は互いを含まない
 - どちらのソリューションも `../shared/` のプロジェクトを含む (同じプロジェクトを 2 つのソリューションに入れる)
-- ルートの `Directory.Build.props` / `Analyzers.ruleset` / `.editorconfig` は、サーバと端末の両方に適用される
+- ルートの `Directory.Build.props` / `.globalconfig` / `.editorconfig` は、サーバと端末の両方に適用される
   - MSBuild は上位のフォルダの props を読み込む
-  - ruleset は各 csproj の `CodeAnalysisRuleSet` から相対パスで参照する
+  - `.globalconfig` もビルドが上位のフォルダから読み込む (csproj からは参照しない)
 - 全体を一度にビルドするときは `dotnet build server/Pos.Server.slnx && dotnet build terminal/Pos.Terminal.slnx` を実行する
 - 両方を含む統合ソリューションは作らない (Visual Studio で個別に動かすため)
 

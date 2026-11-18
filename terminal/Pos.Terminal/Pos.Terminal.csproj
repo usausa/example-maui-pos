@@ -8,7 +8,6 @@
     <SingleProject>true</SingleProject>
     <MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
     <MauiStrictXamlCompilation>true</MauiStrictXamlCompilation>
-    <CodeAnalysisRuleSet>..\..\Analyzers.ruleset</CodeAnalysisRuleSet>
 
     <!-- XA4301: BarcodeScanning.Native.Maui が MLKit と同じ libbarhopper_v3.so を同梱するための重複警告。アプリ側では解消できない -->
     <NoWarn>$(NoWarn);XA4301</NoWarn>
